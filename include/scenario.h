@@ -90,10 +90,11 @@ public:
 
 	/* returns the same scenario for concatenating calls */
 	Scenario* Until(UntilCondition* until);
-	Scenario* Until(std::string& label);
+	Scenario* Until(const std::string& label);
 	Scenario* Until(const char* label);
 	Scenario* UntilStar();
 	Scenario* UntilEnd();
+	Scenario* UntilFirst();
 
 	Scenario* Except(Coroutine* t);
 	Scenario* Except(const char* name);

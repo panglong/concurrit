@@ -127,6 +127,9 @@ inline writer<T> yield_write(const char* label, T* mem, const char* expr, Source
 #define UNTIL_FALSE(pred, trans) \
 	{ trans ; Assume(!(pred)); }
 
+#define UNTIL_FIRST() \
+	UntilFirst()
+
 #define UNTIL_END() \
 	UntilEnd()
 

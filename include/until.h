@@ -50,12 +50,12 @@ public:
 
 class UntilLabelCondition : public UntilCondition {
 public:
-	explicit UntilLabelCondition(std::string& label) : UntilCondition() {
+	explicit UntilLabelCondition(const std::string& label) : UntilCondition() {
 		label_ = label;
 	}
 	~UntilLabelCondition(){}
 
-	bool Check(SchedulePoint* point) {
+	virtual bool Check(SchedulePoint* point) {
 		VLOG(2) << "Checking labels " << this->label_ << " and " << point->AsYield()->label();
 		return this->label_ == point->AsYield()->label();
 	}
@@ -66,14 +66,35 @@ private:
 
 /********************************************************************************/
 
+class UntilEndCondition : public UntilLabelCondition {
+public:
+	UntilEndCondition() : UntilLabelCondition(ENDING_LABEL) {}
+	~UntilEndCondition(){}
+};
+
+/********************************************************************************/
+
 class UntilStarCondition : public UntilCondition {
 public:
 	UntilStarCondition() : UntilCondition() {}
 	~UntilStarCondition(){}
 
-	bool Check(SchedulePoint* point) {
+	virtual bool Check(SchedulePoint* point) {
 		VLOG(2) << "Checking Until STAR!";
 		return point->IsTransfer() || point->AsYield()->label() == ENDING_LABEL ;
+	}
+};
+
+/********************************************************************************/
+
+class UntilFirstCondition : public UntilCondition {
+public:
+	UntilFirstCondition() : UntilCondition() {}
+	~UntilFirstCondition(){}
+
+	bool Check(SchedulePoint* point) {
+		VLOG(2) << "Checking Until FIRST!";
+		return true;
 	}
 };
 
@@ -90,24 +111,23 @@ public:
 	}
 
 	void Reset() {
-		if(until_ != NULL && until_ != &until_star_) {
+		if(until_ != NULL && until_ != &until_star_ && until_ != &until_first_ && until_ != &until_end_) {
 			delete until_;
 		}
 		until_ = until_star();
 		except_.clear();
 	}
 
+	void UntilFirst() {
+		Until(until_first());
+	}
+
 	void UntilEnd() {
-		Until(ENDING_LABEL);
+		Until(until_end());
 	}
 
 	void UntilStar() {
 		Until(until_star());
-	}
-
-	void Until(const char* label) {
-		std::string _label(label);
-		Until(_label);
 	}
 
 	void Until(UntilCondition* cond) {
@@ -115,7 +135,7 @@ public:
 		until_ = cond;
 	}
 
-	void Until(std::string& label) {
+	void Until(const std::string& label) {
 		Until(new UntilLabelCondition(label));
 	}
 
@@ -131,6 +151,8 @@ private:
 	DECL_FIELD_REF(CoroutinePtrSet, except)
 
 	DECL_STATIC_FIELD_REF(UntilStarCondition, until_star)
+	DECL_STATIC_FIELD_REF(UntilFirstCondition, until_first)
+	DECL_STATIC_FIELD_REF(UntilEndCondition, until_end)
 };
 
 /********************************************************************************/

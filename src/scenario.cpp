@@ -65,6 +65,8 @@ void EndCounit() {
  */
 
 UntilStarCondition TransferCriteria::until_star_;
+UntilFirstCondition TransferCriteria::until_first_;
+UntilEndCondition TransferCriteria::until_end_;
 
 Scenario::Scenario(const char* name) {
 	// sanity checks for initialization
@@ -707,6 +709,13 @@ Scenario* Scenario::UntilEnd() {
 
 /********************************************************************************/
 
+Scenario* Scenario::UntilFirst() {
+	transfer_criteria_.UntilFirst();
+	return this;
+}
+
+/********************************************************************************/
+
 Scenario* Scenario::UntilStar() {
 	transfer_criteria_.UntilStar();
 	return this;
@@ -728,7 +737,7 @@ Scenario* Scenario::Until(UntilCondition* cond) {
 
 /********************************************************************************/
 
-Scenario* Scenario::Until(std::string& label) {
+Scenario* Scenario::Until(const std::string& label) {
 	transfer_criteria_.Until(label);
 	return this;
 }
