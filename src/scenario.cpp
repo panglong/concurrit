@@ -37,14 +37,14 @@ namespace counit {
 
 /********************************************************************************/
 
-const char* COUNIT_HOME = NULL;
+const char* CONCURRIT_HOME = NULL;
 
 void BeginCounit() {
 	// init work dir
-	COUNIT_HOME = getenv("COUNIT_HOME");
+	CONCURRIT_HOME = getenv("CONCURRIT_HOME");
 
 	// init logging
-	google::InitGoogleLogging("counit");
+	google::InitGoogleLogging("concurrit");
 
 	Thread::init_tls_key();
 

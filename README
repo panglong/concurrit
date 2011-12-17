@@ -1,15 +1,17 @@
 Add the following to your bash profile file.
 
-export COUNIT_HOME=...path to counit directory...
-export LD_LIBRARY_PATH=$COUNIT_HOME/bin/:$LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$COUNIT_HOME/glog/lib/:$LD_LIBRARY_PATH
-export BOOST_ROOT=$HOME/Repository/boost_1_48_0
+export CONCURRIT_HOME=$HOME/Repository/Research/ParLab/concurrit
+export LD_LIBRARY_PATH=$CONCURRIT_HOME/bin/:$LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/bin/:$DYLD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$DYLD_LIBRARY_PATH
+export BOOST_ROOT=$HOME/Repository/Research/ParLab/Boost/boost_1_48_0
 
-To install counit (including glog, pintool, etc.)
-$COUNIT_HOME/scripts/install_counit.sh
+To install CONCURRIT (including glog, pintool, etc.)
+$CONCURRIT_HOME/scripts/install_concurrit.sh
 
 To compile and install the pintool
-$COUNIT_HOME/scripts/install_pintool.sh
+$CONCURRIT_HOME/scripts/install_pintool.sh
 
 To compile and install glog
-$COUNIT_HOME/scripts/install_glog.sh
+$CONCURRIT_HOME/scripts/install_glog.sh

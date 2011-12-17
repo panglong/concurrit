@@ -1,8 +1,8 @@
 
-cd $COUNIT_HOME
+cd $CONCURRIT_HOME
 
-cd pin/source/tools/Counit
+cd pin/source/tools/concurrit
 make clean
 make dir counit.test
 
-cd $COUNIT_HOME
+cd $CONCURRIT_HOME

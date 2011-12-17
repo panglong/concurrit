@@ -201,9 +201,9 @@ typedef int THREADID;
 typedef uintptr_t ADDRINT;
 #endif
 
-extern const char* COUNIT_HOME;
+extern const char* CONCURRIT_HOME;
 
-#define InWorkDir(f)	((std::string(CHECK_NOTNULL(COUNIT_HOME)) + "/work/" + f).c_str())
+#define InWorkDir(f)	((std::string(CHECK_NOTNULL(CONCURRIT_HOME)) + "/work/" + f).c_str())
 
 
 } // end namepace
