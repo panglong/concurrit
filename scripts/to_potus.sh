@@ -1,0 +1,1 @@
+rsync --exclude='glog/**' --exclude='gtest/**' --exclude='pin/**' --exclude='bin/**' --exclude='obj/**' -e ssh --numeric-ids --quiet --ignore-errors --archive --delete-during --force /Users/elmas/Repository/Research/ParLab/counit/ potus.cs.berkeley.edu:/home/elmas/counit/

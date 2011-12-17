@@ -1,0 +1,18 @@
+FEATURES
+		cogu zaman bir execution birden fazla ziyaret ediliyor, yielddan sonra transferde ayni yere gitmemesi icin bir flag koy
+		sadece bir thread varsa o threadden yield yapma sonuna kadar
+		yield yaptiktan sonra baska bir thread'i sec.
+		yieldpoint'de next pointera gerek var mi?
+		
+		until_first ekle, next first yield'da hemen transfer etmesi icin.
+		save etme ve replay etme
+		UNTIL(TRANSFER) seklinde olsun -- lambda expressions -- http://matt.might.net/articles/static-closures-in-c-plus-plus/
+		generate test scenarios from schedules
+		search boyunca coverage olc, artirmayan pathlari ignore et
+		sequential mode yaninda true concurrency modu koy, direk threadleri senkronize etmeden calistir.
+		bir threadi delay etmek ve with ile grubu restrict etmek ile ilgili testler yaz
+
+
+REFACTORINGS
+		std::string yerine olabildigince const char* kullan
+		
