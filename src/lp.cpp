@@ -74,27 +74,36 @@ void VCTracker::UpdateBacktrackSets(SchedulePoint* currentPoint) {
 	safe_assert(tid > 0);
 
 	// find immediate races
-	std::vector<SchedulePoint*>* accesses = GetLastAccesses(mem); // may return NULL if there are no last accesses
+	std::set<SchedulePoint*>* accesses = GetLastAccesses(mem); // may return NULL if there are no last accesses
 
 	VC vcTid = currentSource->vc();
 
 	bool is_conflicting = false;
 	if(accesses != NULL && !accesses->empty()) {
+
 		// iterate over last accesses
-		for(std::vector<SchedulePoint*>::iterator itr = accesses->begin(); itr < accesses->end(); itr++) {
+		for(std::set<SchedulePoint*>::iterator itr = accesses->begin(); itr != accesses->end(); itr++) {
 			SchedulePoint* point = (*itr);
 			SharedAccess* access = point->AsYield()->access();
 			safe_assert(access != NULL);
 			safe_assert(access->mem() == mem);
-			safe_assert(BETWEEN(1, access->time(), currentTime_-1));
 
-			// check conflict, break if there is no conflict
 			if(CONFLICTING(access->type(), currentAccess->type())) {
 				is_conflicting = true;
 			} else {
 				safe_assert(!is_conflicting);
 				break;
 			}
+
+			// TODO(elmas): try to remove this check, because it seems that an access is handled here before it happens
+			// there is something wrong with overwriting the access (happens with loops).
+			if(access->time() == 0) {
+				// in this case we should be visiting the same thread
+				safe_assert(point->AsYield()->source() == currentPoint->AsYield()->source());
+				continue;
+			}
+
+			safe_assert(BETWEEN(1, access->time(), currentTime_-1));
 
 			// check immediate race
 			THREADID lastTid = point->AsYield()->source()->coid();
@@ -148,7 +157,7 @@ void VCTracker::OnAccess(SchedulePoint* currentPoint, Coverage* coverage) {
 	safe_assert(tid > 0);
 
 	// find immediate races
-	std::vector<SchedulePoint*>* accesses = GetLastAccesses(mem, true); // create if absent
+	std::set<SchedulePoint*>* accesses = GetLastAccesses(mem, true); // create if absent
 	safe_assert(accesses != NULL);
 
 	VC vcTid = currentSource->vc();
@@ -157,12 +166,11 @@ void VCTracker::OnAccess(SchedulePoint* currentPoint, Coverage* coverage) {
 	if(!accesses->empty()) {
 
 		// iterate over last accesses
-		for(std::vector<SchedulePoint*>::iterator itr = accesses->begin(); itr < accesses->end(); itr++) {
+		for(std::set<SchedulePoint*>::iterator itr = accesses->begin(); itr != accesses->end(); itr++) {
 			SchedulePoint* point = (*itr);
 			SharedAccess* access = point->AsYield()->access();
 			safe_assert(access != NULL);
 			safe_assert(access->mem() == mem);
-			safe_assert(BETWEEN(1, access->time(), currentTime_-1));
 
 			if(CONFLICTING(access->type(), currentAccess->type())) {
 				is_conflicting = true;
@@ -170,6 +178,16 @@ void VCTracker::OnAccess(SchedulePoint* currentPoint, Coverage* coverage) {
 				safe_assert(!is_conflicting);
 				break;
 			}
+
+			// TODO(elmas): try to remove this check, because it seems that an access is handled here before it happens
+			// there is something wrong with overwriting the access (happens with loops).
+			if(access->time() == 0) {
+				// in this case we should be visiting the same thread
+				safe_assert(point->AsYield()->source() == currentPoint->AsYield()->source());
+				continue;
+			}
+
+			safe_assert(BETWEEN(1, access->time(), currentTime_-1));
 
 			// check immediate race
 			THREADID lastTid = point->AsYield()->source()->coid();
@@ -211,21 +229,20 @@ void VCTracker::OnAccess(SchedulePoint* currentPoint, Coverage* coverage) {
 
 	currentAccess->set_time(currentTime_);
 
-	accesses->push_back(currentPoint);
+	accesses->insert(currentPoint);
 
 	currentTime_++;
 }
 
 
-std::vector<SchedulePoint*>* VCTracker::GetLastAccesses(ADDRINT mem, bool createIfAbsent /*= false*/) {
-	std::vector<SchedulePoint*>* accesses = NULL;
-	std::map<ADDRINT, std::vector<SchedulePoint*>*>::iterator itr = memToLastAccess_.find(mem);
+std::set<SchedulePoint*>* VCTracker::GetLastAccesses(ADDRINT mem, bool createIfAbsent /*= false*/) {
+	std::set<SchedulePoint*>* accesses = NULL;
+	std::map<ADDRINT, std::set<SchedulePoint*>*>::iterator itr = memToLastAccess_.find(mem);
 	if(itr != memToLastAccess_.end()) {
 		accesses = itr->second;
 		safe_assert(accesses != NULL);
-		safe_assert(!accesses->empty());
 	} else if(createIfAbsent) {
-		accesses = new std::vector<SchedulePoint*>();
+		accesses = new std::set<SchedulePoint*>();
 		memToLastAccess_[mem] = accesses;
 	}
 	return accesses;

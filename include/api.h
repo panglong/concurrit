@@ -69,6 +69,7 @@ extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, Share
 /********************************************************************************/
 // yielding reads and writes
 
+// does not yield
 template<typename T>
 class writer {
 public:
@@ -80,11 +81,36 @@ private:
 	DECL_FIELD(SharedAccess*, access)
 };
 
+// does yield after write
+template<typename T>
+class ywriter {
+public:
+	explicit ywriter(const char* label, SharedAccess* access, SourceLocation* loc)
+	: label_(label), access_(access), loc_(loc) {}
+	T operator=(T value) {
+		T val = access_->write<T>(value);
+		yield(label_, loc_, access_);
+		return val;
+	}
+private:
+	DECL_FIELD(const char*, label)
+	DECL_FIELD(SharedAccess*, access)
+	DECL_FIELD(SourceLocation*, loc)
+};
+
 template<typename T>
 inline T yield_read(const char* label, T* mem, const char* expr, SourceLocation* loc) {
 	SharedAccess* access = new SharedAccess(READ_ACCESS, reinterpret_cast<ADDRINT>(mem), expr);
 	yield(label, loc, access);
 	return access->read<T>();
+}
+
+template<typename T>
+inline T read_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
+	SharedAccess* access = new SharedAccess(READ_ACCESS, reinterpret_cast<ADDRINT>(mem), expr);
+	T value = access->read<T>();
+	yield(label, loc, access);
+	return value;
 }
 
 template<typename T>
@@ -94,11 +120,24 @@ inline writer<T> yield_write(const char* label, T* mem, const char* expr, Source
 	return writer<T>(access);
 }
 
+template<typename T>
+inline ywriter<T> write_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
+	SharedAccess* access = new SharedAccess(WRITE_ACCESS, reinterpret_cast<ADDRINT>(mem), expr);
+	return ywriter<T>(label, access, loc); // makes the yield on operator=()
+}
+
 #define YIELD_READ(label, x) \
 	yield_read(label, (&(x)), #x, RECORD_SRCLOC())
 
 #define YIELD_WRITE(label, x) \
 	yield_write(label, (&(x)), #x, RECORD_SRCLOC())
+
+#define READ_YIELD(label, x) \
+	read_yield(label, (&(x)), #x, RECORD_SRCLOC())
+
+#define WRITE_YIELD(label, x) \
+	write_yield(label, (&(x)), #x, RECORD_SRCLOC())
+
 
 /********************************************************************************/
 

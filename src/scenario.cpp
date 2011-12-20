@@ -396,7 +396,7 @@ void Scenario::Restart() {
 	}
 
 	// reset vc tracker
-	vcTracker_.Reset();
+	vcTracker_.Restart();
 
 	group_.Restart(); // restarts only already started coroutines
 }
@@ -857,9 +857,9 @@ SchedulePoint* yield(const char* label, SourceLocation* loc, SharedAccess* acces
 
 	// give warning if access is null
 	if(access == NULL && strcmp(label, ENDING_LABEL) != 0) {
-		fprintf(stderr, "YIELD without a shared variable access.\n");
+		VLOG(2) << "YIELD without a shared variable access.";
 		if(loc != NULL) {
-			fprintf(stderr, "Related location:%s\n", loc->ToString().c_str());
+			VLOG(2) << "Related location: " << loc->ToString();
 		}
 	}
 

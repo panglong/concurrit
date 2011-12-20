@@ -271,9 +271,12 @@ SchedulePoint* Coroutine::OnYield(Coroutine* target, std::string& label, SourceL
 		safe_assert(count > 0);
 		if(!point->IsTransfer() && point->AsYield()->label() == label) {
 			point->AsYield()->set_count(count + 1);
+			// update access and location
+			point->AsYield()->update_access_loc(access, loc);
 			return point;
 		}
 	}
+	// create a new point
 	if(target == NULL) {
 		safe_assert(this->IsMain());
 		// we need a new yield point
@@ -289,6 +292,7 @@ SchedulePoint* Coroutine::OnYield(Coroutine* target, std::string& label, SourceL
 		point = new TransferPoint(new YieldPoint(this, label, 1, loc, access, false /*free_target*/, true /*free_count*/), target);
 	}
 
+	safe_assert(point != NULL);
 	this->yield_point_ = point;
 	safe_assert(point->IsResolved());
 

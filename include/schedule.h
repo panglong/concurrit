@@ -137,6 +137,17 @@ public:
 		}
 	}
 
+	void update_access_loc(SharedAccess* access = NULL, SourceLocation* loc = NULL) {
+		if(access_ != NULL && access_ != access) {
+			delete access_;
+		}
+		if(loc_ != NULL && loc_ != loc) {
+			delete loc_;
+		}
+		set_access(access);
+		set_loc(loc);
+	}
+
 	virtual std::string ToString();
 
 	virtual YieldPoint* AsYield() { return this; }

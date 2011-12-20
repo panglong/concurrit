@@ -221,29 +221,44 @@ private:
 class VCTracker {
 public:
 	VCTracker() {
-		Reset();
+		Restart();
 	}
 
-	~VCTracker(){}
+	~VCTracker(){
+		for(std::map<ADDRINT, std::set<SchedulePoint*>*>::iterator itr = memToLastAccess_.begin();
+				itr != memToLastAccess_.end(); ++itr) {
+			std::set<SchedulePoint*>* accesses = itr->second;
+			safe_assert(accesses != NULL);
+			accesses->clear();
+			delete accesses;
+		}
+		memToLastAccess_.clear();
+		memToVC_.clear();
+	}
 
-	void Reset() {
+	void Restart() {
 		currentTime_ = 1;
 		memToVC_.clear();
-		memToLastAccess_.clear();
+		for(std::map<ADDRINT, std::set<SchedulePoint*>*>::iterator itr = memToLastAccess_.begin();
+				itr != memToLastAccess_.end(); ++itr) {
+			std::set<SchedulePoint*>* accesses = itr->second;
+			safe_assert(accesses != NULL);
+			accesses->clear();
+		}
 	}
 
 	void OnAccess(SchedulePoint* point, Coverage* coverage);
 	void UpdateBacktrackSets(SchedulePoint* point);
 
 protected:
-	std::vector<SchedulePoint*>* GetLastAccesses(ADDRINT mem, bool createIfAbsent = false);
+	std::set<SchedulePoint*>* GetLastAccesses(ADDRINT mem, bool createIfAbsent = false);
 	void HandleImmediateRace(SchedulePoint* point, SchedulePoint* currentPoint, Coverage* coverage);
 
 
 private:
 	DECL_FIELD(vctime_t, currentTime)
 	std::map<ADDRINT, VC> memToVC_;
-	std::map<ADDRINT, std::vector<SchedulePoint*>*> memToLastAccess_;
+	std::map<ADDRINT, std::set<SchedulePoint*>*> memToLastAccess_;
 };
 
 /********************************************************************************/
