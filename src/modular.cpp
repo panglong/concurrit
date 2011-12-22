@@ -31,26 +31,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef COUNIT_H_
-#define COUNIT_H_
+#include "counit.h"
 
-#include "common.h"
-#include "serialize.h"
-#include "sharedaccess.h"
-#include "schedule.h"
-#include "api.h"
-#include "thread.h"
-#include "channel.h"
-#include "coroutine.h"
-#include "group.h"
-#include "exception.h"
-#include "result.h"
-#include "until.h"
-#include "lp.h"
-#include "scenario.h"
-#include "vc.h"
-#include "suite.h"
-#include "modular.h"
-#include "yield.h"
+namespace counit {
 
-#endif /* COUNIT_H_ */
+
+} // end namespace

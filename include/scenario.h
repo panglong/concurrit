@@ -35,8 +35,11 @@
 #define SCENARIO_H_
 
 #include "common.h"
+#include "yield.h"
 
 namespace counit {
+
+class YieldImpl;
 
 /*
  * represents a single test scenario
@@ -112,6 +115,10 @@ public:
 
 	void RunSavedSchedule(const char* filename);
 
+	inline SchedulePoint* do_yield(CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
+		return CHECK_NOTNULL(yield_impl_)->Yield(this, group, current, target, label, loc, access);
+	}
+
 protected:
 
 	void RunOnce();
@@ -142,8 +149,9 @@ private:
 	DECL_FIELD(ExploreType, explore_type)
 
 	DECL_FIELD(VCTracker, vcTracker)
+	DECL_FIELD(YieldImpl*, yield_impl)
 
-	friend SchedulePoint* do_yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access);
+	friend class DefaultYieldImpl;
 };
 
 } // end namespace

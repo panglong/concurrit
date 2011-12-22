@@ -31,26 +31,48 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef COUNIT_H_
-#define COUNIT_H_
 
-#include "common.h"
-#include "serialize.h"
-#include "sharedaccess.h"
-#include "schedule.h"
-#include "api.h"
-#include "thread.h"
-#include "channel.h"
-#include "coroutine.h"
-#include "group.h"
-#include "exception.h"
-#include "result.h"
-#include "until.h"
-#include "lp.h"
-#include "scenario.h"
-#include "vc.h"
-#include "suite.h"
-#include "modular.h"
-#include "yield.h"
+#include "counit.h"
 
-#endif /* COUNIT_H_ */
+#ifndef YIELD_H_
+#define YIELD_H_
+
+namespace counit {
+
+// interface for yield implementors
+class YieldImpl {
+public:
+	YieldImpl() {}
+	virtual ~YieldImpl() {}
+
+	virtual
+	SchedulePoint* Yield(Scenario* scenario,
+						 CoroutineGroup* group,
+						 Coroutine* current,
+						 Coroutine* target,
+						 std::string& label,
+						 SourceLocation* loc,
+						 SharedAccess* access) = 0;
+};
+
+/********************************************************************************/
+
+class DefaultYieldImpl : public YieldImpl {
+public:
+	DefaultYieldImpl() : YieldImpl() {}
+	virtual ~DefaultYieldImpl() {}
+
+	// implemented in scenario.cpp
+	virtual
+	SchedulePoint* Yield(Scenario* scenario,
+						 CoroutineGroup* group,
+						 Coroutine* current,
+						 Coroutine* target,
+						 std::string& label,
+						 SourceLocation* loc,
+						 SharedAccess* access);
+};
+
+} // end namespace
+
+#endif /* YIELD_H_ */

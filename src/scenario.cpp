@@ -81,6 +81,8 @@ Scenario::Scenario(const char* name) {
 	explore_type_ = EXISTS;
 
 	transfer_criteria_.Reset();
+
+	yield_impl_ = new DefaultYieldImpl();
 }
 
 /********************************************************************************/
@@ -691,7 +693,7 @@ SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
 	CHECK(target != main) << "Transfer must not be targeted to main!";
 
 	std::string main_label(MAIN_LABEL);
-	return do_yield(this, &group_, main, target, main_label, loc, NULL);
+	return do_yield(&group_, main, target, main_label, loc, NULL);
 }
 
 /********************************************************************************/
@@ -801,62 +803,10 @@ void Scenario::UpdateBacktrackSets() {
 
 /********************************************************************************/
 
-SchedulePoint* do_yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
-	// sanity checks
-	safe_assert(current != NULL);
-	safe_assert(group != NULL);
-	safe_assert(scenario != NULL);
-	safe_assert(scenario == group->scenario());
-	safe_assert(group == scenario->group());
-
-	VLOG(2) << "Yield request from " << current->name();
-
-	// update backtrack set before taking the transition
-	scenario->UpdateBacktrackSets();
-
-	// generate or update the current yield point of current
-	SchedulePoint* point = current->OnYield(target, label, loc, access);
-
-	// make the next decision
-	TransferPoint* transfer = scenario->OnYield(point, target);
-
-	SchedulePoint* target_point = NULL;
-
-	// point != NULL means go to the target
-	// point == NULL means do not yield
-	if(transfer != NULL) {
-		safe_assert(transfer->IsResolved());
-		safe_assert(transfer->AsYield()->source() == current);
-		safe_assert(transfer->AsYield()->label() == label);
-		safe_assert(transfer->rem_count() == 0);
-
-		Coroutine* target = transfer->target();
-		safe_assert(transfer->target() != NULL);
-
-		// do the transfer
-		current->Transfer(target, MSG_TRANSFER);
-
-		// return yield point of the target
-		target_point = target->yield_point();
-	}
-
-	//----------------------------------------
-	// after transfer returns back to current
-
-	// notify scenario about this access
-	if(access != NULL) {
-		scenario->OnAccess(current, access);
-	}
-
-	return target_point; // means did not transfer to another thread
-}
-
-/********************************************************************************/
-
 SchedulePoint* yield(const char* label, SourceLocation* loc, SharedAccess* access) {
 
 	// give warning if access is null
-	if(access == NULL && strcmp(label, ENDING_LABEL) != 0) {
+	if(access == NULL && strcmp(CHECK_NOTNULL(label), ENDING_LABEL) != 0) {
 		VLOG(2) << "YIELD without a shared variable access.";
 		if(loc != NULL) {
 			VLOG(2) << "Related location: " << loc->ToString();
@@ -875,7 +825,10 @@ SchedulePoint* yield(const char* label, SourceLocation* loc, SharedAccess* acces
 
 	std::string strlabel = std::string(label);
 
-	return do_yield(group->scenario(), group, current, main, strlabel, loc, access);
+	Scenario* scenario = group->scenario();
+	safe_assert(scenario != NULL);
+
+	return scenario->do_yield(group, current, main, strlabel, loc, access);
 
 }
 
@@ -934,5 +887,61 @@ void BeginStrand(const char* name) {
 	safe_assert(name != NULL);
 	// printf("Resuming thread %s...\n", name);
 }
+
+/********************************************************************************/
+
+SchedulePoint* DefaultYieldImpl::Yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
+	VLOG(2) << "DefaultYieldImpl::Yield";
+
+	// sanity checks
+	safe_assert(current != NULL);
+	safe_assert(group != NULL);
+	safe_assert(scenario != NULL);
+	safe_assert(scenario == group->scenario());
+	safe_assert(group == scenario->group());
+
+	VLOG(2) << "Yield request from " << current->name();
+
+	// update backtrack set before taking the transition
+	scenario->UpdateBacktrackSets();
+
+	// generate or update the current yield point of current
+	SchedulePoint* point = current->OnYield(target, label, loc, access);
+
+	// make the next decision
+	TransferPoint* transfer = scenario->OnYield(point, target);
+
+	SchedulePoint* target_point = NULL;
+
+	// point != NULL means go to the target
+	// point == NULL means do not yield
+	if(transfer != NULL) {
+		safe_assert(transfer->IsResolved());
+		safe_assert(transfer->AsYield()->source() == current);
+		safe_assert(transfer->AsYield()->label() == label);
+		safe_assert(transfer->rem_count() == 0);
+
+		Coroutine* target = transfer->target();
+		safe_assert(transfer->target() != NULL);
+
+		// do the transfer
+		current->Transfer(target, MSG_TRANSFER);
+
+		// return yield point of the target
+		target_point = target->yield_point();
+	}
+
+	//----------------------------------------
+	// after transfer returns back to current
+
+	// notify scenario about this access
+	if(access != NULL) {
+		scenario->OnAccess(current, access);
+	}
+
+	return target_point; // means did not transfer to another thread
+}
+
+
 
 } // end namespace
