@@ -36,6 +36,7 @@
 
 #include "common.h"
 #include "sharedaccess.h"
+#include "exception.h"
 
 namespace counit {
 
@@ -140,6 +141,13 @@ inline ywriter<T> write_yield(const char* label, T* mem, const char* expr, Sourc
 
 
 /********************************************************************************/
+
+
+#define Assert(cond)	\
+	{ if (!(cond)) { throw new AssertionViolationException(#cond, RECORD_SRCLOC()); } }
+
+#define Assume(cond)	\
+	{ if (!(cond)) { throw new AssumptionViolationException(#cond, RECORD_SRCLOC()); } }
 
 #define ASSERT(p) \
 	Assert(p)

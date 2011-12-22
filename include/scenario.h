@@ -112,23 +112,6 @@ public:
 
 	void RunSavedSchedule(const char* filename);
 
-	/*
-	 * Assertion checks
-	 */
-#define Assert(cond)	\
-	if (!(cond)) { AssertionViolation(#cond, RECORD_SRCLOC()); }
-
-#define Assume(cond)	\
-	if (!(cond)) { AssumptionViolation(#cond, RECORD_SRCLOC()); }
-
-	void AssertionViolation(const char* cond, SourceLocation* loc) {
-		throw new AssertionViolationException(cond, loc);
-	}
-
-	void AssumptionViolation(const char* cond, SourceLocation* loc) {
-		throw new AssumptionViolationException(cond, loc);
-	}
-
 protected:
 
 	void RunOnce();

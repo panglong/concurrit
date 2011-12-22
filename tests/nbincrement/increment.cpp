@@ -31,14 +31,16 @@ struct Counter {
 	}
 
 	void lock() {
-		while(true) {
-			if(YIELD_READ("lock1", l) == 0) {
-				WRITE_YIELD("lock2", l) = 1;
-				break;
-			} else {
-
-			}
-		}
+		ASSUME(YIELD_READ("lock1", l) == 0);
+		WRITE_YIELD("lock2", l) = 1;
+//		while(true) {
+//			if(YIELD_READ("lock1", l) == 0) {
+//				WRITE_YIELD("lock2", l) = 1;
+//				break;
+//			} else {
+//
+//			}
+//		}
 	}
 
 	void unlock() {

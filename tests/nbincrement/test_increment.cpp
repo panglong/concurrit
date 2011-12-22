@@ -47,7 +47,8 @@ public:
 
 		{
 			EXHAUSTIVE_SEARCH();
-//			NDSEQ_SEARCH();
+//			CONTEXT_BOUNDED_EXHAUSTIVE_SEARCH(3);
+			NDSEQ_SEARCH();
 		}
 
 		ASSERT(COUNTER->get() == 3);

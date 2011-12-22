@@ -1,8 +1,9 @@
 FEATURES
 		dpor'u compile time flag degil runtime flag yap.
 		cogu zaman bir execution birden fazla ziyaret ediliyor, yielddan sonra transferde ayni yere gitmemesi icin bir flag koy
-		sadece bir thread varsa o threadden yield yapma sonuna kadar
-		yield yaptiktan sonra baska bir thread'i sec.
+		sadece bir thread varsa o threadden yield yapma sonuna kadar. bunun icin de flag koy cunku bazen gerekli olabiliyor.
+		yield yaptiktan sonra baska bir thread'i sec. bunun icin de bir flag koy ya da EXCEPT ile devam et.
+		yieldpointdeki prev pointeri kullanarak last coming coroutine;i belirle ve bunu kullanarak EXCEPT_LAST() ekle.
 		yieldpoint'de next pointera gerek var mi?
 		
 		until_first ekle, next first yield'da hemen transfer etmesi icin.
@@ -13,8 +14,8 @@ FEATURES
 		sequential mode yaninda true concurrency modu koy, direk threadleri senkronize etmeden calistir.
 		bir threadi delay etmek ve with ile grubu restrict etmek ile ilgili testler yaz
 
-		write_yield ve read_yield implemente et.
-		handle case where a yield point is associated with not only a single access but a set of accesses 
+		handle case where a yield point is associated with not only a single access but a set of accesses
+		lp.cpp'deki TODO'lara bak, onlarla ilgilen. 
 
 REFACTORINGS
 		std::string yerine olabildigince const char* kullan
