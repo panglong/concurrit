@@ -59,10 +59,10 @@ extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, Share
 #define NO_ACCESS NULL
 
 #define READ(x) \
-	new SharedAccess(READ_ACCESS, reinterpret_cast<ADDRINT>(x), #x)
+	new SharedAccess(READ_ACCESS, new MemoryCell<T>(x), #x)
 
 #define WRITE(x) \
-	new SharedAccess(WRITE_ACCESS, reinterpret_cast<ADDRINT>(x), #x)
+	new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(x), #x)
 
 #define YIELD(label, access) \
 	yield(label, RECORD_SRCLOC(), access)
@@ -74,12 +74,12 @@ extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, Share
 template<typename T>
 class writer {
 public:
-	explicit writer(SharedAccess* access) : access_(access){}
+	explicit writer(MemoryCell<T>* cell) : cell_(cell){}
 	T operator=(T value) {
-		return access_->write<T>(value);
+		return cell_->write(value);
 	}
 private:
-	DECL_FIELD(SharedAccess*, access)
+	DECL_FIELD(MemoryCell<T>*, cell)
 };
 
 // does yield after write
@@ -89,7 +89,7 @@ public:
 	explicit ywriter(const char* label, SharedAccess* access, SourceLocation* loc)
 	: label_(label), access_(access), loc_(loc) {}
 	T operator=(T value) {
-		T val = access_->write<T>(value);
+		T val = access_->cell_as<T>()->write(value);
 		yield(label_, loc_, access_);
 		return val;
 	}
@@ -101,29 +101,29 @@ private:
 
 template<typename T>
 inline T yield_read(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(READ_ACCESS, reinterpret_cast<ADDRINT>(mem), expr);
+	SharedAccess* access = new SharedAccess(READ_ACCESS, new MemoryCell<T>(mem), expr);
 	yield(label, loc, access);
-	return access->read<T>();
+	return access->cell_as<T>()->read();
 }
 
 template<typename T>
 inline T read_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(READ_ACCESS, reinterpret_cast<ADDRINT>(mem), expr);
-	T value = access->read<T>();
+	SharedAccess* access = new SharedAccess(READ_ACCESS, new MemoryCell<T>(mem), expr);
+	T value = access->cell_as<T>()->read();
 	yield(label, loc, access);
 	return value;
 }
 
 template<typename T>
 inline writer<T> yield_write(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(WRITE_ACCESS, reinterpret_cast<ADDRINT>(mem), expr);
+	SharedAccess* access = new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(mem), expr);
 	yield(label, loc, access);
-	return writer<T>(access);
+	return writer<T>(access->cell_as<T>());
 }
 
 template<typename T>
 inline ywriter<T> write_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(WRITE_ACCESS, reinterpret_cast<ADDRINT>(mem), expr);
+	SharedAccess* access = new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(mem), expr);
 	return ywriter<T>(label, access, loc); // makes the yield on operator=()
 }
 

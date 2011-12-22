@@ -38,6 +38,42 @@
 
 namespace counit {
 
+/********************************************************************************/
+
+typedef std::map<ADDRINT, MemoryCellBase*> CellMap;
+
+class MemoryMap {
+public:
+	MemoryMap() {}
+	~MemoryMap() {}
+
+
+private:
+	DECL_FIELD(CellMap, memToCell)
+};
+
+/********************************************************************************/
+
+// node in an env graph
+class EnvNode {
+public:
+	EnvNode() {}
+	~EnvNode() {}
+
+private:
+	DECL_FIELD(MemoryMap, globalMem)
+	DECL_FIELD(std::set<EnvNode*>, outEdges)
+};
+
+class EnvGraph {
+public:
+	EnvGraph() {}
+	~EnvGraph() {}
+
+private:
+	DECL_FIELD(std::set<EnvNode>, nodes)
+};
+
 } // end namespace
 
 #endif /* MODULAR_H_ */

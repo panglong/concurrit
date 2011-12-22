@@ -38,6 +38,52 @@
 
 namespace counit {
 
+
+// base class for MemoryCell templates
+class MemoryCellBase {
+public:
+	MemoryCellBase() {}
+	virtual ~MemoryCellBase() {}
+	virtual MemoryCellBase* Clone() = 0;
+	virtual ADDRINT int_address() = 0;
+//	virtual bool operator==(const MemoryCellBase& other) = 0;
+//	bool operator!=(const MemoryCellBase& other) {
+//		return !this->operator ==(other);
+//	}
+};
+
+/********************************************************************************/
+
+template<typename T>
+class MemoryCell : public MemoryCellBase {
+public:
+	MemoryCell(T* address, T value)
+	: MemoryCellBase(), address_(address), value_(value) {}
+
+	MemoryCell(T* address)
+	: MemoryCellBase(), address_(address) {}
+
+	~MemoryCell() {}
+
+	MemoryCellBase* Clone() { return new MemoryCell<T>(address_, value_); }
+
+	ADDRINT int_address() { return reinterpret_cast<ADDRINT>(address_); }
+
+//	bool operator==(const MemoryCellBase& other) {
+//		MemoryCell<T>* _other = ASINSTANCEOF(&other, MemoryCell<T>*);
+//		return address_ == _other.address_ && value_ == _other.value_;
+//	}
+
+	T read() { return value_ = (*address_); }
+	T write(T value) { return (*address_) = (value_ = value); }
+
+private:
+	DECL_FIELD(T*, address)
+	DECL_FIELD(T, value)
+};
+
+/********************************************************************************/
+
 typedef bool AccessType;
 #define WRITE_ACCESS true
 #define READ_ACCESS false
@@ -45,19 +91,22 @@ typedef bool AccessType;
 
 class SharedAccess {
 public:
-	SharedAccess(AccessType type, ADDRINT mem, const char* expr = "<unknown>", vctime_t time = 0)
-	: type_(type), mem_(mem), time_(time), expr_(expr)
+	SharedAccess(AccessType type, MemoryCellBase* cell, const char* expr = "<unknown>", vctime_t time = 0)
+	: type_(type), cell_(cell), time_(time), expr_(expr)
 	{}
 
-	~SharedAccess() {}
+	~SharedAccess() {
+		safe_assert(cell_ != NULL);
+		delete cell_;
+	}
 
 	SharedAccess* Clone() {
-		return new SharedAccess(type_, mem_, expr_, time_);
+		return new SharedAccess(type_, cell_->Clone(), expr_, time_);
 	}
 
 	std::string ToString() {
 		std::stringstream s;
-		s << (type_ == READ_ACCESS ? "Read(" : "Write(") << expr_ << " = " << mem_ << ")@" << time_;
+		s << (type_ == READ_ACCESS ? "Read(" : "Write(") << expr_ << " = " << mem() << ")@" << time_;
 		return s.str();
 	}
 
@@ -68,19 +117,19 @@ public:
 		return this->is_write() || that->is_write();
 	}
 
-	// template members
 	template<typename T>
-	T* address() { return reinterpret_cast<T*>(mem_); }
+	MemoryCell<T>* cell_as() {
+		safe_assert(INSTANCEOF(cell_,MemoryCell<T>*));
+		return ASINSTANCEOF(cell_,MemoryCell<T>*);
+	}
 
-	template<typename T>
-	T read() { return *address<T>(); }
-
-	template<typename T>
-	T write(T value) { return ((*address<T>()) = value); }
+	ADDRINT mem() {
+		return cell_->int_address();
+	}
 
 private:
 	DECL_FIELD(AccessType, type)
-	DECL_FIELD(ADDRINT, mem)
+	DECL_FIELD(MemoryCellBase*, cell)
 	DECL_FIELD(vctime_t, time)
 	DECL_FIELD(const char*, expr)
 };

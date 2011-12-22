@@ -84,7 +84,7 @@ namespace counit {
 
 #define INSTANCEOF(o, c)	(_AS(o,c) != NULL)
 
-#define ASINSTANCEOF(o, c)	CHECK_NOTNULL(_AS(o,c))
+#define ASINSTANCEOF(o, c)	/*CHECK_NOTNULL*/(_AS(o,c))
 
 /********************************************************************************/
 

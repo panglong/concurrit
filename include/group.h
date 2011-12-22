@@ -40,12 +40,16 @@ namespace counit {
 
 class Scenario;
 
+typedef std::map<std::string, Coroutine*> MembersMap;
+
 /*
  * represents a set of coroutines
  */
+
 class CoroutineGroup {
 
 public:
+
 	CoroutineGroup();
 	explicit CoroutineGroup(Scenario* scenario);
 	~CoroutineGroup() {}
@@ -93,7 +97,6 @@ private:
 	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD(THREADID, next_coid)
 
-#define MembersMap	std::map<std::string, Coroutine*>
 	DECL_FIELD_REF(MembersMap, members)
 	CoroutinePtrSet* member_set();
 
