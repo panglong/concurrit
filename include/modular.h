@@ -40,19 +40,31 @@ namespace counit {
 
 /********************************************************************************/
 
-typedef std::map<ADDRINT, MemoryCellBase*> CellMap;
 
 class MemoryMap {
 public:
+	typedef std::map<ADDRINT, MemoryCellBase*> CellMap;
 	MemoryMap() {}
-	~MemoryMap() {}
+	~MemoryMap() { delete_cells(); }
 
+	void Update(MemoryMap* other);
+	void Update(MemoryCellBase* cell);
+	MemoryMap* Clone();
+
+	std::string ToString();
 
 private:
+	void delete_cells();
+
 	DECL_FIELD(CellMap, memToCell)
 };
 
+
 /********************************************************************************/
+class EnvNode;
+typedef boost::shared_ptr<EnvNode> EnvNodePtr;
+typedef std::vector<EnvNodePtr> EnvNodePtrList;
+typedef std::set<EnvNodePtr> EnvNodePtrSet;
 
 // node in an env graph
 class EnvNode {
@@ -60,19 +72,87 @@ public:
 	EnvNode() {}
 	~EnvNode() {}
 
+	void OnAccess(Coroutine* current, MemoryCellBase* cell);
+	void AddEdge(EnvNodePtr node);
+
+	std::string ToString();
+
 private:
-	DECL_FIELD(MemoryMap, globalMem)
-	DECL_FIELD(std::set<EnvNode*>, outEdges)
+	DECL_FIELD_REF(MemoryMap, globals)
+	DECL_FIELD_REF(EnvNodePtrSet, edges)
 };
+
+/********************************************************************************/
+
+class MemoryTrace {
+public:
+	MemoryTrace() {}
+	~MemoryTrace() {
+		delete_nodes();
+	}
+
+	void OnAccess(Coroutine* current, SharedAccess* access);
+	void Restart();
+
+	std::string ToString();
+
+private:
+	void delete_nodes();
+
+	DECL_FIELD_REF(EnvNodePtrList, nodes)
+};
+
+/********************************************************************************/
 
 class EnvGraph {
 public:
-	EnvGraph() {}
+	EnvGraph() {
+		start_node_ = EnvNodePtr();
+	}
 	~EnvGraph() {}
 
+	void AddNode(EnvNodePtr node);
+	void Update(MemoryTrace* trace);
+
 private:
-	DECL_FIELD(std::set<EnvNode>, nodes)
+	DECL_FIELD(EnvNodePtrSet, nodes)
+	DECL_FIELD(EnvNodePtr, start_node)
 };
+
+
+/********************************************************************************/
+
+class EnvSimulator {
+public:
+	EnvSimulator(EnvGraph* g) : env_graph_(g), current_(g->start_node()) {}
+	~EnvSimulator() {}
+
+	void Step() { unimplemented(); }
+
+private:
+	DECL_FIELD(EnvGraph*, env_graph)
+	DECL_FIELD(EnvNodePtr, current)
+};
+
+
+/********************************************************************************/
+
+class ThreadModularScenario : public Scenario {
+public:
+	typedef Scenario super;
+	explicit ThreadModularScenario(const char* name) : Scenario(name) {}
+	virtual ~ThreadModularScenario() {}
+
+	virtual void OnAccess(Coroutine* current, SharedAccess* access);
+	virtual void Restart();
+	virtual void AfterRunOnce();
+
+private:
+	DECL_FIELD_REF(MemoryTrace, memory_trace)
+	DECL_FIELD_REF(EnvGraph, env_graph)
+};
+
+
 
 } // end namespace
 

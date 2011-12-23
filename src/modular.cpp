@@ -35,5 +35,171 @@
 
 namespace counit {
 
+void ThreadModularScenario::OnAccess(Coroutine* current, SharedAccess* access) {
+	super::OnAccess(current, access);
+
+	// trace the access
+	// if a read, update the current state
+	// if a write, move to a new state
+	memory_trace_.OnAccess(current, access);
+}
+
+void ThreadModularScenario::Restart() {
+	super::Restart();
+
+	// restart memory trace
+	memory_trace_.Restart();
+}
+
+void ThreadModularScenario::AfterRunOnce() {
+	super::AfterRunOnce();
+
+	// print the memory trace:
+	printf("Memory trace:\n%s\n", memory_trace_.ToString().c_str());
+
+	// add memory trace to env graph
+	env_graph_.Update(&memory_trace_);
+}
+
+/********************************************************************************/
+
+void MemoryTrace::OnAccess(Coroutine* current, SharedAccess* access) {
+	EnvNodePtr node;
+	if(access->is_read()) {
+		// check if any state exists
+		if(nodes_.empty()) {
+			node = EnvNodePtr(new EnvNode());
+			nodes_.push_back(node);
+		} else {
+			node = nodes_.back();
+		}
+	} else {
+		node = EnvNodePtr(new EnvNode());
+		if(!nodes_.empty()) {
+			node->globals()->Update(nodes_.back()->globals());
+		}
+		nodes_.push_back(node);
+	}
+	// update the node
+	node->OnAccess(current, access->cell());
+}
+
+void MemoryTrace::Restart() {
+	// delete all states
+	delete_nodes();
+}
+
+void MemoryTrace::delete_nodes() {
+	nodes_.clear(); // nodes are shared pointers, so do not delete them, just clear the list
+}
+
+std::string MemoryTrace::ToString() {
+	std::stringstream s;
+
+	int i = 1;
+	for(EnvNodePtrList::iterator itr = nodes_.begin(); itr < nodes_.end(); ++itr) {
+		EnvNodePtr node = (*itr);
+		s << i << " : " << node->ToString() << "\n";
+		s << "********************\n";
+		++i;
+	}
+
+	return s.str();
+}
+
+/********************************************************************************/
+
+void EnvNode::OnAccess(Coroutine* current, MemoryCellBase* cell) {
+	// update globals
+	globals_.Update(cell);
+}
+
+void EnvNode::AddEdge(EnvNodePtr node) {
+	edges_.insert(node);
+}
+
+std::string EnvNode::ToString() {
+	std::stringstream s;
+
+	s << "MemoryMap: " << globals_.ToString();
+
+	return s.str();
+}
+
+/********************************************************************************/
+
+void MemoryMap::Update(MemoryMap* other) {
+	for(CellMap::iterator itr = other->memToCell_.begin(); itr != other->memToCell_.end(); ++itr) {
+		MemoryCellBase* cell = itr->second;
+		this->Update(cell);
+	}
+}
+
+void MemoryMap::Update(MemoryCellBase* cell) {
+	ADDRINT mem = cell->int_address();
+	CellMap::iterator itr = memToCell_.find(mem);
+	if(itr != memToCell_.end()) {
+		itr->second->update_value(cell);
+	} else {
+		memToCell_[mem] = cell->Clone();
+	}
+}
+
+std::string MemoryMap::ToString() {
+	std::stringstream s;
+
+	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
+		s << itr->second->ToString() << " ";
+	}
+
+	return s.str();
+}
+
+void MemoryMap::delete_cells() {
+	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
+		MemoryCellBase* cell = itr->second;
+		delete cell;
+		memToCell_.erase(itr);
+	}
+	safe_assert(memToCell_.empty());
+}
+
+MemoryMap* MemoryMap::Clone() {
+	MemoryMap* other = new MemoryMap();
+	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
+		MemoryCellBase* cell = itr->second;
+		other->Update(cell);
+	}
+	return other;
+}
+
+/********************************************************************************/
+
+void EnvGraph::AddNode(EnvNodePtr node) {
+	if(nodes_.empty()) {
+		safe_assert(start_node_ == NULL);
+		start_node_ = node;
+	}
+	safe_assert(start_node_ != NULL);
+	nodes_.insert(node);
+}
+
+void EnvGraph::Update(MemoryTrace* trace) {
+	EnvNodePtr prev;
+	// traverse the trace, and add new nodes and connections between nodes
+	EnvNodePtrList* nodes = trace->nodes();
+	for(EnvNodePtrList::iterator itr = nodes->begin(); itr < nodes->end(); ++itr) {
+		EnvNodePtr node = (*itr);
+		if(nodes_.find(node) == nodes_.end()) {
+			// add the node
+			AddNode(node);
+		}
+		if(prev != NULL) {
+			// add edge from prev to node
+			prev->AddEdge(node);
+		}
+		prev = node;
+	}
+}
 
 } // end namespace

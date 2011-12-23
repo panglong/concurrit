@@ -75,7 +75,7 @@ template<typename T>
 class writer {
 public:
 	explicit writer(MemoryCell<T>* cell) : cell_(cell){}
-	T operator=(T value) {
+	T& operator=(const T& value) {
 		return cell_->write(value);
 	}
 private:
@@ -88,7 +88,7 @@ class ywriter {
 public:
 	explicit ywriter(const char* label, SharedAccess* access, SourceLocation* loc)
 	: label_(label), access_(access), loc_(loc) {}
-	T operator=(T value) {
+	T& operator=(const T& value) {
 		T val = access_->cell_as<T>()->write(value);
 		yield(label_, loc_, access_);
 		return val;

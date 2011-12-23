@@ -45,11 +45,9 @@ public:
 	MemoryCellBase() {}
 	virtual ~MemoryCellBase() {}
 	virtual MemoryCellBase* Clone() = 0;
+	virtual void update_value(MemoryCellBase* other) = 0;
 	virtual ADDRINT int_address() = 0;
-//	virtual bool operator==(const MemoryCellBase& other) = 0;
-//	bool operator!=(const MemoryCellBase& other) {
-//		return !this->operator ==(other);
-//	}
+	virtual std::string ToString() = 0;
 };
 
 /********************************************************************************/
@@ -69,13 +67,20 @@ public:
 
 	ADDRINT int_address() { return reinterpret_cast<ADDRINT>(address_); }
 
-//	bool operator==(const MemoryCellBase& other) {
-//		MemoryCell<T>* _other = ASINSTANCEOF(&other, MemoryCell<T>*);
-//		return address_ == _other.address_ && value_ == _other.value_;
-//	}
+	virtual void update_value(MemoryCellBase* other) {
+		MemoryCell<T>* _other = ASINSTANCEOF(other, MemoryCell<T>*);
+		safe_assert(_other->address_ == this->address_);
+		value_ = _other->value_;
+	}
 
-	T read() { return value_ = (*address_); }
-	T write(T value) { return (*address_) = (value_ = value); }
+	std::string ToString() {
+		std::stringstream s;
+		s << "(" << int_address() << ":" << value_ << ")";
+		return s.str();
+	}
+
+	T& read() { return value_ = (*address_); }
+	T& write(const T& value) { return (*address_) = (value_ = value); }
 
 private:
 	DECL_FIELD(T*, address)

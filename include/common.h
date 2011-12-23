@@ -63,7 +63,7 @@
 #include <glog/logging.h>
 
 // boost libraries
-//#include <boost/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace counit {
 

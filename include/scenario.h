@@ -51,7 +51,7 @@ class YieldImpl;
 // exploration type
 enum ExploreType {FORALL, EXISTS};
 
-class Scenario {
+class Scenario : public YieldImpl{
 public:
 	explicit Scenario(const char* name);
 	virtual ~Scenario();
@@ -82,7 +82,7 @@ public:
 
 	TransferPoint* OnYield(SchedulePoint* spoint, Coroutine* target);
 
-	void OnAccess(Coroutine* current, SharedAccess* access);
+	virtual void OnAccess(Coroutine* current, SharedAccess* access);
 
 	void OnException(std::exception* e);
 
@@ -115,6 +115,16 @@ public:
 
 	void RunSavedSchedule(const char* filename);
 
+	// default yield implementation is provided by Scenario
+	virtual
+	SchedulePoint* Yield(Scenario* scenario,
+						 CoroutineGroup* group,
+						 Coroutine* source,
+						 Coroutine* target,
+						 std::string& label,
+						 SourceLocation* loc,
+						 SharedAccess* access);
+
 	inline SchedulePoint* do_yield(CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
 		return CHECK_NOTNULL(yield_impl_)->Yield(this, group, current, target, label, loc, access);
 	}
@@ -135,12 +145,16 @@ protected:
 	// update backtrack sets of transfer points for DPOR
 	void UpdateBacktrackSets();
 
-private:
 
 	bool Backtrack();
 	bool DoBacktrack();
-	void Finish();
-	void Restart();
+
+	virtual void Finish();
+	virtual void Restart();
+	// right after RunOnce successfully ends
+	virtual void AfterRunOnce() { /* empty for now */ }
+
+private:
 
 	DECL_FIELD(const char*, name)
 	DECL_FIELD(TransferCriteria, transfer_criteria)
@@ -150,8 +164,6 @@ private:
 
 	DECL_FIELD(VCTracker, vcTracker)
 	DECL_FIELD(YieldImpl*, yield_impl)
-
-	friend class DefaultYieldImpl;
 };
 
 } // end namespace

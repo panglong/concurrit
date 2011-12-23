@@ -15,7 +15,8 @@ FEATURES
 		bir threadi delay etmek ve with ile grubu restrict etmek ile ilgili testler yaz
 
 		handle case where a yield point is associated with not only a single access but a set of accesses
-		lp.cpp'deki TODO'lara bak, onlarla ilgilen. 
+		lp.cpp'deki TODO'lara bak, onlarla ilgilen.
+		vctracker'li ve coverage'li scenario'yu default scenario'dan ayir. 
 
 REFACTORINGS
 		std::string yerine olabildigince const char* kullan

@@ -82,7 +82,8 @@ Scenario::Scenario(const char* name) {
 
 	transfer_criteria_.Reset();
 
-	yield_impl_ = new DefaultYieldImpl();
+	// Scenario provides the default yield implementation
+	yield_impl_ = static_cast<YieldImpl*>(this);
 }
 
 /********************************************************************************/
@@ -159,8 +160,6 @@ Result* Scenario::Explore() {
 
 	int path_count = 0;
 
-	ForallResult* forall_result = NULL;
-
 	for(;true;) {
 
 		transfer_criteria_.Reset();
@@ -173,14 +172,16 @@ Result* Scenario::Explore() {
 
 				RunOnce();
 
+				AfterRunOnce();
+
 				if(explore_type_ == EXISTS) {
 					result = new ExistsResult(schedule_->Clone());
 					break;
 				} else {
-					if(forall_result == NULL) {
-						forall_result = new ForallResult();
+					if(result == NULL) {
+						result = new ForallResult();
 					}
-					forall_result->AddSchedule(schedule_->Clone());
+					ASINSTANCEOF(result, ForallResult*)->AddSchedule(schedule_->Clone());
 					VLOG(2) << "Found one path for forall search.";
 					TRIGGER_WRAPPED_BACKTRACK("Forall");
 				}
@@ -198,7 +199,13 @@ Result* Scenario::Explore() {
 						continue;
 					} else {
 						VLOG(2) << SC_TITLE << "No feasible execution!!!";
-						result = new NoFeasibleExecutionResult(schedule_->Clone());
+
+						if(result == NULL) {
+							result = new NoFeasibleExecutionResult(schedule_->Clone());
+						} else {
+							safe_assert(INSTANCEOF(result, ForallResult*));
+						}
+						goto LOOP_DONE; // break the outermost loop
 					}
 
 				} else if(ce->is_assertion_violation()){
@@ -222,28 +229,18 @@ Result* Scenario::Explore() {
 				}
 				break;
 			}
-		}
+		} // end for
 		/************************************************************************/
 		safe_assert(result != NULL);
-		if(explore_type_ == EXISTS
-				|| INSTANCEOF(result, AssertionViolationResult*)
-				|| INSTANCEOF(result, RuntimeExceptionResult*)
-				|| INSTANCEOF(result, NoFeasibleExecutionResult*)) {
+		if(!INSTANCEOF(result, ForallResult*)){
 			break;
 		}
 		safe_assert(explore_type_ == FORALL);
-	}
+	} // end for
+
+LOOP_DONE:
 
 	Finish(); // deletes schedule_
-
-	if(forall_result != NULL) {
-		if(INSTANCEOF(result, NoFeasibleExecutionResult*)) {
-			safe_assert(explore_type_ == FORALL);
-			result = forall_result;
-		} else {
-			delete forall_result;
-		}
-	}
 
 	VLOG(2) << SC_TITLE << "********** Statistics ********** ";
 	VLOG(2) << SC_TITLE << "Number of paths explored: " << path_count;
@@ -890,8 +887,10 @@ void BeginStrand(const char* name) {
 
 /********************************************************************************/
 
-SchedulePoint* DefaultYieldImpl::Yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
-	VLOG(2) << "DefaultYieldImpl::Yield";
+SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
+	VLOG(2) << "Scenario::Yield (default implementation)";
+
+	safe_assert(scenario == this);
 
 	// sanity checks
 	safe_assert(current != NULL);

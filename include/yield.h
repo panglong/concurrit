@@ -40,6 +40,7 @@
 namespace counit {
 
 // interface for yield implementors
+// default implementation is provided by Scenario
 class YieldImpl {
 public:
 	YieldImpl() {}
@@ -48,7 +49,7 @@ public:
 	virtual
 	SchedulePoint* Yield(Scenario* scenario,
 						 CoroutineGroup* group,
-						 Coroutine* current,
+						 Coroutine* source,
 						 Coroutine* target,
 						 std::string& label,
 						 SourceLocation* loc,
@@ -57,21 +58,33 @@ public:
 
 /********************************************************************************/
 
-class DefaultYieldImpl : public YieldImpl {
-public:
-	DefaultYieldImpl() : YieldImpl() {}
-	virtual ~DefaultYieldImpl() {}
+// struct storing arguments to a yield call
+struct YieldCall {
+	Scenario* scenario_;
+	CoroutineGroup* group_;
+	Coroutine* source_;
+	Coroutine* target_;
+	std::string label_;
+	SourceLocation* loc_;
+	SharedAccess* access_;
 
-	// implemented in scenario.cpp
-	virtual
-	SchedulePoint* Yield(Scenario* scenario,
-						 CoroutineGroup* group,
-						 Coroutine* current,
-						 Coroutine* target,
-						 std::string& label,
-						 SourceLocation* loc,
-						 SharedAccess* access);
+	YieldCall(Scenario* scenario,
+			 CoroutineGroup* group,
+			 Coroutine* source,
+			 Coroutine* target,
+			 std::string& label,
+			 SourceLocation* loc,
+			 SharedAccess* access)
+	 : scenario_(scenario),
+	   group_(group),
+	   source_(source),
+	   target_(target),
+	   label_(label),
+	   loc_(loc),
+	   access_(access) {}
 };
+
+
 
 } // end namespace
 
