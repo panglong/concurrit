@@ -66,13 +66,13 @@ typedef boost::shared_ptr<EnvNode> EnvNodePtr;
 typedef std::vector<EnvNodePtr> EnvNodePtrList;
 typedef std::set<EnvNodePtr> EnvNodePtrSet;
 
-// node in an env graph
+// a node in the env graph
 class EnvNode {
 public:
 	EnvNode() {}
 	~EnvNode() {}
 
-	void OnAccess(Coroutine* current, MemoryCellBase* cell);
+	void Update(Coroutine* current, MemoryCellBase* cell);
 	void AddEdge(EnvNodePtr node);
 
 	std::string ToString();
@@ -83,16 +83,48 @@ private:
 };
 
 /********************************************************************************/
+class EnvTrace;
 
-class MemoryTrace {
+class EnvGraph {
 public:
-	MemoryTrace() {}
-	~MemoryTrace() {
+	EnvGraph() {
+		start_node_ = EnvNodePtr(new EnvNode());
+		AddNode(start_node_);
+	}
+	~EnvGraph() {
+		delete_nodes();
+	}
+
+	void AddNode(EnvNodePtr node);
+	void Update(EnvTrace* trace);
+
+private:
+	void delete_nodes();
+
+	DECL_FIELD(EnvNodePtrSet, nodes)
+	DECL_FIELD(EnvNodePtr, start_node)
+};
+
+/********************************************************************************/
+
+// keeps track of the current trace of the execution
+// this includes tracking where the environment is in the envgraph,
+// and the linear path of envnodes visited during the execution
+class EnvTrace {
+public:
+	// g may be NULL, in this case Restart is called later with a valid graph pointer
+	EnvTrace(EnvGraph* g = NULL) {
+		if(g != NULL) { // initialize only when g != NULL (not to fail an assertion in Restart)
+			Restart(g);
+		}
+	}
+	~EnvTrace() {
 		delete_nodes();
 	}
 
 	void OnAccess(Coroutine* current, SharedAccess* access);
-	void Restart();
+	// if env_graph is not set or g is not NULL, we reset env_graph to g
+	void Restart(EnvGraph* g = NULL);
 
 	std::string ToString();
 
@@ -100,36 +132,6 @@ private:
 	void delete_nodes();
 
 	DECL_FIELD_REF(EnvNodePtrList, nodes)
-};
-
-/********************************************************************************/
-
-class EnvGraph {
-public:
-	EnvGraph() {
-		start_node_ = EnvNodePtr();
-	}
-	~EnvGraph() {}
-
-	void AddNode(EnvNodePtr node);
-	void Update(MemoryTrace* trace);
-
-private:
-	DECL_FIELD(EnvNodePtrSet, nodes)
-	DECL_FIELD(EnvNodePtr, start_node)
-};
-
-
-/********************************************************************************/
-
-class EnvSimulator {
-public:
-	EnvSimulator(EnvGraph* g) : env_graph_(g), current_(g->start_node()) {}
-	~EnvSimulator() {}
-
-	void Step() { unimplemented(); }
-
-private:
 	DECL_FIELD(EnvGraph*, env_graph)
 	DECL_FIELD(EnvNodePtr, current)
 };
@@ -140,7 +142,10 @@ private:
 class ThreadModularScenario : public Scenario {
 public:
 	typedef Scenario super;
-	explicit ThreadModularScenario(const char* name) : Scenario(name) {}
+	explicit ThreadModularScenario(const char* name) : Scenario(name) {
+		// env_trace_ is created with NULL graph, so we initialize its graph pointer here.
+		env_trace_.Restart(&env_graph_);
+	}
 	virtual ~ThreadModularScenario() {}
 
 	virtual void OnAccess(Coroutine* current, SharedAccess* access);
@@ -148,7 +153,7 @@ public:
 	virtual void AfterRunOnce();
 
 private:
-	DECL_FIELD_REF(MemoryTrace, memory_trace)
+	DECL_FIELD_REF(EnvTrace, env_trace)
 	DECL_FIELD_REF(EnvGraph, env_graph)
 };
 

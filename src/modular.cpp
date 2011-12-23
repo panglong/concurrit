@@ -41,29 +41,29 @@ void ThreadModularScenario::OnAccess(Coroutine* current, SharedAccess* access) {
 	// trace the access
 	// if a read, update the current state
 	// if a write, move to a new state
-	memory_trace_.OnAccess(current, access);
+	env_trace_.OnAccess(current, access);
 }
 
 void ThreadModularScenario::Restart() {
 	super::Restart();
 
 	// restart memory trace
-	memory_trace_.Restart();
+	env_trace_.Restart();
 }
 
 void ThreadModularScenario::AfterRunOnce() {
 	super::AfterRunOnce();
 
 	// print the memory trace:
-	printf("Memory trace:\n%s\n", memory_trace_.ToString().c_str());
+	printf("Memory trace:\n%s\n", env_trace_.ToString().c_str());
 
 	// add memory trace to env graph
-	env_graph_.Update(&memory_trace_);
+	env_graph_.Update(&env_trace_);
 }
 
 /********************************************************************************/
 
-void MemoryTrace::OnAccess(Coroutine* current, SharedAccess* access) {
+void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
 	EnvNodePtr node;
 	if(access->is_read()) {
 		// check if any state exists
@@ -81,19 +81,26 @@ void MemoryTrace::OnAccess(Coroutine* current, SharedAccess* access) {
 		nodes_.push_back(node);
 	}
 	// update the node
-	node->OnAccess(current, access->cell());
+	node->Update(current, access->cell());
 }
 
-void MemoryTrace::Restart() {
+void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 	// delete all states
 	delete_nodes();
+	if(env_graph_ == NULL || g != NULL) {
+		env_graph_ = g;
+	}
+	safe_assert(env_graph_ != NULL);
+	current_ = env_graph_->start_node();
 }
 
-void MemoryTrace::delete_nodes() {
-	nodes_.clear(); // nodes are shared pointers, so do not delete them, just clear the list
+void EnvTrace::delete_nodes() {
+	// nodes are shared pointers, so do not delete them, just clear the list
+	// shared_ptr takes care of the rest
+	nodes_.clear();
 }
 
-std::string MemoryTrace::ToString() {
+std::string EnvTrace::ToString() {
 	std::stringstream s;
 
 	int i = 1;
@@ -109,7 +116,7 @@ std::string MemoryTrace::ToString() {
 
 /********************************************************************************/
 
-void EnvNode::OnAccess(Coroutine* current, MemoryCellBase* cell) {
+void EnvNode::Update(Coroutine* current, MemoryCellBase* cell) {
 	// update globals
 	globals_.Update(cell);
 }
@@ -176,15 +183,12 @@ MemoryMap* MemoryMap::Clone() {
 /********************************************************************************/
 
 void EnvGraph::AddNode(EnvNodePtr node) {
-	if(nodes_.empty()) {
-		safe_assert(start_node_ == NULL);
-		start_node_ = node;
-	}
+	// we have at least start node
 	safe_assert(start_node_ != NULL);
 	nodes_.insert(node);
 }
 
-void EnvGraph::Update(MemoryTrace* trace) {
+void EnvGraph::Update(EnvTrace* trace) {
 	EnvNodePtr prev;
 	// traverse the trace, and add new nodes and connections between nodes
 	EnvNodePtrList* nodes = trace->nodes();
@@ -201,5 +205,12 @@ void EnvGraph::Update(MemoryTrace* trace) {
 		prev = node;
 	}
 }
+
+void EnvGraph::delete_nodes() {
+	// nodes are shared pointers, so do not delete them, just clear the list
+	// shared_ptr takes care of the rest
+	nodes_.clear();
+}
+
 
 } // end namespace
