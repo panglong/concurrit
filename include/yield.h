@@ -39,6 +39,17 @@
 
 namespace counit {
 
+
+#define YIELD_SIGNATURE \
+SchedulePoint* Yield(Scenario* scenario, \
+					 CoroutineGroup* group, \
+					 Coroutine* source, \
+					 Coroutine* target, \
+					 std::string& label, \
+					 SourceLocation* loc, \
+					 SharedAccess* access)
+
+
 // interface for yield implementors
 // default implementation is provided by Scenario
 class YieldImpl {
@@ -46,14 +57,7 @@ public:
 	YieldImpl() {}
 	virtual ~YieldImpl() {}
 
-	virtual
-	SchedulePoint* Yield(Scenario* scenario,
-						 CoroutineGroup* group,
-						 Coroutine* source,
-						 Coroutine* target,
-						 std::string& label,
-						 SourceLocation* loc,
-						 SharedAccess* access) = 0;
+	virtual YIELD_SIGNATURE = 0;
 };
 
 /********************************************************************************/

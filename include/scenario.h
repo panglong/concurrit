@@ -116,14 +116,7 @@ public:
 	void RunSavedSchedule(const char* filename);
 
 	// default yield implementation is provided by Scenario
-	virtual
-	SchedulePoint* Yield(Scenario* scenario,
-						 CoroutineGroup* group,
-						 Coroutine* source,
-						 Coroutine* target,
-						 std::string& label,
-						 SourceLocation* loc,
-						 SharedAccess* access);
+	virtual YIELD_SIGNATURE;
 
 	inline SchedulePoint* do_yield(CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
 		return CHECK_NOTNULL(yield_impl_)->Yield(this, group, current, target, label, loc, access);
@@ -149,6 +142,7 @@ protected:
 	bool Backtrack();
 	bool DoBacktrack();
 
+	virtual void Start();
 	virtual void Finish();
 	virtual void Restart();
 	// right after RunOnce successfully ends
@@ -159,7 +153,7 @@ private:
 	DECL_FIELD(const char*, name)
 	DECL_FIELD(TransferCriteria, transfer_criteria)
 	DECL_FIELD_REF(CoroutineGroup, group)
-	DECL_FIELD_REF(Schedule*, schedule)
+	DECL_FIELD(Schedule*, schedule)
 	DECL_FIELD(ExploreType, explore_type)
 
 	DECL_FIELD(VCTracker, vcTracker)

@@ -139,7 +139,7 @@ void VCTracker::HandleImmediateRace(SchedulePoint* point, SchedulePoint* current
 			<< currentPoint->AsYield()->access()->ToString();
 
 	// update coverage
-	point_t labels[] = {point->Coverage(), currentPoint->Coverage()};
+	point_t labels[] = {point->AsYield()->Coverage(), currentPoint->AsYield()->Coverage()};
 	tuple_t tuple(2, labels);
 
 	coverage->AddTuple(tuple);

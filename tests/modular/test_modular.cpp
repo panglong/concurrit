@@ -23,6 +23,7 @@ struct Counter {
 			//lock();
 			if(YIELD_READ("L2", x) == t) {
 				YIELD_WRITE("L3", x) = k;
+				printf("Updated x\n");
 //				unlock();
 				break;
 			}
@@ -77,30 +78,22 @@ protected:
 
 /************************************************************************/
 
-class Scenario0 : public CounterScenario {
+class Scenario1 : public CounterScenario {
 public:
-	Scenario0() : CounterScenario("SearchTest0") {}
+	Scenario1() : CounterScenario("SearchTest1") {}
 
-	void TestCase() {
+	void SetUp() {
+		CounterScenario::SetUp();
 
 		coroutine_t t1 = CreateThread("t1", increment_thread, COUNTER);
 		coroutine_t t2 = CreateThread("t2", increment_thread, COUNTER);
-		coroutine_t t3 = CreateThread("t3", increment_thread, COUNTER);
-		coroutine_t t4 = CreateThread("t4", increment_thread, COUNTER);
-
-		int i = 0;
-		UNTIL_ALL_END {
-			UNTIL_STAR()->TRANSFER_STAR();
-			++i;
-		}
-
-		ASSERT(COUNTER->get() == i);
+//		coroutine_t t3 = CreateThread("t3", increment_thread, COUNTER);
+//		coroutine_t t4 = CreateThread("t4", increment_thread, COUNTER);
 
 		printf("Counter: %d\n", COUNTER->get());
 	}
 };
 
-/************************************************************************/
 
 /************************************************************************/
 
@@ -110,7 +103,8 @@ int main(int argv, char** argc) {
 
 	Suite suite;
 
-	suite.AddScenario(new Scenario0());
+//	suite.AddScenario(new Scenario0());
+	suite.AddScenario(new Scenario1());
 	suite.RunAll();
 
 	EndCounit();

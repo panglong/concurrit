@@ -17,6 +17,7 @@ FEATURES
 		handle case where a yield point is associated with not only a single access but a set of accesses
 		lp.cpp'deki TODO'lara bak, onlarla ilgilen.
 		vctracker'li ve coverage'li scenario'yu default scenario'dan ayir. 
+		OnAccess'i Yield'dan ayirmaya calis. Mesela yield accessor dondurebilir, accessor da access olunca scenario'yu cagirir.
 
 REFACTORINGS
 		std::string yerine olabildigince const char* kullan

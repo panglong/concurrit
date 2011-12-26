@@ -154,7 +154,7 @@ Result* Scenario::ExploreForall() {
 
 Result* Scenario::Explore() {
 
-	Restart();
+	Start();
 
 	Result* result = NULL;
 
@@ -162,17 +162,17 @@ Result* Scenario::Explore() {
 
 	for(;true;) {
 
-		transfer_criteria_.Reset();
-
 		/************************************************************************/
 		for(;true;) {
 			try {
 
-				VLOG(2) << SC_TITLE << "Starting path " << path_count++;
+				VLOG(2) << SC_TITLE << "Starting path " << path_count;
 
 				RunOnce();
 
 				AfterRunOnce();
+
+				path_count++;
 
 				if(explore_type_ == EXISTS) {
 					result = new ExistsResult(schedule_->Clone());
@@ -335,7 +335,15 @@ bool Scenario::DoBacktrack() {
 	// remove all points after current (inclusively).
 	schedule_->RemoveCurrentAndBeyond();
 	for(SchedulePoint* point = schedule_->RemoveLast(); point != NULL; point = schedule_->RemoveLast()) {
-		if(point->IsTransfer()) {
+
+		if(point->IsChoice()) {
+			// check if there is any more choice
+			if(point->AsChoice()->ChooseNext()) {
+				schedule_->AddLast(point);
+				return true;
+			}
+		}
+		else if(point->IsTransfer()) {
 			TransferPoint* transfer = point->AsTransfer();
 			safe_assert(transfer->IsResolved());
 
@@ -387,6 +395,25 @@ bool Scenario::DoBacktrack() {
 
 /********************************************************************************/
 
+// although Start and Restart have the same code,
+// we do not directly call Restart, since subclasses may override Start and Restart differently
+void Scenario::Start() {
+	if(schedule_ == NULL) {
+		schedule_ = new Schedule();
+	} else {
+		schedule_->Restart();
+	}
+
+	// reset vc tracker
+	vcTracker_.Restart();
+
+	group_.Restart(); // restarts only already started coroutines
+
+	transfer_criteria_.Reset();
+}
+
+/********************************************************************************/
+
 void Scenario::Restart() {
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
@@ -398,6 +425,8 @@ void Scenario::Restart() {
 	vcTracker_.Restart();
 
 	group_.Restart(); // restarts only already started coroutines
+
+	transfer_criteria_.Reset();
 }
 
 /********************************************************************************/
@@ -436,7 +465,16 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 
 	// check if we have a matching one
 	if(schedule_->HasCurrent()) {
-		transfer = schedule_->GetCurrent()->AsTransfer();
+		SchedulePoint* current = schedule_->GetCurrent();
+		transfer = current->AsTransfer();
+		if(transfer == NULL) {
+			// this is a choice point
+			safe_assert(current->IsChoice());
+			// sanity check:
+			safe_assert(current->AsChoice()->source() == source);
+			// skip this yield point, since we are expecting a choice point before
+			goto DONE;
+		}
 
 		VLOG(2) << SC_TITLE << "Processing transfer from the log: " << transfer->ToString();
 
@@ -554,7 +592,7 @@ DONE:
 	// after this point, transfer does not change from non-null to null
 
 	VLOG(2) << "DONE. Scenario::OnYield chose " << ((transfer != NULL) ? transfer->ToString() : "NULL");
-	if(transfer == NULL) { // no transfer
+	if(transfer == NULL) { // no transfer, this may be because the current point is a choice point
 		// if yield of source is a transfer point, then we should not be here
 		safe_assert(!source->yield_point()->IsTransfer());
 
@@ -800,7 +838,7 @@ void Scenario::UpdateBacktrackSets() {
 
 /********************************************************************************/
 
-SchedulePoint* yield(const char* label, SourceLocation* loc, SharedAccess* access) {
+SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAccess* access /*=NULL*/, bool force /*=false*/) {
 
 	// give warning if access is null
 	if(access == NULL && strcmp(CHECK_NOTNULL(label), ENDING_LABEL) != 0) {
@@ -824,6 +862,13 @@ SchedulePoint* yield(const char* label, SourceLocation* loc, SharedAccess* acces
 
 	Scenario* scenario = group->scenario();
 	safe_assert(scenario != NULL);
+
+	// if forced yield, put an until condition for this
+	if(force) {
+		// TODO(elmas): check if the current until condition is consistent with forced yield
+		safe_assert(!current->IsMain());
+		scenario->UntilFirst(); // choose the first yield
+	}
 
 	return scenario->do_yield(group, current, main, strlabel, loc, access);
 
@@ -890,25 +935,24 @@ void BeginStrand(const char* name) {
 SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
 	VLOG(2) << "Scenario::Yield (default implementation)";
 
-	safe_assert(scenario == this);
+	CHECK(scenario == this);
 
 	// sanity checks
 	safe_assert(current != NULL);
 	safe_assert(group != NULL);
-	safe_assert(scenario != NULL);
 	safe_assert(scenario == group->scenario());
 	safe_assert(group == scenario->group());
 
 	VLOG(2) << "Yield request from " << current->name();
 
 	// update backtrack set before taking the transition
-	scenario->UpdateBacktrackSets();
+	this->UpdateBacktrackSets();
 
 	// generate or update the current yield point of current
 	SchedulePoint* point = current->OnYield(target, label, loc, access);
 
 	// make the next decision
-	TransferPoint* transfer = scenario->OnYield(point, target);
+	TransferPoint* transfer = this->OnYield(point, target);
 
 	SchedulePoint* target_point = NULL;
 
@@ -935,7 +979,7 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 
 	// notify scenario about this access
 	if(access != NULL) {
-		scenario->OnAccess(current, access);
+		this->OnAccess(current, access);
 	}
 
 	return target_point; // means did not transfer to another thread

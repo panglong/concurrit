@@ -201,36 +201,6 @@ void TransferPoint::Store(Serializer* serializer) {
 
 /********************************************************************************/
 
-
-//void TransferPoint::SaveToFile(FILE* file) {
-//	// create schedule_point and write it to file
-//	safe_assert(IsResolved());
-//	schedule_point point(yield_->source_->name(), target_->name(), yield_->label_, yield_->count_);
-//
-//	int result = fwrite(&point, sizeof(schedule_point), 1, file);
-//	safe_assert(result == 1);
-//}
-
-/********************************************************************************/
-
-//TransferPoint* TransferPoint::LoadFromFile(FILE* file) {
-//	schedule_point point;
-//
-//	int result = fread(&point, sizeof(schedule_point), 1, file);
-//	if(result != 1) {
-//		return NULL;
-//	}
-//	safe_assert(point.sanity_ == SANITY_NUMBER);
-//
-//	std::string source(point.source_);
-//	std::string target(point.target_);
-//	std::string label(point.label_);
-//	TransferPoint* transferPoint = new TransferPoint(new YieldPoint(source, label, point.count_, NULL, NULL, false, false), target);
-//	return transferPoint;
-//}
-
-/********************************************************************************/
-
 std::string TransferPoint::ToString() {
 	std::stringstream s;
 	if(is_resolved_) {
@@ -249,6 +219,48 @@ SchedulePoint* TransferPoint::Clone() {
 
 /********************************************************************************/
 
+/*
+ * ChoicePoint
+ */
+
+void ChoicePoint::SetCurrent() {
+	CHECK_NOTNULL(source_)->group()->scenario()->schedule()->AddCurrent(this, true);
+}
+
+ChoicePoint* ChoicePoint::GetCurrent(Coroutine* source /*=Coroutine::Current()*/) {
+	safe_assert(source != NULL);
+	// add the choice point to the current schedule
+	Scenario* scenario = source->group()->scenario();
+	SchedulePoint* current = scenario->schedule()->GetCurrent();
+	if(current != NULL && current->IsChoice()) {
+		return CHECK_NOTNULL(current->AsChoice());
+	} else {
+		return NULL;
+	}
+}
+
+//ChoicePoint* ChoicePoint::GetOrMake(Chooser* chooser, Coroutine* source /*=Coroutine::Current()*/) {
+//	safe_assert(source != NULL);
+//	// add the choice point to the current schedule
+//	Scenario* scenario = source->group()->scenario();
+//	SchedulePoint* current = scenario->schedule()->GetCurrent();
+//	if(current != NULL && current->IsChoice()) {
+//		// reuse this choice point, otherwise
+//		safe_assert(current->AsChoice()->source_ == source);
+//		safe_assert(current->AsChoice()->chooser_ == chooser);
+//	} else {
+//		// create a new one
+//		current = new ChoicePoint(chooser, source);
+//		// add the point to the current schedule (do not consume yet, it is consumed below)
+//		scenario->schedule()->AddCurrent(current, false);
+//	}
+//	// consume the current point
+//	scenario->schedule()->ConsumeCurrent();
+//	return current->AsChoice();
+//}
+
+
+/********************************************************************************/
 
 /*
  * Schedule
@@ -337,7 +349,7 @@ SchedulePoint* Schedule::GetCurrent() {
 	}
 	SchedulePoint* point = points_[index_];
 	safe_assert(point != NULL);
-	safe_assert(INSTANCEOF(point, TransferPoint*)); // check that it is really a transfer point
+	safe_assert(point->IsTransfer() || point->IsChoice());
 
 	return point;
 }
@@ -400,14 +412,16 @@ void Schedule::ClearUntakenPoints() {
 		for (std::vector<SchedulePoint*>::iterator itr = points_.begin(); itr < points_.end();) {
 			SchedulePoint* point = *itr;
 			safe_assert(point != NULL);
-			if(!point->IsTransfer()) {
-				VLOG(2) << __FUNCTION__ << " Removing yield point";
-				delete point;
-				itr = points_.erase(itr);
-			} else {
+			if(point->IsTransfer()) {
 				VLOG(2) << __FUNCTION__ << " Resetting transfer point";
 				CHECK_NOTNULL(point->AsTransfer())->Reset();
 				++itr;
+			} else if(point->IsChoice()) {
+				++itr; // go past it
+			} else { // yield point
+				VLOG(2) << __FUNCTION__ << " Removing yield point";
+				delete point;
+				itr = points_.erase(itr);
 			}
 		}
 	}
@@ -419,6 +433,15 @@ void Schedule::Restart() {
 	ClearUntakenPoints();
 	SetCurrentToFirst();
 	coverage_.Clear();
+}
+
+/********************************************************************************/
+
+void Schedule::Clear() {
+	// remove all schedule points
+	delete_points();
+
+	Restart();
 }
 
 /********************************************************************************/

@@ -40,7 +40,6 @@ namespace counit {
 
 /********************************************************************************/
 
-
 class MemoryMap {
 public:
 	typedef std::map<ADDRINT, MemoryCellBase*> CellMap;
@@ -95,6 +94,7 @@ public:
 		delete_nodes();
 	}
 
+	EnvNodePtr MakeNewNode(EnvNodePtr existing = EnvNodePtr());
 	void AddNode(EnvNodePtr node);
 	void Update(EnvTrace* trace);
 
@@ -122,6 +122,9 @@ public:
 		delete_nodes();
 	}
 
+	// returns true, if no further step is possible
+	bool Step(Coroutine* current, SharedAccess* access);
+
 	void OnAccess(Coroutine* current, SharedAccess* access);
 	// if env_graph is not set or g is not NULL, we reset env_graph to g
 	void Restart(EnvGraph* g = NULL);
@@ -131,11 +134,47 @@ public:
 private:
 	void delete_nodes();
 
-	DECL_FIELD_REF(EnvNodePtrList, nodes)
+	DECL_FIELD_REF(EnvNodePtrList, nodes) // sequence of nodes visited
 	DECL_FIELD(EnvGraph*, env_graph)
-	DECL_FIELD(EnvNodePtr, current)
+	DECL_FIELD(EnvNodePtr, current) // current node in the existing env graph
 };
 
+
+/********************************************************************************/
+
+class MemberChoicePoint : public ChoicePoint {
+public:
+	MemberChoicePoint(CoroutinePtrSet members,
+					  CoroutinePtrSet::iterator itr,
+					  Coroutine* source = Coroutine::Current())
+	: ChoicePoint(source), members_(members), itr_(itr) {}
+	MemberChoicePoint(CoroutinePtrSet members,
+					  Coroutine* source = Coroutine::Current())
+	: ChoicePoint(source), members_(members) { itr_ = members_.begin(); }
+
+	~MemberChoicePoint() {}
+
+	// override
+	bool ChooseNext() {
+		if(itr_ == members_.end()) {
+			return false;
+		}
+		++itr_;
+		return itr_ != members_.end();
+	}
+
+	Coroutine* GetNext() {
+		return (itr_ != members_.end() ? (*itr_) : NULL);
+	}
+
+	virtual SchedulePoint* Clone() { return new MemberChoicePoint(members_, itr_, source_); }
+	virtual void Load(Serializer* serializer) { unimplemented(); }
+	virtual void Store(Serializer* serializer) { unimplemented(); }
+
+private:
+	DECL_FIELD(CoroutinePtrSet, members)
+	DECL_FIELD(CoroutinePtrSet::iterator, itr)
+};
 
 /********************************************************************************/
 
@@ -148,9 +187,10 @@ public:
 	}
 	virtual ~ThreadModularScenario() {}
 
-	virtual void OnAccess(Coroutine* current, SharedAccess* access);
-	virtual void Restart();
-	virtual void AfterRunOnce();
+	void OnAccess(Coroutine* current, SharedAccess* access); // override
+	void Restart(); // override
+	void AfterRunOnce(); // override
+	void TestCase(); // override. implements the modular check, threads must be added in setup
 
 private:
 	DECL_FIELD_REF(EnvTrace, env_trace)

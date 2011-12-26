@@ -43,6 +43,13 @@ namespace counit {
 #define ENDING_LABEL "ending"
 #define MAIN_LABEL "main"
 
+/********************************************************************************/
+
+#define CREATE_THREAD \
+	CreateThread
+
+/********************************************************************************/
+
 /*
  * API to be used by the test cases
  */
@@ -52,7 +59,7 @@ namespace counit {
 /********************************************************************************/
 
 class SchedulePoint;
-extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, SharedAccess* access = NULL);
+extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, SharedAccess* access = NULL, bool force = false);
 
 /********************************************************************************/
 
@@ -66,6 +73,9 @@ extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, Share
 
 #define YIELD(label, access) \
 	yield(label, RECORD_SRCLOC(), access)
+
+#define FORCE_YIELD(label, access) \
+	yield(label, RECORD_SRCLOC(), access, /*force=*/true)
 
 /********************************************************************************/
 // yielding reads and writes
@@ -195,6 +205,7 @@ inline ywriter<T> write_yield(const char* label, T* mem, const char* expr, Sourc
 #define DO				do
 #define ALL_ENDED		(AllEnded())
 #define UNTIL_ALL_END	while(!ALL_ENDED)
+#define UNTIL_ENDS(c)	while(!(c)->is_ended())
 
 /********************************************************************************/
 

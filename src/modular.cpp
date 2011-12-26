@@ -61,27 +61,116 @@ void ThreadModularScenario::AfterRunOnce() {
 	env_graph_.Update(&env_trace_);
 }
 
+void* env_thread_function(void* p) {
+	CHECK(p != NULL);
+	EnvTrace* env_trace = static_cast<EnvTrace*>(p);
+	while(true) {
+		SchedulePoint* main_point = Coroutine::Current()->yield_point();
+		if(main_point != NULL) {
+			main_point = main_point->AsYield()->prev();
+
+			safe_assert(main_point != NULL && main_point->IsTransfer());
+			safe_assert(main_point->AsYield()->source()->IsMain());
+
+			VLOG(2) << "Running env thread context";
+
+			SchedulePoint* point = main_point->AsYield()->prev();
+//			if(point != NULL) {
+//				safe_assert(point->IsTransfer());
+				Coroutine* source = NULL; // point->AsYield()->source();
+//				safe_assert(!source->IsMain());
+//
+//				// handle the environment transitions here
+				SharedAccess* access = NULL; // point->AsYield()->access();
+//				if(access != NULL) {
+					// take a step, if no step is possible, then exit the env thread
+					if(!env_trace->Step(source, access)) {
+						break;
+					}
+//				}
+//			}
+		}
+		FORCE_YIELD("ENV", NULL);
+	} // end while
+	return NULL;
+}
+
+
+
+// this is a API call, given a set of threads, makes a modular check
+void ThreadModularScenario::TestCase() {
+	TEST_FORALL(); // we chech all possible executions
+
+	// add environment thread to the group
+	Coroutine* env_co = CREATE_THREAD("ENV", env_thread_function, &env_trace_);
+
+	// add a choice point for choosing which member to run (or reuse it if already exists)
+	MemberChoicePoint* member_choice = NULL;
+	ChoicePoint* choice_point = ChoicePoint::GetCurrent();
+	if(choice_point != NULL) {
+		VLOG(2) << SC_TITLE << "Reusing choice point";
+
+		member_choice = ASINSTANCEOF(choice_point, MemberChoicePoint*);
+		schedule_->ConsumeCurrent();
+	} else {
+		VLOG(2) << SC_TITLE << "Creating member_choose";
+
+		CoroutinePtrSet members = group_.GetMemberSet();
+		// remove env thread
+		members.erase(members.find(env_co));
+		member_choice = new MemberChoicePoint(members);
+		member_choice->SetCurrent();
+	}
+
+	Coroutine* co = member_choice->GetNext();
+	if(co == NULL) {
+		VLOG(2) << SC_TITLE << "All members were used, so backtracking";
+		// no more members, so backtrack (and end the execution)
+		TRIGGER_BACKTRACK();
+	}
+
+	safe_assert(co != env_co);
+
+	VLOG(2) << SC_TITLE << "Running modularly";
+	// run one member at a time concurrently with env_thread
+	printf("Modular check with coroutine %s\n", co->name().c_str());
+	{ WITH(co, env_co);
+
+		UNTIL_ALL_END {
+			SchedulePoint* point = UNTIL_STAR()->TRANSFER_STAR();
+			USE(point);
+		}
+
+	}
+}
+
 /********************************************************************************/
+
+bool EnvTrace::Step(Coroutine* current, SharedAccess* access) {
+	// decide whether to stay in the same node or transit to another node
+	// TODO(elmas): stays for now
+	return false;
+}
 
 void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
 	EnvNodePtr node;
 	if(access->is_read()) {
 		// check if any state exists
 		if(nodes_.empty()) {
-			node = EnvNodePtr(new EnvNode());
+			node = env_graph_->MakeNewNode();
 			nodes_.push_back(node);
 		} else {
 			node = nodes_.back();
 		}
 	} else {
-		node = EnvNodePtr(new EnvNode());
-		if(!nodes_.empty()) {
-			node->globals()->Update(nodes_.back()->globals());
-		}
+		node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
 		nodes_.push_back(node);
 	}
 	// update the node
 	node->Update(current, access->cell());
+
+	// make node the current node of the trace
+	current_ = node;
 }
 
 void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
@@ -92,6 +181,7 @@ void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 	}
 	safe_assert(env_graph_ != NULL);
 	current_ = env_graph_->start_node();
+	nodes_.push_back(current_);
 }
 
 void EnvTrace::delete_nodes() {
@@ -181,6 +271,15 @@ MemoryMap* MemoryMap::Clone() {
 }
 
 /********************************************************************************/
+
+EnvNodePtr EnvGraph::MakeNewNode(EnvNodePtr existing) {
+	EnvNodePtr node = EnvNodePtr(new EnvNode());
+	// update globals from the existing node
+	if(existing != NULL) {
+		node->globals()->Update(existing->globals());
+	}
+	return node;
+}
 
 void EnvGraph::AddNode(EnvNodePtr node) {
 	// we have at least start node

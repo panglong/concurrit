@@ -46,9 +46,9 @@ public:
 		coroutine_t t3 = CreateThread("t3", increment_thread, COUNTER);
 
 		{
-			EXHAUSTIVE_SEARCH();
-//			CONTEXT_BOUNDED_EXHAUSTIVE_SEARCH(3);
-			NDSEQ_SEARCH();
+//			EXHAUSTIVE_SEARCH();
+			CONTEXT_BOUNDED_EXHAUSTIVE_SEARCH(3);
+//			NDSEQ_SEARCH();
 		}
 
 		ASSERT(COUNTER->get() == 3);

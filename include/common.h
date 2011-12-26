@@ -156,7 +156,7 @@ namespace counit {
 
 #define unimplemented() \
 		VLOG(2) << "Executing unimplemented code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
-		throw "Unimplemented"
+		throw "Unimplemented operation!"
 
 /********************************************************************************/
 

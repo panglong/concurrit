@@ -99,6 +99,10 @@ public:
 		status_ = abs(status_);
 	}
 
+	inline bool is_ended() {
+		return (status_ >= ENDED);
+	}
+
 private:
 
 	DECL_FIELD(THREADID, coid)

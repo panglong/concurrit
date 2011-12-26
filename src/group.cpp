@@ -193,7 +193,7 @@ CoroutinePtrSet* CoroutineGroup::member_set() {
 
 bool CoroutineGroup::IsAllEnded() {
 	for_each_member(co) {
-		if (co->status() < ENDED) {
+		if (!co->is_ended()) {
 			return false;
 		}
 	}

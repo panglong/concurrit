@@ -41,66 +41,29 @@
 
 namespace counit {
 
-/*
- * This struct is used to save schedule points to files
- */
-static const int SANITY_NUMBER = 0xFABEEBAF;
-
-struct schedule_point {
-	int sanity_;
-	str_t source_;
-	str_t target_;
-	str_t label_;
-	unsigned int count_;
-
-public:
-
-	schedule_point(str_t source, str_t target, str_t label, unsigned int count) {
-		sanity_ = SANITY_NUMBER;
-		str_copy(source_, source);
-		str_copy(target_, target);
-		str_copy(label_, label);
-		count_ = count;
-	}
-
-	schedule_point(std::string source, std::string target, std::string label, unsigned int count) {
-		sanity_ = SANITY_NUMBER;
-		str_copy(source_, source);
-		str_copy(target_, target);
-		str_copy(label_, label);
-		count_ = count;
-	}
-
-	schedule_point() {
-		sanity_ = SANITY_NUMBER;
-		str_copy(source_, "");
-		str_copy(target_, "");
-		str_copy(label_, "");
-		count_ = -1;
-	}
-
-};
 
 /********************************************************************************/
 
 // base class
 class YieldPoint;
 class TransferPoint;
+class ChoicePoint;
 
 class SchedulePoint : public Serializable {
 public:
-	SchedulePoint(){}
+	SchedulePoint(): is_resolved_(false) {}
 	virtual ~SchedulePoint() {}
-	virtual YieldPoint* AsYield() = 0;
-	virtual TransferPoint* AsTransfer() = 0;
+	virtual YieldPoint* AsYield() { return NULL; }
+	virtual TransferPoint* AsTransfer() { return NULL; }
+	virtual ChoicePoint* AsChoice() { return NULL; }
 	virtual bool IsTransfer() { return AsTransfer() != NULL; }
+	virtual bool IsYield() { return AsYield() != NULL; }
+	virtual bool IsChoice() { return AsChoice() != NULL; }
 
 	virtual bool IsResolved() { return is_resolved_; }
 
-	virtual point_t Coverage() = 0;
-
 	virtual std::string ToString() = 0;
-	virtual void ToStream(FILE* file) {
+	void ToStream(FILE* file) {
 		std::string s = ToString();
 		fprintf(file, "%s", ToString().c_str());
 	}
@@ -151,7 +114,6 @@ public:
 	virtual std::string ToString();
 
 	virtual YieldPoint* AsYield() { return this; }
-	virtual TransferPoint* AsTransfer() { return NULL; }
 
 	virtual SchedulePoint* Clone();
 
@@ -249,6 +211,37 @@ private:
 
 /********************************************************************************/
 
+class ChoicePoint : public SchedulePoint {
+public:
+	ChoicePoint(Coroutine* source = Coroutine::Current())
+	: source_(source) { is_resolved_ = true; }
+
+	virtual ~ChoicePoint() {}
+
+	ChoicePoint* AsChoice() { return this; }
+
+	void SetCurrent();
+	// return not null if there is a choice point in the schedule
+	static ChoicePoint* GetCurrent(Coroutine* source = Coroutine::Current());
+
+	// do not write choose for now
+	std::string ToString() {
+		std::stringstream s;
+		s << "Choice point by" << (source_ != NULL ? source_->name() : "NULL") ;
+		return s.str();
+	}
+
+	virtual bool ChooseNext() = 0;
+	virtual SchedulePoint* Clone() = 0;
+	virtual void Load(Serializer* serializer) = 0;
+	virtual void Store(Serializer* serializer) = 0;
+
+private:
+	DECL_FIELD(Coroutine*, source)
+};
+
+/********************************************************************************/
+
 /*
  * Represents a list of schedule points
  */
@@ -277,6 +270,7 @@ public:
 
 	void RemoveCurrentAndBeyond();
 
+	void Clear();
 	void Restart();
 
 	void AddLast(SchedulePoint* point);
