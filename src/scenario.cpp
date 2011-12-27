@@ -627,8 +627,10 @@ DONE:
 		// set next and previous pointers here
 		SchedulePoint* target_point = target->yield_point();
 		if(target_point != NULL) {
-			transfer->set_next(target_point->AsYield());
-			target_point->AsYield()->set_prev(transfer);
+			YieldPoint* target_yield = target_point->AsYield();
+			safe_assert(target_point->IsTransfer());
+			transfer->set_next(target_yield);
+			target_yield->set_prev(transfer);
 		}
 
 		//-----------------------------------------
@@ -865,6 +867,8 @@ SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAcc
 
 	// if forced yield, put an until condition for this
 	if(force) {
+		// not the ending label
+		safe_assert(label != ENDING_LABEL);
 		// TODO(elmas): check if the current until condition is consistent with forced yield
 		safe_assert(!current->IsMain());
 		scenario->UntilFirst(); // choose the first yield

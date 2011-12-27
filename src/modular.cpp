@@ -65,6 +65,8 @@ void* env_thread_function(void* p) {
 	CHECK(p != NULL);
 	EnvTrace* env_trace = static_cast<EnvTrace*>(p);
 	while(true) {
+		VLOG(2) << "Running env thread context";
+
 		SchedulePoint* main_point = Coroutine::Current()->yield_point();
 		if(main_point != NULL) {
 			main_point = main_point->AsYield()->prev();
@@ -72,24 +74,24 @@ void* env_thread_function(void* p) {
 			safe_assert(main_point != NULL && main_point->IsTransfer());
 			safe_assert(main_point->AsYield()->source()->IsMain());
 
-			VLOG(2) << "Running env thread context";
-
+			Coroutine* source = NULL;
+			SharedAccess* access = NULL;
 			SchedulePoint* point = main_point->AsYield()->prev();
-//			if(point != NULL) {
-//				safe_assert(point->IsTransfer());
-				Coroutine* source = NULL; // point->AsYield()->source();
-//				safe_assert(!source->IsMain());
-//
-//				// handle the environment transitions here
-				SharedAccess* access = NULL; // point->AsYield()->access();
-//				if(access != NULL) {
-					// take a step, if no step is possible, then exit the env thread
-					if(!env_trace->Step(source, access)) {
-						break;
-					}
-//				}
-//			}
+			if(point != NULL) {
+				safe_assert(point->IsTransfer());
+				source = point->AsYield()->source();
+				safe_assert(!source->IsMain());
+
+				// handle the environment transitions here
+				access = point->AsYield()->access();
+			}
+
+			VLOG(2) << "env_trace is taking a step";
+			if(!env_trace->Step(source, access)) {
+				break;
+			}
 		}
+		// force yield after each step
 		FORCE_YIELD("ENV", NULL);
 	} // end while
 	return NULL;
@@ -113,7 +115,7 @@ void ThreadModularScenario::TestCase() {
 		member_choice = ASINSTANCEOF(choice_point, MemberChoicePoint*);
 		schedule_->ConsumeCurrent();
 	} else {
-		VLOG(2) << SC_TITLE << "Creating member_choose";
+		VLOG(2) << SC_TITLE << "Creating member_choice";
 
 		CoroutinePtrSet members = group_.GetMemberSet();
 		// remove env thread
@@ -131,14 +133,12 @@ void ThreadModularScenario::TestCase() {
 
 	safe_assert(co != env_co);
 
-	VLOG(2) << SC_TITLE << "Running modularly";
 	// run one member at a time concurrently with env_thread
 	printf("Modular check with coroutine %s\n", co->name().c_str());
 	{ WITH(co, env_co);
 
 		UNTIL_ALL_END {
-			SchedulePoint* point = UNTIL_STAR()->TRANSFER_STAR();
-			USE(point);
+			UNTIL_STAR()->TRANSFER_STAR();
 		}
 
 	}
