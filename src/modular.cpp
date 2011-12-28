@@ -64,44 +64,71 @@ void ThreadModularScenario::AfterRunOnce() {
 void* env_thread_function(void* p) {
 	CHECK(p != NULL);
 	EnvTrace* env_trace = static_cast<EnvTrace*>(p);
-	while(true) {
+	for(;true;) {
 		VLOG(2) << "Running env thread context";
 
-		SchedulePoint* main_point = Coroutine::Current()->yield_point();
+		Coroutine* current = Coroutine::Current();
+		safe_assert(!current->IsMain());
+
+		SchedulePoint* main_point = current->yield_point();
 		if(main_point != NULL) {
 			main_point = main_point->AsYield()->prev();
 
 			safe_assert(main_point != NULL && main_point->IsTransfer());
 			safe_assert(main_point->AsYield()->source()->IsMain());
 
-			Coroutine* source = NULL;
-			SharedAccess* access = NULL;
-			SchedulePoint* point = main_point->AsYield()->prev();
-			if(point != NULL) {
-				safe_assert(point->IsTransfer());
-				source = point->AsYield()->source();
-				safe_assert(!source->IsMain());
-
-				// handle the environment transitions here
-				access = point->AsYield()->access();
-			}
+//			Coroutine* source = NULL;
+//			SharedAccess* access = NULL;
+//			SchedulePoint* point = main_point->AsYield()->prev();
+//			if(point != NULL) {
+//				safe_assert(point->IsTransfer());
+//				source = point->AsYield()->source();
+//				safe_assert(!source->IsMain());
+//
+//				// handle the environment transitions here
+//				access = point->AsYield()->access();
+//			}
 
 			VLOG(2) << "env_trace is taking a step";
-			if(!env_trace->Step(source, access)) {
+
+			// add a choice point for choosing which member to run (or reuse it if already exists)
+			EnvChoicePoint* env_choice = NULL;
+			ChoicePoint* choice_point = ChoicePoint::GetCurrent();
+			if(choice_point != NULL) {
+				VLOG(2) << "Reusing env choice point";
+
+				env_choice = ASINSTANCEOF(choice_point, EnvChoicePoint*);
+				safe_assert(env_choice->current_node() != NULL);
+				env_trace->set_current_node(env_choice->GetNext());
+			} else {
+				VLOG(2) << "Creating new env choice point";
+
+				// first taking of this transition
+				// gets the current node of env_trace as the current node
+				env_choice = new EnvChoicePoint(env_trace, env_trace->current_node());
+				env_choice->ChooseNext(); // makes env_trace to take a step and update its current node
+			}
+
+			if(env_choice->GetNext() == NULL) {
+				// no more steps, exit now
+				// but the environment should stay at the same non-null node
+				//safe_assert(env_trace->current_node() != NULL);
 				break;
 			}
-		}
+
+			env_choice->SetAndConsumeCurrent();
+		} // end if
 		// force yield after each step
+		// TODO(elmas): use the last accesses of env instead of NULL
 		FORCE_YIELD("ENV", NULL);
 	} // end while
 	return NULL;
 }
 
 
-
 // this is a API call, given a set of threads, makes a modular check
 void ThreadModularScenario::TestCase() {
-	TEST_FORALL(); // we chech all possible executions
+	TEST_FORALL(); // we check all possible executions
 
 	// add environment thread to the group
 	Coroutine* env_co = CREATE_THREAD("ENV", env_thread_function, &env_trace_);
@@ -110,18 +137,17 @@ void ThreadModularScenario::TestCase() {
 	MemberChoicePoint* member_choice = NULL;
 	ChoicePoint* choice_point = ChoicePoint::GetCurrent();
 	if(choice_point != NULL) {
-		VLOG(2) << SC_TITLE << "Reusing choice point";
+		VLOG(2) << SC_TITLE << "Reusing member choice point";
 
 		member_choice = ASINSTANCEOF(choice_point, MemberChoicePoint*);
-		schedule_->ConsumeCurrent();
 	} else {
-		VLOG(2) << SC_TITLE << "Creating member_choice";
+		VLOG(2) << SC_TITLE << "Creating new member choice point";
 
 		CoroutinePtrSet members = group_.GetMemberSet();
 		// remove env thread
 		members.erase(members.find(env_co));
 		member_choice = new MemberChoicePoint(members);
-		member_choice->SetCurrent();
+		// no need to call ChooseNext, as member_choice.itr_ is already pointing to the first member
 	}
 
 	Coroutine* co = member_choice->GetNext();
@@ -130,26 +156,27 @@ void ThreadModularScenario::TestCase() {
 		// no more members, so backtrack (and end the execution)
 		TRIGGER_BACKTRACK();
 	}
-
 	safe_assert(co != env_co);
+
+	member_choice->SetAndConsumeCurrent();
 
 	// run one member at a time concurrently with env_thread
 	printf("Modular check with coroutine %s\n", co->name().c_str());
 	{ WITH(co, env_co);
-
 		UNTIL_ALL_END {
 			UNTIL_STAR()->TRANSFER_STAR();
 		}
-
 	}
 }
 
 /********************************************************************************/
 
-bool EnvTrace::Step(Coroutine* current, SharedAccess* access) {
+// this is called by EnvChoicePoint to find out the next following target of current_node
+EnvNodePtr EnvTrace::Step(EnvNodePtr current_node) {
 	// decide whether to stay in the same node or transit to another node
-	// TODO(elmas): stays for now
-	return false;
+	// TODO(elmas)...
+	current_node_ = EnvNodePtr();
+	return current_node_;
 }
 
 void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
@@ -170,7 +197,7 @@ void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
 	node->Update(current, access->cell());
 
 	// make node the current node of the trace
-	current_ = node;
+	current_node_ = node;
 }
 
 void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
@@ -180,8 +207,8 @@ void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 		env_graph_ = g;
 	}
 	safe_assert(env_graph_ != NULL);
-	current_ = env_graph_->start_node();
-	nodes_.push_back(current_);
+	current_node_ = env_graph_->start_node();
+	nodes_.push_back(current_node_);
 }
 
 void EnvTrace::delete_nodes() {

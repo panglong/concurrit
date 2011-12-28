@@ -868,7 +868,7 @@ SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAcc
 	// if forced yield, put an until condition for this
 	if(force) {
 		// not the ending label
-		safe_assert(label != ENDING_LABEL);
+		safe_assert(strcmp(label, ENDING_LABEL) != 0);
 		// TODO(elmas): check if the current until condition is consistent with forced yield
 		safe_assert(!current->IsMain());
 		scenario->UntilFirst(); // choose the first yield

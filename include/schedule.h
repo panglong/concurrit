@@ -220,7 +220,7 @@ public:
 
 	ChoicePoint* AsChoice() { return this; }
 
-	void SetCurrent();
+	void SetAndConsumeCurrent();
 	// return not null if there is a choice point in the schedule
 	static ChoicePoint* GetCurrent(Coroutine* source = Coroutine::Current());
 

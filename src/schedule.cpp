@@ -223,8 +223,12 @@ SchedulePoint* TransferPoint::Clone() {
  * ChoicePoint
  */
 
-void ChoicePoint::SetCurrent() {
-	CHECK_NOTNULL(source_)->group()->scenario()->schedule()->AddCurrent(this, true);
+void ChoicePoint::SetAndConsumeCurrent() {
+	if(ChoicePoint::GetCurrent(source_) == this) {
+		CHECK_NOTNULL(source_)->group()->scenario()->schedule()->ConsumeCurrent();
+	} else {
+		CHECK_NOTNULL(source_)->group()->scenario()->schedule()->AddCurrent(this, true);
+	}
 }
 
 ChoicePoint* ChoicePoint::GetCurrent(Coroutine* source /*=Coroutine::Current()*/) {
@@ -233,6 +237,7 @@ ChoicePoint* ChoicePoint::GetCurrent(Coroutine* source /*=Coroutine::Current()*/
 	Scenario* scenario = source->group()->scenario();
 	SchedulePoint* current = scenario->schedule()->GetCurrent();
 	if(current != NULL && current->IsChoice()) {
+		safe_assert(CHECK_NOTNULL(current->AsChoice())->source() == source);
 		return CHECK_NOTNULL(current->AsChoice());
 	} else {
 		return NULL;

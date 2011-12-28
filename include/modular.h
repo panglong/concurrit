@@ -123,7 +123,7 @@ public:
 	}
 
 	// returns true, if no further step is possible
-	bool Step(Coroutine* current, SharedAccess* access);
+	EnvNodePtr Step(EnvNodePtr current_node);
 
 	void OnAccess(Coroutine* current, SharedAccess* access);
 	// if env_graph is not set or g is not NULL, we reset env_graph to g
@@ -136,7 +136,7 @@ private:
 
 	DECL_FIELD_REF(EnvNodePtrList, nodes) // sequence of nodes visited
 	DECL_FIELD(EnvGraph*, env_graph)
-	DECL_FIELD(EnvNodePtr, current) // current node in the existing env graph
+	DECL_FIELD(EnvNodePtr, current_node) // current node in the existing env graph
 };
 
 
@@ -174,6 +174,36 @@ public:
 private:
 	DECL_FIELD(CoroutinePtrSet, members)
 	DECL_FIELD(CoroutinePtrSet::iterator, itr)
+};
+
+/********************************************************************************/
+
+class EnvChoicePoint : public ChoicePoint {
+public:
+	EnvChoicePoint(EnvTrace* env_trace, EnvNodePtr current_node = EnvNodePtr(), Coroutine* source = Coroutine::Current())
+	: ChoicePoint(source),
+	  env_trace_(env_trace),
+	  current_node_(current_node != NULL ? current_node : env_trace->current_node()) {}
+	~EnvChoicePoint() {}
+
+	// override
+	bool ChooseNext() {
+		safe_assert(GetNext() != NULL);
+		current_node_ = env_trace_->Step(current_node_);
+		return (current_node_ != NULL);
+	}
+
+	EnvNodePtr GetNext() {
+		return current_node_;
+	}
+
+	virtual SchedulePoint* Clone() { return new EnvChoicePoint(env_trace_, current_node_, source_); }
+	virtual void Load(Serializer* serializer) { unimplemented(); }
+	virtual void Store(Serializer* serializer) { unimplemented(); }
+
+private:
+	DECL_FIELD(EnvTrace*, env_trace)
+	DECL_FIELD(EnvNodePtr, current_node)
 };
 
 /********************************************************************************/
