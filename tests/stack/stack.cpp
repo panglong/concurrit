@@ -1,5 +1,5 @@
 
-#include "counit.h"
+#include "concurrit.h"
 #include "math.h"
 
 using namespace counit;
@@ -61,7 +61,6 @@ struct Stack {
 
 private:
 	bool CAS(Node** t, Node* v1, Node* v2) {
-		YIELD("CAS1");
 		bool ret = (YIELD_READ("CAS1", *t) == v1);
 		if(ret) {
 			YIELD_WRITE("CAS2", *t) = v2;

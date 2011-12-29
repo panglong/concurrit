@@ -32,7 +32,7 @@
  */
 
 
-#include "counit.h"
+#include "concurrit.h"
 
 #ifndef YIELD_H_
 #define YIELD_H_

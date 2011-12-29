@@ -3,7 +3,7 @@ include ./common.mk
 TARGET=libconcurrit
 
 SRCS=coroutine.cpp exception.cpp group.cpp lp.cpp modular.cpp scenario.cpp schedule.cpp serialize.cpp suite.cpp thread.cpp vc.cpp
-HEADERS=counit.h api.h channel.h common.h coroutine.h exception.h group.h lp.h modular.h result.h scenario.h schedule.h serialize.h sharedaccess.h suite.h thread.h until.h vc.h
+HEADERS=concurrit.h api.h channel.h common.h coroutine.h exception.h group.h lp.h modular.h result.h scenario.h schedule.h serialize.h sharedaccess.h suite.h thread.h until.h vc.h
 OBJS=$(SRCS:%.cpp=%.o)
 
 FLAGS=-g -Wall -fPIC -Winline -finline-functions -O2

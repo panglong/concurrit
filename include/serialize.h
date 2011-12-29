@@ -34,7 +34,7 @@
 #ifndef SERIALIZE_H_
 #define SERIALIZE_H_
 
-#include "counit.h"
+#include "concurrit.h"
 
 namespace counit {
 
