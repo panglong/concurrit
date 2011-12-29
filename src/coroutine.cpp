@@ -33,7 +33,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
 
 Coroutine::Coroutine(const char* name, ThreadEntryFunction entry_function, void* entry_arg, int stack_size)

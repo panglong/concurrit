@@ -3,7 +3,7 @@
 #include "math.h"
 #include <assert.h>
 
-using namespace counit;
+using namespace concurrit;
 
 struct Counter {
 	int x;

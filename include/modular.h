@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-namespace counit {
+namespace concurrit {
 
 /********************************************************************************/
 
@@ -60,6 +60,7 @@ private:
 
 
 /********************************************************************************/
+class EnvGraph;
 class EnvNode;
 typedef boost::shared_ptr<EnvNode> EnvNodePtr;
 typedef std::vector<EnvNodePtr> EnvNodePtrList;
@@ -68,17 +69,20 @@ typedef std::set<EnvNodePtr> EnvNodePtrSet;
 // a node in the env graph
 class EnvNode {
 public:
-	EnvNode() {}
+	EnvNode(EnvGraph* owner = NULL) : env_graph_(owner) {}
 	~EnvNode() {}
 
 	void Update(Coroutine* current, MemoryCellBase* cell);
 	void AddEdge(EnvNodePtr node);
+	EnvNodePtr Clone(bool clone_ginfo = false);
 
 	std::string ToString();
 
 private:
 	DECL_FIELD_REF(MemoryMap, globals)
 	DECL_FIELD_REF(EnvNodePtrSet, edges)
+	// the graph this belongs to (can be null if the node is not owned yet)
+	DECL_FIELD(EnvGraph*, env_graph)
 };
 
 /********************************************************************************/
@@ -123,7 +127,7 @@ public:
 	}
 
 	// returns true, if no further step is possible
-	EnvNodePtr Step(EnvNodePtr current_node);
+	EnvNodePtr Step(EnvNodePtr current_node, EnvNodePtr next_node = EnvNodePtr());
 
 	void OnAccess(Coroutine* current, SharedAccess* access);
 	// if env_graph is not set or g is not NULL, we reset env_graph to g
@@ -180,30 +184,35 @@ private:
 
 class EnvChoicePoint : public ChoicePoint {
 public:
-	EnvChoicePoint(EnvTrace* env_trace, EnvNodePtr current_node = EnvNodePtr(), Coroutine* source = Coroutine::Current())
+	EnvChoicePoint(EnvTrace* env_trace,
+				   EnvNodePtr current_node,
+				   EnvNodePtr next_node = EnvNodePtr(),
+				   Coroutine* source = Coroutine::Current())
 	: ChoicePoint(source),
 	  env_trace_(env_trace),
-	  current_node_(current_node != NULL ? current_node : env_trace->current_node()) {}
+	  current_node_(current_node),
+	  next_node_(next_node) {}
 	~EnvChoicePoint() {}
 
 	// override
 	bool ChooseNext() {
-		safe_assert(GetNext() != NULL);
-		current_node_ = env_trace_->Step(current_node_);
-		return (current_node_ != NULL);
+		safe_assert(current_node_ != NULL);
+		next_node_ = env_trace_->Step(current_node_, next_node_);
+		return (GetNext() != NULL);
 	}
 
-	EnvNodePtr GetNext() {
-		return current_node_;
+	inline EnvNodePtr GetNext() {
+		return next_node_;
 	}
 
-	virtual SchedulePoint* Clone() { return new EnvChoicePoint(env_trace_, current_node_, source_); }
+	virtual SchedulePoint* Clone() { return new EnvChoicePoint(env_trace_, current_node_, next_node_, source_); }
 	virtual void Load(Serializer* serializer) { unimplemented(); }
 	virtual void Store(Serializer* serializer) { unimplemented(); }
 
 private:
 	DECL_FIELD(EnvTrace*, env_trace)
 	DECL_FIELD(EnvNodePtr, current_node)
+	DECL_FIELD(EnvNodePtr, next_node)
 };
 
 /********************************************************************************/

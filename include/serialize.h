@@ -36,7 +36,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
 
 class SerializationException : public std::exception {

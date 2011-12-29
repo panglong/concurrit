@@ -38,7 +38,7 @@
 #include "sharedaccess.h"
 #include "exception.h"
 
-namespace counit {
+namespace concurrit {
 
 #define ENDING_LABEL "ending"
 #define MAIN_LABEL "main"

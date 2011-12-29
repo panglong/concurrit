@@ -37,7 +37,7 @@
 #include "common.h"
 #include "sharedaccess.h"
 
-namespace counit {
+namespace concurrit {
 
 /*
  * Exceptions

@@ -2,7 +2,7 @@
 #include "concurrit.h"
 #include "math.h"
 
-using namespace counit;
+using namespace concurrit;
 
 #define value_t int
 #define EMPTY -1

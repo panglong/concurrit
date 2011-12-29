@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-namespace counit {
+namespace concurrit {
 
 class UntilCondition {
 public:

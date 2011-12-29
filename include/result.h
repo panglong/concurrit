@@ -37,7 +37,7 @@
 #include "common.h"
 #include "lp.h"
 
-namespace counit {
+namespace concurrit {
 
 class Result {
 public:

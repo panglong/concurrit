@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-namespace counit {
+namespace concurrit {
 
 // return code from pthread_... functions when the operation is successful
 #define PTH_SUCCESS 0

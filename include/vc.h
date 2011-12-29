@@ -45,7 +45,7 @@
 
 #include "common.h"
 
-namespace counit {
+namespace concurrit {
 
 typedef unsigned int vctime_t;
 

@@ -37,7 +37,7 @@
 #ifndef YIELD_H_
 #define YIELD_H_
 
-namespace counit {
+namespace concurrit {
 
 
 #define YIELD_SIGNATURE \

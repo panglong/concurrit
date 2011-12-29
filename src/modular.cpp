@@ -33,7 +33,9 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
+
+/********************************************************************************/
 
 void ThreadModularScenario::OnAccess(Coroutine* current, SharedAccess* access) {
 	super::OnAccess(current, access);
@@ -44,12 +46,16 @@ void ThreadModularScenario::OnAccess(Coroutine* current, SharedAccess* access) {
 	env_trace_.OnAccess(current, access);
 }
 
+/********************************************************************************/
+
 void ThreadModularScenario::Restart() {
 	super::Restart();
 
 	// restart memory trace
 	env_trace_.Restart();
 }
+
+/********************************************************************************/
 
 void ThreadModularScenario::AfterRunOnce() {
 	super::AfterRunOnce();
@@ -60,6 +66,8 @@ void ThreadModularScenario::AfterRunOnce() {
 	// add memory trace to env graph
 	env_graph_.Update(&env_trace_);
 }
+
+/********************************************************************************/
 
 void* env_thread_function(void* p) {
 	CHECK(p != NULL);
@@ -98,7 +106,13 @@ void* env_thread_function(void* p) {
 				VLOG(2) << "Reusing env choice point";
 
 				env_choice = ASINSTANCEOF(choice_point, EnvChoicePoint*);
-				safe_assert(env_choice->current_node() != NULL);
+				safe_assert(env_choice->GetNext() != NULL);
+
+				// check if current nodes of trace and the choice point are the same
+				if(env_trace->current_node() != env_choice->current_node()) {
+					TRIGGER_BACKTRACK();
+				}
+				// set the next current node of the trace
 				env_trace->set_current_node(env_choice->GetNext());
 			} else {
 				VLOG(2) << "Creating new env choice point";
@@ -106,25 +120,28 @@ void* env_thread_function(void* p) {
 				// first taking of this transition
 				// gets the current node of env_trace as the current node
 				env_choice = new EnvChoicePoint(env_trace, env_trace->current_node());
-				env_choice->ChooseNext(); // makes env_trace to take a step and update its current node
-			}
+				 // makes env_trace to take a step and update its current node
+				if(!env_choice->ChooseNext()) {
+					// no more steps, this means that the environment has ended or no next point
+					// thus we exit env thread now
+					break;
+				}
 
-			if(env_choice->GetNext() == NULL) {
-				// no more steps, exit now
-				// but the environment should stay at the same non-null node
-				//safe_assert(env_trace->current_node() != NULL);
-				break;
 			}
 
 			env_choice->SetAndConsumeCurrent();
+
 		} // end if
+
 		// force yield after each step
 		// TODO(elmas): use the last accesses of env instead of NULL
 		FORCE_YIELD("ENV", NULL);
+
 	} // end while
 	return NULL;
 }
 
+/********************************************************************************/
 
 // this is a API call, given a set of threads, makes a modular check
 void ThreadModularScenario::TestCase() {
@@ -161,7 +178,7 @@ void ThreadModularScenario::TestCase() {
 	member_choice->SetAndConsumeCurrent();
 
 	// run one member at a time concurrently with env_thread
-	printf("Modular check with coroutine %s\n", co->name().c_str());
+	VLOG(2) << SC_TITLE << "Modular check with coroutine " << co->name();
 	{ WITH(co, env_co);
 		UNTIL_ALL_END {
 			UNTIL_STAR()->TRANSFER_STAR();
@@ -172,33 +189,39 @@ void ThreadModularScenario::TestCase() {
 /********************************************************************************/
 
 // this is called by EnvChoicePoint to find out the next following target of current_node
-EnvNodePtr EnvTrace::Step(EnvNodePtr current_node) {
+// next_node is the last return value
+EnvNodePtr EnvTrace::Step(EnvNodePtr current_node, EnvNodePtr next_node /*= EnvNodePtr()*/) {
 	// decide whether to stay in the same node or transit to another node
 	// TODO(elmas)...
 	current_node_ = EnvNodePtr();
 	return current_node_;
 }
 
+/********************************************************************************/
+
+// make a transition from current node to a matching node
+// if there is no matching node, then we create a new node (but not add it to env_graph)
 void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
+	safe_assert(!nodes_.empty());
+
 	EnvNodePtr node;
 	if(access->is_read()) {
-		// check if any state exists
-		if(nodes_.empty()) {
-			node = env_graph_->MakeNewNode();
-			nodes_.push_back(node);
-		} else {
-			node = nodes_.back();
-		}
+		// on a read access we use the existing current node
+		node = nodes_.back();
 	} else {
+		// on a write access we create a clone of the existing node
 		node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
 		nodes_.push_back(node);
 	}
-	// update the node
+
+	// update the node with the information about the access
 	node->Update(current, access->cell());
 
-	// make node the current node of the trace
+	// update the current node of the trace
 	current_node_ = node;
 }
+
+/********************************************************************************/
 
 void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 	// delete all states
@@ -211,11 +234,15 @@ void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 	nodes_.push_back(current_node_);
 }
 
+/********************************************************************************/
+
 void EnvTrace::delete_nodes() {
 	// nodes are shared pointers, so do not delete them, just clear the list
 	// shared_ptr takes care of the rest
 	nodes_.clear();
 }
+
+/********************************************************************************/
 
 std::string EnvTrace::ToString() {
 	std::stringstream s;
@@ -238,9 +265,27 @@ void EnvNode::Update(Coroutine* current, MemoryCellBase* cell) {
 	globals_.Update(cell);
 }
 
+/********************************************************************************/
+
 void EnvNode::AddEdge(EnvNodePtr node) {
 	edges_.insert(node);
 }
+
+/********************************************************************************/
+
+EnvNodePtr EnvNode::Clone(bool clone_ginfo /*= false*/) {
+	EnvNodePtr node = EnvNodePtr(new EnvNode());
+	node->globals_.Update(&globals_);
+
+	// clone graph information is requested (default: false)
+	if(clone_ginfo) {
+		node->edges_ = edges_;
+		node->env_graph_ = env_graph_;
+	}
+	return node;
+}
+
+/********************************************************************************/
 
 std::string EnvNode::ToString() {
 	std::stringstream s;
@@ -259,6 +304,8 @@ void MemoryMap::Update(MemoryMap* other) {
 	}
 }
 
+/********************************************************************************/
+
 void MemoryMap::Update(MemoryCellBase* cell) {
 	ADDRINT mem = cell->int_address();
 	CellMap::iterator itr = memToCell_.find(mem);
@@ -268,6 +315,8 @@ void MemoryMap::Update(MemoryCellBase* cell) {
 		memToCell_[mem] = cell->Clone();
 	}
 }
+
+/********************************************************************************/
 
 std::string MemoryMap::ToString() {
 	std::stringstream s;
@@ -279,6 +328,8 @@ std::string MemoryMap::ToString() {
 	return s.str();
 }
 
+/********************************************************************************/
+
 void MemoryMap::delete_cells() {
 	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
 		MemoryCellBase* cell = itr->second;
@@ -287,6 +338,8 @@ void MemoryMap::delete_cells() {
 	}
 	safe_assert(memToCell_.empty());
 }
+
+/********************************************************************************/
 
 MemoryMap* MemoryMap::Clone() {
 	MemoryMap* other = new MemoryMap();
@@ -300,19 +353,22 @@ MemoryMap* MemoryMap::Clone() {
 /********************************************************************************/
 
 EnvNodePtr EnvGraph::MakeNewNode(EnvNodePtr existing) {
-	EnvNodePtr node = EnvNodePtr(new EnvNode());
-	// update globals from the existing node
 	if(existing != NULL) {
-		node->globals()->Update(existing->globals());
+		return existing->Clone(/*clone_edges=*/false); // do not clone edges
+	} else {
+		return EnvNodePtr(new EnvNode());
 	}
-	return node;
 }
+
+/********************************************************************************/
 
 void EnvGraph::AddNode(EnvNodePtr node) {
 	// we have at least start node
 	safe_assert(start_node_ != NULL);
 	nodes_.insert(node);
 }
+
+/********************************************************************************/
 
 void EnvGraph::Update(EnvTrace* trace) {
 	EnvNodePtr prev;
@@ -332,11 +388,15 @@ void EnvGraph::Update(EnvTrace* trace) {
 	}
 }
 
+/********************************************************************************/
+
 void EnvGraph::delete_nodes() {
 	// nodes are shared pointers, so do not delete them, just clear the list
 	// shared_ptr takes care of the rest
 	nodes_.clear();
 }
 
+/********************************************************************************/
 
 } // end namespace
+

@@ -65,7 +65,7 @@
 // boost libraries
 #include <boost/shared_ptr.hpp>
 
-namespace counit {
+namespace concurrit {
 
 /********************************************************************************/
 

@@ -33,7 +33,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
 template<>
 void Serializer::Store<std::string>(std::string x) {

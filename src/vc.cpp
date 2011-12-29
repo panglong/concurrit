@@ -34,7 +34,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
  VC vc_get_vc(VCMAP& m, ADDRINT k) {
 	VCMAP::iterator it = m.find(k);

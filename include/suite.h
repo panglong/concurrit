@@ -38,7 +38,7 @@
 #include "result.h"
 #include "scenario.h"
 
-namespace counit {
+namespace concurrit {
 
 class Suite {
 public:

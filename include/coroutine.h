@@ -40,7 +40,7 @@
 #include "channel.h"
 #include "vc.h"
 
-namespace counit {
+namespace concurrit {
 
 class CoroutineGroup;
 class SchedulePoint;

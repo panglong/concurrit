@@ -2,7 +2,7 @@
 #include "concurrit.h"
 #include "math.h"
 
-using namespace counit;
+using namespace concurrit;
 
 struct Counter {
 	int x;

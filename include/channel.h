@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-namespace counit {
+namespace concurrit {
 
 // channel for sending and receiving primitive types (T must be primitive)
 template <class T>

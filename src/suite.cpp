@@ -33,7 +33,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
 void Suite::AddScenario(Scenario* scenario) {
 	safe_assert(scenario != NULL);

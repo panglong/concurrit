@@ -1,7 +1,7 @@
 
 #include "concurrit.h"
 
-using namespace counit;
+using namespace concurrit;
 
 class Counter {
 

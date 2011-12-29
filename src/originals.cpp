@@ -34,7 +34,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
 FILE* Originals::stdout_ = NULL;
 FILE* Originals::stderr_ = NULL;

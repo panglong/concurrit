@@ -2,7 +2,7 @@
 #include "concurrit.h"
 #include "math.h"
 
-using namespace counit;
+using namespace concurrit;
 
 
 double A[] = {5.0, 3.0, 8.0};

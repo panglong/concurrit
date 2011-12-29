@@ -39,7 +39,7 @@
 #include "lp.h"
 #include "serialize.h"
 
-namespace counit {
+namespace concurrit {
 
 
 /********************************************************************************/

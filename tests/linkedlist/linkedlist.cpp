@@ -3,7 +3,7 @@
 #include "concurrit.h"
 #include <stdlib.h>
 
-using namespace counit;
+using namespace concurrit;
 
 
 #define NO_VALUE 0

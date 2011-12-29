@@ -37,7 +37,7 @@
 #include "common.h"
 #include "yield.h"
 
-namespace counit {
+namespace concurrit {
 
 class YieldImpl;
 

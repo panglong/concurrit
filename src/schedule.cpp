@@ -33,7 +33,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
 /*
  * Yield Point

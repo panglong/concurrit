@@ -36,7 +36,7 @@
 
 #include "vc.h"
 
-namespace counit {
+namespace concurrit {
 
 
 // base class for MemoryCell templates

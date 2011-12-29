@@ -39,7 +39,7 @@
 #include "vc.h"
 #include "schedule.h"
 
-namespace counit {
+namespace concurrit {
 
 /********************************************************************************/
 

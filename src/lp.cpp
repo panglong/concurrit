@@ -33,7 +33,7 @@
 
 #include "concurrit.h"
 
-namespace counit {
+namespace concurrit {
 
 Coverage* tuple_t::Derive() {
 	safe_assert(len() == 2);
