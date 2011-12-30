@@ -6,19 +6,15 @@ FEATURES
 		yieldpointdeki prev pointeri kullanarak last coming coroutine;i belirle ve bunu kullanarak EXCEPT_LAST() ekle.
 		yieldpoint'de next pointera gerek var mi?
 		
-		until_first ekle, next first yield'da hemen transfer etmesi icin.
 		save etme ve replay etme
 		UNTIL(TRANSFER) seklinde olsun -- lambda expressions -- http://matt.might.net/articles/static-closures-in-c-plus-plus/
 		generate test scenarios from schedules
-		search boyunca coverage olc, artirmayan pathlari ignore et
 		sequential mode yaninda true concurrency modu koy, direk threadleri senkronize etmeden calistir.
-		bir threadi delay etmek ve with ile grubu restrict etmek ile ilgili testler yaz
-
+		
 		handle case where a yield point is associated with not only a single access but a set of accesses
 		lp.cpp'deki TODO'lara bak, onlarla ilgilen.
 		vctracker'li ve coverage'li scenario'yu default scenario'dan ayir. 
-		OnAccess'i Yield'dan ayirmaya calis. Mesela yield accessor dondurebilir, accessor da access olunca scenario'yu cagirir.
-
+		
 REFACTORINGS
 		std::string yerine olabildigince const char* kullan
 		
