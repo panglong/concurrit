@@ -50,6 +50,11 @@ public:
 	void Update(MemoryCellBase* cell);
 	MemoryMap* Clone();
 
+	bool operator ==(const MemoryMap& other);
+	bool operator !=(const MemoryMap& other) {
+		return !(this->operator ==(other));
+	}
+
 	std::string ToString();
 
 private:
@@ -76,6 +81,11 @@ public:
 	void AddEdge(EnvNodePtr node);
 	EnvNodePtr Clone(bool clone_ginfo = false);
 
+	bool operator ==(const EnvNode& node);
+	bool operator !=(const EnvNode& node) {
+		return !(this->operator ==(node));
+	}
+
 	std::string ToString();
 
 private:
@@ -101,6 +111,7 @@ public:
 	EnvNodePtr MakeNewNode(EnvNodePtr existing = EnvNodePtr());
 	void AddNode(EnvNodePtr node);
 	void Update(EnvTrace* trace);
+	EnvNodePtr SearchForEquivNode(EnvNodePtr node);
 
 private:
 	void delete_nodes();

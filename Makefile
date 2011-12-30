@@ -6,7 +6,8 @@ SRCS=coroutine.cpp exception.cpp group.cpp lp.cpp modular.cpp scenario.cpp sched
 HEADERS=concurrit.h api.h channel.h common.h coroutine.h exception.h group.h lp.h modular.h result.h scenario.h schedule.h serialize.h sharedaccess.h suite.h thread.h until.h vc.h
 OBJS=$(SRCS:%.cpp=%.o)
 
-FLAGS=-g -Wall -fPIC -Winline -finline-functions -O2
+FLAGS=-g -Wall -Winline -fPIC -finline-functions -O2 \
+		-Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
 
 STD=#-std=c++0x
 

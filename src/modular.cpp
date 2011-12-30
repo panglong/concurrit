@@ -273,6 +273,14 @@ void EnvNode::AddEdge(EnvNodePtr node) {
 
 /********************************************************************************/
 
+bool EnvNode::operator ==(const EnvNode& node) {
+	// compare globals
+	// TODO(elmas): improve this comparison, as states does not have to match exactly
+	return globals_ == node.globals_;
+}
+
+/********************************************************************************/
+
 EnvNodePtr EnvNode::Clone(bool clone_ginfo /*= false*/) {
 	EnvNodePtr node = EnvNodePtr(new EnvNode());
 	node->globals_.Update(&globals_);
@@ -341,6 +349,12 @@ void MemoryMap::delete_cells() {
 
 /********************************************************************************/
 
+bool MemoryMap::operator ==(const MemoryMap& other) {
+	return memToCell_ == other.memToCell_;
+}
+
+/********************************************************************************/
+
 MemoryMap* MemoryMap::Clone() {
 	MemoryMap* other = new MemoryMap();
 	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
@@ -370,13 +384,37 @@ void EnvGraph::AddNode(EnvNodePtr node) {
 
 /********************************************************************************/
 
+EnvNodePtr EnvGraph::SearchForEquivNode(EnvNodePtr node) {
+	safe_assert(node != NULL);
+
+	if(nodes_.find(node) != nodes_.end()) {
+		// node already exists in the graph
+		return node;
+	}
+
+	// check every node in the graph to see if there is any equiv. one
+	for(EnvNodePtrSet::iterator itr = nodes_.begin(); itr != nodes_.end(); ++itr) {
+		EnvNodePtr n = (*itr);
+		if((*n) == (*node)) { // uses overloaded operator ==
+			return n;
+		}
+	}
+
+	// could not find an equivalent node
+	return EnvNodePtr();
+}
+
+/********************************************************************************/
+
 void EnvGraph::Update(EnvTrace* trace) {
 	EnvNodePtr prev;
 	// traverse the trace, and add new nodes and connections between nodes
 	EnvNodePtrList* nodes = trace->nodes();
 	for(EnvNodePtrList::iterator itr = nodes->begin(); itr < nodes->end(); ++itr) {
 		EnvNodePtr node = (*itr);
-		if(nodes_.find(node) == nodes_.end()) {
+
+		// check if an equivalent node exists in the graph
+		if(SearchForEquivNode(node) == NULL) {
 			// add the node
 			AddNode(node);
 		}
