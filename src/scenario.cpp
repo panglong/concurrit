@@ -981,11 +981,6 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 	//----------------------------------------
 	// after transfer returns back to current
 
-	// notify scenario about this access
-	if(access != NULL) {
-		this->OnAccess(current, access);
-	}
-
 	return target_point; // means did not transfer to another thread
 }
 

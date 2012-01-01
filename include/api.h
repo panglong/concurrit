@@ -37,6 +37,7 @@
 #include "common.h"
 #include "sharedaccess.h"
 #include "exception.h"
+#include "coroutine.h"
 
 namespace concurrit {
 
@@ -80,61 +81,92 @@ extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, Share
 /********************************************************************************/
 // yielding reads and writes
 
-// does not yield
 template<typename T>
 class writer {
 public:
-	explicit writer(MemoryCell<T>* cell) : cell_(cell){}
-	T& operator=(const T& value) {
-		return cell_->write(value);
-	}
-private:
-	DECL_FIELD(MemoryCell<T>*, cell)
-};
+	explicit writer(const char* label, SharedAccess* access, SourceLocation* loc, bool yield_before = true)
+	: label_(label), access_(access), loc_(loc), yield_before_(yield_before) {}
 
-// does yield after write
-template<typename T>
-class ywriter {
-public:
-	explicit ywriter(const char* label, SharedAccess* access, SourceLocation* loc)
-	: label_(label), access_(access), loc_(loc) {}
-	T& operator=(const T& value) {
-		T val = access_->cell_as<T>()->write(value);
-		yield(label_, loc_, access_);
+	T& operator =(const T& value) {
+		MemoryCell<T>* cell = access_->cell_as<T>();
+
+		// we set the value of the memory cell even before the yield,
+		// but do not perform the access yet
+		// so yield implementation can access the value even before the actual access
+		cell->set_value(value);
+
+		if(yield_before_) yield(label_, loc_, access_);
+
+		// perform the actual access
+		T& val = cell->write(value);
+
+		// notify scenario about this access
+		NOTNULL(Coroutine::Current())->OnAccess(access_);
+
+		if(!yield_before_) yield(label_, loc_, access_);
+
 		return val;
 	}
 private:
 	DECL_FIELD(const char*, label)
 	DECL_FIELD(SharedAccess*, access)
 	DECL_FIELD(SourceLocation*, loc)
+	DECL_FIELD(bool, yield_before)
 };
 
 template<typename T>
-inline T yield_read(const char* label, T* mem, const char* expr, SourceLocation* loc) {
+class reader {
+public:
+	explicit reader(const char* label, SharedAccess* access, SourceLocation* loc, bool yield_before = true)
+	: label_(label), access_(access), loc_(loc), yield_before_(yield_before) {}
+
+	operator T() {
+		MemoryCell<T>* cell = access_->cell_as<T>();
+
+		// allows us to load the value to cell.value
+		cell->read();
+
+		if(yield_before_) yield(label_, loc_, access_);
+
+		// perform the actual access
+		T val = cell->read();
+
+		// notify scenario about this access
+		NOTNULL(Coroutine::Current())->OnAccess(access_);
+
+		if(!yield_before_) yield(label_, loc_, access_);
+
+		return val;
+	}
+private:
+	DECL_FIELD(const char*, label)
+	DECL_FIELD(SharedAccess*, access)
+	DECL_FIELD(SourceLocation*, loc)
+	DECL_FIELD(bool, yield_before)
+};
+
+template<typename T>
+inline reader<T> yield_read(const char* label, T* mem, const char* expr, SourceLocation* loc) {
 	SharedAccess* access = new SharedAccess(READ_ACCESS, new MemoryCell<T>(mem), expr);
-	yield(label, loc, access);
-	return access->cell_as<T>()->read();
+	return reader<T>(label, access, loc, /*yield_before=*/ true); // makes the yield on T()
 }
 
 template<typename T>
-inline T read_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
+inline reader<T> read_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
 	SharedAccess* access = new SharedAccess(READ_ACCESS, new MemoryCell<T>(mem), expr);
-	T value = access->cell_as<T>()->read();
-	yield(label, loc, access);
-	return value;
+	return reader<T>(label, access, loc, /*yield_before=*/ false); // makes the yield on T()
 }
 
 template<typename T>
 inline writer<T> yield_write(const char* label, T* mem, const char* expr, SourceLocation* loc) {
 	SharedAccess* access = new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(mem), expr);
-	yield(label, loc, access);
-	return writer<T>(access->cell_as<T>());
+	return writer<T>(label, access, loc, /*yield_before=*/ true); // makes the yield on operator=()
 }
 
 template<typename T>
-inline ywriter<T> write_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
+inline writer<T> write_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
 	SharedAccess* access = new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(mem), expr);
-	return ywriter<T>(label, access, loc); // makes the yield on operator=()
+	return writer<T>(label, access, loc, /*yield_before=*/ false); // makes the yield on operator=()
 }
 
 #define YIELD_READ(label, x) \

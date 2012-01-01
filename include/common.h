@@ -159,6 +159,15 @@ namespace concurrit {
 		throw "Unimplemented operation!"
 
 /********************************************************************************/
+// #define NOTNULL(ptr)	(ptr)
+
+template<typename T>
+T* NOTNULL(T* ptr) {
+	safe_assert(ptr != NULL);
+	return ptr;
+}
+
+/********************************************************************************/
 
 /*
  * Definitions for fixed-length strings

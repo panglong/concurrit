@@ -311,5 +311,11 @@ AccessLocPair Coroutine::GetNextAccess() {
 
 /********************************************************************************/
 
+void Coroutine::OnAccess(SharedAccess* access) {
+	group_->scenario()->OnAccess(this, access);
+}
+
+/********************************************************************************/
+
 } // end namespace
 

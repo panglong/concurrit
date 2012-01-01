@@ -81,6 +81,7 @@ public:
 	virtual void HandleMessage(MessageType msg);
 
 	SchedulePoint* OnYield(Coroutine* target, std::string& label, SourceLocation* loc = NULL, SharedAccess* access = NULL);
+	void OnAccess(SharedAccess* access);
 
 	// return the next access this coroutine will do when scheduled
 	AccessLocPair GetNextAccess();

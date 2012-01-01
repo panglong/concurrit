@@ -88,6 +88,10 @@ public:
 
 	std::string ToString();
 
+	inline bool HasOutEdges() {
+		return !edges_.empty();
+	}
+
 private:
 	DECL_FIELD_REF(MemoryMap, globals)
 	DECL_FIELD_REF(EnvNodePtrSet, edges)
@@ -116,7 +120,7 @@ public:
 private:
 	void delete_nodes();
 
-	DECL_FIELD(EnvNodePtrSet, nodes)
+	DECL_FIELD_REF(EnvNodePtrSet, nodes)
 	DECL_FIELD(EnvNodePtr, start_node)
 };
 
@@ -128,7 +132,8 @@ private:
 class EnvTrace {
 public:
 	// g may be NULL, in this case Restart is called later with a valid graph pointer
-	EnvTrace(EnvGraph* g = NULL) {
+	EnvTrace(EnvGraph* g = NULL)
+	: can_stutter_(true) {
 		if(g != NULL) { // initialize only when g != NULL (not to fail an assertion in Restart)
 			Restart(g);
 		}
@@ -152,6 +157,8 @@ private:
 	DECL_FIELD_REF(EnvNodePtrList, nodes) // sequence of nodes visited
 	DECL_FIELD(EnvGraph*, env_graph)
 	DECL_FIELD(EnvNodePtr, current_node) // current node in the existing env graph
+	// becomes true when the actual thread ends and env need to proceed with new states
+	DECL_FIELD(bool, can_stutter)
 };
 
 

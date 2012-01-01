@@ -63,6 +63,8 @@ void ThreadModularScenario::AfterRunOnce() {
 	// print the memory trace:
 	printf("Memory trace:\n%s\n", env_trace_.ToString().c_str());
 
+	printf("EnvGraph has %ld nodes\n", env_graph_.nodes()->size());
+
 	// add memory trace to env graph
 	env_graph_.Update(&env_trace_);
 }
@@ -182,6 +184,11 @@ void ThreadModularScenario::TestCase() {
 	{ WITH(co, env_co);
 		UNTIL_ALL_END {
 			UNTIL_STAR()->TRANSFER_STAR();
+
+			// if co ends, env shall not stutter
+			if(co->is_ended()) {
+				env_trace_.set_can_stutter(false);
+			}
 		}
 	}
 }
@@ -191,10 +198,27 @@ void ThreadModularScenario::TestCase() {
 // this is called by EnvChoicePoint to find out the next following target of current_node
 // next_node is the last return value
 EnvNodePtr EnvTrace::Step(EnvNodePtr current_node, EnvNodePtr next_node /*= EnvNodePtr()*/) {
-	// decide whether to stay in the same node or transit to another node
-	// TODO(elmas)...
-	current_node_ = EnvNodePtr();
-	return current_node_;
+	// check if the current nodes match
+	CHECK(current_node_ == current_node) << "Current nodes does not match";
+
+	EnvNodePtr new_next_node; // return value
+
+	// make transitions nondeterministically
+	if(!current_node_->HasOutEdges()) {
+		if(can_stutter_) {
+			new_next_node = current_node_;
+		} else {
+			// we are stuck, so return NULL
+			new_next_node = EnvNodePtr();
+		}
+	} else {
+		// choose an edge
+		safe_assert(false);
+	}
+
+	current_node_ = new_next_node;
+
+	return new_next_node;
 }
 
 /********************************************************************************/
@@ -232,6 +256,7 @@ void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 	safe_assert(env_graph_ != NULL);
 	current_node_ = env_graph_->start_node();
 	nodes_.push_back(current_node_);
+	can_stutter_ = true;
 }
 
 /********************************************************************************/
@@ -268,6 +293,7 @@ void EnvNode::Update(Coroutine* current, MemoryCellBase* cell) {
 /********************************************************************************/
 
 void EnvNode::AddEdge(EnvNodePtr node) {
+	// since edges_ is a set, no need to check for duplications
 	edges_.insert(node);
 }
 

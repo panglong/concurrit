@@ -23,7 +23,7 @@ struct Counter {
 			//lock();
 			if(YIELD_READ("L2", x) == t) {
 				YIELD_WRITE("L3", x) = k;
-				printf("Updated x\n");
+				printf("Updated x to %d\n", x);
 //				unlock();
 				break;
 			}
@@ -58,15 +58,20 @@ void* increment_thread(void* p) {
 class CounterScenario : public ThreadModularScenario {
 public:
 
-	CounterScenario(const char* name) : ThreadModularScenario(name) {}
-	~CounterScenario() {}
+	CounterScenario(const char* name) : ThreadModularScenario(name) {
+		counter = new Counter();
+	}
+	~CounterScenario() {
+		delete counter;
+	}
 
 	virtual void SetUp() {
-		counter = new Counter();
+		counter->x = 0;
+		counter->l = 0;
 	}
 
 	virtual void TearDown() {
-		delete counter;
+
 	}
 
 protected:
