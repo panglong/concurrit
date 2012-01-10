@@ -31,92 +31,32 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DOT_H_
-#define DOT_H_
-
-#include "common.h"
+#include "concurrit.h"
 
 namespace concurrit {
 
-#define DotShape_Box 		"box"
-#define DotShape_Circle 	"circle"
+/********************************************************************************/
 
-#define DotColor_Black		"black"
-
-#define DotStyle_Solid		"solid"
-#define DotStyle_Dashed		"dashed"
-#define DotStyle_Dotted		"dotted"
-
-
-class DotNode : public Writable {
-public:
-	DotNode(std::string label, int id = -1)
-	: label_(label), id_(id) {}
-	~DotNode() {}
-
-	void ToStream(FILE* file);
-
-private:
-	DECL_FIELD(std::string, label)
-	DECL_FIELD(int, id)
-	DECL_FIELD(const char*, shape)
-	DECL_FIELD(const char*, color)
-
-	friend class DotGraph;
-};
+FILE* my_fopen(const char * filename, const char * mode) {
+	FILE* file = fopen(filename, mode);
+	if(file == NULL) {
+		printf("File could not be opened: %s\n", filename);
+		bool CannotOpenFile = false;
+		CHECK(CannotOpenFile);
+	}
+	return file;
+}
 
 /********************************************************************************/
 
-class DotEdge : public Writable {
-public:
-	DotEdge(std::string label, DotNode* source, DotNode* target)
-	: label_(label), source_(source), target_(target) {}
-	~DotEdge() {}
-
-	void ToStream(FILE* file);
-
-private:
-	DECL_FIELD(std::string, label)
-	DECL_FIELD(DotNode*, source)
-	DECL_FIELD(DotNode*, target)
-	DECL_FIELD(const char*, style)
-	DECL_FIELD(const char*, color)
-
-	friend class DotGraph;
-};
-
-/********************************************************************************/
-
-typedef std::map<int, DotNode*> DotNodeMap;
-typedef std::vector<DotEdge*> DotEdgeList;
-
-class DotGraph : public Writable {
-public:
-	DotGraph(const std::string& name) : name_(name) {}
-	~DotGraph();
-
-	void AddNode(DotNode* node);
-	void AddEdge(DotEdge* edge);
-	DotNode* GetNode(int id);
-
-	void ToStream(FILE* file);
-
-	void WriteToFile(const char* filename);
-
-	void Show(const char* filename = NULL);
-
-private:
-	DECL_FIELD(std::string, name)
-	DECL_FIELD_REF(DotNodeMap, nodes);
-	DECL_FIELD_REF(DotEdgeList, edges)
-};
-
-
-/********************************************************************************/
-
+void my_fclose(FILE* file) {
+	if(fclose(file)) {
+		printf("File could not be closed\n");
+		bool CannotCloseFile = false;
+		CHECK(CannotCloseFile);
+	}
+}
 
 /********************************************************************************/
 
 } // end namespace
-
-#endif /* COROUTINEGROUP_H_ */

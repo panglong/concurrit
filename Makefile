@@ -2,7 +2,7 @@ include ./common.mk
 
 TARGET=libconcurrit
 
-SRCS=coroutine.cpp exception.cpp group.cpp lp.cpp modular.cpp scenario.cpp schedule.cpp serialize.cpp suite.cpp thread.cpp vc.cpp
+SRCS=common.cpp coroutine.cpp dot.cpp exception.cpp group.cpp lp.cpp modular.cpp scenario.cpp schedule.cpp serialize.cpp suite.cpp thread.cpp vc.cpp
 HEADERS=concurrit.h api.h channel.h common.h coroutine.h dot.h exception.h group.h lp.h modular.h result.h scenario.h schedule.h serialize.h sharedaccess.h suite.h thread.h until.h vc.h
 OBJS=$(SRCS:%.cpp=%.o)
 

@@ -556,12 +556,7 @@ void Schedule::ToStream(const char* filename, bool append) {
 		filename = filename_.c_str();
 	}
 
-	FILE* file = fopen(filename, append ? "a" : "w");
-	if(file == NULL) {
-		printf("File could not be opened: %s", filename);
-		bool CannotOpenFile = false;
-		safe_assert(CannotOpenFile);
-	}
+	FILE* file = my_fopen(filename, append ? "a" : "w");
 
 	fprintf(file, "\n***** Begin Schedule *****\n");
 	fprintf(file, "Size: %d Index: %d\n", (int)Size(), (int)index_);
@@ -582,7 +577,7 @@ void Schedule::ToStream(const char* filename, bool append) {
 
 	fprintf(file, "***** End Schedule *****\n");
 
-	fclose(file);
+	my_fclose(file);
 }
 
 

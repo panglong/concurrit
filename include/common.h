@@ -309,6 +309,12 @@ private:
 
 /********************************************************************************/
 
+FILE* my_fopen(const char * filename, const char * mode);
+
+void my_fclose(FILE* file);
+
+/********************************************************************************/
+
 } // end namepace
 
 #endif /* COMMON_H_ */
