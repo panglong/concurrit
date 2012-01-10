@@ -331,7 +331,7 @@ EnvNodePtr EnvTrace::ChooseNext(EnvChoicePoint* point) {
 void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
 	safe_assert(!nodes_.empty() && nodes_.back() == current_node_);
 
-	EnvNodePtr node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
+	EnvNodePtr node = (access->is_read()) ? (nodes_.back()) : (env_graph_->MakeNewNode(nodes_.back()));
 
 	// update the node with the information about the access
 	node->Update(current, access->cell());
