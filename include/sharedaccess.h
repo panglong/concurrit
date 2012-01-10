@@ -46,8 +46,16 @@ public:
 	virtual ~MemoryCellBase() {}
 	virtual MemoryCellBase* Clone() = 0;
 	virtual void update_value(MemoryCellBase* other) = 0;
+	virtual void update_memory() = 0;
 	virtual ADDRINT int_address() = 0;
 	virtual std::string ToString() = 0;
+	virtual bool IsEquiv(MemoryCellBase* other) = 0;
+	virtual bool operator ==(const MemoryCellBase& other) {
+		return IsEquiv(const_cast<MemoryCellBase*>(&other));
+	}
+	virtual bool operator !=(const MemoryCellBase& other) {
+		return !(this->operator ==(other));
+	}
 };
 
 /********************************************************************************/
@@ -67,7 +75,7 @@ public:
 
 	ADDRINT int_address() { return reinterpret_cast<ADDRINT>(address_); }
 
-	virtual void update_value(MemoryCellBase* other) {
+	void update_value(MemoryCellBase* other) {
 		MemoryCell<T>* _other = ASINSTANCEOF(other, MemoryCell<T>*);
 		safe_assert(_other->address_ == this->address_);
 		value_ = _other->value_;
@@ -81,6 +89,12 @@ public:
 
 	T& read() { return value_ = (*address_); }
 	T& write(const T& value) { return (*address_) = (value_ = value); }
+	void update_memory() { write(value_); }
+
+	bool IsEquiv(MemoryCellBase* other) {
+		MemoryCell<T>* _other = ASINSTANCEOF(other, MemoryCell<T>*);
+		return address_ == _other->address_ && value_ == _other->value_;
+	}
 
 private:
 	DECL_FIELD(T*, address)

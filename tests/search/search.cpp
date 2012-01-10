@@ -36,10 +36,8 @@ double lower_bound(int i){
     // EXPENSIVE COMPUTATION
     double cost = compute_cost(i);
     // UPDATE MINIMUM
-//    YIELD("L2", READ(&min_cost));
     if(cost < YIELD_READ("L2", min_cost)) {
 
-//    		YIELD("L3", WRITE(&min_cost));
     		YIELD_WRITE("L3", min_cost) = cost;
 			min_item = i+1;
     }
@@ -285,7 +283,7 @@ public:
 		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
 		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
 
-		{ //WITHOUT(iter3);
+		{ WITHOUT(iter3);
 
 			EXHAUSTIVE_SEARCH();
 		}

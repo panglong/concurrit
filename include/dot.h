@@ -31,108 +31,57 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SERIALIZE_H_
-#define SERIALIZE_H_
+#ifndef DOT_H_
+#define DOT_H_
 
-#include "concurrit.h"
+#include "common.h"
 
 namespace concurrit {
 
+typedef enum {Round, Square} NodeShape;
 
-class SerializationException : public std::exception {
+class DotNode : public Writable {
 public:
-	virtual const char* what() const throw() {
-		return "Could not serialize!";
-	}
-};
 
-/********************************************************************************/
-
-class EOFException : public std::exception {
-public:
-	EOFException() throw() : std::exception() {}
-	virtual const char* what() const throw() { return "EOF"; }
-};
-
-/********************************************************************************/
-
-class Serializer {
-public:
-	Serializer(const char* filename, const char* flags) {
-		file_ = fopen(filename, flags);
-		if(file_ == NULL) {
-			printf("File could not be opened: %s", filename);
-			bool CannotOpenFile = false;
-			safe_assert(CannotOpenFile);
-		}
-	}
-
-	Serializer(FILE* file) {
-		safe_assert(file != NULL);
-		file_ = file;
-	}
-
-	~Serializer() {
-		safe_assert(file_ != NULL);
-		fclose(file_);
-	}
-
-	template<typename T>
-	void Store(T x) {
-		int result = fwrite(&x, sizeof(T), 1, file_);
-		safe_assert(result == 1);
-	}
-
-	template<typename T>
-	T Load() {
-		T x;
-		int result = fread(&x, sizeof(T), 1, file_);
-		if(result != 1) {
-			if(feof(file_)) {
-				throw new EOFException();
-			} else {
-				_Exit(UNRECOVERABLE_ERROR);
-			}
-		}
-		return x;
-	}
-
-	bool HasMore() {
-		return feof(file_) == 0;
-	}
+	void ToStream(FILE* file) { unimplemented(); }
 
 private:
-	DECL_FIELD(FILE*, file)
+	DECL_FIELD(std::string, label)
+	DECL_FIELD(NodeShape, shape)
 };
 
 /********************************************************************************/
 
-class Serializable {
+class DotEdge : public Writable {
 public:
-	virtual ~Serializable(){}
-	virtual void Load(FILE* file) {
-		Serializer serializer(file);
-		Load(&serializer);
-	}
-	virtual void Store(FILE* file) {
-		Serializer serializer(file);
-		Store(&serializer);
-	}
 
-	virtual void Load(Serializer* serializer) = 0;
-	virtual void Store(Serializer* serializer) = 0;
+	void ToStream(FILE* file) { unimplemented(); }
+
+private:
+	DECL_FIELD(DotNode*, source)
+	DECL_FIELD(DotNode*, target)
+	DECL_FIELD(std::string, label)
 };
 
 /********************************************************************************/
 
-class Writable {
+typedef std::map<std::string, DotNode> DotNodeMap;
+
+class DotGraph : public Writable {
 public:
-	virtual ~Writable(){}
-	virtual void ToStream(FILE* file) = 0;
+	void ToStream(FILE* file) { unimplemented(); }
+
+private:
+	DECL_FIELD_REF(DotNodeMap, nodes);
+	DECL_FIELD_REF(std::vector<DotEdge>, edges)
 };
+
+
+/********************************************************************************/
+
 
 /********************************************************************************/
 
 } // end namespace
 
-#endif /* SERIALIZE_H_ */
+#endif /* COROUTINEGROUP_H_ */

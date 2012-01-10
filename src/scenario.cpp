@@ -84,6 +84,8 @@ Scenario::Scenario(const char* name) {
 
 	// Scenario provides the default yield implementation
 	yield_impl_ = static_cast<YieldImpl*>(this);
+
+	dpor_enabled_ = true;
 }
 
 /********************************************************************************/
@@ -361,7 +363,7 @@ bool Scenario::DoBacktrack() {
 			} else if(transfer->AsYield()->free_target()) {
 				safe_assert(!transfer->enabled()->empty());
 				// if it has still more choices, make it backtrack point
-				if(transfer->has_more_targets()) {
+				if(transfer->has_more_targets(dpor_enabled_)) {
 					// makes this a backtrack point (adds target to done and makes target NULL)
 					transfer->make_backtrack_point();
 					schedule_->AddLast(transfer);
@@ -679,11 +681,11 @@ Coroutine* Scenario::GetNextEnabled(TransferPoint* transfer /*= NULL*/) {
 			safe_assert(!done->empty());
 			except_targets.insert(done->begin(), done->end());
 
-#ifdef DPOR
-			// if not the first transition, we use backtrack set,
-			// otherwise we chose a random next target
-			backtrack = transfer->backtrack();
-#endif
+			if(dpor_enabled_) {
+				// if not the first transition, we use backtrack set,
+				// otherwise we chose a random next target
+				backtrack = transfer->backtrack();
+			}
 		}
 	}
 	if(!transfer_criteria_.except()->empty()) {

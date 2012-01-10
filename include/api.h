@@ -244,6 +244,8 @@ inline writer<T> write_yield(const char* label, T* mem, const char* expr, Source
 #define TEST_FORALL()	CheckForall()
 #define TEST_EXISTS()	CheckExists()
 
+#define DISABLE_DPOR()	set_dpor_enabled(false);
+
 /********************************************************************************/
 
 #define EXHAUSTIVE_SEARCH() \

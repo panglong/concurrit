@@ -158,6 +158,8 @@ private:
 
 	DECL_FIELD(VCTracker, vcTracker)
 	DECL_FIELD(YieldImpl*, yield_impl)
+
+	DECL_FIELD(bool, dpor_enabled)
 };
 
 } // end namespace

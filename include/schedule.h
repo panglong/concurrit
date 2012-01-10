@@ -176,9 +176,10 @@ public:
 		target_ = NULL;
 	}
 
-	// (backtrack \ done) == {}
-	bool has_more_targets() {
-		for(CoroutinePtrSet::iterator itr = backtrack_.begin(); itr != backtrack_.end(); ++itr) {
+	// if dpo_enabled then (backtrack \ done) == {} else (enabled \ done) == {}
+	bool has_more_targets(bool dpor_enabled = true) {
+		CoroutinePtrSet* members = dpor_enabled ? &backtrack_ : &enabled_;
+		for(CoroutinePtrSet::iterator itr = members->begin(); itr != members->end(); ++itr) {
 			Coroutine* co = (*itr);
 			if(done_.find(co) == done_.end()) {
 				safe_assert(enabled_.find(co) != enabled_.end());

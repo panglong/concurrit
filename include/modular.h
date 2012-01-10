@@ -50,7 +50,12 @@ public:
 	void Update(MemoryCellBase* cell);
 	MemoryMap* Clone();
 
-	bool operator ==(const MemoryMap& other);
+	void UpdateProgramState();
+
+	bool IsEquiv(const MemoryMap& other);
+	bool operator ==(const MemoryMap& other) {
+		return IsEquiv(other);
+	}
 	bool operator !=(const MemoryMap& other) {
 		return !(this->operator ==(other));
 	}
@@ -74,29 +79,35 @@ typedef std::set<EnvNodePtr> EnvNodePtrSet;
 // a node in the env graph
 class EnvNode {
 public:
-	EnvNode(EnvGraph* owner = NULL) : env_graph_(owner) {}
+	EnvNode(EnvGraph* owner = NULL) : env_graph_(owner), id_(-1) {}
 	~EnvNode() {}
 
 	void Update(Coroutine* current, MemoryCellBase* cell);
 	void AddEdge(EnvNodePtr node);
 	EnvNodePtr Clone(bool clone_ginfo = false);
 
-	bool operator ==(const EnvNode& node);
+	bool IsEquiv(const EnvNode& node);
+	bool operator ==(const EnvNode& node) {
+		return IsEquiv(node);
+	}
 	bool operator !=(const EnvNode& node) {
 		return !(this->operator ==(node));
 	}
 
-	std::string ToString();
+	std::string ToString(bool print_memory = true);
 
 	inline bool HasOutEdges() {
-		return !edges_.empty();
+		return !out_edges_.empty();
 	}
+
+	bool CheckAndUpdateProgramState();
 
 private:
 	DECL_FIELD_REF(MemoryMap, globals)
-	DECL_FIELD_REF(EnvNodePtrSet, edges)
+	DECL_FIELD_REF(EnvNodePtrList, out_edges)
 	// the graph this belongs to (can be null if the node is not owned yet)
 	DECL_FIELD(EnvGraph*, env_graph)
+	DECL_FIELD(int, id);
 };
 
 /********************************************************************************/
@@ -105,6 +116,7 @@ class EnvTrace;
 class EnvGraph {
 public:
 	EnvGraph() {
+		next_node_id_ = 1;
 		start_node_ = EnvNodePtr(new EnvNode());
 		AddNode(start_node_);
 	}
@@ -114,17 +126,22 @@ public:
 
 	EnvNodePtr MakeNewNode(EnvNodePtr existing = EnvNodePtr());
 	void AddNode(EnvNodePtr node);
+	bool ContainsNode(EnvNodePtr node);
 	void Update(EnvTrace* trace);
 	EnvNodePtr SearchForEquivNode(EnvNodePtr node);
+
+	std::string ToString();
 
 private:
 	void delete_nodes();
 
 	DECL_FIELD_REF(EnvNodePtrSet, nodes)
 	DECL_FIELD(EnvNodePtr, start_node)
+	DECL_FIELD(int, next_node_id)
 };
 
 /********************************************************************************/
+class EnvChoicePoint;
 
 // keeps track of the current trace of the execution
 // this includes tracking where the environment is in the envgraph,
@@ -132,8 +149,7 @@ private:
 class EnvTrace {
 public:
 	// g may be NULL, in this case Restart is called later with a valid graph pointer
-	EnvTrace(EnvGraph* g = NULL)
-	: can_stutter_(true) {
+	EnvTrace(EnvGraph* g = NULL) {
 		if(g != NULL) { // initialize only when g != NULL (not to fail an assertion in Restart)
 			Restart(g);
 		}
@@ -143,7 +159,7 @@ public:
 	}
 
 	// returns true, if no further step is possible
-	EnvNodePtr Step(EnvNodePtr current_node, EnvNodePtr next_node = EnvNodePtr());
+	EnvNodePtr Step(EnvChoicePoint* point);
 
 	void OnAccess(Coroutine* current, SharedAccess* access);
 	// if env_graph is not set or g is not NULL, we reset env_graph to g
@@ -152,13 +168,14 @@ public:
 	std::string ToString();
 
 private:
+	EnvNodePtr ChooseNext(EnvChoicePoint* point);
 	void delete_nodes();
 
 	DECL_FIELD_REF(EnvNodePtrList, nodes) // sequence of nodes visited
 	DECL_FIELD(EnvGraph*, env_graph)
 	DECL_FIELD(EnvNodePtr, current_node) // current node in the existing env graph
-	// becomes true when the actual thread ends and env need to proceed with new states
-	DECL_FIELD(bool, can_stutter)
+
+	friend class EnvChoicePoint;
 };
 
 
@@ -199,38 +216,50 @@ private:
 };
 
 /********************************************************************************/
+typedef VectorIteratorState<EnvNodePtr> EnvNodePtrIterator;
+typedef std::vector<EnvNodePtrIterator> EnvNodePtrIteratorList;
 
 class EnvChoicePoint : public ChoicePoint {
 public:
 	EnvChoicePoint(EnvTrace* env_trace,
-				   EnvNodePtr current_node,
-				   EnvNodePtr next_node = EnvNodePtr(),
+				   EnvNodePtr root_node,
 				   Coroutine* source = Coroutine::Current())
 	: ChoicePoint(source),
-	  env_trace_(env_trace),
-	  current_node_(current_node),
-	  next_node_(next_node) {}
+	  env_trace_(env_trace), root_node_(root_node), source_(source) {
+		path_.push_back(EnvNodePtrIterator(root_node_->out_edges()));
+	}
+
 	~EnvChoicePoint() {}
 
 	// override
 	bool ChooseNext() {
-		safe_assert(current_node_ != NULL);
-		next_node_ = env_trace_->Step(current_node_, next_node_);
+		env_trace_->Step(this);
 		return (GetNext() != NULL);
 	}
 
 	inline EnvNodePtr GetNext() {
-		return next_node_;
+		if(path_.empty()) {
+			return EnvNodePtr(); // NULL
+		}
+		EnvNodePtrIterator last = path_.back();
+		if(last.has_current()) {
+			return last.current();
+		}
+		return EnvNodePtr(); // NULL
 	}
 
-	virtual SchedulePoint* Clone() { return new EnvChoicePoint(env_trace_, current_node_, next_node_, source_); }
+	virtual SchedulePoint* Clone() { return new EnvChoicePoint(env_trace_, root_node_, source_); } // TODO(elmas):...
 	virtual void Load(Serializer* serializer) { unimplemented(); }
 	virtual void Store(Serializer* serializer) { unimplemented(); }
 
 private:
 	DECL_FIELD(EnvTrace*, env_trace)
-	DECL_FIELD(EnvNodePtr, current_node)
-	DECL_FIELD(EnvNodePtr, next_node)
+	DECL_FIELD(EnvNodePtr, root_node)
+	DECL_FIELD_REF(EnvNodePtrIteratorList, path)
+	DECL_FIELD(Coroutine*, source)
+
+	DECL_FIELD_REF(EnvNodePtrSet, black_nodes)
+	DECL_FIELD_REF(EnvNodePtrSet, gray_nodes)
 };
 
 /********************************************************************************/

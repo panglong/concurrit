@@ -92,8 +92,8 @@ public:
 
 		coroutine_t t1 = CreateThread("t1", increment_thread, COUNTER);
 		coroutine_t t2 = CreateThread("t2", increment_thread, COUNTER);
-//		coroutine_t t3 = CreateThread("t3", increment_thread, COUNTER);
-//		coroutine_t t4 = CreateThread("t4", increment_thread, COUNTER);
+		coroutine_t t3 = CreateThread("t3", increment_thread, COUNTER);
+		coroutine_t t4 = CreateThread("t4", increment_thread, COUNTER);
 
 		printf("Counter: %d\n", COUNTER->get());
 	}

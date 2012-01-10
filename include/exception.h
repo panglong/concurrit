@@ -116,7 +116,7 @@ private:
 
 class InternalException : public std::exception {
 public:
-	InternalException(std::string& msg, SourceLocation* loc) throw() : message_(msg), loc_(loc) {}
+	InternalException(const std::string& msg, SourceLocation* loc) throw() : message_(msg), loc_(loc) {}
 
 	~InternalException() throw() {
 		if(loc_ != NULL) {
@@ -185,9 +185,25 @@ private:
 extern BacktrackException* __backtrack_exception__;
 extern CounitException*    __counit_exception__;
 
-#define TRIGGER_BACKTRACK()					throw CHECK_NOTNULL(__backtrack_exception__)
-#define TRIGGER_WRAPPED_EXCEPTION(m, e)		{ __counit_exception__->set_where(m); __counit_exception__->set_cause(e); throw CHECK_NOTNULL(__counit_exception__); }
-#define TRIGGER_WRAPPED_BACKTRACK(m)		TRIGGER_WRAPPED_EXCEPTION(m, (__backtrack_exception__))
+#define TRIGGER_BACKTRACK() \
+	VLOG(2) << "TRIGGER_BACKTRACK"; \
+	throw CHECK_NOTNULL(__backtrack_exception__)
+
+#define TRIGGER_WRAPPED_EXCEPTION(m, e) \
+	{ \
+		VLOG(2) << "TRIGGER_WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what(); \
+		__counit_exception__->set_where(m); \
+		__counit_exception__->set_cause(e); \
+		throw CHECK_NOTNULL(__counit_exception__); \
+	}
+
+#define TRIGGER_WRAPPED_BACKTRACK(m) \
+	TRIGGER_WRAPPED_EXCEPTION(m, (__backtrack_exception__))
+
+#define TRIGGER_INTERNAL_EXCEPTION(m)	\
+	VLOG(2) << "TRIGGER_INTERNAL_EXCEPTION: " << (m); \
+	throw new InternalException(m, RECORD_SRCLOC())
+
 
 //#define TRIGGER_BACKTRACK()				throw new BacktrackException()
 //#define TRIGGER_WRAPPED_EXCEPTION(m, e)	throw new CounitException(m, e)

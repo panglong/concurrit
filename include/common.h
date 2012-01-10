@@ -214,6 +214,85 @@ extern const char* CONCURRIT_HOME;
 
 #define InWorkDir(f)	((std::string(CHECK_NOTNULL(CONCURRIT_HOME)) + "/work/" + f).c_str())
 
+/********************************************************************************/
+
+template<typename T>
+class VectorIteratorState {
+public:
+	typedef std::vector<T> vectorT;
+
+	VectorIteratorState(const vectorT& x)
+	: vector_(x), current_(0) {}
+
+	VectorIteratorState(vectorT* x)
+	: vector_(*x), current_(0) {}
+
+	T current() {
+		safe_assert(has_current());
+		return vector_[current_];
+	}
+
+	bool has_current() {
+		return 0 <= current_ && current_ < int(vector_.size());
+	}
+
+	bool next() {
+		safe_assert(has_current());
+		current_++;
+		return has_current();
+	}
+
+	bool prev() {
+		safe_assert(has_current());
+		current_--;
+		return has_current();
+	}
+
+private:
+	vectorT vector_;
+	int current_;
+};
+
+//template<typename T>
+//class VectorIteratorState {
+//public:
+//	typedef std::vector<T> vectorT;
+//
+//	VectorIteratorState(const vectorT& x)
+//	: begin_(x.begin()), current_(x.begin()), end_(x.end()) {}
+//
+//	VectorIteratorState(vectorT* x)
+//	: begin_(x->begin()), current_(x->begin()), end_(x->end()) {}
+//
+//	T current() {
+//		safe_assert(has_current());
+//		return (*current_);
+//	}
+//
+//	bool has_current() {
+//		return begin_ <= current_ && current_ < end_;
+//	}
+//
+//	bool next() {
+//		safe_assert(has_current());
+//		current_++;
+//		return has_current();
+//	}
+//
+//	bool prev() {
+//		safe_assert(has_current());
+//		current_--;
+//		return has_current();
+//	}
+//
+//private:
+//	typename vectorT::const_iterator begin_;
+//	typename vectorT::const_iterator current_;
+//	typename vectorT::const_iterator end_;
+//
+//};
+
+/********************************************************************************/
 
 } // end namepace
 

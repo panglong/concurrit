@@ -52,5 +52,6 @@
 #include "suite.h"
 #include "modular.h"
 #include "yield.h"
+#include "dot.h"
 
 #endif /* COUNIT_H_ */

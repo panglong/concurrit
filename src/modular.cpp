@@ -64,6 +64,7 @@ void ThreadModularScenario::AfterRunOnce() {
 	printf("Memory trace:\n%s\n", env_trace_.ToString().c_str());
 
 	printf("EnvGraph has %ld nodes\n", env_graph_.nodes()->size());
+	printf("%s\n", env_graph_.ToString().c_str());
 
 	// add memory trace to env graph
 	env_graph_.Update(&env_trace_);
@@ -74,18 +75,19 @@ void ThreadModularScenario::AfterRunOnce() {
 void* env_thread_function(void* p) {
 	CHECK(p != NULL);
 	EnvTrace* env_trace = static_cast<EnvTrace*>(p);
+	EnvNodePtr current_node = env_trace->current_node();
 	for(;true;) {
 		VLOG(2) << "Running env thread context";
 
 		Coroutine* current = Coroutine::Current();
 		safe_assert(!current->IsMain());
 
-		SchedulePoint* main_point = current->yield_point();
-		if(main_point != NULL) {
-			main_point = main_point->AsYield()->prev();
-
-			safe_assert(main_point != NULL && main_point->IsTransfer());
-			safe_assert(main_point->AsYield()->source()->IsMain());
+//		SchedulePoint* main_point = current->yield_point();
+//		if(main_point != NULL) {
+//			main_point = main_point->AsYield()->prev();
+//
+//			safe_assert(main_point != NULL && main_point->IsTransfer());
+//			safe_assert(main_point->AsYield()->source()->IsMain());
 
 //			Coroutine* source = NULL;
 //			SharedAccess* access = NULL;
@@ -108,35 +110,53 @@ void* env_thread_function(void* p) {
 				VLOG(2) << "Reusing env choice point";
 
 				env_choice = ASINSTANCEOF(choice_point, EnvChoicePoint*);
-				safe_assert(env_choice->GetNext() != NULL);
+				EnvNodePtr root_node = env_choice->root_node();
 
-				// check if current nodes of trace and the choice point are the same
-				if(env_trace->current_node() != env_choice->current_node()) {
+				safe_assert(env_choice->GetNext() != NULL);
+				// root note must be in the env graph
+				safe_assert(env_trace->env_graph()->ContainsNode(root_node));
+
+				// we backtrack if root_node is not the same as current_node and env_thread and env_trace
+				if(current_node != root_node || env_trace->current_node() != root_node) {
 					TRIGGER_BACKTRACK();
 				}
+
 				// set the next current node of the trace
 				env_trace->set_current_node(env_choice->GetNext());
 			} else {
 				VLOG(2) << "Creating new env choice point";
 
+				EnvNodePtr root_node = env_trace->current_node();
+
+				// if the current node of env_trace is not the same as the current node of env,
+				// then, this means the local thread lead the program out of env graph
+				if(root_node != current_node) {
+					break;
+				}
+
 				// first taking of this transition
 				// gets the current node of env_trace as the current node
-				env_choice = new EnvChoicePoint(env_trace, env_trace->current_node());
+				env_choice = new EnvChoicePoint(env_trace, root_node);
 				 // makes env_trace to take a step and update its current node
 				if(!env_choice->ChooseNext()) {
 					// no more steps, this means that the environment has ended or no next point
 					// thus we exit env thread now
 					break;
 				}
-
 			}
 
+			safe_assert(env_choice != NULL);
 			env_choice->SetAndConsumeCurrent();
 
-		} // end if
+			// update current node of env thread
+			current_node = env_trace->current_node();
+			safe_assert(env_trace->env_graph()->ContainsNode(current_node));
+
+//		} // end if
 
 		// force yield after each step
 		// TODO(elmas): use the last accesses of env instead of NULL
+		VLOG(2) << "Yielding from env";
 		FORCE_YIELD("ENV", NULL);
 
 	} // end while
@@ -147,7 +167,9 @@ void* env_thread_function(void* p) {
 
 // this is a API call, given a set of threads, makes a modular check
 void ThreadModularScenario::TestCase() {
+
 	TEST_FORALL(); // we check all possible executions
+	DISABLE_DPOR(); // disable dynamic partial order reduction
 
 	// add environment thread to the group
 	Coroutine* env_co = CREATE_THREAD("ENV", env_thread_function, &env_trace_);
@@ -181,44 +203,109 @@ void ThreadModularScenario::TestCase() {
 
 	// run one member at a time concurrently with env_thread
 	VLOG(2) << SC_TITLE << "Modular check with coroutine " << co->name();
-	{ WITH(co, env_co);
+	printf("Modular check with coroutine %s\n", co->name().c_str());
+
+	{ WITH(env_co, co);
+		UNTIL_FIRST()->TRANSFER(env_co);
 		UNTIL_ALL_END {
 			UNTIL_STAR()->TRANSFER_STAR();
-
-			// if co ends, env shall not stutter
-			if(co->is_ended()) {
-				env_trace_.set_can_stutter(false);
-			}
 		}
 	}
 }
 
 /********************************************************************************/
 
-// this is called by EnvChoicePoint to find out the next following target of current_node
-// next_node is the last return value
-EnvNodePtr EnvTrace::Step(EnvNodePtr current_node, EnvNodePtr next_node /*= EnvNodePtr()*/) {
-	// check if the current nodes match
-	CHECK(current_node_ == current_node) << "Current nodes does not match";
 
-	EnvNodePtr new_next_node; // return value
+EnvNodePtr EnvTrace::Step(EnvChoicePoint* point) {
+	VLOG(2) << "Next step in env trace.";
+	safe_assert(point != NULL);
 
-	// make transitions nondeterministically
-	if(!current_node_->HasOutEdges()) {
-		if(can_stutter_) {
-			new_next_node = current_node_;
-		} else {
-			// we are stuck, so return NULL
-			new_next_node = EnvNodePtr();
+	EnvNodePtr current_node = ChooseNext(point);
+	safe_assert(current_node != NULL || point->GetNext() == NULL);
+
+	VLOG(2) << "Root node is: " << point->root_node()->ToString(false);
+	VLOG(2) << "Current node is: " << (current_node == NULL ? "NULL" : current_node->ToString(false));
+
+	if(current_node != NULL) {
+		// check and update the current program state with the chosen env node
+		if(!current_node->CheckAndUpdateProgramState()) {
+			TRIGGER_BACKTRACK();
 		}
-	} else {
-		// choose an edge
-		safe_assert(false);
+		// update the currently-tracked state
+		current_node_ = current_node;
 	}
 
-	current_node_ = new_next_node;
+	return current_node;
+}
 
-	return new_next_node;
+/********************************************************************************/
+
+// this is called by EnvChoicePoint to find out the next following target of current_node
+EnvNodePtr EnvTrace::ChooseNext(EnvChoicePoint* point) {
+	VLOG(2) << "Choosing next target for env choice point.";
+
+	EnvNodePtrSet* gray_nodes = point->gray_nodes();
+	EnvNodePtrSet* black_nodes = point->black_nodes();
+
+	EnvNodePtrIteratorList* path = point->path();
+	if(point->GetNext() == NULL) {
+		return EnvNodePtr(); // = NULL
+	}
+	safe_assert(!path->empty());
+
+	EnvNodePtr next_node; // = NULL
+	EnvNodePtrIterator iter = path->back(); path->pop_back();
+
+	//------------------------------------
+	// forward DFS (find the next leaf)
+	while(iter.has_current()) {
+		next_node = iter.current();
+		safe_assert(next_node != NULL);
+
+		if(gray_nodes->find(next_node) != gray_nodes->end()) {
+			TRIGGER_INTERNAL_EXCEPTION("Cycle found in the env graph!");
+		}
+
+		if(black_nodes->find(next_node) != black_nodes->end()) {
+			iter.next();
+		} else {
+			// mark current_node as GRAY
+			gray_nodes->insert(next_node);
+			path->push_back(iter);
+			iter = EnvNodePtrIterator(next_node->out_edges());
+		}
+	}
+	if(next_node == NULL) {
+		// backward DFS (visit non-leaves)
+		if(path->empty()) {
+			return EnvNodePtr(); // NULL
+		}
+		iter = path->back(); path->pop_back();
+		safe_assert(iter.has_current());
+		next_node = iter.current();
+		safe_assert(next_node != NULL);
+		iter.next();
+		path->push_back(iter);
+	}
+	//------------------------------------
+
+	safe_assert(next_node != NULL);
+
+	if(next_node == point->root_node()) {
+		if(path->size() > 1) {
+			TRIGGER_INTERNAL_EXCEPTION("Cycle found in the env graph!!!");
+		} else {
+			// TODO(elmas): if current_node is root_node and we cannot stutter, return NULL
+			// this happens when this choice point is invoked the last time
+			return EnvNodePtr(); // = NULL
+		}
+	}
+
+	// mark next_node as BLACK
+	gray_nodes->erase(next_node);
+	black_nodes->insert(next_node);
+
+	return next_node;
 }
 
 /********************************************************************************/
@@ -256,7 +343,6 @@ void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 	safe_assert(env_graph_ != NULL);
 	current_node_ = env_graph_->start_node();
 	nodes_.push_back(current_node_);
-	can_stutter_ = true;
 }
 
 /********************************************************************************/
@@ -294,15 +380,15 @@ void EnvNode::Update(Coroutine* current, MemoryCellBase* cell) {
 
 void EnvNode::AddEdge(EnvNodePtr node) {
 	// since edges_ is a set, no need to check for duplications
-	edges_.insert(node);
+	out_edges_.push_back(node);
 }
 
 /********************************************************************************/
 
-bool EnvNode::operator ==(const EnvNode& node) {
+bool EnvNode::IsEquiv(const EnvNode& node) {
 	// compare globals
 	// TODO(elmas): improve this comparison, as states does not have to match exactly
-	return globals_ == node.globals_;
+	return globals_.IsEquiv(node.globals_);
 }
 
 /********************************************************************************/
@@ -313,7 +399,7 @@ EnvNodePtr EnvNode::Clone(bool clone_ginfo /*= false*/) {
 
 	// clone graph information is requested (default: false)
 	if(clone_ginfo) {
-		node->edges_ = edges_;
+		node->out_edges_ = out_edges_;
 		node->env_graph_ = env_graph_;
 	}
 	return node;
@@ -321,12 +407,22 @@ EnvNodePtr EnvNode::Clone(bool clone_ginfo /*= false*/) {
 
 /********************************************************************************/
 
-std::string EnvNode::ToString() {
+std::string EnvNode::ToString(bool print_memory /*= true*/) {
 	std::stringstream s;
 
-	s << "MemoryMap: " << globals_.ToString();
+	s <<"Id: " << id_;
+	if(print_memory) {
+		s << " MemoryMap: " << globals_.ToString();
+	}
 
 	return s.str();
+}
+
+/********************************************************************************/
+
+bool EnvNode::CheckAndUpdateProgramState() {
+	globals_.UpdateProgramState();
+	return true; // TODO(elmas)
 }
 
 /********************************************************************************/
@@ -347,6 +443,15 @@ void MemoryMap::Update(MemoryCellBase* cell) {
 		itr->second->update_value(cell);
 	} else {
 		memToCell_[mem] = cell->Clone();
+	}
+}
+
+/********************************************************************************/
+
+void MemoryMap::UpdateProgramState() {
+	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
+		MemoryCellBase* cell = itr->second;
+		cell->update_memory();
 	}
 }
 
@@ -375,8 +480,24 @@ void MemoryMap::delete_cells() {
 
 /********************************************************************************/
 
-bool MemoryMap::operator ==(const MemoryMap& other) {
-	return memToCell_ == other.memToCell_;
+bool MemoryMap::IsEquiv(const MemoryMap& other) {
+	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
+		MemoryCellBase* cell = itr->second;
+		CellMap::const_iterator itr2 = other.memToCell_.find(cell->int_address());
+		if(itr2 == other.memToCell_.end() || !cell->IsEquiv(itr2->second)) {
+			return false;
+		}
+	}
+
+	for(CellMap::const_iterator itr = other.memToCell_.begin(); itr != other.memToCell_.end(); ++itr) {
+		MemoryCellBase* cell = itr->second;
+		CellMap::iterator itr2 = memToCell_.find(cell->int_address());
+		if(itr2 == memToCell_.end() || !cell->IsEquiv(itr2->second)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /********************************************************************************/
@@ -406,6 +527,14 @@ void EnvGraph::AddNode(EnvNodePtr node) {
 	// we have at least start node
 	safe_assert(start_node_ != NULL);
 	nodes_.insert(node);
+	node->set_id(next_node_id_);
+	next_node_id_++;
+}
+
+/********************************************************************************/
+
+bool EnvGraph::ContainsNode(EnvNodePtr node) {
+	return (nodes_.find(node) != nodes_.end());
 }
 
 /********************************************************************************/
@@ -413,7 +542,7 @@ void EnvGraph::AddNode(EnvNodePtr node) {
 EnvNodePtr EnvGraph::SearchForEquivNode(EnvNodePtr node) {
 	safe_assert(node != NULL);
 
-	if(nodes_.find(node) != nodes_.end()) {
+	if(ContainsNode(node)) {
 		// node already exists in the graph
 		return node;
 	}
@@ -421,7 +550,7 @@ EnvNodePtr EnvGraph::SearchForEquivNode(EnvNodePtr node) {
 	// check every node in the graph to see if there is any equiv. one
 	for(EnvNodePtrSet::iterator itr = nodes_.begin(); itr != nodes_.end(); ++itr) {
 		EnvNodePtr n = (*itr);
-		if((*n) == (*node)) { // uses overloaded operator ==
+		if(n->IsEquiv(*node)) {
 			return n;
 		}
 	}
@@ -433,22 +562,24 @@ EnvNodePtr EnvGraph::SearchForEquivNode(EnvNodePtr node) {
 /********************************************************************************/
 
 void EnvGraph::Update(EnvTrace* trace) {
-	EnvNodePtr prev;
+	EnvNodePtr prev; // = NULL
 	// traverse the trace, and add new nodes and connections between nodes
 	EnvNodePtrList* nodes = trace->nodes();
 	for(EnvNodePtrList::iterator itr = nodes->begin(); itr < nodes->end(); ++itr) {
 		EnvNodePtr node = (*itr);
 
 		// check if an equivalent node exists in the graph
-		if(SearchForEquivNode(node) == NULL) {
+		EnvNodePtr equiv_node = SearchForEquivNode(node);
+		if(equiv_node == NULL) {
 			// add the node
 			AddNode(node);
+			equiv_node = node;
 		}
 		if(prev != NULL) {
 			// add edge from prev to node
-			prev->AddEdge(node);
+			prev->AddEdge(equiv_node);
 		}
-		prev = node;
+		prev = equiv_node;
 	}
 }
 
@@ -461,6 +592,22 @@ void EnvGraph::delete_nodes() {
 }
 
 /********************************************************************************/
+
+std::string EnvGraph::ToString() {
+	std::stringstream s;
+
+	s << "***** Begin Nodes:\n";
+	for(EnvNodePtrSet::iterator itr = nodes_.begin(); itr != nodes_.end(); ++itr) {
+		EnvNodePtr node = (*itr);
+		s << node->ToString() << "\n";
+	}
+	s << "***** End Nodes:\n";
+
+	return s.str();
+}
+
+/********************************************************************************/
+
 
 } // end namespace
 
