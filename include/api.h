@@ -248,6 +248,11 @@ inline writer<T> write_yield(const char* label, T* mem, const char* expr, Source
 
 /********************************************************************************/
 
+#define TERMINATE_SEARCH() \
+	TRIGGER_TERMINATE_SEARCH()
+
+/********************************************************************************/
+
 #define EXHAUSTIVE_SEARCH() \
 	ExhaustiveSearch()
 

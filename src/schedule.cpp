@@ -422,14 +422,16 @@ void Schedule::ClearUntakenPoints() {
 				CHECK_NOTNULL(point->AsTransfer())->Reset();
 				++itr;
 			} else if(point->IsChoice()) {
+				VLOG(2) << __FUNCTION__ << " Skipping choice point";
 				++itr; // go past it
 			} else { // yield point
 				VLOG(2) << __FUNCTION__ << " Removing yield point";
-				delete point;
+				//delete point; // TODO(elmas): this causes a segmentation fault!
 				itr = points_.erase(itr);
 			}
 		}
 	}
+	VLOG(2) << __FUNCTION__ << " Cleared untaken points.";
 }
 
 /********************************************************************************/

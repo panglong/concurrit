@@ -62,6 +62,25 @@ private:
 
 /********************************************************************************/
 
+class TerminateSearchException : public BacktrackException {
+public:
+	TerminateSearchException() throw() : BacktrackException() {
+
+	}
+
+	virtual ~TerminateSearchException() throw() {
+
+	}
+
+	virtual const char* what() const throw()
+	{
+		return "Terminate Search";
+	}
+private:
+};
+
+/********************************************************************************/
+
 class AssertionViolationException : public std::exception {
 public:
 	AssertionViolationException(const char* cond, SourceLocation* loc) throw()
@@ -183,11 +202,16 @@ private:
 /********************************************************************************/
 
 extern BacktrackException* __backtrack_exception__;
+extern TerminateSearchException* __terminate_search_exception__;
 extern CounitException*    __counit_exception__;
 
 #define TRIGGER_BACKTRACK() \
 	VLOG(2) << "TRIGGER_BACKTRACK"; \
 	throw CHECK_NOTNULL(__backtrack_exception__)
+
+#define TRIGGER_TERMINATE_SEARCH() \
+	VLOG(2) << "TRIGGER_TERMINATE_SEARCH"; \
+	throw CHECK_NOTNULL(__terminate_search_exception__)
 
 #define TRIGGER_WRAPPED_EXCEPTION(m, e) \
 	{ \

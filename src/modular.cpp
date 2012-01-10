@@ -111,8 +111,9 @@ void* env_thread_function(void* p) {
 
 				env_choice = ASINSTANCEOF(choice_point, EnvChoicePoint*);
 				EnvNodePtr root_node = env_choice->root_node();
+				EnvNodePtr next_node = env_choice->GetNext();
 
-				safe_assert(env_choice->GetNext() != NULL);
+				safe_assert(next_node != NULL);
 				// root note must be in the env graph
 				safe_assert(env_trace->env_graph()->ContainsNode(root_node));
 
@@ -122,7 +123,7 @@ void* env_thread_function(void* p) {
 				}
 
 				// set the next current node of the trace
-				env_trace->set_current_node(env_choice->GetNext());
+				env_trace->SetNext(next_node);
 			} else {
 				VLOG(2) << "Creating new env choice point";
 
@@ -206,36 +207,49 @@ void ThreadModularScenario::TestCase() {
 	printf("Modular check with coroutine %s\n", co->name().c_str());
 
 	{ WITH(env_co, co);
-		UNTIL_FIRST()->TRANSFER(env_co);
 		UNTIL_ALL_END {
 			UNTIL_STAR()->TRANSFER_STAR();
+		}
+		if(env_graph_.size() >= 100) {
+			TERMINATE_SEARCH();
 		}
 	}
 }
 
 /********************************************************************************/
 
+void EnvTrace::SetNext(EnvNodePtr next_node) {
+	safe_assert(next_node != NULL);
+	safe_assert(!nodes_.empty() || current_node_ == NULL);
+	safe_assert(nodes_.empty() || nodes_.back() == current_node_);
+	if(current_node_ == NULL || (current_node_ != next_node && !current_node_->IsEquiv(*next_node))) {
+		current_node_ = next_node;
+		nodes_.push_back(current_node_);
+	}
+}
+
+/********************************************************************************/
 
 EnvNodePtr EnvTrace::Step(EnvChoicePoint* point) {
 	VLOG(2) << "Next step in env trace.";
 	safe_assert(point != NULL);
 
-	EnvNodePtr current_node = ChooseNext(point);
-	safe_assert(current_node != NULL || point->GetNext() == NULL);
+	EnvNodePtr next_node = ChooseNext(point);
+	safe_assert(next_node != NULL || point->GetNext() == NULL);
 
-	VLOG(2) << "Root node is: " << point->root_node()->ToString(false);
-	VLOG(2) << "Current node is: " << (current_node == NULL ? "NULL" : current_node->ToString(false));
+	VLOG(0) << "Root node is: " << point->root_node()->ToString(false);
+	VLOG(0) << "Current node is: " << (next_node == NULL ? "NULL" : next_node->ToString(false));
 
-	if(current_node != NULL) {
+	if(next_node != NULL) {
 		// check and update the current program state with the chosen env node
-		if(!current_node->CheckAndUpdateProgramState()) {
+		if(!next_node->CheckAndUpdateProgramState()) {
 			TRIGGER_BACKTRACK();
 		}
 		// update the currently-tracked state
-		current_node_ = current_node;
+		SetNext(next_node);
 	}
 
-	return current_node;
+	return next_node;
 }
 
 /********************************************************************************/
@@ -244,7 +258,7 @@ EnvNodePtr EnvTrace::Step(EnvChoicePoint* point) {
 EnvNodePtr EnvTrace::ChooseNext(EnvChoicePoint* point) {
 	VLOG(2) << "Choosing next target for env choice point.";
 
-	EnvNodePtrSet* gray_nodes = point->gray_nodes();
+//	EnvNodePtrSet* gray_nodes = point->gray_nodes();
 	EnvNodePtrSet* black_nodes = point->black_nodes();
 
 	EnvNodePtrIteratorList* path = point->path();
@@ -262,15 +276,16 @@ EnvNodePtr EnvTrace::ChooseNext(EnvChoicePoint* point) {
 		next_node = iter.current();
 		safe_assert(next_node != NULL);
 
-		if(gray_nodes->find(next_node) != gray_nodes->end()) {
-			TRIGGER_INTERNAL_EXCEPTION("Cycle found in the env graph!");
-		}
+//		if(gray_nodes->find(next_node) != gray_nodes->end()) {
+//			TRIGGER_INTERNAL_EXCEPTION("Cycle found in the env graph!");
+//		}
 
 		if(black_nodes->find(next_node) != black_nodes->end()) {
 			iter.next();
 		} else {
 			// mark current_node as GRAY
-			gray_nodes->insert(next_node);
+//			gray_nodes->insert(next_node);
+			black_nodes->insert(next_node);
 			path->push_back(iter);
 			iter = EnvNodePtrIterator(next_node->out_edges());
 		}
@@ -302,7 +317,7 @@ EnvNodePtr EnvTrace::ChooseNext(EnvChoicePoint* point) {
 	}
 
 	// mark next_node as BLACK
-	gray_nodes->erase(next_node);
+//	gray_nodes->erase(next_node);
 	black_nodes->insert(next_node);
 
 	return next_node;
@@ -313,23 +328,27 @@ EnvNodePtr EnvTrace::ChooseNext(EnvChoicePoint* point) {
 // make a transition from current node to a matching node
 // if there is no matching node, then we create a new node (but not add it to env_graph)
 void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
-	safe_assert(!nodes_.empty());
+	safe_assert(!nodes_.empty() && nodes_.back() == current_node_);
 
-	EnvNodePtr node;
-	if(access->is_read()) {
-		// on a read access we use the existing current node
-		node = nodes_.back();
-	} else {
-		// on a write access we create a clone of the existing node
-		node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
-		nodes_.push_back(node);
-	}
+	EnvNodePtr node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
+//	if(access->is_read()) {
+//		// on a read access we use the existing current node
+//		node = nodes_.back();
+//	} else {
+//		// on a write access we create a clone of the existing node
+//		node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
+//	}
 
 	// update the node with the information about the access
 	node->Update(current, access->cell());
 
-	// update the current node of the trace
-	current_node_ = node;
+	EnvNodePtr next_node = env_graph_->SearchForEquivNode(node);
+	if(next_node == NULL) {
+		next_node = node;
+	}
+
+	// update the currently-tracked state
+	SetNext(next_node);
 }
 
 /********************************************************************************/
@@ -341,8 +360,10 @@ void EnvTrace::Restart(EnvGraph* g /*=NULL*/) {
 		env_graph_ = g;
 	}
 	safe_assert(env_graph_ != NULL);
-	current_node_ = env_graph_->start_node();
-	nodes_.push_back(current_node_);
+
+	// update the currently-tracked state
+	current_node_ = EnvNodePtr(); // = NULL
+	SetNext(env_graph_->start_node());
 }
 
 /********************************************************************************/
@@ -358,12 +379,10 @@ void EnvTrace::delete_nodes() {
 std::string EnvTrace::ToString() {
 	std::stringstream s;
 
-	int i = 1;
 	for(EnvNodePtrList::iterator itr = nodes_.begin(); itr < nodes_.end(); ++itr) {
 		EnvNodePtr node = (*itr);
-		s << i << " : " << node->ToString() << "\n";
+		s << node->ToString() << "\n";
 		s << "********************\n";
-		++i;
 	}
 
 	return s.str();
@@ -379,13 +398,13 @@ void EnvNode::Update(Coroutine* current, MemoryCellBase* cell) {
 /********************************************************************************/
 
 void EnvNode::AddEdge(EnvNodePtr node) {
-	// since edges_ is a set, no need to check for duplications
-	out_edges_.push_back(node);
+	out_edges_.insert(node);
 }
 
 /********************************************************************************/
 
 bool EnvNode::IsEquiv(const EnvNode& node) {
+	if(&node == this) return true;
 	// compare globals
 	// TODO(elmas): improve this comparison, as states does not have to match exactly
 	return globals_.IsEquiv(node.globals_);
@@ -399,6 +418,7 @@ EnvNodePtr EnvNode::Clone(bool clone_ginfo /*= false*/) {
 
 	// clone graph information is requested (default: false)
 	if(clone_ginfo) {
+		node->id_ = id_;
 		node->out_edges_ = out_edges_;
 		node->env_graph_ = env_graph_;
 	}
@@ -410,7 +430,12 @@ EnvNodePtr EnvNode::Clone(bool clone_ginfo /*= false*/) {
 std::string EnvNode::ToString(bool print_memory /*= true*/) {
 	std::stringstream s;
 
-	s <<"Id: " << id_;
+	s <<"Id: " << id_ ;
+	s << " Out edges: ";
+	for(EnvNodePtrSet::iterator itr = out_edges_.begin(); itr != out_edges_.end(); ++itr) {
+		EnvNodePtr node = (*itr);
+		s << node->id() << " ";
+	}
 	if(print_memory) {
 		s << " MemoryMap: " << globals_.ToString();
 	}
@@ -481,18 +506,14 @@ void MemoryMap::delete_cells() {
 /********************************************************************************/
 
 bool MemoryMap::IsEquiv(const MemoryMap& other) {
+	if(memToCell_.size() != other.memToCell_.size()) {
+		return false;
+	}
+
 	for(CellMap::iterator itr = memToCell_.begin(); itr != memToCell_.end(); ++itr) {
 		MemoryCellBase* cell = itr->second;
 		CellMap::const_iterator itr2 = other.memToCell_.find(cell->int_address());
 		if(itr2 == other.memToCell_.end() || !cell->IsEquiv(itr2->second)) {
-			return false;
-		}
-	}
-
-	for(CellMap::const_iterator itr = other.memToCell_.begin(); itr != other.memToCell_.end(); ++itr) {
-		MemoryCellBase* cell = itr->second;
-		CellMap::iterator itr2 = memToCell_.find(cell->int_address());
-		if(itr2 == memToCell_.end() || !cell->IsEquiv(itr2->second)) {
 			return false;
 		}
 	}
@@ -556,7 +577,7 @@ EnvNodePtr EnvGraph::SearchForEquivNode(EnvNodePtr node) {
 	}
 
 	// could not find an equivalent node
-	return EnvNodePtr();
+	return EnvNodePtr(); // = NULL
 }
 
 /********************************************************************************/
@@ -575,6 +596,8 @@ void EnvGraph::Update(EnvTrace* trace) {
 			AddNode(node);
 			equiv_node = node;
 		}
+		safe_assert(equiv_node != NULL);
+		safe_assert(prev != equiv_node);
 		if(prev != NULL) {
 			// add edge from prev to node
 			prev->AddEdge(equiv_node);

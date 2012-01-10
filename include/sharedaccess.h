@@ -35,6 +35,7 @@
 #define SHAREDACCESS_H_
 
 #include "vc.h"
+#include "common.h"
 
 namespace concurrit {
 

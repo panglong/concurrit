@@ -196,6 +196,11 @@ Result* Scenario::Explore() {
 					VLOG(2) << "Backtrack: Starting";
 					VLOG(2) << "Start scenario: " << schedule_->ToString();
 
+					// is backtrack is for terminating the search, exit the search loop
+					if(INSTANCEOF(ce->cause(), TerminateSearchException*)) {
+						goto LOOP_DONE; // break the outermost loop
+					}
+
 					if(Backtrack()) {
 						VLOG(2) << "End scenario: " << schedule_->ToString();
 						continue;

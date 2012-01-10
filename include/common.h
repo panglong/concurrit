@@ -217,15 +217,30 @@ extern const char* CONCURRIT_HOME;
 /********************************************************************************/
 
 template<typename T>
-class VectorIteratorState {
+class IteratorState {
 public:
 	typedef std::vector<T> vectorT;
+	typedef std::set<T> setT;
 
-	VectorIteratorState(const vectorT& x)
+	IteratorState(const vectorT& x)
 	: vector_(x), current_(0) {}
 
-	VectorIteratorState(vectorT* x)
+	IteratorState(vectorT* x)
 	: vector_(*x), current_(0) {}
+
+	IteratorState(const setT& x)
+	: current_(0) {
+		for(typename setT::iterator itr = x.begin(); itr != x.end(); ++itr) {
+			vector_.push_back(*itr);
+		}
+	}
+
+	IteratorState(setT* x)
+	: current_(0) {
+		for(typename setT::iterator itr = x->begin(); itr != x->end(); ++itr) {
+			vector_.push_back(*itr);
+		}
+	}
 
 	T current() {
 		safe_assert(has_current());

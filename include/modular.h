@@ -104,7 +104,7 @@ public:
 
 private:
 	DECL_FIELD_REF(MemoryMap, globals)
-	DECL_FIELD_REF(EnvNodePtrList, out_edges)
+	DECL_FIELD_REF(EnvNodePtrSet, out_edges)
 	// the graph this belongs to (can be null if the node is not owned yet)
 	DECL_FIELD(EnvGraph*, env_graph)
 	DECL_FIELD(int, id);
@@ -131,6 +131,8 @@ public:
 	EnvNodePtr SearchForEquivNode(EnvNodePtr node);
 
 	std::string ToString();
+
+	size_t size() { return nodes_.size(); }
 
 private:
 	void delete_nodes();
@@ -160,6 +162,8 @@ public:
 
 	// returns true, if no further step is possible
 	EnvNodePtr Step(EnvChoicePoint* point);
+
+	void SetNext(EnvNodePtr next_node);
 
 	void OnAccess(Coroutine* current, SharedAccess* access);
 	// if env_graph is not set or g is not NULL, we reset env_graph to g
@@ -216,7 +220,7 @@ private:
 };
 
 /********************************************************************************/
-typedef VectorIteratorState<EnvNodePtr> EnvNodePtrIterator;
+typedef IteratorState<EnvNodePtr> EnvNodePtrIterator;
 typedef std::vector<EnvNodePtrIterator> EnvNodePtrIteratorList;
 
 class EnvChoicePoint : public ChoicePoint {
