@@ -88,9 +88,9 @@ public:
 		return s.str();
 	}
 
-	T& read() { return value_ = (*address_); }
-	T& write(const T& value) { return (*address_) = (value_ = value); }
-	void update_memory() { write(value_); }
+	T& read() { return (value_ = (*address_)); }
+	T& write(const T& value) { return ((*address_) = (value_ = value)); }
+	void update_memory() { (*address_) = value_; }
 
 	bool IsEquiv(MemoryCellBase* other) {
 		MemoryCell<T>* _other = ASINSTANCEOF(other, MemoryCell<T>*);

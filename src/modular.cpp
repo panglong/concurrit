@@ -210,7 +210,7 @@ void ThreadModularScenario::TestCase() {
 		UNTIL_ALL_END {
 			UNTIL_STAR()->TRANSFER_STAR();
 		}
-		if(env_graph_.size() >= 100) {
+		if(env_graph_.size() >= 10) {
 			TERMINATE_SEARCH();
 		}
 	}
@@ -225,6 +225,11 @@ void EnvTrace::SetNext(EnvNodePtr next_node) {
 	if(current_node_ == NULL || (current_node_ != next_node && !current_node_->IsEquiv(*next_node))) {
 		current_node_ = next_node;
 		nodes_.push_back(current_node_);
+
+		// check and update the current program state with the chosen env node
+		if(!current_node_->CheckAndUpdateProgramState()) {
+			TRIGGER_BACKTRACK();
+		}
 	}
 }
 
@@ -241,10 +246,6 @@ EnvNodePtr EnvTrace::Step(EnvChoicePoint* point) {
 	VLOG(0) << "Current node is: " << (next_node == NULL ? "NULL" : next_node->ToString(false));
 
 	if(next_node != NULL) {
-		// check and update the current program state with the chosen env node
-		if(!next_node->CheckAndUpdateProgramState()) {
-			TRIGGER_BACKTRACK();
-		}
 		// update the currently-tracked state
 		SetNext(next_node);
 	}
@@ -331,13 +332,6 @@ void EnvTrace::OnAccess(Coroutine* current, SharedAccess* access) {
 	safe_assert(!nodes_.empty() && nodes_.back() == current_node_);
 
 	EnvNodePtr node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
-//	if(access->is_read()) {
-//		// on a read access we use the existing current node
-//		node = nodes_.back();
-//	} else {
-//		// on a write access we create a clone of the existing node
-//		node = nodes_.empty() ? env_graph_->MakeNewNode() : env_graph_->MakeNewNode(nodes_.back());
-//	}
 
 	// update the node with the information about the access
 	node->Update(current, access->cell());
