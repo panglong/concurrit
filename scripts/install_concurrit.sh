@@ -8,6 +8,9 @@ scripts/install_glog.sh
 # install google flags
 scripts/install_gflags.sh
 
+# install pth
+scripts/install_pth.sh
+
 # compile core
 cd $CONCURRIT_HOME
 make clean
