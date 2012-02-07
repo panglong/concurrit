@@ -18,7 +18,7 @@ CONCURRIT_OBJS=$(addprefix $(CONCURRIT_OBJDIR)/, $(OBJS))
 all: makedirs $(CONCURRIT_BINDIR)/$(TARGET).so
 
 $(CONCURRIT_BINDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
-	g++ $(INCDIR) $(LIBDIR) $(STD) $(DEFINES) $(FLAGS) -shared -o $@ $(LIBS) $^
+	g++ $(LIBDIR) $(STD) $(DEFINES) $(FLAGS) -shared -o $@ $(LIBS) $^
 	ar rcs $(CONCURRIT_BINDIR)/$(TARGET).a $^
 
 $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
