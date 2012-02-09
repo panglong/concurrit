@@ -35,6 +35,31 @@
 
 namespace concurrit {
 
+/********************************************************************************/
+
+FILE* my_fopen(const char * filename, const char * mode) {
+	FILE* file = fopen(filename, mode);
+	if(file == NULL) {
+		printf("File could not be opened: %s\n", filename);
+		bool CannotOpenFile = false;
+		CHECK(CannotOpenFile);
+	}
+	return file;
+}
+
+/********************************************************************************/
+
+void my_fclose(FILE* file) {
+	if(fclose(file)) {
+		printf("File could not be closed\n");
+		bool CannotCloseFile = false;
+		CHECK(CannotCloseFile);
+	}
+}
+
+/********************************************************************************/
+
+
 template<>
 void Serializer::Store<std::string>(std::string x) {
 	const char* s = x.c_str();
@@ -65,7 +90,7 @@ std::string Serializer::Load<std::string>() {
 }
 
 template<>
-char* Serializer::Load() {
+char* Serializer::Load<char*>() {
 	unimplemented();
 }
 

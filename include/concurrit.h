@@ -35,10 +35,25 @@
 #define COUNIT_H_
 
 #include "common.h"
+
+namespace concurrit {
+	extern const char* CONCURRIT_HOME;
+}
+#define InWorkDir(f)	((std::string(CHECK_NOTNULL(CONCURRIT_HOME)) + "/work/" + f).c_str())
+
+// google libraries
+#include <glog/logging.h>
+
+// boost libraries
+#include <boost/shared_ptr.hpp>
+
+#include "str.h"
+#include "iterator.h"
 #include "serialize.h"
 #include "sharedaccess.h"
 #include "schedule.h"
 #include "api.h"
+#include "yieldapi.h"
 #include "thread.h"
 #include "channel.h"
 #include "coroutine.h"

@@ -6,6 +6,7 @@ CONCURRIT_SRCS=$(wildcard $(CONCURRIT_SRCDIR)/*.cpp)
 CONCURRIT_OBJS=$(patsubst %.cpp, %.o, $(subst $(CONCURRIT_SRCDIR), $(CONCURRIT_OBJDIR), $(CONCURRIT_SRCS))) 
 CONCURRIT_HEADERS=$(wildcard $(CONCURRIT_INCDIR)/*.h)
 
+DEFINES=-DDPOR
 FLAGS=-g -Wall -Winline -fPIC -O2 \
 		-Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
 
@@ -14,19 +15,21 @@ FLAGS=-g -Wall -Winline -fPIC -O2 \
 
 STD=#-std=c++0x
 
-all: makedirs $(CONCURRIT_BINDIR)/$(TARGET).so
+all: makedirs $(CONCURRIT_LIBDIR)/$(TARGET).so
 
-$(CONCURRIT_BINDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
-	g++ $(LIBDIR) $(STD) $(DEFINES) $(FLAGS) -shared -o $@ $(LIBS) $^
-	ar rcs $(CONCURRIT_BINDIR)/$(TARGET).a $^
+$(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
+	g++ $(CONCURRIT_LIB_FLAGS) $(STD) $(DEFINES) $(FLAGS) -shared -o $@ $^
+	ar rcs $(CONCURRIT_LIBDIR)/$(TARGET).a $^
 
 $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
-	g++ $(INCDIR) $(STD) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
+	g++ $(CONCURRIT_INC_FLAGS) $(STD) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
 	
 makedirs:
 	mkdir -p $(CONCURRIT_BINDIR)
+	mkdir -p $(CONCURRIT_LIBDIR)
 	mkdir -p $(CONCURRIT_OBJDIR)
 	
 clean:
-	rm -rf $(CONCURRIT_OBJDIR)
 	rm -rf $(CONCURRIT_BINDIR)
+	rm -rf $(CONCURRIT_LIBDIR)
+	rm -rf $(CONCURRIT_OBJDIR)

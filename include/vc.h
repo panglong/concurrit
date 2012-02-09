@@ -35,19 +35,9 @@
 #ifndef VC_H_
 #define VC_H_
 
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-
-#include <vector>
-#include <ctime>
-#include <map>
-
 #include "common.h"
 
 namespace concurrit {
-
-typedef unsigned int vctime_t;
 
 typedef std::map<THREADID,vctime_t> VC;
 typedef std::map<ADDRINT,VC> VCMAP;

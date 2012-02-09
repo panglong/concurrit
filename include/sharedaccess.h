@@ -34,7 +34,6 @@
 #ifndef SHAREDACCESS_H_
 #define SHAREDACCESS_H_
 
-#include "vc.h"
 #include "common.h"
 
 namespace concurrit {
@@ -155,6 +154,8 @@ private:
 };
 
 /********************************************************************************/
+
+#define RECORD_SRCLOC()		(new SourceLocation(__FILE__, __FUNCTION__, __LINE__))
 
 class SourceLocation {
 public:

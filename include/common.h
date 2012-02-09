@@ -59,12 +59,6 @@
 #include <map>
 #include <set>
 
-// google libraries
-#include <glog/logging.h>
-
-// boost libraries
-#include <boost/shared_ptr.hpp>
-
 namespace concurrit {
 
 /********************************************************************************/
@@ -169,39 +163,6 @@ T* NOTNULL(T* ptr) {
 
 /********************************************************************************/
 
-/*
- * Definitions for fixed-length strings
- */
-static const unsigned int MAX_STR_LEN = 16;
-
-typedef char str_t[MAX_STR_LEN];
-
-static inline void str_copy(str_t to, str_t from) {
-	safe_assert(from != NULL);
-	safe_assert(to != NULL);
-	safe_assert(strlen(from) < MAX_STR_LEN);
-
-	strncpy(to, from, MAX_STR_LEN);
-}
-
-static inline void str_copy(str_t to, const char* from) {
-	safe_assert(from != NULL);
-	safe_assert(to != NULL);
-	safe_assert(strlen(from) < MAX_STR_LEN);
-
-	strncpy(to, from, MAX_STR_LEN);
-}
-
-static inline void str_copy(str_t to, std::string& from) {
-	safe_assert(to != NULL);
-	const char* fromc = from.c_str();
-	safe_assert(strlen(fromc) < MAX_STR_LEN);
-
-	strncpy(to, fromc, MAX_STR_LEN);
-}
-
-/********************************************************************************/
-
 #ifndef THREADID
 typedef int THREADID;
 #endif
@@ -210,108 +171,11 @@ typedef int THREADID;
 typedef uintptr_t ADDRINT;
 #endif
 
-extern const char* CONCURRIT_HOME;
-
-#define InWorkDir(f)	((std::string(CHECK_NOTNULL(CONCURRIT_HOME)) + "/work/" + f).c_str())
-
 /********************************************************************************/
 
-template<typename T>
-class IteratorState {
-public:
-	typedef std::vector<T> vectorT;
-	typedef std::set<T> setT;
-
-	IteratorState(const vectorT& x)
-	: vector_(x), current_(0) {}
-
-	IteratorState(vectorT* x)
-	: vector_(*x), current_(0) {}
-
-	IteratorState(const setT& x)
-	: current_(0) {
-		for(typename setT::iterator itr = x.begin(); itr != x.end(); ++itr) {
-			vector_.push_back(*itr);
-		}
-	}
-
-	IteratorState(setT* x)
-	: current_(0) {
-		for(typename setT::iterator itr = x->begin(); itr != x->end(); ++itr) {
-			vector_.push_back(*itr);
-		}
-	}
-
-	T current() {
-		safe_assert(has_current());
-		return vector_[current_];
-	}
-
-	bool has_current() {
-		return 0 <= current_ && current_ < int(vector_.size());
-	}
-
-	bool next() {
-		safe_assert(has_current());
-		current_++;
-		return has_current();
-	}
-
-	bool prev() {
-		safe_assert(has_current());
-		current_--;
-		return has_current();
-	}
-
-private:
-	vectorT vector_;
-	int current_;
-};
-
-//template<typename T>
-//class VectorIteratorState {
-//public:
-//	typedef std::vector<T> vectorT;
-//
-//	VectorIteratorState(const vectorT& x)
-//	: begin_(x.begin()), current_(x.begin()), end_(x.end()) {}
-//
-//	VectorIteratorState(vectorT* x)
-//	: begin_(x->begin()), current_(x->begin()), end_(x->end()) {}
-//
-//	T current() {
-//		safe_assert(has_current());
-//		return (*current_);
-//	}
-//
-//	bool has_current() {
-//		return begin_ <= current_ && current_ < end_;
-//	}
-//
-//	bool next() {
-//		safe_assert(has_current());
-//		current_++;
-//		return has_current();
-//	}
-//
-//	bool prev() {
-//		safe_assert(has_current());
-//		current_--;
-//		return has_current();
-//	}
-//
-//private:
-//	typename vectorT::const_iterator begin_;
-//	typename vectorT::const_iterator current_;
-//	typename vectorT::const_iterator end_;
-//
-//};
-
-/********************************************************************************/
-
-FILE* my_fopen(const char * filename, const char * mode);
-
-void my_fclose(FILE* file);
+#ifndef vctime_t
+typedef unsigned int vctime_t;
+#endif
 
 /********************************************************************************/
 

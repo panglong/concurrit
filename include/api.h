@@ -36,6 +36,7 @@
 
 #include "common.h"
 #include "sharedaccess.h"
+#include "yieldapi.h"
 #include "exception.h"
 #include "coroutine.h"
 
@@ -50,140 +51,6 @@ namespace concurrit {
 	CreateThread
 
 /********************************************************************************/
-
-/*
- * API to be used by the test cases
- */
-
-#define RECORD_SRCLOC()		(new SourceLocation(__FILE__, __FUNCTION__, __LINE__))
-
-/********************************************************************************/
-
-class SchedulePoint;
-extern SchedulePoint* yield(const char* label, SourceLocation* loc = NULL, SharedAccess* access = NULL, bool force = false);
-
-/********************************************************************************/
-
-#define NO_ACCESS NULL
-
-#define READ(x) \
-	new SharedAccess(READ_ACCESS, new MemoryCell<T>(x), #x)
-
-#define WRITE(x) \
-	new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(x), #x)
-
-#define YIELD(label, access) \
-	yield(label, RECORD_SRCLOC(), access)
-
-#define FORCE_YIELD(label, access) \
-	yield(label, RECORD_SRCLOC(), access, /*force=*/true)
-
-/********************************************************************************/
-// yielding reads and writes
-
-template<typename T>
-class writer {
-public:
-	explicit writer(const char* label, SharedAccess* access, SourceLocation* loc, bool yield_before = true)
-	: label_(label), access_(access), loc_(loc), yield_before_(yield_before) {}
-
-	T& operator =(const T& value) {
-		MemoryCell<T>* cell = access_->cell_as<T>();
-
-		// we set the value of the memory cell even before the yield,
-		// but do not perform the access yet
-		// so yield implementation can access the value even before the actual access
-		cell->set_value(value);
-
-		if(yield_before_) yield(label_, loc_, access_);
-
-		// perform the actual access
-		T& val = cell->write(value);
-
-		// notify scenario about this access
-		NOTNULL(Coroutine::Current())->OnAccess(access_);
-
-		if(!yield_before_) yield(label_, loc_, access_);
-
-		return val;
-	}
-private:
-	DECL_FIELD(const char*, label)
-	DECL_FIELD(SharedAccess*, access)
-	DECL_FIELD(SourceLocation*, loc)
-	DECL_FIELD(bool, yield_before)
-};
-
-template<typename T>
-class reader {
-public:
-	explicit reader(const char* label, SharedAccess* access, SourceLocation* loc, bool yield_before = true)
-	: label_(label), access_(access), loc_(loc), yield_before_(yield_before) {}
-
-	operator T() {
-		MemoryCell<T>* cell = access_->cell_as<T>();
-
-		// allows us to load the value to cell.value
-		cell->read();
-
-		if(yield_before_) yield(label_, loc_, access_);
-
-		// perform the actual access
-		T val = cell->read();
-
-		// notify scenario about this access
-		NOTNULL(Coroutine::Current())->OnAccess(access_);
-
-		if(!yield_before_) yield(label_, loc_, access_);
-
-		return val;
-	}
-private:
-	DECL_FIELD(const char*, label)
-	DECL_FIELD(SharedAccess*, access)
-	DECL_FIELD(SourceLocation*, loc)
-	DECL_FIELD(bool, yield_before)
-};
-
-template<typename T>
-inline reader<T> yield_read(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(READ_ACCESS, new MemoryCell<T>(mem), expr);
-	return reader<T>(label, access, loc, /*yield_before=*/ true); // makes the yield on T()
-}
-
-template<typename T>
-inline reader<T> read_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(READ_ACCESS, new MemoryCell<T>(mem), expr);
-	return reader<T>(label, access, loc, /*yield_before=*/ false); // makes the yield on T()
-}
-
-template<typename T>
-inline writer<T> yield_write(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(mem), expr);
-	return writer<T>(label, access, loc, /*yield_before=*/ true); // makes the yield on operator=()
-}
-
-template<typename T>
-inline writer<T> write_yield(const char* label, T* mem, const char* expr, SourceLocation* loc) {
-	SharedAccess* access = new SharedAccess(WRITE_ACCESS, new MemoryCell<T>(mem), expr);
-	return writer<T>(label, access, loc, /*yield_before=*/ false); // makes the yield on operator=()
-}
-
-#define YIELD_READ(label, x) \
-	yield_read(label, (&(x)), #x, RECORD_SRCLOC())
-
-#define YIELD_WRITE(label, x) \
-	yield_write(label, (&(x)), #x, RECORD_SRCLOC())
-
-#define READ_YIELD(label, x) \
-	read_yield(label, (&(x)), #x, RECORD_SRCLOC())
-
-#define WRITE_YIELD(label, x) \
-	write_yield(label, (&(x)), #x, RECORD_SRCLOC())
-
-
-/********************************************************************************/
-
 
 #define Assert(cond)	\
 	{ if (!(cond)) { throw new AssertionViolationException(#cond, RECORD_SRCLOC()); } }

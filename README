@@ -2,8 +2,8 @@ Add the following to your bash profile file.
 
 # CONCURRIT                                                                                                
 export CONCURRIT_HOME=$HOME/Repository/Dropbox/concurrit
-export LD_LIBRARY_PATH=$CONCURRIT_HOME/bin/:$LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/bin/:$DYLD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CONCURRIT_HOME/lib/:$LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/lib/:$DYLD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$CONCURRIT_HOME/gflags/lib/:$LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/gflags/lib/:$DYLD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$LD_LIBRARY_PATH

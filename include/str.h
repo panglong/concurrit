@@ -31,32 +31,42 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "concurrit.h"
 
-namespace concurrit {
+#ifndef STR_H_
+#define STR_H_
 
-/********************************************************************************/
+#include "common.h"
 
-FILE* my_fopen(const char * filename, const char * mode) {
-	FILE* file = fopen(filename, mode);
-	if(file == NULL) {
-		printf("File could not be opened: %s\n", filename);
-		bool CannotOpenFile = false;
-		CHECK(CannotOpenFile);
-	}
-	return file;
+/*
+ * Definitions for fixed-length strings
+ */
+static const unsigned int MAX_STR_LEN = 16;
+
+typedef char str_t[MAX_STR_LEN];
+
+static inline void str_copy(str_t to, str_t from) {
+	safe_assert(from != NULL);
+	safe_assert(to != NULL);
+	safe_assert(strlen(from) < MAX_STR_LEN);
+
+	strncpy(to, from, MAX_STR_LEN);
 }
 
-/********************************************************************************/
+static inline void str_copy(str_t to, const char* from) {
+	safe_assert(from != NULL);
+	safe_assert(to != NULL);
+	safe_assert(strlen(from) < MAX_STR_LEN);
 
-void my_fclose(FILE* file) {
-	if(fclose(file)) {
-		printf("File could not be closed\n");
-		bool CannotCloseFile = false;
-		CHECK(CannotCloseFile);
-	}
+	strncpy(to, from, MAX_STR_LEN);
 }
 
-/********************************************************************************/
+static inline void str_copy(str_t to, std::string& from) {
+	safe_assert(to != NULL);
+	const char* fromc = from.c_str();
+	safe_assert(strlen(fromc) < MAX_STR_LEN);
 
-} // end namespace
+	strncpy(to, fromc, MAX_STR_LEN);
+}
+
+
+#endif /* STR_H_ */

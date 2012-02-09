@@ -1,4 +1,3 @@
-
 /**
  * Copyright (c) 2010-2011,
  * Tayfun Elmas    <elmas@cs.berkeley.edu>
@@ -32,12 +31,65 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "concurrit.h"
 
-namespace concurrit {
+#ifndef ITERATOR_H_
+#define ITERATOR_H_
 
-FILE* Originals::stdout_ = NULL;
-FILE* Originals::stderr_ = NULL;
+#include "common.h"
 
-} // end namespace
 
+template<typename T>
+class IteratorState {
+public:
+	typedef std::vector<T> vectorT;
+	typedef std::set<T> setT;
+
+	IteratorState(const vectorT& x)
+	: vector_(x), current_(0) {}
+
+	IteratorState(vectorT* x)
+	: vector_(*x), current_(0) {}
+
+	IteratorState(const setT& x)
+	: current_(0) {
+		for(typename setT::iterator itr = x.begin(); itr != x.end(); ++itr) {
+			vector_.push_back(*itr);
+		}
+	}
+
+	IteratorState(setT* x)
+	: current_(0) {
+		for(typename setT::iterator itr = x->begin(); itr != x->end(); ++itr) {
+			vector_.push_back(*itr);
+		}
+	}
+
+	T current() {
+		safe_assert(has_current());
+		return vector_[current_];
+	}
+
+	bool has_current() {
+		return 0 <= current_ && current_ < int(vector_.size());
+	}
+
+	bool next() {
+		safe_assert(has_current());
+		current_++;
+		return has_current();
+	}
+
+	bool prev() {
+		safe_assert(has_current());
+		current_--;
+		return has_current();
+	}
+
+private:
+	vectorT vector_;
+	int current_;
+};
+
+
+
+#endif /* ITERATOR_H_ */
