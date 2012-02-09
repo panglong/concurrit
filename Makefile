@@ -2,9 +2,9 @@ include ./common.mk
 
 TARGET=libconcurrit
 
-SRCS=common.cpp coroutine.cpp dot.cpp exception.cpp group.cpp lp.cpp modular.cpp scenario.cpp schedule.cpp serialize.cpp suite.cpp thread.cpp vc.cpp
-HEADERS=concurrit.h api.h channel.h common.h coroutine.h dot.h exception.h group.h lp.h modular.h result.h scenario.h schedule.h serialize.h sharedaccess.h suite.h thread.h until.h vc.h
-OBJS=$(SRCS:%.cpp=%.o)
+CONCURRIT_SRCS=$(wildcard $(CONCURRIT_SRCDIR)/*.cpp)
+CONCURRIT_OBJS=$(patsubst %.cpp, %.o, $(subst $(CONCURRIT_SRCDIR), $(CONCURRIT_OBJDIR), $(CONCURRIT_SRCS))) 
+CONCURRIT_HEADERS=$(wildcard $(CONCURRIT_INCDIR)/*.h)
 
 FLAGS=-g -Wall -Winline -fPIC -O2 \
 		-Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
@@ -13,10 +13,6 @@ FLAGS=-g -Wall -Winline -fPIC -O2 \
 #-finline-functions # this gives a lot of warnings in Linux
 
 STD=#-std=c++0x
-
-CONCURRIT_SRCS=$(addprefix $(CONCURRIT_SRCDIR)/, $(SRCS))
-CONCURRIT_HEADERS=$(addprefix $(CONCURRIT_INCDIR)/, $(HEADERS))
-CONCURRIT_OBJS=$(addprefix $(CONCURRIT_OBJDIR)/, $(OBJS))
 
 all: makedirs $(CONCURRIT_BINDIR)/$(TARGET).so
 
