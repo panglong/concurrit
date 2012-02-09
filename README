@@ -1,13 +1,18 @@
 Add the following to your bash profile file.
 
-export CONCURRIT_HOME=$HOME/Repository/Research/ParLab/concurrit
+# CONCURRIT                                                                                                
+export CONCURRIT_HOME=$HOME/Repository/Dropbox/concurrit
 export LD_LIBRARY_PATH=$CONCURRIT_HOME/bin/:$LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/bin/:$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$DYLD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$CONCURRIT_HOME/gflags/lib/:$LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/gflags/lib/:$DYLD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$DYLD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CONCURRIT_HOME/pth/lib/:$LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/pth/lib/:$DYLD_LIBRARY_PATH
 export BOOST_ROOT=$HOME/Repository/Research/ParLab/Boost/boost_1_48_0
+export BOOST_PATH=$BOOST_ROOT
+
 
 To install CONCURRIT (including glog, pintool, etc.)
 $CONCURRIT_HOME/scripts/install_concurrit.sh
@@ -17,3 +22,6 @@ $CONCURRIT_HOME/scripts/install_pintool.sh
 
 To compile and install glog
 $CONCURRIT_HOME/scripts/install_glog.sh
+
+To compile and install pth
+$CONCURRIT_HOME/scripts/install_pth.sh

@@ -11,17 +11,17 @@ rm -rf $INSTALL_DIR
 mkdir $CHECKOUT_DIR
 mkdir $INSTALL_DIR
 
-sudo ftp ftp://ftp.gnu.org/gnu/pth/$CHECKOUT_DIR.tar.gz
+#sudo ftp ftp://ftp.gnu.org/gnu/pth/$CHECKOUT_DIR.tar.gz
 tar -zxvf $CHECKOUT_DIR.tar.gz
 
 cd $CHECKOUT_DIR
 ./configure --prefix=$CONCURRIT_HOME/$INSTALL_DIR
 make
-make test
+#make test
 make install
 cd ..
 rm -rf $CHECKOUT_DIR
-rm -f $CHECKOUT_DIR.tar.gz
+#rm -f $CHECKOUT_DIR.tar.gz
 
 cd $PWD
 
