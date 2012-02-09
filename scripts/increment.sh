@@ -1,6 +1,6 @@
 
 cd $CONCURRIT_HOME
-make -C tests/increment/ clean
+#make -C tests/increment/ clean
 make -C tests/increment/ 
 
 cd $CONCURRIT_HOME

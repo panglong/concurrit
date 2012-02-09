@@ -173,7 +173,9 @@ void Thread::Start() {
 
 void Thread::Join() {
 	int result = pthread_join(pthread_, NULL);
-	safe_assert(result == PTH_SUCCESS);
+	if(result != PTH_SUCCESS && result != ESRCH) {
+		printf("Join error: %s\n", PTHResultToString(result));
+	}
 }
 
 /********************************************************************************/

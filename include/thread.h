@@ -43,6 +43,18 @@ namespace concurrit {
 // pthread_t value indicating an invalid thread identifier
 #define PTH_INVALID_THREAD 0
 
+static const char* PTHResultToString(int result) {
+#define CASE_RESULT(R)	case R: return #R;
+	switch(result) {
+		CASE_RESULT(EINVAL)
+		CASE_RESULT(ESRCH)
+		CASE_RESULT(EDEADLK)
+		CASE_RESULT(EAGAIN)
+		CASE_RESULT(EPERM)
+	}
+	return "UNKNOWN\n";
+}
+
 /********************************************************************************/
 
 static const unsigned int MAX_THREAD_NAME_LENGTH = 16;

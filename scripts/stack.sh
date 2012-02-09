@@ -1,6 +1,6 @@
 
 cd $CONCURRIT_HOME
-make -C tests/stack/ clean
+#make -C tests/stack/ clean
 make -C tests/stack/ 
 
 cd $CONCURRIT_HOME

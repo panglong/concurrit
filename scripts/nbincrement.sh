@@ -1,6 +1,6 @@
 
 cd $CONCURRIT_HOME
-make -C tests/nbincrement/ clean
+#make -C tests/nbincrement/ clean
 make -C tests/nbincrement/ 
 
 cd $CONCURRIT_HOME

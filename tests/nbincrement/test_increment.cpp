@@ -37,7 +37,7 @@ protected:
 
 class Scenario0 : public CounterScenario {
 public:
-	Scenario0() : CounterScenario("SearchTest0") {}
+	Scenario0() : CounterScenario("NBIncrementTest0") {}
 
 	void TestCase() {
 

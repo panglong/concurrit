@@ -11,7 +11,8 @@ CXXTESTDIR=$(CONCURRIT_HOME)/cxxtest
 
 INCDIR=-I$(CONCURRIT_HOME)/glog/include -I$(CONCURRIT_HOME)/gflags/include -I$(CONCURRIT_INCDIR) -I$(CONCURRIT_HOME)/pth/include -I$(BOOST_ROOT)
 LIBDIR=-L$(CONCURRIT_HOME)/glog/lib -L$(CONCURRIT_HOME)/gflags/lib -L$(CONCURRIT_HOME)/pth/lib -L$(CONCURRIT_BINDIR)
-LIBS=-lpth -lpthread -lglog -lgflags
+LIBS=-lpthread -lglog -lgflags 
+#-lpth 
 
 DEFINES=-DDPOR
 

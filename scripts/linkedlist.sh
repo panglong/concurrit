@@ -1,6 +1,6 @@
 
 cd $CONCURRIT_HOME
-make -C tests/linkedlist/ clean
+#make -C tests/linkedlist/ clean
 make -C tests/linkedlist/ 
 
 cd $CONCURRIT_HOME
