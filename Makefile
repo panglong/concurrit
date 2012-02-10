@@ -1,4 +1,4 @@
-include ./common.mk
+include $(CONCURRIT_HOME)/common.mk
 
 TARGET=libconcurrit
 
