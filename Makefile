@@ -7,7 +7,7 @@ CONCURRIT_OBJS=$(patsubst %.cpp, %.o, $(subst $(CONCURRIT_SRCDIR), $(CONCURRIT_O
 CONCURRIT_HEADERS=$(wildcard $(CONCURRIT_INCDIR)/*.h)
 
 DEFINES=-DDPOR
-FLAGS=-g -Wall -Winline -fPIC -gdwarf-2 -O2 \
+FLAGS=-g -Wall -Winline -fPIC -gdwarf-2 -O3 -fexceptions \
 		-Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
 
 # other flags that can be used:
