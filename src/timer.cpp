@@ -84,10 +84,11 @@ std::string timeval_to_string(timeval* tv) {
 
 /********************************************************************************/
 
-Timer::Timer() {
+Timer::Timer(std::string name) {
 	startTime.tv_sec = startTime.tv_usec = 0;
 	endTime.tv_sec = endTime.tv_usec = 0;
 	stopped = false;
+	this->name = name;
 }
 
 /********************************************************************************/
@@ -99,6 +100,7 @@ Timer::~Timer() {
 void Timer::start() {
 	stopped = false; // reset stop flag
 	gettimeofday(&startTime, NULL);
+	endTime = startTime;
 }
 
 /********************************************************************************/
@@ -106,7 +108,7 @@ void Timer::start() {
 void Timer::stop() {
 	stopped = false; // set timer stopped flag
 	gettimeofday(&endTime, NULL);
-	int is_positive = timeval_subtract(&elapsedTime, &endTime, &startTime);
+	bool is_positive = (timeval_subtract(&elapsedTime, &endTime, &startTime) == 0);
 	safe_assert(is_positive);
 }
 
@@ -153,7 +155,7 @@ double Timer::getElapsedTimeInDays() {
 timeval Timer::getElapsedTime() {
 	if (!stopped) {
 		gettimeofday(&endTime, NULL);
-		int is_positive = timeval_subtract(&elapsedTime, &endTime, &startTime);
+		bool is_positive = (timeval_subtract(&elapsedTime, &endTime, &startTime) == 0);
 		safe_assert(is_positive);
 	}
 	return elapsedTime;

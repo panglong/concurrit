@@ -41,7 +41,7 @@ namespace concurrit {
 class Timer
 {
 public:
-    Timer();
+    Timer(std::string name = "");
     ~Timer();
 
     void   start();
@@ -62,6 +62,7 @@ private:
     timeval startTime;
     timeval endTime;
     timeval elapsedTime;
+    std::string name;
 };
 
 } // end namespace

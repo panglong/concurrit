@@ -31,44 +31,72 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef COUNIT_H_
-#define COUNIT_H_
+#ifndef STATISTICS_H_
+#define STATISTICS_H_
 
 #include "common.h"
+#include "timer.h"
 
 namespace concurrit {
-	extern const char* CONCURRIT_HOME;
-}
-#define InWorkDir(f)	((std::string(CHECK_NOTNULL(CONCURRIT_HOME)) + "/work/" + f).c_str())
 
-// google libraries
-#include <glog/logging.h>
+class Counter {
+public:
+	Counter(std::string name = "") : name_(name), value_(0) {}
+	~Counter() {}
 
-// boost libraries
-#include <boost/shared_ptr.hpp>
+	void increment() {
+		++value_;
+	}
+	void reset(std::string name = "") {
+		if(name != "") {
+			name_ = name;
+		}
+		value_ = 0;
+	}
+	std::string ToString() {
+		std::stringstream s;
+		s << name_ << ": " << value_;
+		return s.str();
+	}
+	operator unsigned () {
+		return value_;
+	}
+private:
+	DECL_FIELD(std::string, name)
+	DECL_FIELD(unsigned, value)
+};
 
-#include "str.h"
-#include "iterator.h"
-#include "statistics.h"
-#include "serialize.h"
-#include "sharedaccess.h"
-#include "schedule.h"
-#include "api.h"
-#include "yieldapi.h"
-#include "thread.h"
-#include "channel.h"
-#include "coroutine.h"
-#include "group.h"
-#include "exception.h"
-#include "result.h"
-#include "until.h"
-#include "timer.h"
-#include "lp.h"
-#include "scenario.h"
-#include "vc.h"
-#include "suite.h"
-#include "modular.h"
-#include "yield.h"
-#include "dot.h"
 
-#endif /* COUNIT_H_ */
+class Statistics {
+public:
+	Statistics() {
+		Reset();
+	}
+	~Statistics() {}
+
+	void Reset() {
+		num_paths_explored_.reset("# paths explored");
+	}
+
+	std::string ToString() {
+		std::stringstream s;
+
+		s << "Search started: " << search_timer_.StartTimeToString() << "\n";
+		s << "Search ended: " << search_timer_.EndTimeToString() << "\n";
+		s << "Elapsed time: " << search_timer_.ElapsedTimeToString() << "\n";
+
+		s << num_paths_explored_.ToString() << "\n";
+
+		return s.str();
+	}
+
+private:
+	DECL_FIELD_REF(Timer, search_timer)
+	DECL_FIELD_REF(Counter, num_paths_explored)
+
+};
+
+} // end namespace
+
+
+#endif /* STATISTICS_H_ */

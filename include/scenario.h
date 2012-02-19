@@ -143,7 +143,7 @@ protected:
 	bool DoBacktrack();
 
 	virtual void Start();
-	virtual void Finish();
+	virtual void Finish(Result* result);
 	virtual void Restart();
 	// right after RunOnce successfully ends
 	virtual void AfterRunOnce() { /* empty for now */ }
@@ -160,6 +160,8 @@ private:
 	DECL_FIELD(YieldImpl*, yield_impl)
 
 	DECL_FIELD(bool, dpor_enabled)
+
+	DECL_FIELD(Statistics, statistics)
 };
 
 } // end namespace

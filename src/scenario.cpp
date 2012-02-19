@@ -160,21 +160,19 @@ Result* Scenario::Explore() {
 
 	Result* result = NULL;
 
-	int path_count = 0;
-
 	for(;true;) {
 
 		/************************************************************************/
 		for(;true;) {
 			try {
 
-				VLOG(2) << SC_TITLE << "Starting path " << path_count;
+				VLOG(2) << SC_TITLE << "Starting path " << statistics_.num_paths_explored();
 
 				RunOnce();
 
 				AfterRunOnce();
 
-				path_count++;
+				statistics_.num_paths_explored()->increment();
 
 				if(explore_type_ == EXISTS) {
 					result = new ExistsResult(schedule_->Clone());
@@ -247,10 +245,7 @@ Result* Scenario::Explore() {
 
 LOOP_DONE:
 
-	Finish(); // deletes schedule_
-
-	VLOG(2) << SC_TITLE << "********** Statistics ********** ";
-	VLOG(2) << SC_TITLE << "Number of paths explored: " << path_count;
+	Finish(result); // deletes schedule_
 
 	safe_assert(result != NULL);
 	return result;
@@ -417,6 +412,10 @@ void Scenario::Start() {
 	group_.Restart(); // restarts only already started coroutines
 
 	transfer_criteria_.Reset();
+
+	// reset statistics
+	statistics_.Reset();
+	statistics_.search_timer()->start();
 }
 
 /********************************************************************************/
@@ -438,13 +437,22 @@ void Scenario::Restart() {
 
 /********************************************************************************/
 
-void Scenario::Finish() {
+void Scenario::Finish(Result* result) {
 	if(schedule_ != NULL) {
 		delete schedule_;
 		schedule_ = NULL;
 	}
 
 	group_.Finish();
+
+	// finish timer
+	statistics_.search_timer()->stop();
+
+	// copy statistics to the result
+	result->set_statistics(statistics_);
+
+	VLOG(2) << SC_TITLE << "********** Statistics ********** ";
+	VLOG(2) << SC_TITLE << statistics_.ToString();
 }
 
 /********************************************************************************/

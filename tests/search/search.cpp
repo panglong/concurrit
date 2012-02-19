@@ -74,9 +74,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		UntilEnd()->Transfer(iter1);
 		UntilEnd()->Transfer(iter2);
@@ -102,9 +102,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		DO {
 
@@ -132,9 +132,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		DO {
 
@@ -163,9 +163,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		for(int i = 0; i < 2; ++i) {
 			UntilStar()->Transfer(iter1);
@@ -193,9 +193,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		UntilEnd()->TransferStar();
 		UntilEnd()->TransferStar();
@@ -222,9 +222,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		UntilStar()->TransferStar();
 		UntilStar()->TransferStar();
@@ -251,9 +251,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		Until("L3")->Transfer(iter1);
 		UntilStar()->TransferStar();
@@ -279,9 +279,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		{ WITHOUT(iter3);
 
@@ -306,9 +306,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		CONTEXT_BOUNDED_EXHAUSTIVE_SEARCH(3);
 
@@ -330,9 +330,9 @@ public:
 		int _1 = 1;
 		int _2 = 2;
 
-		coroutine_t iter1 = CreateThread("itr1", iteration, &_0);
-		coroutine_t iter2 = CreateThread("itr2", iteration, &_1);
-		coroutine_t iter3 = CreateThread("itr3", iteration, &_2);
+		coroutine_t iter1 UNUSED = CreateThread("itr1", iteration, &_0);
+		coroutine_t iter2 UNUSED = CreateThread("itr2", iteration, &_1);
+		coroutine_t iter3 UNUSED = CreateThread("itr3", iteration, &_2);
 
 		NDSEQ_SEARCH();
 

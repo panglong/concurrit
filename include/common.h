@@ -66,6 +66,8 @@ namespace concurrit {
 #define RESTRICT
 //__restrict__
 
+#define UNUSED __attribute__((unused))
+
 /********************************************************************************/
 
 #define USE(x) (x) = (x)

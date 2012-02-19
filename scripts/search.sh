@@ -1,6 +1,6 @@
 
 cd $CONCURRIT_HOME
-#make -C tests/search/ clean
+make -C tests/search/ clean
 make -C tests/search/ 
 
 cd $CONCURRIT_HOME
