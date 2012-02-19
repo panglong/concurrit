@@ -32,6 +32,31 @@
  */
 
 
+#include "pin.H"
+#include "instlib.H"
+#include "portability.H"
+#include <assert.h>
+#include <stdio.h>
+#include <map>
+#include <set>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <string.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sched.h>
+#include <assert.h>
+#include <time.h>
+#include <sys/unistd.h>
+#include <sys/syscall.h>
+#include <errno.h>
+#include <stdint.h>
+#include <sys/time.h>
+#include <iostream>
+#include <sstream>
+
 /************************************************/
 
 #define DECL_FIELD(type, name) \
@@ -235,6 +260,8 @@ private:
 	DECL_FIELD(VC, vc)
 };
 
+/************************************************/
+
 ThreadLocalState* GetThreadLocalState(THREADID tid) {
 	assert(tid == PIN_ThreadId());
 	VOID* ptr = PIN_GetThreadData(tls_key, tid);
@@ -279,7 +306,169 @@ INSTLIB::FILTER filter;
 
 /************************************************/
 
-void TraceAnalysisCalls(TRACE trace, void *) {
+VOID MemoryTrace(INS ins) {
+
+    if (INS_IsMemoryWrite(ins))
+    {
+        INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(CaptureWriteEa), IARG_THREAD_ID, IARG_MEMORYWRITE_EA, IARG_END);
+
+        if (INS_HasFallThrough(ins))
+        {
+            INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(EmitWrite), IARG_THREAD_ID, IARG_MEMORYWRITE_SIZE, IARG_END);
+        }
+        if (INS_IsBranchOrCall(ins))
+        {
+            INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(EmitWrite), IARG_THREAD_ID, IARG_MEMORYWRITE_SIZE, IARG_END);
+        }
+    }
+
+    if (INS_HasMemoryRead2(ins))
+    {
+        INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(EmitRead), IARG_THREAD_ID, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
+    }
+
+    if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins))
+    {
+        INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(EmitRead), IARG_THREAD_ID, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
+    }
+
+
+
+    if(INS_IsStackRead(ins) || INS_IsStackWrite(ins)) {
+    	return;
+    }
+
+
+		if(!INS_IsStackRead(ins)
+			&& !INS_IsStackWrite(ins) && (INS_IsMemoryRead(ins)
+			|| INS_IsMemoryWrite(ins) || INS_HasMemoryRead2(ins))) {
+
+/****/ // LOCK_FOR_SHARED
+			// acquire the global lock to serialize the access
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(LockForShared),
+					IARG_FAST_ANALYSIS_CALL, IARG_THREAD_ID, IARG_END);
+/****/
+
+			// Log every memory references of the instruction
+			if (INS_IsMemoryRead(ins)) {
+				INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
+						SharedReadAccess),
+						IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
+						IARG_MEMORYREAD_EA, IARG_THREAD_ID, IARG_END);
+			}
+			if (INS_IsMemoryWrite(ins)) {
+				INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
+						SharedWriteAccess),
+						IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
+						IARG_MEMORYWRITE_EA, IARG_THREAD_ID, IARG_END);
+			}
+			if (INS_HasMemoryRead2(ins)) {
+				INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
+						SharedReadAccess),
+						IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
+						IARG_MEMORYREAD2_EA, IARG_THREAD_ID, IARG_END);
+			}
+
+/****/ // LOCK_FOR_SHARED
+			// release the global lock
+			if (INS_HasFallThrough(ins)) {
+				INS_InsertCall(ins, IPOINT_AFTER, AFUNPTR(UnlockForShared),
+						IARG_FAST_ANALYSIS_CALL, IARG_THREAD_ID, IARG_END);
+			}
+
+			if (INS_IsBranchOrCall(ins)) {
+				INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(
+						UnlockForShared), IARG_FAST_ANALYSIS_CALL,
+						IARG_THREAD_ID, IARG_END);
+			}
+/****/
+
+}
+
+
+VOID CallTrace(TRACE trace, INS ins)
+{
+	if(INS_IsProcedureCall(ins)) {
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
+					ProcedureCall),
+					IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
+					IARG_BRANCH_TARGET_ADDR, IARG_THREAD_ID, IARG_END);
+			INS_InsertCall(ins, IPOINT_AFTER, AFUNPTR(
+					ProcedureReturn),
+					IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
+					IARG_BRANCH_TARGET_ADDR, IARG_THREAD_ID, IARG_END);
+		}
+	}
+
+
+	if (INS_IsCall(ins) && !INS_IsDirectBranchOrCall(ins))
+	{
+		// Indirect call
+		string s = "Call " + FormatAddress(INS_Address(ins), TRACE_Rtn(trace));
+		s += " -> ";
+
+		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(EmitIndirectCall), IARG_THREAD_ID,
+					   IARG_PTR, new string(s), IARG_BRANCH_TARGET_ADDR,
+					   IARG_G_ARG0_CALLER, IARG_G_ARG1_CALLER, IARG_END);
+	}
+	else if (INS_IsDirectBranchOrCall(ins))
+	{
+		// Is this a tail call?
+		RTN sourceRtn = TRACE_Rtn(trace);
+		RTN destRtn = RTN_FindByAddress(INS_DirectBranchOrCallTargetAddress(ins));
+
+		if (INS_IsCall(ins)         // conventional call
+			|| sourceRtn != destRtn // tail call
+		)
+		{
+			BOOL tailcall = !INS_IsCall(ins);
+
+			string s = "";
+			if (tailcall)
+			{
+				s += "Tailcall ";
+			}
+			else
+			{
+				if( INS_IsProcedureCall(ins) )
+					s += "Call ";
+				else
+				{
+					s += "PcMaterialization ";
+					tailcall=1;
+				}
+
+			}
+
+			//s += INS_Mnemonic(ins) + " ";
+
+			s += FormatAddress(INS_Address(ins), TRACE_Rtn(trace));
+			s += " -> ";
+
+			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
+
+			s += FormatAddress(target, RTN_FindByAddress(target));
+
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(EmitDirectCall),
+						   IARG_THREAD_ID, IARG_PTR, new string(s), IARG_BOOL, tailcall,
+						   IARG_G_ARG0_CALLER, IARG_G_ARG1_CALLER, IARG_END);
+		}
+	}
+	else if (INS_IsRet(ins))
+	{
+		RTN rtn =  TRACE_Rtn(trace);
+
+#if defined(TARGET_LINUX) && defined(TARGET_IA32)
+//        if( RTN_Name(rtn) ==  "_dl_debug_state") return;
+		if( RTN_Valid(rtn) && RTN_Name(rtn) ==  "_dl_runtime_resolve") return;
+#endif
+		string tracestring = "Return " + FormatAddress(INS_Address(ins), rtn);
+		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(EmitReturn),
+					   IARG_THREAD_ID, IARG_PTR, new string(tracestring), IARG_G_RESULT0, IARG_END);
+	}
+}
+
+VOID Trace(TRACE trace, VOID* v) {
 
 	if (!filter.SelectTrace(trace))
 		return;
@@ -289,65 +478,11 @@ void TraceAnalysisCalls(TRACE trace, void *) {
 		for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
 
 			if (INS_IsOriginal(ins)) {
-				if(!INS_IsStackRead(ins)
-					&& !INS_IsStackWrite(ins) && (INS_IsMemoryRead(ins)
-					|| INS_IsMemoryWrite(ins) || INS_HasMemoryRead2(ins))) {
 
-#ifdef LOCK_FOR_SHARED
-					// acquire the global lock to serialize the access
-					INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(LockForShared),
-							IARG_FAST_ANALYSIS_CALL, IARG_THREAD_ID, IARG_END);
-#endif
+				MemoryTrace(ins);
 
-					// Log every memory references of the instruction
-					if (INS_IsMemoryRead(ins)) {
-						INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
-								SharedReadAccess),
-								IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
-								IARG_MEMORYREAD_EA, IARG_THREAD_ID, IARG_END);
-					}
-					if (INS_IsMemoryWrite(ins)) {
-						INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
-								SharedWriteAccess),
-								IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
-								IARG_MEMORYWRITE_EA, IARG_THREAD_ID, IARG_END);
-					}
-					if (INS_HasMemoryRead2(ins)) {
-						INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
-								SharedReadAccess),
-								IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
-								IARG_MEMORYREAD2_EA, IARG_THREAD_ID, IARG_END);
-					}
-
-#ifdef LOCK_FOR_SHARED
-					// release the global lock
-					if (INS_HasFallThrough(ins)) {
-						INS_InsertCall(ins, IPOINT_AFTER, AFUNPTR(UnlockForShared),
-								IARG_FAST_ANALYSIS_CALL, IARG_THREAD_ID, IARG_END);
-					}
-
-					if (INS_IsBranchOrCall(ins)) {
-						INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(
-								UnlockForShared), IARG_FAST_ANALYSIS_CALL,
-								IARG_THREAD_ID, IARG_END);
-					}
-#endif
-				}
-
-#if CALLS_ENABLED
-				if(INS_IsProcedureCall(ins)) {
-					INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
-							ProcedureCall),
-							IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
-							IARG_BRANCH_TARGET_ADDR, IARG_THREAD_ID, IARG_END);
-					INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(
-							ProcedureReturn),
-							IARG_FAST_ANALYSIS_CALL, IARG_INST_PTR,
-							IARG_BRANCH_TARGET_ADDR, IARG_THREAD_ID, IARG_END);
-				}
-#endif
+				CallTrace(trace, ins);
 			}
-
 		}
 	}
 

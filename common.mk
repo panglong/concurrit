@@ -9,14 +9,16 @@ CONCURRIT_TESTDIR=$(CONCURRIT_HOME)/tests
 
 CXXTESTDIR=$(CONCURRIT_HOME)/cxxtest
 
+CONCURRIT_LIB_FLAG=-lconcurrit
+
 # flags to use when compiling concurrit
 CONCURRIT_INC_FLAGS=-I$(CONCURRIT_HOME)/glog/include -I$(CONCURRIT_HOME)/gflags/include -I$(CONCURRIT_INCDIR) -I$(CONCURRIT_HOME)/pth/include -I$(BOOST_ROOT)
 CONCURRIT_LIB_FLAGS=-L$(CONCURRIT_HOME)/glog/lib -L$(CONCURRIT_HOME)/gflags/lib -L$(CONCURRIT_HOME)/pth/lib -L$(CONCURRIT_LIBDIR) -lpth -lpthread -lglog -lgflags 
 
 # flags to use when compiling tests with concurrit
 CONCURRIT_TEST_INC_FLAGS=-I$(CONCURRIT_HOME)/glog/include -I$(CONCURRIT_HOME)/gflags/include -I$(CONCURRIT_INCDIR) -I$(CONCURRIT_HOME)/pth/include -I$(BOOST_ROOT)
-CONCURRIT_TEST_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -lconcurrit 
+CONCURRIT_TEST_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG) 
 
 # flags to use when compiling programs under test with concurrit
 CONCURRIT_PROG_INC_FLAGS=-I$(CONCURRIT_INCDIR)
-CONCURRIT_PROG_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -lconcurrit
+CONCURRIT_PROG_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG)
