@@ -51,6 +51,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/concurrit/gflags/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/concurrit/pth/include}&quot;"/>
 									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/ParLab/Benchmarks/C-CPP/CDS/cds-1.0.0"/>
+									<listOptionValue builtIn="false" value="/Users/telmas/Repository/Research/ParLab/Boost/boost_1_48_0"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1220291851" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>

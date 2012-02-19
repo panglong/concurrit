@@ -48,13 +48,13 @@ public:
 	virtual std::string ToString() {
 		std::stringstream s;
 		s << "************* Statistics *************\n";
-		s << statistics_.ToString() << "\n";
+		s << statistics_->ToString() << "\n";
 		return s.str();
 	}
 
 private:
 	DECL_FIELD_REF(Coverage, coverage)
-	DECL_FIELD_REF(Statistics, statistics)
+	DECL_FIELD_REF(boost::shared_ptr<Statistics>, statistics)
 };
 
 /********************************************************************************/

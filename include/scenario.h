@@ -161,7 +161,7 @@ private:
 
 	DECL_FIELD(bool, dpor_enabled)
 
-	DECL_FIELD(Statistics, statistics)
+	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
 };
 
 } // end namespace

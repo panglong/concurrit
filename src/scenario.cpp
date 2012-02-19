@@ -86,6 +86,8 @@ Scenario::Scenario(const char* name) {
 	yield_impl_ = static_cast<YieldImpl*>(this);
 
 	dpor_enabled_ = true;
+
+	statistics_ = boost::shared_ptr<Statistics>(new Statistics());
 }
 
 /********************************************************************************/
@@ -166,13 +168,13 @@ Result* Scenario::Explore() {
 		for(;true;) {
 			try {
 
-				VLOG(2) << SC_TITLE << "Starting path " << statistics_.counter("Num paths explored");
+				VLOG(2) << SC_TITLE << "Starting path " << statistics_->counter("Num paths explored");
 
 				RunOnce();
 
 				AfterRunOnce();
 
-				statistics_.counter("Num paths explored").increment();
+				statistics_->counter("Num paths explored").increment();
 
 				if(explore_type_ == EXISTS) {
 					result = new ExistsResult(schedule_->Clone());
@@ -414,8 +416,8 @@ void Scenario::Start() {
 	transfer_criteria_.Reset();
 
 	// reset statistics
-	statistics_.Reset();
-	statistics_.timer("Seach time").start();
+	statistics_->Reset();
+	statistics_->timer("Seach time").start();
 }
 
 /********************************************************************************/
@@ -446,13 +448,13 @@ void Scenario::Finish(Result* result) {
 	group_.Finish();
 
 	// finish timer
-	statistics_.timer("Seach time").stop();
+	statistics_->timer("Seach time").stop();
 
 	// copy statistics to the result
 	result->set_statistics(statistics_);
 
 	VLOG(2) << SC_TITLE << "********** Statistics ********** ";
-	VLOG(2) << SC_TITLE << statistics_.ToString();
+	VLOG(2) << SC_TITLE << statistics_->ToString();
 }
 
 /********************************************************************************/
