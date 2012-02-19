@@ -47,7 +47,6 @@
 #include <signal.h>
 #include <string>
 #include <string.h>
-#include <pthread.h>
 #include <time.h>
 #include <sys/time.h>
 #include <exception>

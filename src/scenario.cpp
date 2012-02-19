@@ -40,6 +40,10 @@ namespace concurrit {
 const char* CONCURRIT_HOME = NULL;
 
 void BeginCounit() {
+	// init pth
+	int pth_init_result = pth_init();
+	safe_assert(pth_init_result == TRUE);
+
 	// init work dir
 	CONCURRIT_HOME = getenv("CONCURRIT_HOME");
 
@@ -55,6 +59,9 @@ void EndCounit() {
 	CoroutineGroup::delete_main();
 
 	Thread::delete_tls_key();
+
+	int pth_kill_result = pth_kill();
+	safe_assert(pth_kill_result == TRUE);
 }
 
 

@@ -47,6 +47,12 @@ namespace concurrit {
 // boost libraries
 #include <boost/shared_ptr.hpp>
 
+// GNU portable threads library
+#include "pth.h"
+
+// pthreads library
+#include <pthread.h>
+
 #include "str.h"
 #include "iterator.h"
 #include "statistics.h"
