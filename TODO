@@ -1,4 +1,8 @@
 FEATURES
+		threadleri yield noktasina kadar parallel calistir.
+		timer tut, tek tek ve toplam zamani olc, sonunda raporla. Kuda'dan zamanla ilgili kodlari al.
+		vctracker'li ve coverage'li scenario'yu default scenario'dan ayir.
+
 		dpor'u compile time flag degil runtime flag yap.
 		cogu zaman bir execution birden fazla ziyaret ediliyor, yielddan sonra transferde ayni yere gitmemesi icin bir flag koy
 		sadece bir thread varsa o threadden yield yapma sonuna kadar. bunun icin de flag koy cunku bazen gerekli olabiliyor.
@@ -13,8 +17,6 @@ FEATURES
 		
 		handle case where a yield point is associated with not only a single access but a set of accesses
 		lp.cpp'deki TODO'lara bak, onlarla ilgilen.
-		vctracker'li ve coverage'li scenario'yu default scenario'dan ayir.
-		dpor'u bir flag olarak ekle 
 		
 REFACTORINGS
 		std::string yerine olabildigince const char* kullan

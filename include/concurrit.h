@@ -61,6 +61,7 @@ namespace concurrit {
 #include "exception.h"
 #include "result.h"
 #include "until.h"
+#include "timer.h"
 #include "lp.h"
 #include "scenario.h"
 #include "vc.h"
