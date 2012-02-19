@@ -1,0 +1,216 @@
+
+onDirChange(D):
+	for all files F in D:
+	    read modified time of local-F to local-time
+	    read modified time of remote-F to remote-time
+	    if local-time > remote-time:
+	    	    if F is modified:
+	   	        read local-F to buffer buff
+			     write buff to remote-F
+
+
+setup: Create two dirs "A" and "B" with contents "a1", "a2" and "b1" and "b2" respectively.
+
+##########################################
+
+change files a1, a2, b1, and b2 in directories A and B
+
+client 1:
+Assume("B" was not synched yet) or (client 2 has not seen "ending")
+onDirChanged("A")
+
+client 2:
+onDirChanged("B")
+
+teardown:
+Assert(synch is ok)
+
+
+onDirChange(D):
+	transfer("begin")
+	for all files F in D:
+	    read modified time of local-F to local-time
+	    read modified time of remote-F to remote-time
+	    if local-time > remote-time:
+	    	    if F is modified:
+	   	        read local-F to buffer buff
+			     write buff to remote-F
+
+##########################################
+
+client 1:
+onDirChanged("A")
+
+client 2:
+Assume("a1" in synch but not "a2")
+onDirChanged("B")
+
+teardown:
+Assert(synch is ok)
+
+
+onDirChange(D):
+	transfer("begin")
+	for all files F in D:
+	    read modified time of local-F to local-time
+	    read modified time of remote-F to remote-time
+	    if local-time > remote-time:
+	    	    if F is modified:
+	   	        read local-F to buffer buff
+			     write buff to remote-F
+	    transfer("after-synch")
+
+##########################################
+
+client 1:
+onDirChanged("A")
+
+client 2:
+Assume("a1" in synch but not "a2")
+Assert(D in synch-dirs)
+Cancel client 2's operation before touches any files
+transfer("after-synch")
+IN
+onDirChanged("A")
+Assert(client 2 ended without changing anything (should I keep some auxiliary data!!!))
+
+teardown:
+Assert(synch is ok)
+
+synch-dirs = {}
+onDirChange(D):
+	transfer("begin")
+	for all files F in D:
+
+	    if D in synch-dirs: return()
+
+	    read modified time of local-F to local-time
+	    read modified time of remote-F to remote-time
+	    if local-time > remote-time:
+	    	    if F is modified:
+	   	        read local-F to buffer buff
+			     write buff to remote-F
+            transfer("after-synch")
+
+
+Another way to write the test
+
+client 1:
+// here comes a mock
+at "after-synch" modify synch-dir
+
+client 2:
+Assume("a1" in synch but not "a2")
+Assert(D in synch-dirs)
+Cancel client 2's operation before touches any files
+transfer("after-synch")
+IN
+onDirChanged("A")
+Assert(client 2 ended without changing anything (should I keep some auxiliary data!!!))
+
+teardown:
+Assert(synch is ok)
+
+##########################################
+
+
+##########################################
+
+client 1:
+onDirChanged("A")
+
+client 2:
+Assume("a1" in synch but not "a2")
+Assert(D in synch-dirs)
+Cancel client 1's operation
+transfer("after-synch")
+Assert(if coming from client1, then client 1 ended (should I keep some auxiliary data!!!))
+IN
+onDirChanged("A")
+
+
+teardown:
+Assert(synch is ok)
+
+synch-dirs = map from directory to modification clock (say, monotonically increasing integer)
+onDirChange(D):
+	clock = synch-dirs.incrementAndFetch(D)
+	transfer("begin")
+	for all files F in D:
+
+	    if synch-dirs.fetch(D) != -1 and > clock: return()
+
+	    read modified time of local-F to local-time
+	    read modified time of remote-F to remote-time
+	    if local-time > remote-time:
+	    	    if F is modified:
+	   	        read local-F to buffer buff
+			     write buff to remote-F
+            transfer("after-synch")
+	// reset the clock before exiting
+        if synch-dirs.fetch(D) != -1 and clock == synch-dirs.fetch(D):
+	   synch-dirs.update(D, -1)
+
+##########################################
+
+synch-dirs = map from directory to modification clock (say, monotonically increasing integer)
+onDirChange(D):
+	clock = synch-dirs.incrementAndFetch(D)
+	transfer("begin")
+	for all files F in D:
+
+	    if synch-dirs.fetch(D) != -1 and > clock: return()
+
+	    read modified time of local-F to local-time
+	    read modified time of remote-F to remote-time
+	    if local-time > remote-time:
+	    	    if F is modified:
+		        transfer("before-read")
+	   	        read local-F to buffer buff
+			     transfer("before-write")
+			     write buff to remote-F
+            transfer("after-synch")
+	// reset the clock before exiting
+        if synch-dirs.fetch(D) != -1 and clock == synch-dirs.fetch(D):
+	   synch-dirs.update(D, -1)
+
+change only one file a1 in A
+
+client 1:
+onDirChanged("A")
+
+client 2:
+Assume(client 1 is between transfer("before-read")-transfer("before-write"))
+AssumeStuck(client 1) -- it is not possible to execute only client 1 at this point
+IN
+onDirChanged("A")
+
+teardown:
+Assert(synch is ok: file a1 has the updated content in both local and remote site)
+
+
+synch-dirs = map from directory to modification clock (say, monotonically increasing integer)
+onDirChange(D):
+	clock = synch-dirs.incrementAndFetch(D)
+	transfer("begin")
+	for all files F in D:
+
+	    if synch-dirs.fetch(D) != -1 and > clock: return()
+
+	    read modified time of local-F to local-time
+	    read modified time of remote-F to remote-time
+	    if local-time > remote-time:
+	    	    if F is modified:
+		        lock(F)
+		        transfer("before-read")
+	   	        read local-F to buffer buff
+			     transfer("before-write")
+			     write buff to remote-F
+			unlock(F)
+            transfer("after-synch")
+	// reset the clock before exiting
+        if synch-dirs.fetch(D) != -1 and clock == synch-dirs.fetch(D):
+	   synch-dirs.update(D, -1)
+
+lock(F): while(F.locked is set) transfer("lock"); set F.locked
+unlock(F): unset F.locked bit; transfer("unlock")
