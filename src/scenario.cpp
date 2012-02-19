@@ -166,13 +166,13 @@ Result* Scenario::Explore() {
 		for(;true;) {
 			try {
 
-				VLOG(2) << SC_TITLE << "Starting path " << statistics_.num_paths_explored();
+				VLOG(2) << SC_TITLE << "Starting path " << statistics_.counter("Num paths explored");
 
 				RunOnce();
 
 				AfterRunOnce();
 
-				statistics_.num_paths_explored()->increment();
+				statistics_.counter("Num paths explored").increment();
 
 				if(explore_type_ == EXISTS) {
 					result = new ExistsResult(schedule_->Clone());
@@ -415,7 +415,7 @@ void Scenario::Start() {
 
 	// reset statistics
 	statistics_.Reset();
-	statistics_.search_timer()->start();
+	statistics_.timer("Seach time").start();
 }
 
 /********************************************************************************/
@@ -446,7 +446,7 @@ void Scenario::Finish(Result* result) {
 	group_.Finish();
 
 	// finish timer
-	statistics_.search_timer()->stop();
+	statistics_.timer("Seach time").stop();
 
 	// copy statistics to the result
 	result->set_statistics(statistics_);

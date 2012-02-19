@@ -56,6 +56,7 @@ public:
     std::string StartTimeToString();
     std::string EndTimeToString();
     std::string ElapsedTimeToString();
+    std::string ToString();
 
 private:
     bool    stopped;

@@ -66,8 +66,11 @@ private:
 	DECL_FIELD(unsigned, value)
 };
 
+/********************************************************************************/
 
 class Statistics {
+	typedef std::map<std::string, Timer> TimerMap;
+	typedef std::map<std::string, Counter> CounterMap;
 public:
 	Statistics() {
 		Reset();
@@ -75,25 +78,43 @@ public:
 	~Statistics() {}
 
 	void Reset() {
-		num_paths_explored_.reset("# paths explored");
+
 	}
 
 	std::string ToString() {
 		std::stringstream s;
 
-		s << "Search started: " << search_timer_.StartTimeToString() << "\n";
-		s << "Search ended: " << search_timer_.EndTimeToString() << "\n";
-		s << "Elapsed time: " << search_timer_.ElapsedTimeToString() << "\n";
+		for(TimerMap::iterator itr = timers_.begin(); itr != timers_.end(); ++itr) {
+			s << itr->second.ToString();
+		}
 
-		s << num_paths_explored_.ToString() << "\n";
+		for(CounterMap::iterator itr = counters_.begin(); itr != counters_.end(); ++itr) {
+			s << itr->second.ToString();
+		}
 
 		return s.str();
 	}
 
-private:
-	DECL_FIELD_REF(Timer, search_timer)
-	DECL_FIELD_REF(Counter, num_paths_explored)
+	Timer& timer(std::string name) {
+		TimerMap::iterator itr = timers_.find(name);
+		if(itr == timers_.end()) {
+			timers_[name] = Timer(name);
+		}
+		return timers_[name];
+	}
 
+	Counter& counter(std::string name) {
+		CounterMap::iterator itr = counters_.find(name);
+		if(itr == counters_.end()) {
+			counters_[name] = Counter(name);
+		}
+		return counters_[name];
+	}
+
+
+private:
+	DECL_FIELD_REF(TimerMap, timers)
+	DECL_FIELD_REF(CounterMap, counters)
 };
 
 } // end namespace

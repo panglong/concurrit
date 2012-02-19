@@ -185,4 +185,16 @@ std::string Timer::ElapsedTimeToString() {
 }
 
 /********************************************************************************/
+
+std::string Timer::ToString() {
+	std::stringstream s;
+	s << name << ":\n";
+	s << "Search started: " << StartTimeToString() << "\n";
+	s << "Search ended: " << EndTimeToString() << "\n";
+	s << "Elapsed time: " << ElapsedTimeToString() << "\n";
+	return s.str();
+}
+
+/********************************************************************************/
+
 } // end namespace
