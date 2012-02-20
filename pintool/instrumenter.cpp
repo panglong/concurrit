@@ -140,10 +140,8 @@ VOID ShowN(UINT32 n, VOID *ea) {
 /* Global Variables */
 /* ===================================================================== */
 
-typedef UINT64 COUNTER;
 LOCALVAR BOOL enabled = FALSE;
 LOCALVAR FILTER filter;
-LOCALVAR ICOUNT icount;
 LOCALVAR struct timeval startTime;
 LOCALVAR struct timeval endTime;
 LOCALVAR struct timeval runningTime;
@@ -187,6 +185,7 @@ public:
 			addrToLoc_.insert(acc, address);
 			acc->second = loc;
 		}
+		ASSERTX(loc != NULL);
 		return loc;
 	}
 
@@ -253,19 +252,22 @@ VOID FuncCallBefore(THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		return;
 
 	PinSourceLocation* loc_target = PinSourceLocation::get(target);
-	(void)loc_target;
+
 	// TODO(elmas)
+
+	cout << "Calling before: " << loc_target->rtn_name() << endl;
 }
 
-VOID FuncCallAfter(THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
+VOID FuncCallAfter(THREADID threadid, PinSourceLocation* loc_src,
 		ADDRINT target) {
 	if (!enabled)
 		return;
 
 	PinSourceLocation* loc_target = PinSourceLocation::get(target);
-	(void)loc_target;
 
 	// TODO(elmas)
+
+	cout << "Calling after: " << loc_target->rtn_name() << endl;
 }
 
 /* ===================================================================== */
@@ -276,6 +278,8 @@ VOID FuncEnter(THREADID threadid, PinSourceLocation* loc,
 		return;
 
 	// TODO(elmas)
+
+	cout << "Entering: " << loc->rtn_name() << endl;
 }
 
 VOID FuncReturn(THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
@@ -283,6 +287,8 @@ VOID FuncReturn(THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
 		return;
 
 	// TODO(elmas)
+
+	cout << "Returning: " << loc->rtn_name() << endl;
 }
 
 /* ===================================================================== */
@@ -299,6 +305,8 @@ INLINE VOID CaptureAddrSize(THREADID threadid, VOID * addr, UINT32 size) {
 	AddrSizePairs[threadid].size = size;
 }
 
+/* ===================================================================== */
+
 VOID MemWriteBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 size) {
 	if (!enabled)
 		return;
@@ -306,6 +314,7 @@ VOID MemWriteBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32
 	CaptureAddrSize(threadid, ea, size);
 
 	// TODO(elmas)
+//	cout << "Writing before: " << loc->filename() << endl;
 
 }
 
@@ -313,51 +322,11 @@ VOID MemWriteAfter(THREADID threadid, PinSourceLocation* loc) {
 	if (!enabled)
 		return;
 
-	cout << "                                 Write ";
-
 	VOID * ea = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
 
-	switch (size) {
-	case 0:
-		cout << "0 repeat count" << endl;
-		break;
-
-	case 1: {
-		UINT8 x;
-		PIN_SafeCopy(&x, static_cast<UINT8*>(ea), 1);
-		cout << "*(UINT8*)" << ea << " = " << static_cast<UINT32>(x) << endl;
-	}
-		break;
-
-	case 2: {
-		UINT16 x;
-		PIN_SafeCopy(&x, static_cast<UINT16*>(ea), 2);
-		cout << "*(UINT16*)" << ea << " = " << x << endl;
-	}
-		break;
-
-	case 4: {
-		UINT32 x;
-		PIN_SafeCopy(&x, static_cast<UINT32*>(ea), 4);
-		cout << "*(UINT32*)" << ea << " = " << x << endl;
-	}
-		break;
-
-	case 8: {
-		UINT64 x;
-		PIN_SafeCopy(&x, static_cast<UINT64*>(ea), 8);
-		cout << "*(UINT64*)" << ea << " = " << x << endl;
-	}
-		break;
-
-	default:
-		cout << "*(UINT" << dec << size * 8 << hex << ")" << ea << " = ";
-		ShowN(size, ea);
-		cout << endl;
-		break;
-	}
-
+	// TODO(elmas)
+//	cout << "Writing after: " << loc->filename() << endl;
 }
 
 /* ===================================================================== */
@@ -369,55 +338,18 @@ VOID MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 
 	CaptureAddrSize(threadid, ea, size);
 
 	// TODO(elmas)
+//	cout << "Reading before: " << loc->filename() << endl;
 }
 
 VOID MemReadAfter(THREADID threadid, PinSourceLocation* loc) {
 	if (!enabled)
 		return;
 
-	cout << "                                 Read ";
-
 	VOID * ea = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
 
-	switch (size) {
-	case 0:
-		cout << "0 repeat count" << endl;
-		break;
-
-	case 1: {
-		UINT8 x;
-		PIN_SafeCopy(&x, static_cast<UINT8*>(ea), 1);
-		cout << static_cast<UINT32>(x) << " = *(UINT8*)" << ea << endl;
-	}
-		break;
-
-	case 2: {
-		UINT16 x;
-		PIN_SafeCopy(&x, static_cast<UINT16*>(ea), 2);
-		cout << x << " = *(UINT16*)" << ea << endl;
-	}
-		break;
-
-	case 4: {
-		UINT32 x;
-		PIN_SafeCopy(&x, static_cast<UINT32*>(ea), 4);
-		cout << x << " = *(UINT32*)" << ea << endl;
-	}
-		break;
-
-	case 8: {
-		UINT64 x;
-		PIN_SafeCopy(&x, static_cast<UINT64*>(ea), 8);
-		cout << x << " = *(UINT64*)" << ea << endl;
-	}
-		break;
-
-	default:
-		ShowN(size, ea);
-		cout << " = *(UINT" << dec << size * 8 << hex << ")" << ea << endl;
-		break;
-	}
+	// TODO(elmas)
+//	cout << "Reading after: " << loc->filename() << endl;
 }
 
 /* ===================================================================== */
@@ -458,11 +390,17 @@ LOCALFUN VOID Handler(CONTROL_EVENT ev, VOID *, CONTEXT * ctxt, VOID *,
 /* ===================================================================== */
 
 LOCALFUN VOID ImageLoad(IMG img, VOID *) {
+	if(!enabled)
+		return;
+
+	cout << "Loading module: " << IMG_Name(img) << endl;
 
 	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
 	{
 		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
 		{
+			cout << "Loading routine: " << RTN_Name(rtn) << endl;
+
 			RTN_Open(rtn);
 
 			PinSourceLocation* loc = PinSourceLocation::get(rtn);
@@ -481,13 +419,16 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 /* ===================================================================== */
 
 LOCALFUN VOID ImageUnload(IMG img, VOID *) {
+	if(!enabled)
+		return;
+
 	//...
 }
 
 /* ===================================================================== */
 
 VOID CallTrace(TRACE trace, INS ins) {
-	if (INS_IsCall(ins)) {
+	if (INS_IsCall(ins) && INS_IsProcedureCall(ins)) {
 		if (!INS_IsDirectBranchOrCall(ins)) {
 			// Indirect call
 			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
@@ -496,17 +437,6 @@ VOID CallTrace(TRACE trace, INS ins) {
 					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
 					IARG_BRANCH_TARGET_ADDR,
 					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
-
-			if (INS_HasFallThrough(ins)) {
-				INS_InsertCall(ins, IPOINT_AFTER, AFUNPTR(FuncCallAfter),
-					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
-					IARG_BRANCH_TARGET_ADDR, IARG_END);
-			}
-			if (INS_IsBranchOrCall(ins)) {
-				INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(FuncCallAfter),
-					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
-					IARG_BRANCH_TARGET_ADDR, IARG_END);
-			}
 
 		} else if (INS_IsDirectBranchOrCall(ins)) {
 			// Direct call
@@ -519,28 +449,21 @@ VOID CallTrace(TRACE trace, INS ins) {
 					IARG_ADDRINT, target,
 					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
 
-			if (INS_HasFallThrough(ins)) {
-				INS_InsertCall(ins, IPOINT_AFTER, AFUNPTR(FuncCallAfter),
-					IARG_THREAD_ID, IARG_BOOL, TRUE, IARG_PTR, loc,
-					IARG_BRANCH_TARGET_ADDR, IARG_END);
-			}
-			if (INS_IsBranchOrCall(ins)) {
-				INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(FuncCallAfter),
-					IARG_THREAD_ID, IARG_BOOL, TRUE, IARG_PTR, loc,
-					IARG_BRANCH_TARGET_ADDR, IARG_END);
-			}
-
 		}
 	} else if (INS_IsRet(ins)) {
 		RTN rtn = TRACE_Rtn(trace);
 
 #if defined(TARGET_LINUX) && defined(TARGET_IA32)
-//        if( RTN_Name(rtn) ==  "_dl_debug_state") return;
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_runtime_resolve") return;
+		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_debug_state") return;
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
-		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_THREAD_ID,
-				IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
+		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn),
+				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
+
+		// TODO(elmas):
+//		INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(FuncCallAfter),
+//				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
 	}
 }
 
@@ -553,7 +476,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 	if (INS_IsMemoryWrite(ins)) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
 		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWriteBefore),
-				IARG_THREAD_ID, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
+				IARG_THREAD_ID, IARG_PTR, loc, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
 
 		if (INS_HasFallThrough(ins)) {
 			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemWriteAfter),
@@ -752,16 +675,15 @@ int main(int argc, CHAR *argv[]) {
 	PIN_AddThreadStartFunction(ThreadStart, 0);
 	PIN_AddThreadFiniFunction(ThreadFini, 0);
 
+	PIN_AddFiniFunction(Fini, 0);
+
 	IMG_AddInstrumentFunction(ImageLoad, 0);
 	IMG_AddUnloadFunction(ImageUnload, 0);
 
 	TRACE_AddInstrumentFunction(Trace, 0);
 	PIN_AddContextChangeFunction(OnSig, 0);
 
-	PIN_AddFiniFunction(Fini, 0);
-
 	filter.Activate();
-	icount.Activate();
 
 	GLB_LOCK_INIT(); // TODO(elmas): remove if not used
 
