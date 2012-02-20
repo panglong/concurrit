@@ -55,6 +55,7 @@
 									<listOptionValue builtIn="false" value="/Users/telmas/Repository/Dropbox/concurrit/pin/source/include"/>
 									<listOptionValue builtIn="false" value="/Users/telmas/Repository/Dropbox/concurrit/pin/source/tools/InstLib"/>
 									<listOptionValue builtIn="false" value="/Users/telmas/Repository/Dropbox/concurrit/pin/source/include/gen"/>
+									<listOptionValue builtIn="false" value="/Users/telmas/Repository/Dropbox/concurrit/tbb/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1220291851" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>

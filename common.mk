@@ -22,3 +22,7 @@ CONCURRIT_TEST_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG)
 # flags to use when compiling programs under test with concurrit
 CONCURRIT_PROG_INC_FLAGS=-I$(CONCURRIT_INCDIR)
 CONCURRIT_PROG_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG)
+
+# flags to use when compiling the pin tool
+CONCURRIT_PINTOOL_INC_FLAGS=-I$(CONCURRIT_HOME)/tbb/include
+CONCURRIT_PINTOOL_LIB_FLAGS=-L$(CONCURRIT_HOME)/tbb/lib/ia32/cc4.1.0_libc2.4_kernel2.6.16.21 -ltbb 

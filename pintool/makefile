@@ -1,3 +1,5 @@
+include $(CONCURRIT_HOME)/common.mk
+
 
 DEBUG=1
 
@@ -41,7 +43,7 @@ endif
 ##############################################################
 
 
-TOOL_ROOTS = counit
+TOOL_ROOTS = counit instrumenter
 STATIC_TOOL_ROOTS =
 APP_NAMES = 
 
@@ -80,12 +82,16 @@ test: $(TOOL_ROOTS:%=%.test) $(STATIC_TOOL_ROOTS:%=%.test) $(SPECIAL_TOOL_ROOTS:
 ##############################################################
 
 counit.test : $(OBJDIR)counit$(PINTOOL_SUFFIX)
+instrumenter.test : $(OBJDIR)instrumenter$(PINTOOL_SUFFIX)
 
 ##############################################################
 #
 # build rules
 #
 ##############################################################
+
+CXXFLAGS += $(CONCURRIT_PINTOOL_INC_FLAGS)
+PIN_LDFLAGS += $(CONCURRIT_PINTOOL_LIB_FLAGS)
 
 $(APPS): $(OBJDIR)make-directory
 
