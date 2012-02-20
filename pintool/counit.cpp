@@ -33,10 +33,30 @@
 
 /************************************************/
 
-
-#define LOCK_FOR_SHARED
-
-#include "pin_base.cpp" // code that does instrumentation
+#include "pin.H"
+#include "instlib.H"
+#include "portability.H"
+#include <assert.h>
+#include <stdio.h>
+#include <map>
+#include <set>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <string.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sched.h>
+#include <assert.h>
+#include <time.h>
+#include <sys/unistd.h>
+#include <sys/syscall.h>
+#include <errno.h>
+#include <stdint.h>
+#include <sys/time.h>
+#include <iostream>
+#include <sstream>
 
 /************************************************/
 
@@ -44,6 +64,11 @@
 
 /************************************************/
 
+#define LOCK_FOR_SHARED
+
+#include "pin_base.cpp" // code that does instrumentation
+
+/************************************************/
 
 static void PIN_FAST_ANALYSIS_CALL ThreadCreate(VOID* addr, THREADID tid, ADDRINT pc) {}
 static void PIN_FAST_ANALYSIS_CALL ThreadJoin(ADDRINT addr, THREADID tid, ADDRINT pc) {}
@@ -215,7 +240,7 @@ int main(int argc, char * argv[]) {
 
 	PIN_AddFiniFunction(Fini, 0);
 
-	TRACE_AddInstrumentFunction(Trace, 0);
+	TRACE_AddInstrumentFunction(TraceAnalysisCalls, 0);
 	IMG_AddInstrumentFunction(ImageLoad, 0);
 	IMG_AddUnloadFunction(ImageUnload, 0);
 
