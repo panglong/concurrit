@@ -58,6 +58,11 @@ public:
     std::string ElapsedTimeToString();
     std::string ToString();
 
+protected:
+    static void gettimeofday_(timeval* t);
+    static int timeval_subtract_(struct timeval *result, struct timeval *_x, struct timeval *_y);
+    static std::string timeval_to_string_(timeval* tv);
+
 private:
     bool    stopped;
     timeval startTime;

@@ -37,53 +37,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-// this is from GNU C library manual
-/* Subtract the `struct timeval' values X and Y,
- storing the result in RESULT.
- Return 1 if the difference is negative, otherwise 0.  */
-
-static int timeval_subtract(struct timeval *result, struct timeval *_x,
-		struct timeval *_y) {
-	struct timeval x = *_x;
-	struct timeval y = *_y;
-	/* Perform the carry for the later subtraction by updating y. */
-	if (x.tv_usec < y.tv_usec) {
-		int nsec = (y.tv_usec - x.tv_usec) / 1000000 + 1;
-		y.tv_usec -= 1000000 * nsec;
-		y.tv_sec += nsec;
-	}
-	if (x.tv_usec - y.tv_usec > 1000000) {
-		int nsec = (y.tv_usec - x.tv_usec) / 1000000;
-		y.tv_usec += 1000000 * nsec;
-		y.tv_sec -= nsec;
-	}
-
-	/* Compute the time remaining to wait.
-	 tv_usec is certainly positive. */
-	result->tv_sec = x.tv_sec - y.tv_sec;
-	result->tv_usec = x.tv_usec - y.tv_usec;
-
-	/* Return 1 if result is negative. */
-	return x.tv_sec < y.tv_sec;
-}
-
-/********************************************************************************/
-
-std::string timeval_to_string(timeval* tv) {
-	time_t nowtime;
-	struct tm *nowtm;
-	char tmbuf[64], buf[64];
-
-	nowtime = tv->tv_sec;
-	nowtm = localtime(&nowtime);
-	strftime(tmbuf, sizeof(tmbuf), "%Y-%m-%d %H:%M:%S", nowtm);
-	snprintf(buf, sizeof(buf), "%s.%06d", tmbuf, tv->tv_usec);
-
-	return std::string(buf);
-}
-
-/********************************************************************************/
-
 Timer::Timer(std::string name) {
 	startTime.tv_sec = startTime.tv_usec = 0;
 	endTime.tv_sec = endTime.tv_usec = 0;
@@ -97,18 +50,27 @@ Timer::~Timer() {
 
 /********************************************************************************/
 
+void Timer::gettimeofday_(timeval* t) {
+	if (gettimeofday(t, NULL)) {
+		printf("Failed to get the end time!");
+		exit(-1);
+	}
+}
+
+/********************************************************************************/
+
 void Timer::start() {
 	stopped = false; // reset stop flag
-	gettimeofday(&startTime, NULL);
+	gettimeofday_(&startTime);
 	endTime = startTime;
 }
 
 /********************************************************************************/
 
 void Timer::stop() {
-	stopped = false; // set timer stopped flag
-	gettimeofday(&endTime, NULL);
-	bool is_positive = (timeval_subtract(&elapsedTime, &endTime, &startTime) == 0);
+	stopped = true; // set timer stopped flag
+	gettimeofday_(&endTime);
+	bool is_positive = (timeval_subtract_(&elapsedTime, &endTime, &startTime) == 0);
 	safe_assert(is_positive);
 }
 
@@ -154,8 +116,8 @@ double Timer::getElapsedTimeInDays() {
 
 timeval Timer::getElapsedTime() {
 	if (!stopped) {
-		gettimeofday(&endTime, NULL);
-		bool is_positive = (timeval_subtract(&elapsedTime, &endTime, &startTime) == 0);
+		gettimeofday_(&endTime);
+		bool is_positive = (timeval_subtract_(&elapsedTime, &endTime, &startTime) == 0);
 		safe_assert(is_positive);
 	}
 	return elapsedTime;
@@ -164,11 +126,11 @@ timeval Timer::getElapsedTime() {
 /********************************************************************************/
 
 std::string Timer::StartTimeToString() {
-	return timeval_to_string(&startTime);
+	return timeval_to_string_(&startTime);
 }
 
 std::string Timer::EndTimeToString() {
-	return timeval_to_string(&endTime);
+	return timeval_to_string_(&endTime);
 }
 
 /********************************************************************************/
@@ -193,6 +155,53 @@ std::string Timer::ToString() {
 	s << "Search ended: " << EndTimeToString() << "\n";
 	s << "Elapsed time: " << ElapsedTimeToString() << "\n";
 	return s.str();
+}
+
+/********************************************************************************/
+
+// this is from GNU C library manual
+/* Subtract the `struct timeval' values X and Y,
+ storing the result in RESULT.
+ Return 1 if the difference is negative, otherwise 0.  */
+
+int Timer::timeval_subtract_(struct timeval *result, struct timeval *_x,
+		struct timeval *_y) {
+	struct timeval x = *_x;
+	struct timeval y = *_y;
+	/* Perform the carry for the later subtraction by updating y. */
+	if (x.tv_usec < y.tv_usec) {
+		int nsec = (y.tv_usec - x.tv_usec) / 1000000 + 1;
+		y.tv_usec -= 1000000 * nsec;
+		y.tv_sec += nsec;
+	}
+	if (x.tv_usec - y.tv_usec > 1000000) {
+		int nsec = (y.tv_usec - x.tv_usec) / 1000000;
+		y.tv_usec += 1000000 * nsec;
+		y.tv_sec -= nsec;
+	}
+
+	/* Compute the time remaining to wait.
+	 tv_usec is certainly positive. */
+	result->tv_sec = x.tv_sec - y.tv_sec;
+	result->tv_usec = x.tv_usec - y.tv_usec;
+
+	/* Return 1 if result is negative. */
+	return x.tv_sec < y.tv_sec;
+}
+
+/********************************************************************************/
+
+std::string Timer::timeval_to_string_(timeval* tv) {
+	time_t nowtime;
+	struct tm *nowtm;
+	char tmbuf[64], buf[64];
+
+	nowtime = tv->tv_sec;
+	nowtm = localtime(&nowtime);
+	strftime(tmbuf, sizeof(tmbuf), "%Y-%m-%d %H:%M:%S", nowtm);
+	snprintf(buf, sizeof(buf), "%s.%06d", tmbuf, (int) tv->tv_usec);
+
+	return std::string(buf);
 }
 
 /********************************************************************************/

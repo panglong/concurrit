@@ -62,14 +62,24 @@ namespace concurrit {
 
 /********************************************************************************/
 
+#ifndef RESTRICT
 #define RESTRICT
 //__restrict__
+#endif
 
+#ifndef INLINE
+#define INLINE inline
+#endif
+
+#ifndef UNUSED
 #define UNUSED __attribute__((unused))
+#endif
+
+#ifndef USE
+#define USE(x) ((void)(x))
+#endif
 
 /********************************************************************************/
-
-#define USE(x) (x) = (x)
 
 #define BETWEEN(x,y,z)	(((x) <= (y)) && ((y) <= (z)))
 

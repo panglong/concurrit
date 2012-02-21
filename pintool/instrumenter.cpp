@@ -43,9 +43,10 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-#include "tbb/concurrent_hash_map.h"
-
 using namespace INSTLIB;
+
+#include "tbb/concurrent_hash_map.h"
+#include "timer.h"
 
 /* ===================================================================== */
 /* Commandline Switches */
@@ -57,8 +58,7 @@ KNOB<BOOL> KnobEarlyOut(KNOB_MODE_WRITEONCE, "pintool", "early_out", "0",
 /* ===================================================================== */
 
 INT32 Usage() {
-	cerr << "This pin tool does instrumentation for concurrit\n"
-			"\n";
+	cerr << "This pin tool does instrumentation for concurrit\n\n";
 
 	cerr << KNOB_BASE::StringKnobSummary();
 
@@ -68,49 +68,8 @@ INT32 Usage() {
 }
 
 /* ===================================================================== */
+
 #define PTR2ADDRINT(p)	(reinterpret_cast<ADDRINT>(p))
-
-#define INLINE inline
-
-#define DECL_FIELD(type, name) \
-		protected: \
-		type name##_; \
-		public: \
-		inline type& name() { return name##_; } \
-		inline void set_##name(type value) { name##_ = value; } \
-		private:	\
-
-/* ===================================================================== */
-
-// this is from GNU C library manual
-/* Subtract the `struct timeval' values X and Y,
- storing the result in RESULT.
- Return 1 if the difference is negative, otherwise 0.  */
-
-int timeval_subtract(struct timeval *result, struct timeval *_x,
-		struct timeval *_y) {
-	struct timeval x = *_x;
-	struct timeval y = *_y;
-	/* Perform the carry for the later subtraction by updating y. */
-	if (x.tv_usec < y.tv_usec) {
-		int nsec = (y.tv_usec - x.tv_usec) / 1000000 + 1;
-		y.tv_usec -= 1000000 * nsec;
-		y.tv_sec += nsec;
-	}
-	if (x.tv_usec - y.tv_usec > 1000000) {
-		int nsec = (y.tv_usec - x.tv_usec) / 1000000;
-		y.tv_usec += 1000000 * nsec;
-		y.tv_sec -= nsec;
-	}
-
-	/* Compute the time remaining to wait.
-	 tv_usec is certainly positive. */
-	result->tv_sec = x.tv_sec - y.tv_sec;
-	result->tv_usec = x.tv_usec - y.tv_usec;
-
-	/* Return 1 if result is negative. */
-	return x.tv_sec < y.tv_sec;
-}
 
 /* ===================================================================== */
 
@@ -142,9 +101,7 @@ VOID ShowN(UINT32 n, VOID *ea) {
 
 LOCALVAR BOOL enabled = FALSE;
 LOCALVAR FILTER filter;
-LOCALVAR struct timeval startTime;
-LOCALVAR struct timeval endTime;
-LOCALVAR struct timeval runningTime;
+LOCALVAR concurrit::Timer timer("Pin running time");
 
 LOCALVAR CONTROL control;
 LOCALVAR SKIPPER skipper;
@@ -246,7 +203,8 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
-VOID FuncCallBefore(THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
+VOID PIN_FAST_ANALYSIS_CALL
+FuncCall(THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		ADDRINT target, ADDRINT arg0, ADDRINT arg1) {
 	if (!enabled)
 		return;
@@ -255,40 +213,30 @@ VOID FuncCallBefore(THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 
 	// TODO(elmas)
 
-	cout << "Calling before: " << loc_target->rtn_name() << endl;
-}
-
-VOID FuncCallAfter(THREADID threadid, PinSourceLocation* loc_src,
-		ADDRINT target) {
-	if (!enabled)
-		return;
-
-	PinSourceLocation* loc_target = PinSourceLocation::get(target);
-
-	// TODO(elmas)
-
-	cout << "Calling after: " << loc_target->rtn_name() << endl;
+	printf("Calling before: %s\n", loc_target->rtn_name().c_str());
 }
 
 /* ===================================================================== */
 
-VOID FuncEnter(THREADID threadid, PinSourceLocation* loc,
+VOID PIN_FAST_ANALYSIS_CALL
+FuncEnter(THREADID threadid, PinSourceLocation* loc,
 		ADDRINT arg0, ADDRINT arg1) {
 	if (!enabled)
 		return;
 
 	// TODO(elmas)
 
-	cout << "Entering: " << loc->rtn_name() << endl;
+	printf("Entering : %s\n", loc->rtn_name().c_str());
 }
 
-VOID FuncReturn(THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
+VOID PIN_FAST_ANALYSIS_CALL
+FuncReturn(THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
 	if (!enabled)
 		return;
 
 	// TODO(elmas)
 
-	cout << "Returning: " << loc->rtn_name() << endl;
+	printf("Returning: %s\n", loc->rtn_name().c_str());
 }
 
 /* ===================================================================== */
@@ -307,23 +255,27 @@ INLINE VOID CaptureAddrSize(THREADID threadid, VOID * addr, UINT32 size) {
 
 /* ===================================================================== */
 
-VOID MemWriteBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 size) {
+VOID PIN_FAST_ANALYSIS_CALL
+MemWriteBefore(THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 size) {
 	if (!enabled)
 		return;
 
-	CaptureAddrSize(threadid, ea, size);
+	CaptureAddrSize(threadid, addr, size);
 
 	// TODO(elmas)
 //	cout << "Writing before: " << loc->filename() << endl;
 
 }
 
-VOID MemWriteAfter(THREADID threadid, PinSourceLocation* loc) {
+VOID PIN_FAST_ANALYSIS_CALL
+MemWriteAfter(THREADID threadid, PinSourceLocation* loc) {
 	if (!enabled)
 		return;
 
-	VOID * ea = AddrSizePairs[threadid].addr;
+	VOID * addr = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
+
+	USE(addr); USE(size);
 
 	// TODO(elmas)
 //	cout << "Writing after: " << loc->filename() << endl;
@@ -331,7 +283,8 @@ VOID MemWriteAfter(THREADID threadid, PinSourceLocation* loc) {
 
 /* ===================================================================== */
 
-VOID MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 size) {
+VOID PIN_FAST_ANALYSIS_CALL
+MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 size) {
 	if (!enabled)
 		return;
 
@@ -341,12 +294,15 @@ VOID MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 
 //	cout << "Reading before: " << loc->filename() << endl;
 }
 
-VOID MemReadAfter(THREADID threadid, PinSourceLocation* loc) {
+VOID PIN_FAST_ANALYSIS_CALL
+MemReadAfter(THREADID threadid, PinSourceLocation* loc) {
 	if (!enabled)
 		return;
 
-	VOID * ea = AddrSizePairs[threadid].addr;
+	VOID * addr = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
+
+	USE(addr); USE(size);
 
 	// TODO(elmas)
 //	cout << "Reading after: " << loc->filename() << endl;
@@ -389,9 +345,65 @@ LOCALFUN VOID Handler(CONTROL_EVENT ev, VOID *, CONTEXT * ctxt, VOID *,
 
 /* ===================================================================== */
 
+LOCALVAR std::vector<string> FilteredImages;
+LOCALVAR std::set<UINT32> FilteredImageIds;
+
+LOCALFUN void InitFilteredImages() {
+	FilteredImages.push_back("libstdc++.so");
+	FilteredImages.push_back("libm.so");
+	FilteredImages.push_back("libc.so");
+	FilteredImages.push_back("libgcc_s.so");
+	FilteredImages.push_back("libselinux.so");
+	FilteredImages.push_back("librt.so");
+	FilteredImages.push_back("libdl.so");
+	FilteredImages.push_back("libacl.so");
+	FilteredImages.push_back("libattr.so");
+	FilteredImages.push_back("libpthread.so");
+	FilteredImages.push_back("ld-linux.so");
+}
+
+/* ===================================================================== */
+
+LOCALFUN BOOL IsImageFiltered(IMG img, BOOL loading = FALSE) {
+	UINT32 img_id = IMG_Id(img);
+	if(FilteredImageIds.find(img_id) != FilteredImageIds.end()) {
+		return TRUE;
+	}
+	if(!loading) {
+		return FALSE;
+	}
+	string img_name = IMG_Name(img);
+	for(std::vector<string>::iterator itr = FilteredImages.begin(); itr < FilteredImages.end(); ++itr) {
+		if(img_name.find(*itr) != string::npos) {
+			FilteredImageIds.insert(img_id);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn) {
+	if(RTN_Valid(rtn)) {
+		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)));
+	}
+	return TRUE;
+}
+
+INLINE LOCALFUN BOOL IsTraceFiltered(TRACE trace) {
+	return IsRoutineFiltered(TRACE_Rtn(trace));
+}
+
+/* ===================================================================== */
+
 LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 	if(!enabled)
 		return;
+
+	// filter out standard libraries
+	// also updates filtered image ids
+	if(IsImageFiltered(img, TRUE)) {
+		return;
+	}
 
 	cout << "Loading module: " << IMG_Name(img) << endl;
 
@@ -405,7 +417,7 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 
 			PinSourceLocation* loc = PinSourceLocation::get(rtn);
 
-			RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)FuncEnter,
+			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
 					   IARG_THREAD_ID, IARG_PTR, loc,
 					   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 					   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
@@ -422,18 +434,18 @@ LOCALFUN VOID ImageUnload(IMG img, VOID *) {
 	if(!enabled)
 		return;
 
-	//...
+	cout << "Unloading module: " << IMG_Name(img) << endl;
 }
 
 /* ===================================================================== */
 
 VOID CallTrace(TRACE trace, INS ins) {
-	if (INS_IsCall(ins) && INS_IsProcedureCall(ins)) {
+	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
 		if (!INS_IsDirectBranchOrCall(ins)) {
 			// Indirect call
 			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
 
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCallBefore),
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
 					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
 					IARG_BRANCH_TARGET_ADDR,
 					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
@@ -444,13 +456,13 @@ VOID CallTrace(TRACE trace, INS ins) {
 
 			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
 
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCallBefore),
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
 					IARG_THREAD_ID, IARG_PTR, TRUE, IARG_PTR, loc,
 					IARG_ADDRINT, target,
 					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
 
 		}
-	} else if (INS_IsRet(ins)) {
+	} else if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
 		RTN rtn = TRACE_Rtn(trace);
 
 #if defined(TARGET_LINUX) && defined(TARGET_IA32)
@@ -458,12 +470,8 @@ VOID CallTrace(TRACE trace, INS ins) {
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_debug_state") return;
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
-		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn),
+		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
-
-		// TODO(elmas):
-//		INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(FuncCallAfter),
-//				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
 	}
 }
 
@@ -475,15 +483,15 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	if (INS_IsMemoryWrite(ins)) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWriteBefore),
+		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWriteBefore), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
 
 		if (INS_HasFallThrough(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemWriteAfter),
+			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemWriteAfter), IARG_FAST_ANALYSIS_CALL,
 					IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 		if (INS_IsBranchOrCall(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemWriteAfter),
+			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemWriteAfter), IARG_FAST_ANALYSIS_CALL,
 					IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 	}
@@ -492,15 +500,15 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	if (INS_HasMemoryRead2(ins)) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore),
+		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 
 		if (INS_HasFallThrough(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter),
+			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 		if (INS_IsBranchOrCall(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter),
+			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 	}
@@ -509,15 +517,15 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins)) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore),
+		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 
 		if (INS_HasFallThrough(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter),
+			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 		if (INS_IsBranchOrCall(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter),
+			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 	}
@@ -526,10 +534,13 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 /* ===================================================================== */
 
 VOID Trace(TRACE trace, VOID *v) {
+	if (!enabled)
+		return;
+
 	if (!filter.SelectTrace(trace))
 		return;
 
-	if (!enabled)
+	if (IsTraceFiltered(trace))
 		return;
 
 	for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
@@ -549,15 +560,9 @@ VOID Trace(TRACE trace, VOID *v) {
 /* ===================================================================== */
 
 VOID Fini(INT32 code, VOID *v) {
-	if (gettimeofday(&endTime, NULL)) {
-		printf("Failed to get the end time!");
-		exit(-1);
-	}
+	timer.stop();
 
-	timeval_subtract(&runningTime, &endTime, &startTime);
-
-	printf("\nTIME for program:\t%lu seconds, %lu microseconds\n",
-			runningTime.tv_sec, runningTime.tv_usec);
+	printf("\nTIME for program: %s\n", timer.ElapsedTimeToString().c_str());
 
 	PIN_DeleteThreadDataKey(tls_key);
 }
@@ -671,6 +676,8 @@ int main(int argc, CHAR *argv[]) {
 	control.CheckKnobs(Handler, 0);
 	skipper.CheckKnobs(0);
 
+	InitFilteredImages();
+
 	tls_key = PIN_CreateThreadDataKey(ThreadLocalDestruct);
 	PIN_AddThreadStartFunction(ThreadStart, 0);
 	PIN_AddThreadFiniFunction(ThreadFini, 0);
@@ -685,12 +692,10 @@ int main(int argc, CHAR *argv[]) {
 
 	filter.Activate();
 
-	GLB_LOCK_INIT(); // TODO(elmas): remove if not used
+	// GLB_LOCK_INIT(); // uncomment if needed
 
-	if (gettimeofday(&startTime, NULL)) {
-		printf("Failed to get the start time!");
-		exit(-1);
-	}
+	// start the timer
+	timer.start();
 
 	// Never returns
 
