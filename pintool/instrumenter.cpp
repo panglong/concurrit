@@ -263,6 +263,7 @@ MemWriteBefore(THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 si
 	CaptureAddrSize(threadid, addr, size);
 
 	// TODO(elmas)
+
 //	cout << "Writing before: " << loc->filename() << endl;
 
 }
@@ -278,6 +279,7 @@ MemWriteAfter(THREADID threadid, PinSourceLocation* loc) {
 	USE(addr); USE(size);
 
 	// TODO(elmas)
+
 //	cout << "Writing after: " << loc->filename() << endl;
 }
 
@@ -291,6 +293,7 @@ MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 size)
 	CaptureAddrSize(threadid, ea, size);
 
 	// TODO(elmas)
+
 //	cout << "Reading before: " << loc->filename() << endl;
 }
 
@@ -305,6 +308,7 @@ MemReadAfter(THREADID threadid, PinSourceLocation* loc) {
 	USE(addr); USE(size);
 
 	// TODO(elmas)
+
 //	cout << "Reading after: " << loc->filename() << endl;
 }
 
@@ -396,16 +400,15 @@ INLINE LOCALFUN BOOL IsTraceFiltered(TRACE trace) {
 /* ===================================================================== */
 
 LOCALFUN VOID ImageLoad(IMG img, VOID *) {
-	if(!enabled)
-		return;
 
 	// filter out standard libraries
 	// also updates filtered image ids
 	if(IsImageFiltered(img, TRUE)) {
+		cout << "Filtering image: " << IMG_Name(img) << endl;
 		return;
 	}
 
-	cout << "Loading module: " << IMG_Name(img) << endl;
+	cout << "Loading image: " << IMG_Name(img) << endl;
 
 	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
 	{
@@ -434,7 +437,11 @@ LOCALFUN VOID ImageUnload(IMG img, VOID *) {
 	if(!enabled)
 		return;
 
-	cout << "Unloading module: " << IMG_Name(img) << endl;
+	cout << "Unloading image: " << IMG_Name(img) << endl;
+
+	// delete filtering info about this image
+	UINT32 img_id = IMG_Id(img);
+	FilteredImageIds.erase(img_id);
 }
 
 /* ===================================================================== */
