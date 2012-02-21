@@ -434,9 +434,6 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 /* ===================================================================== */
 
 LOCALFUN VOID ImageUnload(IMG img, VOID *) {
-	if(!enabled)
-		return;
-
 	cout << "Unloading image: " << IMG_Name(img) << endl;
 
 	// delete filtering info about this image
