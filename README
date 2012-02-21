@@ -1,29 +1,14 @@
+
+
 Add the following to your bash profile file.
 
-# CONCURRIT                                                                                                
-export CONCURRIT_HOME=$HOME/Repository/Dropbox/concurrit
-export LD_LIBRARY_PATH=$CONCURRIT_HOME/lib/:$LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/lib/:$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$CONCURRIT_HOME/gflags/lib/:$LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/gflags/lib/:$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/glog/lib/:$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$CONCURRIT_HOME/pth/lib/:$LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/pth/lib/:$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$CONCURRIT_HOME/tbb/lib/ia32/cc4.1.0_libc2.4_kernel2.6.16.21/:$LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH=$CONCURRIT_HOME/tbb/lib/ia32/cc4.1.0_libc2.4_kernel2.6.16.21/:$DYLD_LIBRARY_PATH
-export BOOST_ROOT=$HOME/Repository/Research/ParLab/Boost/boost_1_48_0
-export BOOST_PATH=$BOOST_ROOT
+source $HOME/Repository/Dropbox/concurrit/scripts/export_vars.sh
 
+# echo "" >> ~./profile
+# echo "source $HOME/Repository/Dropbox/concurrit/scripts/export_vars.sh" >> ~/.profile
+
+--------------------------------------------------------------------
 
 To install CONCURRIT (including glog, pintool, etc.)
+
 $CONCURRIT_HOME/scripts/install_concurrit.sh
-
-To compile and install the pintool
-$CONCURRIT_HOME/scripts/install_pintool.sh
-
-To compile and install glog
-$CONCURRIT_HOME/scripts/install_glog.sh
-
-To compile and install pth
-$CONCURRIT_HOME/scripts/install_pth.sh

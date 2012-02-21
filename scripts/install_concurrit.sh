@@ -1,23 +1,30 @@
+#!/bin/bash
+
 PWD=`pwd`
 
 cd $CONCURRIT_HOME
 
 # install google logging
-scripts/install_glog.sh
+$CONCURRIT_HOME/scripts/install_glog.sh
 
 # install google flags
-scripts/install_gflags.sh
+$CONCURRIT_HOME/scripts/install_gflags.sh
+
+# install google test
+#$CONCURRIT_HOME/scripts/install_gtest.sh
 
 # install pth
-scripts/install_pth.sh
+$CONCURRIT_HOME/scripts/install_pth.sh
 
-# compile core
+# install tbb
+$CONCURRIT_HOME/scripts/install_tbb.sh
+
+# compile core library
 cd $CONCURRIT_HOME
 make clean
-make
+make all
 
 # install and compile pintool
-cd $CONCURRIT_HOME
-scripts/install_pintool.sh
+$CONCURRIT_HOME/scripts/install_pintool.sh
 
 cd $PWD

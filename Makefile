@@ -28,8 +28,10 @@ makedirs:
 	mkdir -p $(CONCURRIT_BINDIR)
 	mkdir -p $(CONCURRIT_LIBDIR)
 	mkdir -p $(CONCURRIT_OBJDIR)
+	mkdir -p $(CONCURRIT_WORKDIR)
 	
 clean:
 	rm -rf $(CONCURRIT_BINDIR)
 	rm -rf $(CONCURRIT_LIBDIR)
 	rm -rf $(CONCURRIT_OBJDIR)
+	rm -rf $(CONCURRIT_WORKDIR)

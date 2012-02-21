@@ -1,3 +1,4 @@
+#!/bin/bash
 
 cd $CONCURRIT_HOME
 #make -C tests/increment/ clean

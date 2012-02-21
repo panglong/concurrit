@@ -2,8 +2,8 @@
 
 PWD=`pwd`
 
-CHECKOUT_DIR=$CONCURRIT_TPDIR/pth-2.0.7
-INSTALL_DIR=$CONCURRIT_TPDIR/pth
+CHECKOUT_DIR=$CONCURRIT_TPDIR/googletest-read-only
+INSTALL_DIR=$CONCURRIT_TPDIR/gtest
 
 rm -rf $CHECKOUT_DIR
 rm -rf $INSTALL_DIR
@@ -12,7 +12,7 @@ mkdir -p $CHECKOUT_DIR
 mkdir -p $INSTALL_DIR
 
 cd $CONCURRIT_TPDIR
-tar -zxvf pth-2.0.7.tar.gz
+svn checkout http://googletest.googlecode.com/svn/trunk/ googletest-read-only
 
 cd $CHECKOUT_DIR
 ./configure --prefix=$INSTALL_DIR

@@ -1,10 +1,17 @@
+#!/bin/bash
+
 PWD=`pwd`
 
-rm -rf $CONCURRIT_HOME/pin
+CHECKOUT_DIR=$CONCURRIT_TPDIR/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux
+INSTALL_DIR=$CONCURRIT_TPDIR/pin
 
-tar -xvf $CONCURRIT_HOME/pin.tar
-mv $CONCURRIT_HOME/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux $CONCURRIT_HOME/pin
-#mv $CONCURRIT_HOME/pin-2.10-43611-gcc.3.4.6-ia32_intel64-linux $CONCURRIT_HOME/pin
+cd $CONCURRIT_TPDIR
+
+rm -rf $CONCURRIT_TPDIR/pin
+
+tar -xvf $CONCURRIT_TPDIR/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux.tar
+
+mv $CHECKOUT_DIR $INSTALL_DIR
 
 $CONCURRIT_HOME/scripts/compile_pintool.sh
 
