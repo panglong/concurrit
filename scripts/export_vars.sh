@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CONCURRIT_HOME=$HOME/Repository/Dropbox/concurrit
+export CONCURRIT_HOME=$HOME/concurrit
 export CONCURRIT_TPDIR=$CONCURRIT_HOME/third_party
 
 export LD_LIBRARY_PATH=$CONCURRIT_HOME/lib/:$LD_LIBRARY_PATH

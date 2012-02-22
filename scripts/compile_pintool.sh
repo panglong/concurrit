@@ -2,7 +2,7 @@
 
 PWD=`pwd`
 
-PIN_ARCH="obj-ia32"
+PIN_ARCH="obj-ia64"
 PINTOOL_DIR=$CONCURRIT_TPDIR/pin/source/tools/concurrit
 
 mkdir -p $PINTOOL_DIR
