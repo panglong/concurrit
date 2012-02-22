@@ -2,10 +2,10 @@
 
 Add the following to your bash profile file.
 
-source $HOME/Repository/Dropbox/concurrit/scripts/export_vars.sh
+source $HOME/concurrit/scripts/export_vars.sh
 
 # echo "" >> ~./profile
-# echo "source $HOME/Repository/Dropbox/concurrit/scripts/export_vars.sh" >> ~/.profile
+# echo "source $HOME/concurrit/scripts/export_vars.sh" >> ~/.profile
 
 --------------------------------------------------------------------
 
