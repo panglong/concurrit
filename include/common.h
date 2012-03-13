@@ -79,6 +79,12 @@ namespace concurrit {
 #define USE(x) ((void)(x))
 #endif
 
+#if defined(XP_OS2) || (defined(__GNUC__) && defined(__i386))
+#define BREAK_HERE()	asm("int $3") // __asm { int 3 }
+#else
+#define BREAK_HERE()
+#endif
+
 /********************************************************************************/
 
 #define BETWEEN(x,y,z)	(((x) <= (y)) && ((y) <= (z)))

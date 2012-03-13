@@ -1,3 +1,4 @@
+
 FEATURES
 		threadleri yield noktasina kadar parallel calistir.
 		timer tut, tek tek ve toplam zamani olc, sonunda raporla. Kuda'dan zamanla ilgili kodlari al.
