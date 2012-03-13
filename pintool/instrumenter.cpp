@@ -47,6 +47,8 @@ using namespace INSTLIB;
 
 #include "tbb/concurrent_hash_map.h"
 #include "timer.h"
+#include "sharedaccess.h"
+#include "pinmonitor.h"
 
 /* ===================================================================== */
 /* Commandline Switches */
@@ -99,6 +101,8 @@ VOID ShowN(UINT32 n, VOID *ea) {
 /* Global Variables */
 /* ===================================================================== */
 
+concurrit::PinMonitor* monitor = concurrit::PinMonitor::GetInstance();
+
 LOCALVAR BOOL enabled = FALSE;
 LOCALVAR FILTER filter;
 LOCALVAR concurrit::Timer timer("Pin running time");
@@ -118,8 +122,13 @@ class PinSourceLocation;
 
 typedef tbb::concurrent_hash_map<ADDRINT,PinSourceLocation*> AddrToLocMap;
 
-class PinSourceLocation {
+class PinSourceLocation : public concurrit::SourceLocation {
 public:
+
+	static PinSourceLocation* get(VOID* address) {
+		return PinSourceLocation::get(reinterpret_cast<ADDRINT>(address));
+	}
+
 	static PinSourceLocation* get(ADDRINT address) {
 		PIN_LockClient();
 		RTN rtn = RTN_FindByAddress(address);
@@ -146,10 +155,9 @@ public:
 		return loc;
 	}
 
-	PinSourceLocation(RTN rtn, ADDRINT address) {
-		line_ = column_ = -1;
-		filename_ = img_name_ = rtn_name_ = "<unknown>";
-
+	PinSourceLocation(RTN rtn, ADDRINT address)
+	: SourceLocation("<unknown", "<unknown", -1, -1, "<unknown")
+	{
 		address_ = address;
 
 		PIN_LockClient();
@@ -158,43 +166,17 @@ public:
 
 		if (RTN_Valid(rtn))
 		{
-			img_name_ = IMG_Name(SEC_Img(RTN_Sec(rtn)));
-			rtn_name_ = RTN_Name(rtn);
+			imgname_ = IMG_Name(SEC_Img(RTN_Sec(rtn)));
+			funcname_ = RTN_Name(rtn);
 		}
 	}
 
-	string ToString() {
-		stringstream s;
-		if(IsUnknown()) {
-			s << "<unknown>";
-		} else {
-			s << "(" << filename_ << " # " << decstr(line_) << " : " << decstr(column_) << ")";
-		}
-		return s.str();
-	}
-
-	BOOL IsUnknown() {
-		BOOL r = (line_ == 0);
-		ASSERTX(!r || column_ == 0);
-		ASSERTX(!r || filename_ == "");
-		return r;
-	}
-
-	BOOL operator ==(const PinSourceLocation& loc) const {
-		return (column_ == loc.column_) && (line_ == loc.line_) && (filename_ == loc.filename_);
-	}
-
-	BOOL operator !=(const PinSourceLocation& loc) const {
-		return !(operator==(loc));
+	VOID* pointer() {
+		return reinterpret_cast<VOID*>(address_);
 	}
 
 	private:
 	DECL_FIELD(ADDRINT, address)
-	DECL_FIELD(string, filename)
-	DECL_FIELD(INT32, column)
-	DECL_FIELD(INT32, line)
-	DECL_FIELD(string, img_name)
-	DECL_FIELD(string, rtn_name)
 
 	static AddrToLocMap addrToLoc_;
 };
@@ -211,9 +193,7 @@ FuncCall(THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 
 	PinSourceLocation* loc_target = PinSourceLocation::get(target);
 
-	// TODO(elmas)
-
-	printf("Calling before: %s\n", loc_target->rtn_name().c_str());
+	monitor->FuncCall(threadid, loc_target->pointer(), direct, loc_src, loc_target);
 }
 
 /* ===================================================================== */
@@ -224,9 +204,7 @@ FuncEnter(THREADID threadid, PinSourceLocation* loc,
 	if (!enabled)
 		return;
 
-	// TODO(elmas)
-
-	printf("Entering : %s\n", loc->rtn_name().c_str());
+	monitor->FuncEnter(threadid, loc->pointer(), loc);
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
@@ -234,9 +212,7 @@ FuncReturn(THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
 	if (!enabled)
 		return;
 
-	// TODO(elmas)
-
-	printf("Returning: %s\n", loc->rtn_name().c_str());
+	monitor->FuncReturn(threadid, loc->pointer(), loc, ret0);
 }
 
 /* ===================================================================== */
@@ -262,9 +238,7 @@ MemWriteBefore(THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 si
 
 	CaptureAddrSize(threadid, addr, size);
 
-	// TODO(elmas)
-
-//	cout << "Writing before: " << loc->filename() << endl;
+	monitor->MemWriteBefore(threadid, addr, size, loc);
 
 }
 
@@ -276,25 +250,19 @@ MemWriteAfter(THREADID threadid, PinSourceLocation* loc) {
 	VOID * addr = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
 
-	USE(addr); USE(size);
-
-	// TODO(elmas)
-
-//	cout << "Writing after: " << loc->filename() << endl;
+	monitor->MemWriteAfter(threadid, addr, size, loc);
 }
 
 /* ===================================================================== */
 
 VOID PIN_FAST_ANALYSIS_CALL
-MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * ea, UINT32 size) {
+MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 size) {
 	if (!enabled)
 		return;
 
-	CaptureAddrSize(threadid, ea, size);
+	CaptureAddrSize(threadid, addr, size);
 
-	// TODO(elmas)
-
-//	cout << "Reading before: " << loc->filename() << endl;
+	monitor->MemReadBefore(threadid, addr, size, loc);
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
@@ -305,11 +273,7 @@ MemReadAfter(THREADID threadid, PinSourceLocation* loc) {
 	VOID * addr = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
 
-	USE(addr); USE(size);
-
-	// TODO(elmas)
-
-//	cout << "Reading after: " << loc->filename() << endl;
+	monitor->MemReadAfter(threadid, addr, size, loc);
 }
 
 /* ===================================================================== */

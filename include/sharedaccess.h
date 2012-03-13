@@ -35,6 +35,7 @@
 #define SHAREDACCESS_H_
 
 #include "common.h"
+#include "serialize.h"
 
 namespace concurrit {
 
@@ -157,15 +158,15 @@ private:
 
 #define RECORD_SRCLOC()		(new SourceLocation(__FILE__, __FUNCTION__, __LINE__))
 
-class SourceLocation {
+class SourceLocation : public Writable {
 public:
 
-	SourceLocation(const char* filename, const char* funcname, int line, int column = 0)
-	: filename_(filename), funcname_(funcname), column_(column), line_(line)
+	SourceLocation(const char* filename, const char* funcname, int line, int column = 0, const char* imgname = "<unknown>")
+	: filename_(filename), funcname_(funcname), column_(column), line_(line), imgname_(imgname)
 	{}
 
-	SourceLocation(std::string filename, std::string funcname, int line, int column = 0)
-	: filename_(filename), funcname_(funcname), column_(column), line_(line)
+	SourceLocation(std::string filename, std::string funcname, int line, int column = 0, const char* imgname = "<unknown>")
+	: filename_(filename), funcname_(funcname), column_(column), line_(line), imgname_(imgname)
 	{}
 
 	~SourceLocation() {}
@@ -178,6 +179,11 @@ public:
 			s << filename_ << "(" << line_ << ":" << column_<< "): " << funcname_;
 		}
 		return s.str();
+	}
+
+	// override
+	void ToStream(FILE* file) {
+		fprintf(file, "%s", ToString().c_str());
 	}
 
 	SourceLocation* Clone() {
@@ -204,6 +210,7 @@ private:
 	DECL_FIELD(std::string, funcname)
 	DECL_FIELD(int, column)
 	DECL_FIELD(int, line)
+	DECL_FIELD(std::string, imgname)
 };
 
 /********************************************************************************/

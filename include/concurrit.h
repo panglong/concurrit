@@ -76,5 +76,6 @@ namespace concurrit {
 #include "modular.h"
 #include "yield.h"
 #include "dot.h"
+#include "pinmonitor.h"
 
 #endif /* COUNIT_H_ */

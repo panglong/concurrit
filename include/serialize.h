@@ -34,7 +34,7 @@
 #ifndef SERIALIZE_H_
 #define SERIALIZE_H_
 
-#include "concurrit.h"
+#include "common.h"
 
 namespace concurrit {
 
