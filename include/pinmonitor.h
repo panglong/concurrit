@@ -37,6 +37,8 @@
 
 #include "common.h"
 #include "sharedaccess.h"
+#include "predicate.h"
+#include "scenario.h"
 
 namespace concurrit {
 
@@ -52,10 +54,49 @@ public:
 	static PinMonitor* GetInstance();
 
 
+	MemoryCellBase* GetMemoryCell(void* addr, uint32_t size) {
+		switch(size) {
+		case 1:
+			return new MemoryCell<uint8_t>(static_cast<uint8_t*>(addr));
+		case 2:
+			return new MemoryCell<uint16_t>(static_cast<uint16_t*>(addr));
+		case 4:
+			return new MemoryCell<uint32_t>(static_cast<uint32_t*>(addr));
+		case 8:
+			return new MemoryCell<uint64_t>(static_cast<uint64_t*>(addr));
+		default:
+			safe_assert(false);
+			break;
+		}
+		return NULL;
+	}
+
+	SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell) {
+		return new SharedAccess(type, cell);
+	}
+
+	Scenario* GetScenario() {
+		return NULL;
+	}
+
+	/******************************************************************************************/
+
 	// callbacks
 	void MemWriteBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL) {
 		safe_assert(loc != NULL);
 		printf("Writing before %s\n", loc->ToString().c_str());
+
+		Scenario* scenario = GetScenario();
+		State* state = scenario->state();
+
+		state->P_BeforeMemWrite << tid << addr = true;
+
+		// TODO(elmas)
+		MemoryCellBase* cell = GetMemoryCell(addr, size);
+		SharedAccess* access = GetSharedAccess(WRITE_ACCESS, cell);
+
+
+		state->P_BeforeMemWrite << tid << addr = false;
 	}
 
 	void MemWriteAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL) {
