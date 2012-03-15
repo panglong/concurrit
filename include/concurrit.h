@@ -79,5 +79,6 @@ namespace concurrit {
 #include "predicate.h"
 #include "state.h"
 #include "modular.h"
+#include "dsl.h"
 
 #endif /* COUNIT_H_ */

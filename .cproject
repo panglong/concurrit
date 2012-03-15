@@ -57,6 +57,8 @@
 									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/source/tools/InstLib"/>
 									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/source/include/gen"/>
 									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/source/tools/threadlib"/>
+									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/ParLab/Boost/boost_1_48_0"/>
+									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/ParLab/Boost/boost_1_48_0/boost/smart_ptr"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1220291851" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>

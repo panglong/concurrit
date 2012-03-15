@@ -13,7 +13,7 @@ FLAGS=-g -Wall -Winline -fPIC -gdwarf-2 -O3 -fexceptions \
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux
 
-STD=#-std=c++0x
+STD=-std=c++0x
 
 all: makedirs $(CONCURRIT_LIBDIR)/$(TARGET).so
 
