@@ -32,13 +32,18 @@
  */
 
 
-#include "concurrit.h"
+#include "common.h"
 
 #ifndef YIELD_H_
 #define YIELD_H_
 
 namespace concurrit {
 
+class Scenario;
+class CoroutineGroup;
+class Coroutine;
+class SourceLocation;
+class SharedAccess;
 
 #define YIELD_SIGNATURE \
 SchedulePoint* Yield(Scenario* scenario, \

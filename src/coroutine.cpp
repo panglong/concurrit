@@ -165,7 +165,8 @@ void* Coroutine::Run() {
 			return_value = NULL;
 
 			CoroutineGroup* group = CHECK_NOTNULL(group_);
-			safe_assert(group != NULL);
+
+			Scenario* scenario = CHECK_NOTNULL(group->scenario());
 
 			// notify main about out startup
 			VLOG(2) << CO_TITLE << "Sending started message and waiting for a transfer.";
@@ -180,6 +181,9 @@ void* Coroutine::Run() {
 				return_value = call_function();
 
 				status_ = ENDED;
+
+				// update state
+				scenario->state()->P_Ended << coid_ = true;
 
 				// last yield
 				yield(ENDING_LABEL);

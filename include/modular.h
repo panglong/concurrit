@@ -35,6 +35,7 @@
 #define MODULAR_H_
 
 #include "common.h"
+#include "scenario.h"
 
 namespace concurrit {
 

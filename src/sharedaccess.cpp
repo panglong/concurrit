@@ -31,22 +31,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "concurrit.h"
+#include "sharedaccess.h"
 
 namespace concurrit {
 
 /********************************************************************************/
 
 class MemoryCell<bool>;
+
 class MemoryCell<short>;
 class MemoryCell<int>;
+
 class MemoryCell<long>;
 class MemoryCell<long long>;
+
 class MemoryCell<unsigned>;
 class MemoryCell<unsigned long>;
 class MemoryCell<unsigned long long>;
+
 class MemoryCell<float>;
 class MemoryCell<double>;
+
+class MemoryCell<uint8_t>;
+class MemoryCell<uint16_t>;
+class MemoryCell<uint32_t>;
+class MemoryCell<uint64_t>;
 
 /********************************************************************************/
 

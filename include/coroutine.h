@@ -35,7 +35,6 @@
 #define COROUTINE_H_
 
 #include "common.h"
-#include "schedule.h"
 #include "thread.h"
 #include "channel.h"
 #include "vc.h"

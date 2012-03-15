@@ -415,6 +415,9 @@ void Scenario::Start() {
 		schedule_->Restart();
 	}
 
+	// reset state
+	state_.Reset();
+
 	// reset vc tracker
 	vcTracker_.Restart();
 
@@ -424,7 +427,7 @@ void Scenario::Start() {
 
 	// reset statistics
 	statistics_->Reset();
-	statistics_->timer("Seach time").start();
+	statistics_->timer("Search time").start();
 }
 
 /********************************************************************************/
@@ -435,6 +438,9 @@ void Scenario::Restart() {
 	} else {
 		schedule_->Restart();
 	}
+
+	// reset state
+	state_.Reset();
 
 	// reset vc tracker
 	vcTracker_.Restart();

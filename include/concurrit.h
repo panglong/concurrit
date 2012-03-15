@@ -73,9 +73,11 @@ namespace concurrit {
 #include "scenario.h"
 #include "vc.h"
 #include "suite.h"
-#include "modular.h"
 #include "yield.h"
 #include "dot.h"
 #include "pinmonitor.h"
+#include "predicate.h"
+#include "state.h"
+#include "modular.h"
 
 #endif /* COUNIT_H_ */

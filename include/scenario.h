@@ -34,12 +34,23 @@
 #ifndef SCENARIO_H_
 #define SCENARIO_H_
 
+#include <boost/shared_ptr.hpp>
+#include <glog/logging.h>
+
 #include "common.h"
+#include "coroutine.h"
+#include "statistics.h"
 #include "yield.h"
+#include "state.h"
+#include "group.h"
+#include "until.h"
+#include "vc.h"
+#include "schedule.h"
 
 namespace concurrit {
 
 class YieldImpl;
+class Result;
 
 /*
  * represents a single test scenario
@@ -51,7 +62,7 @@ class YieldImpl;
 // exploration type
 enum ExploreType {FORALL, EXISTS};
 
-class Scenario : public YieldImpl{
+class Scenario : public YieldImpl {
 public:
 	explicit Scenario(const char* name);
 	virtual ~Scenario();
@@ -162,6 +173,9 @@ private:
 	DECL_FIELD(bool, dpor_enabled)
 
 	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
+
+	// current program state (predicates, functions etc.)
+	DECL_FIELD_REF(State, state)
 };
 
 } // end namespace

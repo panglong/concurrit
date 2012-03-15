@@ -109,7 +109,7 @@ typedef bool AccessType;
 #define READ_ACCESS false
 #define CONFLICTING(t1, t2) ((t1) || (t2))
 
-class SharedAccess {
+class SharedAccess : public Writable {
 public:
 	SharedAccess(AccessType type, MemoryCellBase* cell, const char* expr = "<unknown>", vctime_t time = 0)
 	: type_(type), cell_(cell), time_(time), expr_(expr)
@@ -128,6 +128,11 @@ public:
 		std::stringstream s;
 		s << (type_ == READ_ACCESS ? "Read(" : "Write(") << expr_ << " = " << mem() << ")@" << time_;
 		return s.str();
+	}
+
+	// override
+	void ToStream(FILE* file) {
+		fprintf(file, "%s", ToString().c_str());
 	}
 
 	inline bool is_read() { return type_ == READ_ACCESS; }
