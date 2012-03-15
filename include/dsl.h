@@ -119,6 +119,10 @@ public:
 
 class ChoiceNode : public ExecutionTree {
 public:
+	ChoiceNode() {
+		true_node_.store(NULL);
+		false_node_.store(NULL);
+	}
 
 private:
 	DECL_FIELD_GET(ExecutionTreeRef, true_node)
@@ -141,6 +145,9 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
+	TransitionNode() {
+		next_node_.store(NULL);
+	}
 
 private:
 	DECL_FIELD(DSLTransitionPredicate*, expr)
@@ -151,6 +158,9 @@ private:
 
 class TransferUntilNode : public ExecutionTree {
 public:
+	TransferUntilNode() {
+		next_node_.store(NULL);
+	}
 
 private:
 	DECL_FIELD(DSLTransitionPredicate*, expr)
@@ -168,6 +178,13 @@ public:
 #define REF_EMPTY(n) 	((n) == NULL)
 #define REF_LOCKED(n) 	((n) == (&lock_node_))
 #define REF_FULL(n) 	((n) == (&root_node_))
+
+	// operations by script
+
+
+
+
+	// operations by clients
 
 	// run by test threads to get the next transition node
 	ExecutionTree* AcquireNextTransition() {
