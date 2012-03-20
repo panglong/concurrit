@@ -60,6 +60,11 @@
 
 namespace concurrit {
 
+enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
+
+const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
+extern volatile bool IsInitialized;
+
 /********************************************************************************/
 
 #ifndef RESTRICT
@@ -193,6 +198,17 @@ typedef uintptr_t ADDRINT;
 #ifndef vctime_t
 typedef unsigned int vctime_t;
 #endif
+
+/********************************************************************************/
+
+inline void short_sleep(long nanoseconds) {
+	struct timespec tv;
+	tv.tv_sec = (time_t) 0;
+	tv.tv_nsec = nanoseconds;
+
+	int rval = nanosleep(&tv, &tv);
+	safe_assert (rval == 0);
+}
 
 /********************************************************************************/
 

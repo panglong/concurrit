@@ -41,7 +41,6 @@
 #include "coroutine.h"
 #include "statistics.h"
 #include "yield.h"
-#include "state.h"
 #include "group.h"
 #include "until.h"
 #include "vc.h"
@@ -97,10 +96,16 @@ public:
 
 	void OnException(std::exception* e);
 
+	// run before and after each controlled transition
+	void BeforeControlledTransition(Coroutine* current);
+	void AfterControlledTransition(Coroutine* current);
+
+
 	/*
 	 * Methods to be used in testcases to control the test scenario
 	 */
-	Coroutine* CreateThread(const char* name, ThreadEntryFunction function, void* arg);
+	Coroutine* CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool conc = false);
+	Coroutine* CreateThread(int id, ThreadEntryFunction function, void* arg, bool conc = false);
 
 	/* returns the same scenario for concatenating calls */
 	Scenario* Until(UntilCondition* until);
@@ -132,6 +137,8 @@ public:
 	inline SchedulePoint* do_yield(CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
 		return CHECK_NOTNULL(yield_impl_)->Yield(this, group, current, target, label, loc, access);
 	}
+
+	static Scenario* GetInstance();
 
 protected:
 
@@ -173,9 +180,6 @@ private:
 	DECL_FIELD(bool, dpor_enabled)
 
 	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
-
-	// current program state (predicates, functions etc.)
-	DECL_FIELD_REF(State, state)
 };
 
 } // end namespace

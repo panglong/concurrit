@@ -43,6 +43,7 @@ namespace concurrit {
 
 class CoroutineGroup;
 class SchedulePoint;
+class TransitionInfo;
 
 #define MAIN_NAME 	"main"
 
@@ -63,7 +64,7 @@ public:
 	explicit Coroutine(const char* name, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
 	virtual ~Coroutine();
 
-	void Start();
+	void Start(bool conc = false);
 	virtual void* Run();
 
 	void Restart();
@@ -113,6 +114,9 @@ private:
 	DECL_FIELD(SchedulePoint*, yield_point)
 
 	DECL_FIELD(VC, vc)
+
+	DECL_FIELD_REF(std::vector<TransitionInfo>, trinfolist)
+
 
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };

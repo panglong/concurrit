@@ -198,12 +198,12 @@ public:
 	bool IsUnknown() {
 		bool r = (line_ == 0);
 		safe_assert(!r || column_ == 0);
-		safe_assert(!r || filename_ == "");
+		safe_assert(!r || filename_ == "" || filename_ == "<unknown>");
 		return r;
 	}
 
 	bool operator ==(const SourceLocation& loc) const {
-		return (column_ == loc.column_) && (line_ == loc.line_) && (filename_ == loc.filename_);
+		return (column_ == loc.column_) && (line_ == loc.line_) && (filename_ == loc.filename_) && (funcname_ == loc.funcname_);
 	}
 
 	bool operator !=(const SourceLocation& loc) const {

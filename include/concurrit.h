@@ -48,7 +48,7 @@ namespace concurrit {
 #include <boost/shared_ptr.hpp>
 
 // GNU portable threads library
-#include "pth.h"
+// #include "pth.h"
 
 // pthreads library
 #include <pthread.h>
@@ -77,7 +77,6 @@ namespace concurrit {
 #include "dot.h"
 #include "pinmonitor.h"
 #include "predicate.h"
-#include "state.h"
 #include "modular.h"
 #include "dsl.h"
 

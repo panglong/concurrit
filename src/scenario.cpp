@@ -39,10 +39,16 @@ namespace concurrit {
 
 const char* CONCURRIT_HOME = NULL;
 
+volatile bool IsInitialized = false;
+
 void BeginCounit() {
+	safe_assert(IsInitialized == false);
+
+	printf("Initializing Concurrit\n");
+
 	// init pth
-	int pth_init_result = pth_init();
-	safe_assert(pth_init_result == TRUE);
+//	int pth_init_result = pth_init();
+//	safe_assert(pth_init_result == TRUE);
 
 	// init work dir
 	CONCURRIT_HOME = getenv("CONCURRIT_HOME");
@@ -53,17 +59,35 @@ void BeginCounit() {
 	Thread::init_tls_key();
 
 	CoroutineGroup::init_main();
+
+	do { // need a fence here
+		IsInitialized = true;
+	} while(false);
 }
 
 void EndCounit() {
+	safe_assert(IsInitialized == true);
+
+	printf("Finalizing Concurrit\n");
+
 	CoroutineGroup::delete_main();
 
 	Thread::delete_tls_key();
 
-	int pth_kill_result = pth_kill();
-	safe_assert(pth_kill_result == TRUE);
+//	int pth_kill_result = pth_kill();
+//	safe_assert(pth_kill_result == TRUE);
+
+	do { // need a fence here
+		IsInitialized = false;
+	} while(false);
 }
 
+ConcurritInitializer::ConcurritInitializer() {
+	BeginCounit();
+}
+ConcurritInitializer::~ConcurritInitializer() {
+	EndCounit();
+}
 
 /********************************************************************************/
 
@@ -107,6 +131,22 @@ Scenario::~Scenario() {
 
 /********************************************************************************/
 
+Scenario* Scenario::GetInstance() {
+	// get current coroutine
+	Coroutine* current = Coroutine::Current();
+	safe_assert(current != NULL);
+
+	CoroutineGroup* group = current->group();
+	safe_assert(group != NULL);
+
+	Scenario* scenario = group->scenario();
+	safe_assert(scenario != NULL);
+
+	return scenario;
+}
+
+/********************************************************************************/
+
 void Scenario::LoadScheduleFromFile(const char* filename) {
 	CHECK(filename != NULL) << "Filename is NULL!";
 	if(schedule_ == NULL) {
@@ -118,8 +158,13 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 }
 
 /********************************************************************************/
+Coroutine* Scenario::CreateThread(int id, ThreadEntryFunction function, void* arg, bool conc /*= false*/) {
+	char buff[MAX_THREAD_NAME_LENGTH];
+	sprintf(buff, "THR-%d", id);
+	return CreateThread(buff, function, arg, conc);
+}
 
-Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function, void* arg) {
+Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool conc /*= false*/) {
 	std::string strname = std::string(name);
 	Coroutine* co = group_.GetMember(strname);
 	if(co == NULL) {
@@ -127,7 +172,8 @@ Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function
 		VLOG(2) << SC_TITLE << "Creating new coroutine " << name;
 		co = new Coroutine(name, function, arg);
 		group_.AddMember(co);
-		co->Start(); // start it. waits until a transfer happens.
+		// start it. in the usual case, waits until a transfer happens. if conc, then does not wait, but runs concurrently
+		co->Start(conc);
 	} else {
 		VLOG(2) << SC_TITLE << "Re-creating new coroutine " << name;
 		if(co->status() <= PASSIVE) {
@@ -138,6 +184,7 @@ Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function
 		co->set_entry_function(function);
 		co->set_entry_arg(arg);
 	}
+
 	return co;
 }
 
@@ -415,9 +462,6 @@ void Scenario::Start() {
 		schedule_->Restart();
 	}
 
-	// reset state
-	state_.Reset();
-
 	// reset vc tracker
 	vcTracker_.Restart();
 
@@ -438,9 +482,6 @@ void Scenario::Restart() {
 	} else {
 		schedule_->Restart();
 	}
-
-	// reset state
-	state_.Reset();
 
 	// reset vc tracker
 	vcTracker_.Restart();
@@ -738,10 +779,9 @@ SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
 	CoroutineGroup group = group_;
 
 	// get current coroutine
-	Coroutine* current = group.current();
+	Coroutine* current = Coroutine::Current();
 	// sanity checks
 	safe_assert(current != NULL);
-	safe_assert(current == Coroutine::Current());
 
 	if(target != NULL) {
 		safe_assert(group.GetMember(target->name()) == target);
@@ -911,7 +951,7 @@ SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAcc
 /********************************************************************************/
 
 void Scenario::ExhaustiveSearch() {
-	safe_assert(group_.current() == group_.main());
+//	safe_assert(group_.current() == group_.main());
 
 	TEST_FORALL();
 
@@ -921,7 +961,7 @@ void Scenario::ExhaustiveSearch() {
 }
 
 void Scenario::ContextBoundedExhaustiveSearch(int C) {
-	safe_assert(group_.current() == group_.main());
+//	safe_assert(group_.current() == group_.main());
 	CHECK(C > 0) << "Context bound must be > 0";
 
 	TEST_FORALL();
@@ -941,7 +981,7 @@ void Scenario::ContextBoundedExhaustiveSearch(int C) {
 }
 
 void Scenario::NDSeqSearch() {
-	safe_assert(group_.current() == group_.main());
+//	safe_assert(group_.current() == group_.main());
 
 	TEST_FORALL();
 
@@ -1014,6 +1054,24 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 	return target_point; // means did not transfer to another thread
 }
 
+/********************************************************************************/
+
+// program state should be updated before this point
+void Scenario::BeforeControlledTransition(Coroutine* current) {
+
+	printf("Before controlled transition by %s\n", current->name().c_str());
+
+
+
+}
+
+void Scenario::AfterControlledTransition(Coroutine* current) {
+
+	printf("After controlled transition by %s\n", current->name().c_str());
+
+	// remove all transition info records
+	current->trinfolist()->clear();
+}
 
 
 } // end namespace

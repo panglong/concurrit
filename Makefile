@@ -13,16 +13,14 @@ FLAGS=-g -Wall -Winline -fPIC -gdwarf-2 -O3 -fexceptions \
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux
 
-STD=-std=c++0x
-
 all: makedirs $(CONCURRIT_LIBDIR)/$(TARGET).so
 
 $(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
-	g++ $(CONCURRIT_LIB_FLAGS) $(STD) $(DEFINES) $(FLAGS) -shared -o $@ $^
+	g++ $(CONCURRIT_LIB_FLAGS) $(CONCURRIT_C_STD) $(DEFINES) $(FLAGS) -shared -o $@ $^
 	ar rcs $(CONCURRIT_LIBDIR)/$(TARGET).a $^
 
 $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
-	g++ $(CONCURRIT_INC_FLAGS) $(STD) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
+	g++ $(CONCURRIT_INC_FLAGS) $(CONCURRIT_C_STD) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
 	
 makedirs:
 	mkdir -p $(CONCURRIT_BINDIR)

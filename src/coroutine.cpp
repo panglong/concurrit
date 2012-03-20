@@ -88,7 +88,7 @@ Coroutine* Coroutine::Current() {
 	Coroutine* co = ASINSTANCEOF(Thread::Current(), Coroutine*);
 	safe_assert(co != NULL);
 
-	safe_assert(co->group_ == NULL || co->group_->current() == co);
+//	safe_assert(co->group_ == NULL || co->group_->CheckCurrent(co));
 
 	return co;
 }
@@ -124,7 +124,7 @@ void Coroutine::Finish() {
 
 /********************************************************************************/
 
-void Coroutine::Start() {
+void Coroutine::Start(bool conc /*= false*/) {
 	safe_assert(yield_point_ == NULL);
 
 	Channel<MessageType>::BeginAtomic();
@@ -140,6 +140,7 @@ void Coroutine::Start() {
 
 	// check if this is the main (for now only main can start coroutines)
 	safe_assert(Coroutine::Current() == group_->main());
+
 	// wait for started message
 	VLOG(2) << CO_TITLE << "Waiting the thread to start";
 	MessageType msg = channel_.WaitReceive();
@@ -147,6 +148,12 @@ void Coroutine::Start() {
 	VLOG(2) << CO_TITLE << "Got start signal from the thread";
 
 	Channel<MessageType>::EndAtomic();
+
+	// if conc == true, then send a non-waiting transfer message to run the new coroutine concurrently
+	if(conc) {
+		MessageType msg = MSG_TRANSFER;
+		channel_.SendNoWait(msg);
+	}
 }
 
 /********************************************************************************/
@@ -182,11 +189,13 @@ void* Coroutine::Run() {
 
 				status_ = ENDED;
 
-				// update state
-				scenario->state()->P_Ended << coid_ = true;
-
 				// last yield
-				yield(ENDING_LABEL);
+				if(ConcurritExecutionMode == COOPERATIVE) {
+					yield(ENDING_LABEL);
+				} else {
+					msg = channel_.WaitReceive();
+					HandleMessage(msg);
+				}
 
 			} catch(std::exception* e) {
 				// record the exception in scenario
@@ -228,10 +237,10 @@ void Coroutine::Transfer(Coroutine* target, MessageType msg /*=MSG_TRANSFER*/) {
 
 	CoroutineGroup* group = this->group();
 	safe_assert(group != NULL);
-	safe_assert(group->current() == this);
+//	safe_assert(group->current() == this);
 
 	// update current to target
-	group->set_current(target);
+//	group->set_current(target);
 
 	// send-receive main
 	msg = this->channel()->SendWaitReceive(target->channel(), msg);

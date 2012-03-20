@@ -202,6 +202,17 @@ extern void BeginStrand(const char* name);
 extern void BeginCounit();
 extern void EndCounit();
 
+/********************************************************************************/
+
+class ConcurritInitializer {
+public:
+	ConcurritInitializer();
+	~ConcurritInitializer();
+};
+
+#define INIT_CONCURRIT()	static ConcurritInitializer __concurrit__initializer__
+
+/********************************************************************************/
 
 } // end namespace
 

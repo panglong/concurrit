@@ -37,96 +37,70 @@
 
 #include "common.h"
 #include "sharedaccess.h"
-#include "predicate.h"
-#include "scenario.h"
+
+#define MAX_THREADS 2048
 
 namespace concurrit {
+
+class Coroutine;
 
 /// class to handle pin events
 class PinMonitor {
 private:
 	static PinMonitor* instance_;
-	PinMonitor(){}
+	PinMonitor(){
+		Reset();
+	}
+
+	void Reset();
+
+	Coroutine* GetCoroutineByTid(THREADID tid);
 
 public:
 	~PinMonitor(){}
 
 	static PinMonitor* GetInstance();
 
-
-	MemoryCellBase* GetMemoryCell(void* addr, uint32_t size) {
-		switch(size) {
-		case 1:
-			return new MemoryCell<uint8_t>(static_cast<uint8_t*>(addr));
-		case 2:
-			return new MemoryCell<uint16_t>(static_cast<uint16_t*>(addr));
-		case 4:
-			return new MemoryCell<uint32_t>(static_cast<uint32_t*>(addr));
-		case 8:
-			return new MemoryCell<uint64_t>(static_cast<uint64_t*>(addr));
-		default:
-			safe_assert(false);
-			break;
-		}
-		return NULL;
-	}
-
-	SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell) {
-		return new SharedAccess(type, cell);
-	}
-
-	Scenario* GetScenario() {
-		return NULL;
-	}
+	MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
+	SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);
 
 	/******************************************************************************************/
 
 	// callbacks
-	void MemWriteBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL) {
-		safe_assert(loc != NULL);
-		printf("Writing before %s\n", loc->ToString().c_str());
+	void MemWriteBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void MemWriteAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void MemReadBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void MemReadAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void FuncCall(THREADID threadid, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
+	void FuncEnter(THREADID threadid, void* addr, SourceLocation* loc);
+	void FuncReturn(THREADID threadid, void* addr, SourceLocation* loc, ADDRINT retval);
 
-		Scenario* scenario = GetScenario();
-		State* state = scenario->state();
-
-		state->P_BeforeMemWrite << tid << addr = true;
-
-		// TODO(elmas)
-		MemoryCellBase* cell = GetMemoryCell(addr, size);
-		SharedAccess* access = GetSharedAccess(WRITE_ACCESS, cell);
-
-
-		state->P_BeforeMemWrite << tid << addr = false;
-	}
-
-	void MemWriteAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL) {
-		safe_assert(loc != NULL);
-		printf("Writing after %s\n", loc->ToString().c_str());
-	}
-
-	void MemReadBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL) {
-		safe_assert(loc != NULL);
-		printf("Reading before %s\n", loc->ToString().c_str());
-	}
-
-	void MemReadAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL) {
-		safe_assert(loc != NULL);
-		printf("Reading after %s\n", loc->ToString().c_str());
-	}
-
-	void FuncCall(THREADID threadid, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target) {
-		printf("Calling before: %s\n", loc_target->funcname().c_str());
-	}
-
-	void FuncEnter(THREADID threadid, void* addr, SourceLocation* loc) {
-		printf("Entering: %s\n", loc->funcname().c_str());
-	}
-
-	void FuncReturn(THREADID threadid, void* addr, SourceLocation* loc, ADDRINT retval) {
-		printf("Returning: %s\n", loc->funcname().c_str());
-	}
-
+private:
+	Coroutine* tid_to_coroutine_[MAX_THREADS];
 };
+
+typedef uint32_t PinMonitorCallType;
+const PinMonitorCallType
+	MemWriteBefore = 1,
+	MemWriteAfter = 2,
+	MemReadBefore = 3,
+	MemReadAfter = 4,
+	FuncCall = 5,
+	FuncEnter = 6,
+	FuncReturn = 7;
+
+struct PinMonitorCallInfo {
+	PinMonitorCallType type;
+	THREADID threadid;
+	void* addr;
+	uint32_t size;
+	bool direct;
+	SourceLocation* loc_src;
+	SourceLocation* loc_target;
+	ADDRINT retval;
+};
+
+extern "C" void CallPinMonitor(PinMonitorCallInfo* call_info);
 
 } // end namespace
 

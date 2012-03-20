@@ -86,13 +86,15 @@ public:
 	 */
 	bool IsAllEnded();
 
+//	bool CheckCurrent(Coroutine* current);
+
 protected:
 	static void init_main();
 	static void delete_main();
 
 private:
 	DECL_FIELD(Scenario*, scenario)
-	DECL_FIELD(Coroutine*, current)
+	//DECL_FIELD(Coroutine*, current)
 	DECL_STATIC_FIELD(Coroutine*, main)
 	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD(THREADID, next_coid)

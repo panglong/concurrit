@@ -42,11 +42,12 @@
 
 namespace concurrit {
 
-
 enum TPVALUE { TPTRUE = 1, TPFALSE = 0, TPUNKNOWN = -1 };
 
 class DSLTransitionPredicate {
 public:
+	DSLTransitionPredicate() {}
+	virtual ~DSLTransitionPredicate() {}
 	virtual TPVALUE EvalPreState() = 0;
 	virtual bool EvalPostState() = 0;
 };
@@ -74,10 +75,60 @@ typedef std::atomic<ExecutionTree*> ExecutionTreeRef;
 class ExecutionTree {
 public:
 	ExecutionTree(){}
-	virtual ~ExecutionTree(){}
+	virtual ~ExecutionTree(){
+		delete children_;
+	}
+
+	void InitChildren(size_t n) {
+		children_ = new ExecutionTreeRef[n];
+		for(size_t i = 0; i < n; ++i) {
+			SetChild(i, NULL);
+		}
+		num_children_ = n;
+	}
+
+	inline ExecutionTreeRef* GetChildRef(size_t i = 0) {
+		safe_assert(BETWEEN(0, i, num_children_-1));
+		return &children_[i];
+	}
+
+	inline ExecutionTree* GetChildAtomic(size_t i) {
+		safe_assert(BETWEEN(0, i, num_children_-1));
+		return children_[i].load();
+	}
+
+	inline ExecutionTree* GetChild(size_t i) {
+		safe_assert(BETWEEN(0, i, num_children_-1));
+		return children_[i].load(std::memory_order_relaxed);
+	}
+
+	inline void SetChildAtomic(size_t i, ExecutionTree* n) {
+		safe_assert(BETWEEN(0, i, num_children_-1));
+		children_[i].store(n);
+	}
+
+	inline void SetChild(size_t i, ExecutionTree* n) {
+		safe_assert(BETWEEN(0, i, num_children_-1));
+		children_[i].store(n, std::memory_order_relaxed);
+	}
+
+	void AddChild() {
+		ExecutionTreeRef* children = children_;
+		size_t n = num_children_;
+		children_ = new ExecutionTreeRef[n+1];
+		for(size_t i = 0; i < n; ++i) {
+			SetChild(i, children[i].load(std::memory_order_relaxed));
+		}
+		SetChild(n, NULL);
+		num_children_ ++;
+
+		delete children;
+	}
 
 private:
 	DECL_FIELD(ExecutionTree*, parent)
+	DECL_FIELD(ExecutionTreeRef*, children)
+	DECL_FIELD(size_t, num_children)
 
 	friend class ExecutionTreeManager;
 };
@@ -87,12 +138,10 @@ private:
 class RootNode : public ExecutionTree {
 public:
 	RootNode() {
-		next_node_.store(NULL);
+		InitChildren(1);
 	}
 
 private:
-	DECL_FIELD_GET(ExecutionTreeRef, next_node)
-
 	friend class ExecutionTreeManager;
 };
 
@@ -120,13 +169,10 @@ public:
 class ChoiceNode : public ExecutionTree {
 public:
 	ChoiceNode() {
-		true_node_.store(NULL);
-		false_node_.store(NULL);
+		InitChildren(2);
 	}
 
 private:
-	DECL_FIELD_GET(ExecutionTreeRef, true_node)
-	DECL_FIELD_GET(ExecutionTreeRef, false_node)
 };
 
 
@@ -134,10 +180,10 @@ private:
 
 class SelectThreadNode : public ExecutionTree {
 public:
-	typedef std::map<THREADID, ExecutionTreeRef*> TidToNodeMap;
+	typedef std::map<THREADID, size_t> TidToIdxMap;
 
 private:
-	DECL_FIELD_REF(TidToNodeMap, tidToNodeMap)
+	DECL_FIELD_REF(TidToIdxMap, tidToIdxMap)
 
 };
 
@@ -146,12 +192,11 @@ private:
 class TransitionNode : public ExecutionTree {
 public:
 	TransitionNode() {
-		next_node_.store(NULL);
+		InitChildren(1);
 	}
 
 private:
 	DECL_FIELD(DSLTransitionPredicate*, expr)
-	DECL_FIELD_GET(ExecutionTreeRef, next_node)
 };
 
 /********************************************************************************/
@@ -159,12 +204,11 @@ private:
 class TransferUntilNode : public ExecutionTree {
 public:
 	TransferUntilNode() {
-		next_node_.store(NULL);
+		InitChildren(1);
 	}
 
 private:
 	DECL_FIELD(DSLTransitionPredicate*, expr)
-	DECL_FIELD_GET(ExecutionTreeRef, next_node)
 };
 
 /********************************************************************************/
@@ -172,7 +216,7 @@ private:
 class ExecutionTreeManager {
 public:
 	ExecutionTreeManager() {
-		current_ref_.store(&root_node_.next_node_);
+		current_ref_.store(root_node_.GetChildRef());
 	}
 
 #define REF_EMPTY(n) 	((n) == NULL)
@@ -180,7 +224,20 @@ public:
 #define REF_FULL(n) 	((n) == (&root_node_))
 
 	// operations by script
-
+	void PutNextTransition(ExecutionTree* node) {
+		// wait until current_ref is not empty
+		while(true) {
+			ExecutionTreeRef* current_ref = current_ref_.load();
+			safe_assert(current_ref != NULL);
+			ExecutionTree* tmp = current_ref->load();
+			if(REF_EMPTY(tmp)) {
+				// store new node
+				contained_node_ = node;
+				current_ref->store(&root_node_);
+			}
+			Thread::Yield(true);
+		}
+	}
 
 
 
@@ -197,13 +254,13 @@ public:
 				if(REF_EMPTY(node)) {
 					// put node back
 					current_ref->store(node);
-					// TODO(elmas): wait/sleep
+					Thread::Yield(true);
 					continue;
 				}
 				else
 				if(REF_LOCKED(node)) {
 					// retry
-					// TODO(elmas): wait/sleep
+					Thread::Yield(true);
 					continue;
 				}
 				else
@@ -219,7 +276,7 @@ public:
 					// put node back
 					current_ref->store(node);
 					// re-read current_ref
-					// TODO(elmas): sleep
+					Thread::Yield(true);
 					break;
 				}
 			}
@@ -259,8 +316,28 @@ private:
 	DECL_FIELD_GET(LockNode, lock_node)
 	DECL_FIELD_GET(ExecutionTree*, contained_node)
 	DECL_FIELD_GET(std::atomic<ExecutionTreeRef*>, current_ref)
+
+	DECL_FIELD(Mutex, mutex)
+	DECL_FIELD(ConditionVar, cv)
 };
 
+/********************************************************************************/
+
+enum TransitionConst {
+	MEM_READ, MEM_WRITE,
+	ENDING
+};
+
+// class storing information about a single transition
+class TransitionInfo {
+public:
+	TransitionInfo(TransitionConst type, void* arg = NULL):
+		type_(type), arg_(arg) {}
+	~TransitionInfo(){}
+private:
+	DECL_FIELD(TransitionConst, type)
+	DECL_FIELD(void*, arg)
+};
 
 } // namespace
 

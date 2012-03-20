@@ -65,7 +65,7 @@ void CoroutineGroup::delete_main() {
 CoroutineGroup:: CoroutineGroup() {
 	// initialize main coroutine, (main is not added to the list of members)
 	safe_assert(main_ != NULL);
-	current_ = main_;
+//	current_ = main_;
 	main_->set_group(this);
 	scenario_ = NULL;
 	next_coid_ = 1;
@@ -76,7 +76,7 @@ CoroutineGroup:: CoroutineGroup() {
 CoroutineGroup:: CoroutineGroup(Scenario* scenario) {
 	// initialize main coroutine, (main is not added to the list of members)
 	safe_assert(main_ != NULL);
-	current_ = main_;
+//	current_ = main_;
 	main_->set_group(this);
 	scenario_ = scenario;
 	next_coid_ = 1;
@@ -199,6 +199,15 @@ bool CoroutineGroup::IsAllEnded() {
 	}
 	return true;
 }
+
+/********************************************************************************/
+
+//bool CoroutineGroup::CheckCurrent(Coroutine* current) {
+//	if(ConcurritExecutionMode == SINGLE_RUNNER) {
+//		return current_ == current;
+//	}
+//	return true;
+//}
 
 /********************************************************************************/
 
