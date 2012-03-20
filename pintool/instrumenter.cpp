@@ -45,10 +45,11 @@
 
 using namespace INSTLIB;
 
-#include "tbb/concurrent_hash_map.h"
+#include "common.h"
 #include "timer.h"
 #include "sharedaccess.h"
 #include "pinmonitor.h"
+#include "tbb/concurrent_hash_map.h"
 
 /* ===================================================================== */
 /* Commandline Switches */
@@ -101,13 +102,10 @@ VOID ShowN(UINT32 n, VOID *ea) {
 /* Global Variables */
 /* ===================================================================== */
 
-concurrit::PinMonitor* monitor = concurrit::PinMonitor::GetInstance();
-
-LOCALVAR BOOL enabled = FALSE;
 LOCALVAR FILTER filter;
 LOCALVAR concurrit::Timer timer("Pin running time");
 
-LOCALVAR CONTROL control;
+//LOCALVAR CONTROL control;
 LOCALVAR SKIPPER skipper;
 LOCALVAR TLS_KEY tls_key;
 
@@ -115,6 +113,22 @@ LOCALVAR PIN_LOCK lock;
 #define GLB_LOCK_INIT()		InitLock(&lock)
 #define GLB_LOCK()			GetLock(&lock, 1)
 #define GLB_UNLOCK()		ReleaseLock(&lock)
+
+/* ===================================================================== */
+
+typedef void (*NativePinMonitorFunType)(concurrit::PinMonitorCallInfo*);
+static AFUNPTR NativePinMonitorFunPtr = NULL;
+static const char* NativePinMonitorFunName = "CallPinMonitor"; // _ZN9concurrit14CallPinMonitorEPNS_18PinMonitorCallInfoE
+
+LOCALFUN VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::PinMonitorCallInfo* info) {
+	if(NativePinMonitorFunPtr != NULL) {
+
+//		reinterpret_cast<NativePinMonitorFunType>(NativePinMonitorFunPtr)(info);
+		PIN_CallApplicationFunction(ctxt, tid,
+			CALLINGSTD_CDECL, AFUNPTR(NativePinMonitorFunPtr),
+			PIN_PARG(void), PIN_PARG(concurrit::PinMonitorCallInfo*), (info), PIN_PARG_END());
+	}
+}
 
 /* ===================================================================== */
 
@@ -156,13 +170,17 @@ public:
 	}
 
 	PinSourceLocation(RTN rtn, ADDRINT address)
-	: SourceLocation("<unknown", "<unknown", -1, -1, "<unknown")
+	: SourceLocation("<unknown>", "<unknown>", -1, -1, "<unknown>")
 	{
 		address_ = address;
 
 		PIN_LockClient();
 		PIN_GetSourceLocation(address_, &column_, &line_, &filename_);
 		PIN_UnlockClient();
+
+		if(filename_ == "") {
+			filename_ = "<unknown>";
+		}
 
 		if (RTN_Valid(rtn))
 		{
@@ -185,34 +203,52 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
-VOID PIN_FAST_ANALYSIS_CALL
-FuncCall(THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
+VOID // PIN_FAST_ANALYSIS_CALL
+FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		ADDRINT target, ADDRINT arg0, ADDRINT arg1) {
-	if (!enabled)
-		return;
 
 	PinSourceLocation* loc_target = PinSourceLocation::get(target);
 
-	monitor->FuncCall(threadid, loc_target->pointer(), direct, loc_src, loc_target);
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::FuncCall;
+	info.threadid = threadid;
+	info.addr = loc_target->pointer();
+	info.direct = direct;
+	info.loc_src = loc_src;
+	info.loc_target = loc_target;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+	// monitor->FuncCall(threadid, loc_target->pointer(), direct, loc_src, loc_target);
 }
 
 /* ===================================================================== */
 
-VOID PIN_FAST_ANALYSIS_CALL
-FuncEnter(THREADID threadid, PinSourceLocation* loc,
+VOID // PIN_FAST_ANALYSIS_CALL
+FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 		ADDRINT arg0, ADDRINT arg1) {
-	if (!enabled)
-		return;
 
-	monitor->FuncEnter(threadid, loc->pointer(), loc);
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::FuncEnter;
+	info.threadid = threadid;
+	info.addr = loc->pointer();
+	info.loc_src = loc;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+	// monitor->FuncEnter(threadid, loc->pointer(), loc);
 }
 
-VOID PIN_FAST_ANALYSIS_CALL
-FuncReturn(THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
-	if (!enabled)
-		return;
+VOID // PIN_FAST_ANALYSIS_CALL
+FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
 
-	monitor->FuncReturn(threadid, loc->pointer(), loc, ret0);
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::FuncReturn;
+	info.threadid = threadid;
+	info.addr = loc->pointer();
+	info.loc_src = loc;
+	info.retval = ret0;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+	// monitor->FuncReturn(threadid, loc->pointer(), loc, ret0);
 }
 
 /* ===================================================================== */
@@ -231,85 +267,109 @@ INLINE VOID CaptureAddrSize(THREADID threadid, VOID * addr, UINT32 size) {
 
 /* ===================================================================== */
 
-VOID PIN_FAST_ANALYSIS_CALL
-MemWriteBefore(THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 size) {
-	if (!enabled)
-		return;
+VOID // PIN_FAST_ANALYSIS_CALL
+MemWriteBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 size) {
 
 	CaptureAddrSize(threadid, addr, size);
 
-	monitor->MemWriteBefore(threadid, addr, size, loc);
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::MemWriteBefore;
+	info.threadid = threadid;
+	info.addr = addr;
+	info.size = size;
+	info.loc_src = loc;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+	// monitor->MemWriteBefore(threadid, addr, size, loc);
 
 }
 
-VOID PIN_FAST_ANALYSIS_CALL
-MemWriteAfter(THREADID threadid, PinSourceLocation* loc) {
-	if (!enabled)
-		return;
+VOID // PIN_FAST_ANALYSIS_CALL
+MemWriteAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 
 	VOID * addr = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
 
-	monitor->MemWriteAfter(threadid, addr, size, loc);
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::MemWriteAfter;
+	info.threadid = threadid;
+	info.addr = addr;
+	info.size = size;
+	info.loc_src = loc;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+	// monitor->MemWriteAfter(threadid, addr, size, loc);
 }
 
 /* ===================================================================== */
 
-VOID PIN_FAST_ANALYSIS_CALL
-MemReadBefore(THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 size) {
-	if (!enabled)
-		return;
+VOID // PIN_FAST_ANALYSIS_CALL
+MemReadBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, VOID * addr, UINT32 size) {
 
 	CaptureAddrSize(threadid, addr, size);
 
-	monitor->MemReadBefore(threadid, addr, size, loc);
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::MemReadBefore;
+	info.threadid = threadid;
+	info.addr = addr;
+	info.size = size;
+	info.loc_src = loc;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+	// monitor->MemReadBefore(threadid, addr, size, loc);
 }
 
-VOID PIN_FAST_ANALYSIS_CALL
-MemReadAfter(THREADID threadid, PinSourceLocation* loc) {
-	if (!enabled)
-		return;
+VOID // PIN_FAST_ANALYSIS_CALL
+MemReadAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 
 	VOID * addr = AddrSizePairs[threadid].addr;
 	UINT32 size = AddrSizePairs[threadid].size;
 
-	monitor->MemReadAfter(threadid, addr, size, loc);
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::MemWriteAfter;
+	info.threadid = threadid;
+	info.addr = addr;
+	info.size = size;
+	info.loc_src = loc;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+	// monitor->MemReadAfter(threadid, addr, size, loc);
 }
 
 /* ===================================================================== */
 
-LOCALFUN VOID Fini(INT32 code, VOID *v);
-
-LOCALFUN VOID Handler(CONTROL_EVENT ev, VOID *, CONTEXT * ctxt, VOID *,
-		THREADID) {
-	switch (ev) {
-	case CONTROL_START:
-		enabled = TRUE;
-		PIN_RemoveInstrumentation();
-#if defined(TARGET_IA32) || defined(TARGET_IA32E)
-		// So that the rest of the current trace is re-instrumented.
-		if (ctxt) PIN_ExecuteAt (ctxt);
-#endif   
-		break;
-
-	case CONTROL_STOP:
-		enabled = FALSE;
-		PIN_RemoveInstrumentation();
-		if (KnobEarlyOut) {
-			cerr << "Exiting due to -early_out" << endl;
-			Fini(0, NULL);
-			exit(0);
-		}
-#if defined(TARGET_IA32) || defined(TARGET_IA32E)
-		// So that the rest of the current trace is re-instrumented.
-		if (ctxt) PIN_ExecuteAt (ctxt);
-#endif   
-		break;
-
-	default:
-		ASSERTX(FALSE);
-	}
-}
+//LOCALFUN VOID Fini(INT32 code, VOID *v);
+//
+//LOCALFUN VOID Handler(CONTROL_EVENT ev, VOID *, CONTEXT * ctxt, VOID *,
+//		THREADID) {
+//	switch (ev) {
+//	case CONTROL_START:
+//		enabled = TRUE;
+//		PIN_RemoveInstrumentation();
+//#if defined(TARGET_IA32) || defined(TARGET_IA32E)
+//		// So that the rest of the current trace is re-instrumented.
+//		if (ctxt) PIN_ExecuteAt (ctxt);
+//#endif
+//		break;
+//
+//	case CONTROL_STOP:
+//		enabled = FALSE;
+//		PIN_RemoveInstrumentation();
+//		if (KnobEarlyOut) {
+//			cerr << "Exiting due to -early_out" << endl;
+//			Fini(0, NULL);
+//			exit(0);
+//		}
+//#if defined(TARGET_IA32) || defined(TARGET_IA32E)
+//		// So that the rest of the current trace is re-instrumented.
+//		if (ctxt) PIN_ExecuteAt (ctxt);
+//#endif
+//		break;
+//
+//	default:
+//		ASSERTX(FALSE);
+//	}
+//}
 
 /* ===================================================================== */
 
@@ -328,11 +388,23 @@ LOCALFUN void InitFilteredImages() {
 	FilteredImages.push_back("libattr.so");
 	FilteredImages.push_back("libpthread.so");
 	FilteredImages.push_back("ld-linux.so");
+	FilteredImages.push_back("ld-linux-x86-64.so");
+
+	FilteredImages.push_back("libconcurrit.so");
+	FilteredImages.push_back("libgflags.so");
+	FilteredImages.push_back("libglog.so");
 }
 
 /* ===================================================================== */
 
+static volatile bool has_main_loaded = false;
+
 LOCALFUN BOOL IsImageFiltered(IMG img, BOOL loading = FALSE) {
+	if(loading && !has_main_loaded) {
+		has_main_loaded = true;
+		return TRUE;
+	}
+
 	UINT32 img_id = IMG_Id(img);
 	if(FilteredImageIds.find(img_id) != FilteredImageIds.end()) {
 		return TRUE;
@@ -343,6 +415,26 @@ LOCALFUN BOOL IsImageFiltered(IMG img, BOOL loading = FALSE) {
 	string img_name = IMG_Name(img);
 	for(std::vector<string>::iterator itr = FilteredImages.begin(); itr < FilteredImages.end(); ++itr) {
 		if(img_name.find(*itr) != string::npos) {
+
+			/* ================================= */
+			if (NativePinMonitorFunPtr == NULL && *itr == "libconcurrit.so") {
+				for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
+				{
+					for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
+					{
+						if(RTN_Name(rtn) == NativePinMonitorFunName) {
+							RTN_Open(rtn);
+							NativePinMonitorFunPtr = RTN_Funptr(rtn);
+							RTN_Close(rtn);
+							cout << "Detected callback CallPinMonitor !" << endl;
+							goto DONE;
+						}
+					}
+				}
+				ASSERTX(NativePinMonitorFunPtr != NULL);
+			}
+			/* ================================= */
+DONE:
 			FilteredImageIds.insert(img_id);
 			return TRUE;
 		}
@@ -368,23 +460,25 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 	// filter out standard libraries
 	// also updates filtered image ids
 	if(IsImageFiltered(img, TRUE)) {
-		cout << "Filtering image: " << IMG_Name(img) << endl;
+		cout << "--- IMG --- " << IMG_Name(img) << endl;
 		return;
 	}
 
-	cout << "Loading image: " << IMG_Name(img) << endl;
+	cout << "+++ IMG +++ " << IMG_Name(img) << endl;
+
 
 	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
 	{
 		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
 		{
-			cout << "Loading routine: " << RTN_Name(rtn) << endl;
+			cout << "\t+++ RTN +++ " << RTN_Name(rtn) << endl;
 
 			RTN_Open(rtn);
 
 			PinSourceLocation* loc = PinSourceLocation::get(rtn);
 
-			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
+			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), // IARG_FAST_ANALYSIS_CALL,
+					   IARG_CONTEXT,
 					   IARG_THREAD_ID, IARG_PTR, loc,
 					   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 					   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
@@ -413,7 +507,8 @@ VOID CallTrace(TRACE trace, INS ins) {
 			// Indirect call
 			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
 
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), // IARG_FAST_ANALYSIS_CALL,
+					IARG_CONTEXT,
 					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
 					IARG_BRANCH_TARGET_ADDR,
 					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
@@ -424,7 +519,8 @@ VOID CallTrace(TRACE trace, INS ins) {
 
 			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
 
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), // IARG_FAST_ANALYSIS_CALL,
+					IARG_CONTEXT,
 					IARG_THREAD_ID, IARG_PTR, TRUE, IARG_PTR, loc,
 					IARG_ADDRINT, target,
 					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
@@ -438,7 +534,8 @@ VOID CallTrace(TRACE trace, INS ins) {
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_debug_state") return;
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
-		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
 	}
 }
@@ -451,15 +548,18 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	if (INS_IsMemoryWrite(ins)) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWriteBefore), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWriteBefore), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
 
 		if (INS_HasFallThrough(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemWriteAfter), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemWriteAfter), // IARG_FAST_ANALYSIS_CALL,
+					IARG_CONTEXT,
 					IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 		if (INS_IsBranchOrCall(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemWriteAfter), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemWriteAfter), // IARG_FAST_ANALYSIS_CALL,
+					IARG_CONTEXT,
 					IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 	}
@@ -468,15 +568,18 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	if (INS_HasMemoryRead2(ins)) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 
 		if (INS_HasFallThrough(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 		if (INS_IsBranchOrCall(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 	}
@@ -485,15 +588,18 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins)) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 
 		if (INS_HasFallThrough(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemReadAfter), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 		if (INS_IsBranchOrCall(ins)) {
-			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemReadAfter), // IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 		}
 	}
@@ -502,9 +608,6 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 /* ===================================================================== */
 
 VOID Trace(TRACE trace, VOID *v) {
-	if (!enabled)
-		return;
-
 	if (!filter.SelectTrace(trace))
 		return;
 
@@ -641,7 +744,7 @@ int main(int argc, CHAR *argv[]) {
 		return Usage();
 	}
 
-	control.CheckKnobs(Handler, 0);
+//	control.CheckKnobs(Handler, 0);
 	skipper.CheckKnobs(0);
 
 	InitFilteredImages();
