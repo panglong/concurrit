@@ -51,7 +51,7 @@ enum MessageType {MSG_STARTED = 1, MSG_TRANSFER = 2, MSG_RESTART = 3, MSG_TERMIN
 
 // absent means does not exist, an existing coroutine does not take absent status
 typedef int StatusType;
-const int ABSENT = 0, PASSIVE = 1, ENABLED = 2, ENDED = 3, TERMINATED = 4;
+const int ABSENT = 0, PASSIVE = 1, ENABLED = 2, WAITING = 3/*for message*/, BLOCKED = 4, ENDED = 5, TERMINATED = 6;
 
 // for log messages
 #define CO_TITLE	"[[" << name_ << "]] "
@@ -77,6 +77,7 @@ public:
 	static Coroutine* Current();
 
 	void Transfer(Coroutine* target, MessageType msg = MSG_TRANSFER);
+	void Transfer(Channel<MessageType>* channel, MessageType msg = MSG_TRANSFER);
 
 	virtual void HandleMessage(MessageType msg);
 

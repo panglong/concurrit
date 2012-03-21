@@ -70,6 +70,7 @@ public:
 
 	virtual void Start();
 	void Join();
+	void Cancel();
 	virtual void* Run();
 	static void Yield(bool force = false);
 

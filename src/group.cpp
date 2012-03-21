@@ -148,7 +148,8 @@ Coroutine* CoroutineGroup::GetNextEnabled(CoroutinePtrSet* except_targets /*= NU
 	CoroutinePtrSet* targets = only_targets != NULL ? only_targets : member_set();
 	for (CoroutinePtrSet::iterator itr = targets->begin() ; itr != targets->end(); ++itr) {
 		Coroutine* co = *itr;
-		if(co->status() == ENABLED) {
+		StatusType status = co->status();
+		if(ENABLED <= status && status < BLOCKED) {
 			if(except_targets == NULL || except_targets->find(co) == except_targets->end()) {
 				return co;
 			}
@@ -162,7 +163,8 @@ Coroutine* CoroutineGroup::GetNextEnabled(CoroutinePtrSet* except_targets /*= NU
 CoroutinePtrSet CoroutineGroup::GetEnabledSet() {
 	CoroutinePtrSet enabled;
 	for_each_member(co) {
-		if(co->status() == ENABLED) {
+		StatusType status = co->status();
+		if(ENABLED <= status && status < BLOCKED) {
 			enabled.insert(co);
 		}
 	}

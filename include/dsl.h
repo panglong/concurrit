@@ -36,20 +36,37 @@
 #define DSL_H_
 
 #include "common.h"
-#include "coroutine.h"
 
 #include <cstdatomic>
 
 namespace concurrit {
 
+class Coroutine;
+
 enum TPVALUE { TPTRUE = 1, TPFALSE = 0, TPUNKNOWN = -1 };
 
-class DSLTransitionPredicate {
+class TransitionPredicate {
 public:
-	DSLTransitionPredicate() {}
-	virtual ~DSLTransitionPredicate() {}
+	TransitionPredicate() {}
+	virtual ~TransitionPredicate() {}
 	virtual TPVALUE EvalPreState() = 0;
 	virtual bool EvalPostState() = 0;
+};
+
+class TrueTransitionPredicate : public TransitionPredicate {
+public:
+	TrueTransitionPredicate() : TransitionPredicate() {}
+	~TrueTransitionPredicate() {}
+	TPVALUE EvalPreState() { return TPTRUE; }
+	bool EvalPostState() { return TPTRUE; }
+};
+
+class FalseTransitionPredicate : public TransitionPredicate {
+public:
+	FalseTransitionPredicate() : TransitionPredicate() {}
+	~FalseTransitionPredicate() {}
+	TPVALUE EvalPreState() { return TPFALSE; }
+	bool EvalPostState() { return TPFALSE; }
 };
 
 /********************************************************************************/
@@ -70,111 +87,44 @@ private:
 /********************************************************************************/
 
 class ExecutionTree;
-typedef std::atomic<ExecutionTree*> ExecutionTreeRef;
+typedef std::atomic_address ExecutionTreeRef;
+typedef std::vector<ExecutionTree*> ExecutionTreeList;
+
+#define for_each_child(child) \
+	ExecutionTreeList::iterator __itr__ = children_.begin(); \
+	ExecutionTree* child = (__itr__ != children_.end() ? *__itr__ : NULL); \
+	for (; __itr__ != children_.end(); child = ((++__itr__) != children_.end() ? *__itr__ : NULL))
 
 class ExecutionTree {
 public:
-	ExecutionTree(){}
-	virtual ~ExecutionTree(){
-		delete children_;
+	ExecutionTree(ExecutionTree* parent = NULL, int num_children = 0) : parent_(parent), covered_(false) {
+		InitChildren(num_children);
 	}
 
-	void InitChildren(size_t n) {
-		children_ = new ExecutionTreeRef[n];
-		for(size_t i = 0; i < n; ++i) {
-			SetChild(i, NULL);
-		}
-		num_children_ = n;
-	}
+	virtual ~ExecutionTree();
 
-	inline ExecutionTreeRef* GetChildRef(size_t i = 0) {
-		safe_assert(BETWEEN(0, i, num_children_-1));
-		return &children_[i];
-	}
+	bool ContainsChild(ExecutionTree* node);
 
-	inline ExecutionTree* GetChildAtomic(size_t i) {
-		safe_assert(BETWEEN(0, i, num_children_-1));
-		return children_[i].load();
-	}
+	void InitChildren(int n);
 
-	inline ExecutionTree* GetChild(size_t i) {
-		safe_assert(BETWEEN(0, i, num_children_-1));
-		return children_[i].load(std::memory_order_relaxed);
-	}
+	ExecutionTree* child(int i = 0);
 
-	inline void SetChildAtomic(size_t i, ExecutionTree* n) {
-		safe_assert(BETWEEN(0, i, num_children_-1));
-		children_[i].store(n);
-	}
-
-	inline void SetChild(size_t i, ExecutionTree* n) {
-		safe_assert(BETWEEN(0, i, num_children_-1));
-		children_[i].store(n, std::memory_order_relaxed);
-	}
-
-	void AddChild() {
-		ExecutionTreeRef* children = children_;
-		size_t n = num_children_;
-		children_ = new ExecutionTreeRef[n+1];
-		for(size_t i = 0; i < n; ++i) {
-			SetChild(i, children[i].load(std::memory_order_relaxed));
-		}
-		SetChild(n, NULL);
-		num_children_ ++;
-
-		delete children;
-	}
+	virtual void ComputeCoverage(bool recurse);
 
 private:
 	DECL_FIELD(ExecutionTree*, parent)
-	DECL_FIELD(ExecutionTreeRef*, children)
-	DECL_FIELD(size_t, num_children)
+	DECL_FIELD_REF(ExecutionTreeList, children)
+	DECL_FIELD(bool, covered)
 
 	friend class ExecutionTreeManager;
 };
 
 /********************************************************************************/
-
-class RootNode : public ExecutionTree {
-public:
-	RootNode() {
-		InitChildren(1);
-	}
-
-private:
-	friend class ExecutionTreeManager;
-};
-
-/********************************************************************************/
-
-// indicates that a ref location is locked by a test thread
-class LockNode : public ExecutionTree {
-public:
-	LockNode() {}
-	~LockNode() {}
-};
-
-/********************************************************************************/
-
-// indicates the end of the script
-class LeafNode : public ExecutionTree {
-public:
-	LeafNode() {}
-	~LeafNode() {}
-};
-
-/********************************************************************************/
-
 
 class ChoiceNode : public ExecutionTree {
 public:
-	ChoiceNode() {
-		InitChildren(2);
-	}
-
-private:
+	ChoiceNode(ExecutionTree* parent = NULL) : ExecutionTree(parent, 2) {}
 };
-
 
 /********************************************************************************/
 
@@ -191,134 +141,69 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
-	TransitionNode() {
-		InitChildren(1);
-	}
+	TransitionNode(TransitionPredicate* pred, ExecutionTree* parent = NULL) : ExecutionTree(parent, 1), pred_(pred) {}
 
 private:
-	DECL_FIELD(DSLTransitionPredicate*, expr)
+	DECL_FIELD(TransitionPredicate*, pred)
 };
 
 /********************************************************************************/
 
 class TransferUntilNode : public ExecutionTree {
 public:
-	TransferUntilNode() {
-		InitChildren(1);
-	}
+	TransferUntilNode(TransitionPredicate* pred) : pred_(pred) {}
 
 private:
-	DECL_FIELD(DSLTransitionPredicate*, expr)
+	DECL_FIELD(TransitionPredicate*, pred)
 };
 
 /********************************************************************************/
 
 class ExecutionTreeManager {
 public:
-	ExecutionTreeManager() {
-		current_ref_.store(root_node_.GetChildRef());
-	}
+	ExecutionTreeManager();
 
-#define REF_EMPTY(n) 	((n) == NULL)
-#define REF_LOCKED(n) 	((n) == (&lock_node_))
-#define REF_FULL(n) 	((n) == (&root_node_))
+	void Restart();
+
+inline bool REF_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
+inline bool REF_LOCKED(ExecutionTree* n) { return ((n) == (&lock_node_)); }
 
 	// operations by script
-	void PutNextTransition(ExecutionTree* node) {
-		// wait until current_ref is not empty
-		while(true) {
-			ExecutionTreeRef* current_ref = current_ref_.load();
-			safe_assert(current_ref != NULL);
-			ExecutionTree* tmp = current_ref->load();
-			if(REF_EMPTY(tmp)) {
-				// store new node
-				contained_node_ = node;
-				current_ref->store(&root_node_);
-			}
-			Thread::Yield(true);
-		}
-	}
+	ExecutionTree* GetNextTransition();
 
-
+	void SetNextTransition(ExecutionTree* node, ExecutionTree* next_node);
 
 	// operations by clients
 
 	// run by test threads to get the next transition node
-	ExecutionTree* AcquireNextTransition() {
-		ExecutionTree* node = NULL;
-		while(true) {
-			ExecutionTreeRef* current_ref = current_ref_.load();
-			safe_assert(current_ref != NULL);
-			while(true) {
-				node = current_ref->exchange(&lock_node_);
-				if(REF_EMPTY(node)) {
-					// put node back
-					current_ref->store(node);
-					Thread::Yield(true);
-					continue;
-				}
-				else
-				if(REF_LOCKED(node)) {
-					// retry
-					Thread::Yield(true);
-					continue;
-				}
-				else
-				if(REF_FULL(node)) {
-					// handle this
-					node = contained_node_;
-					contained_node_ = NULL;
-					safe_assert(node != NULL);
-					return node;
-				}
-				else {
-					safe_assert(node != NULL);
-					// put node back
-					current_ref->store(node);
-					// re-read current_ref
-					Thread::Yield(true);
-					break;
-				}
-			}
-		}
-		// unreachable
-		safe_assert(false);
-		return NULL;
-	}
+	ExecutionTree* AcquireNextTransition();
 
-	void ReleaseConsumedTransition(ExecutionTree* node, ExecutionTreeRef* newref) {
-		safe_assert(contained_node_ == NULL);
+	void ReleaseNextTransition(ExecutionTree* node, bool consumed);
 
-		// release
-		ExecutionTreeRef* current_ref = current_ref_.load();
-		ExecutionTree* ln = current_ref->exchange(node);
-		safe_assert(REF_LOCKED(ln));
+	void ConsumeTransition(ExecutionTree* node);
 
-		// switch current reference
-		current_ref_.store(newref);
-	}
+	ExecutionTree* GetRef();
 
+	ExecutionTree* ExchangeRef();
 
-	void ReleaseUnconsumedTransition(ExecutionTree* node) {
-		safe_assert(contained_node_ == NULL);
+	void SetRef(ExecutionTree* node);
 
-		// put back the node
-		contained_node_ = node;
-
-		// release
-		ExecutionTreeRef* current_ref = current_ref_.load();
-		ExecutionTree* ln = current_ref->exchange(node);
-		safe_assert(REF_LOCKED(ln));
-	}
+	ExecutionTree* GetLastInPath();
 
 private:
-	DECL_FIELD_GET(RootNode, root_node)
-	DECL_FIELD_GET(LockNode, lock_node)
-	DECL_FIELD_GET(ExecutionTree*, contained_node)
-	DECL_FIELD_GET(std::atomic<ExecutionTreeRef*>, current_ref)
+	DECL_FIELD_REF(ExecutionTree, root_node)
+	DECL_FIELD_REF(ExecutionTree, lock_node)
+	ExecutionTreeRef atomic_ref_;
+	DECL_FIELD(ExecutionTree*, current_node)
+
+	DECL_FIELD_REF(std::vector<ExecutionTree*>, current_path)
+	DECL_FIELD(unsigned, num_paths)
 
 	DECL_FIELD(Mutex, mutex)
 	DECL_FIELD(ConditionVar, cv)
+
+
+	DISALLOW_COPY_AND_ASSIGN(ExecutionTreeManager)
 };
 
 /********************************************************************************/

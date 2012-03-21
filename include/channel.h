@@ -70,7 +70,7 @@ public:
 	}
 
 	// send value to this channel
-	void SendNoWait(T& value) {
+	void SendNoWait(const T& value) {
 			// acquire lock
 			mutex_.Lock();
 
@@ -83,7 +83,7 @@ public:
 		}
 
 	// send value to target and wait to receive from any other source
-	T& SendWaitReceive(Channel<T>* target, T& value) {
+	T& SendWaitReceive(Channel<T>* target, const T& value) {
 		safe_assert(target != NULL);
 
 		// acquire lock
@@ -111,7 +111,7 @@ public:
 		return is_empty;
 	}
 
-	void put(T& value) {
+	void put(const T& value) {
 		safe_assert(IsEmpty());
 		buffer_ = value;
 		value_ = &buffer_;

@@ -18,6 +18,7 @@ CONCURRIT_C_STD=-std=c++0x
 # flags to use when compiling concurrit
 CONCURRIT_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/glog/include -I$(CONCURRIT_TPDIR)/gflags/include -I$(BOOST_ROOT)
 CONCURRIT_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -L$(CONCURRIT_TPDIR)/glog/lib -L$(CONCURRIT_TPDIR)/gflags/lib -lpthread -lglog -lgflags
+# -L/usr/lib/gcc/x86_64-linux-gnu/4.4
 
 # CONCURRIT_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/glog/include -I$(CONCURRIT_TPDIR)/gflags/include -I$(CONCURRIT_TPDIR)/pth/include -I$(BOOST_ROOT)
 # CONCURRIT_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -L$(CONCURRIT_TPDIR)/glog/lib -L$(CONCURRIT_TPDIR)/gflags/lib -L$(CONCURRIT_TPDIR)/pth/lib -lpth -lpthread -lglog -lgflags 

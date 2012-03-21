@@ -180,6 +180,15 @@ void Thread::Join() {
 
 /********************************************************************************/
 
+void Thread::Cancel() {
+	int result = pthread_cancel(pthread_);
+	if(result != PTH_SUCCESS && result != ESRCH) {
+		printf("Cancel error: %s\n", PTHResultToString(result));
+	}
+}
+
+/********************************************************************************/
+
 void Thread::Yield(bool force /*false*/) {
 	if (force) {
 		sched_yield();

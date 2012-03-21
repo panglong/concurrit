@@ -128,6 +128,12 @@ extern volatile bool IsInitialized;
 		inline void set_##name(type& value) { name##_ = value; } \
 		private:	\
 
+#define DECL_FIELD_GET_REF(type, name) \
+		protected: \
+		type name##_; \
+		public: \
+		inline type* name() { return &name##_; } \
+		private:	\
 
 #define DECL_STATIC_FIELD(type, name) \
 		protected: \

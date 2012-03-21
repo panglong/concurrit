@@ -8,7 +8,8 @@ CONCURRIT_HEADERS=$(wildcard $(CONCURRIT_INCDIR)/*.h)
 
 DEFINES=-DDPOR
 FLAGS=-g -Wall -Winline -fPIC -gdwarf-2 -O3 -fexceptions \
-		-Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
+		-Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses \
+		$(CONCURRIT_C_STD)
 
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux
@@ -16,11 +17,11 @@ FLAGS=-g -Wall -Winline -fPIC -gdwarf-2 -O3 -fexceptions \
 all: makedirs $(CONCURRIT_LIBDIR)/$(TARGET).so
 
 $(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
-	g++ $(CONCURRIT_LIB_FLAGS) $(CONCURRIT_C_STD) $(DEFINES) $(FLAGS) -shared -o $@ $^
+	g++ $(CONCURRIT_LIB_FLAGS) $(DEFINES) $(FLAGS) -shared -o $@ $^
 	ar rcs $(CONCURRIT_LIBDIR)/$(TARGET).a $^
 
 $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
-	g++ $(CONCURRIT_INC_FLAGS) $(CONCURRIT_C_STD) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
+	g++ $(CONCURRIT_INC_FLAGS) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
 	
 makedirs:
 	mkdir -p $(CONCURRIT_BINDIR)

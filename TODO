@@ -1,3 +1,9 @@
+- if(ENABLED <= status && status < BLOCKED) {
+- group.restart ederken blocklayan threadleri kill et.
+- kill edilen threadlerin yeniden calisabilmesini sagla
+- PASSIVE ya da TERMINATED'dan bir status'u sil coroutine'den (once gerekli mi diye bak)
+- void Coroutine::Start(bool conc /*= false*/) { : ExecutionMode yeterli mi yoksa parametreye gerek var mi?
+
 
 FEATURES
 		threadleri yield noktasina kadar parallel calistir.

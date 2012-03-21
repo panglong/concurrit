@@ -237,6 +237,11 @@ Result* Scenario::Explore() {
 					if(result == NULL) {
 						result = new ForallResult();
 					}
+
+					if(ConcurritExecutionMode == PREEMPTIVE) {
+						printf("Explored new path of length %d\n", exec_tree_.current_path()->size());
+					}
+
 					ASINSTANCEOF(result, ForallResult*)->AddSchedule(schedule_->Clone());
 					VLOG(2) << "Found one path for forall search.";
 					TRIGGER_WRAPPED_BACKTRACK("Forall");
@@ -390,6 +395,16 @@ bool Scenario::Backtrack() {
 /********************************************************************************/
 
 bool Scenario::DoBacktrack() {
+	if(ConcurritExecutionMode == COOPERATIVE) {
+		return DoBacktrackCooperative();
+	} else {
+		return DoBacktrackPreemptive();
+	}
+}
+
+/********************************************************************************/
+
+bool Scenario::DoBacktrackCooperative() {
 	// remove all points after current (inclusively).
 	schedule_->RemoveCurrentAndBeyond();
 	for(SchedulePoint* point = schedule_->RemoveLast(); point != NULL; point = schedule_->RemoveLast()) {
@@ -489,6 +504,8 @@ void Scenario::Restart() {
 	group_.Restart(); // restarts only already started coroutines
 
 	transfer_criteria_.Reset();
+
+	exec_tree_.Restart();
 }
 
 /********************************************************************************/
@@ -603,7 +620,8 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 		safe_assert(transfer != NULL);
 
 		// check if the target is enabled
-		if(target->status() != ENABLED) {
+		StatusType status = target->status();
+		if(status < ENABLED && BLOCKED <= status) {
 			TRIGGER_BACKTRACK();
 		}
 
@@ -1061,7 +1079,11 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 	printf("Before controlled transition by %s\n", current->name().c_str());
 
+	// make thread blocked
+	current->set_status(BLOCKED);
 
+
+	//...
 
 }
 
@@ -1069,9 +1091,127 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 
 	printf("After controlled transition by %s\n", current->name().c_str());
 
+	//...
+
+
 	// remove all transition info records
 	current->trinfolist()->clear();
+
+	// make thread enabled
+	current->set_status(ENABLED);
 }
+
+/********************************************************************************/
+
+bool Scenario::DoBacktrackPreemptive() {
+	ExecutionTree* root = exec_tree_.root_node();
+	ExecutionTreeList* path = exec_tree_.current_path();
+	// if path is empty, then we are done
+	if(path->empty()){
+		root->set_covered(true); // mark the root covered
+		return false;
+	}
+
+	// else, compute covered flags, if root is covered, then we are done
+
+	// go back in the path computing coverage locally
+	// check the unsatisfied node
+	ExecutionTree* node = exec_tree_.GetRef();
+	safe_assert(!exec_tree_.REF_LOCKED(node)); // node should not be locked, must be either empty or full
+
+	int dec = 1; // decrement value from the size of the path when going back in the path
+	if(node == NULL) {
+		// get node from the last of the path
+		node = path->back();
+		dec = 2; // to omit the last node
+	}
+	safe_assert(node != NULL);
+
+	// mark node covered, this is either the last unsatisfied node in atomic_ref, or the last node in the path
+	node->set_covered(true);
+
+	// propagate coverage back in the path
+	for(int i = path->size() - dec; i >= 0; --i) {
+		node = (*path)[i];
+		node->ComputeCoverage(true); //  do not recurse, only use immediate children
+	}
+	// first node must be the root one
+	safe_assert(node == root);
+
+	// check if the root is covered
+	return !root->covered();
+}
+
+/********************************************************************************/
+
+bool Scenario::DSLChoice() {
+	VLOG(2) << "Adding DSLChoice";
+
+	bool ret = false;
+	ExecutionTree* node = exec_tree_.GetNextTransition();
+
+	ChoiceNode* choice = NULL;
+	if(node != NULL) {
+		safe_assert(node->parent() == exec_tree_.GetLastInPath());
+		safe_assert(exec_tree_.GetLastInPath()->ContainsChild(node));
+		safe_assert(INSTANCEOF(node, ChoiceNode*));
+		choice = ASINSTANCEOF(node, ChoiceNode*);
+		if(choice->covered()) {
+			// backtrack
+			TRIGGER_BACKTRACK();
+		}
+	} else {
+		choice = new ChoiceNode(exec_tree_.GetLastInPath());
+	}
+
+	// not covered yet
+	// check children
+	ExecutionTree* child = choice->child(0);
+	if(child == NULL || !child->covered()) {
+		ret = true;
+	} else {
+		child = choice->child(1);
+		safe_assert(child == NULL || !child->covered());
+		ret = false;
+	}
+
+	exec_tree_.ConsumeTransition(choice);
+
+	// no new transition, next transition is child
+	exec_tree_.SetNextTransition(NULL, child);
+
+	return ret;
+}
+
+/********************************************************************************/
+
+void Scenario::DSLTransition(TransitionPredicate* pred) {
+	VLOG(2) << "Adding DSLTransition";
+
+	// check if all threads terminated
+	if(group_.IsAllEnded()) {
+		TRIGGER_BACKTRACK();
+	}
+
+	ExecutionTree* node = exec_tree_.GetNextTransition();
+
+	TransitionNode* trans = NULL;
+	if(node != NULL) {
+		safe_assert(INSTANCEOF(node, TransitionNode*));
+		trans = ASINSTANCEOF(node, TransitionNode*);
+		if(trans->covered()) {
+			// backtrack
+			TRIGGER_BACKTRACK();
+		}
+	} else {
+		trans = new TransitionNode(pred, exec_tree_.GetLastInPath());
+	}
+
+	// new transition, next transition is child
+	exec_tree_.SetNextTransition(trans, trans->child());
+}
+
+/********************************************************************************/
 
 
 } // end namespace

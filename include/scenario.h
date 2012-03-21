@@ -45,6 +45,7 @@
 #include "until.h"
 #include "vc.h"
 #include "schedule.h"
+#include "dsl.h"
 
 namespace concurrit {
 
@@ -140,6 +141,16 @@ public:
 
 	static Scenario* GetInstance();
 
+	/******************************************************************/
+
+
+
+	bool DSLChoice();
+	void DSLTransition(TransitionPredicate* pred);
+
+
+	/******************************************************************/
+
 protected:
 
 	void RunOnce();
@@ -159,6 +170,8 @@ protected:
 
 	bool Backtrack();
 	bool DoBacktrack();
+	bool DoBacktrackCooperative();
+	bool DoBacktrackPreemptive();
 
 	virtual void Start();
 	virtual void Finish(Result* result);
@@ -180,6 +193,8 @@ private:
 	DECL_FIELD(bool, dpor_enabled)
 
 	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
+
+	DECL_FIELD_GET_REF(ExecutionTreeManager, exec_tree)
 };
 
 } // end namespace

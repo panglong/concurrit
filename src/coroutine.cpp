@@ -116,8 +116,7 @@ void Coroutine::Finish() {
 	if(status_ < TERMINATED) { // if terminated, we are done
 		// send the finish message
 		VLOG(2) << CO_TITLE << "Sending finish signal";
-		MessageType msg = MSG_TERMINATE;
-		this->channel_.SendNoWait(msg);
+		this->channel_.SendNoWait(MSG_TERMINATE);
 		this->Join();
 	}
 }
@@ -126,16 +125,23 @@ void Coroutine::Finish() {
 
 void Coroutine::Start(bool conc /*= false*/) {
 	safe_assert(yield_point_ == NULL);
+	safe_assert(BETWEEN(PASSIVE, status_, TERMINATED));
 
 	Channel<MessageType>::BeginAtomic();
 
 	if(status_ == PASSIVE || status_ == TERMINATED) {
 		VLOG(2) << CO_TITLE << "Starting new thread";
 		Thread::Start();
-	} else if(status_ < TERMINATED) {
+	} else if(status_ == WAITING || status_ == ENDED) {
 		// send the restart message
-		MessageType msg = MSG_RESTART;
-		channel_.SendNoWait(msg);
+		VLOG(2) << CO_TITLE << "Sending restart message";
+		channel_.SendNoWait(MSG_RESTART);
+	} else {
+		// kill the thread and restart
+		VLOG(2) << CO_TITLE << "Cancelling and restarting the thread";
+		Thread::Cancel();
+		Thread::Join();
+		Thread::Start();
 	}
 
 	// check if this is the main (for now only main can start coroutines)
@@ -151,8 +157,8 @@ void Coroutine::Start(bool conc /*= false*/) {
 
 	// if conc == true, then send a non-waiting transfer message to run the new coroutine concurrently
 	if(conc) {
-		MessageType msg = MSG_TRANSFER;
-		channel_.SendNoWait(msg);
+		safe_assert(status_ == WAITING);
+		channel_.SendNoWait(MSG_TRANSFER);
 	}
 }
 
@@ -165,8 +171,7 @@ void* Coroutine::Run() {
 
 	for(;true;) {
 		try {
-			safe_assert(status_ >= PASSIVE);
-
+			safe_assert(PASSIVE <= status_ && status_ < TERMINATED);
 			status_ = ENABLED;
 
 			return_value = NULL;
@@ -177,9 +182,7 @@ void* Coroutine::Run() {
 
 			// notify main about out startup
 			VLOG(2) << CO_TITLE << "Sending started message and waiting for a transfer.";
-			MessageType msg = MSG_STARTED;
-			msg = channel_.SendWaitReceive(&channel_, msg);
-			HandleMessage(msg);
+			Transfer(&channel_, MSG_STARTED);
 
 			VLOG(2) << CO_TITLE << "First transfer";
 
@@ -193,7 +196,7 @@ void* Coroutine::Run() {
 				if(ConcurritExecutionMode == COOPERATIVE) {
 					yield(ENDING_LABEL);
 				} else {
-					msg = channel_.WaitReceive();
+					MessageType msg = channel_.WaitReceive();
 					HandleMessage(msg);
 				}
 
@@ -242,9 +245,26 @@ void Coroutine::Transfer(Coroutine* target, MessageType msg /*=MSG_TRANSFER*/) {
 	// update current to target
 //	group->set_current(target);
 
+	safe_assert(target->status() == WAITING || target->status() == ENDED);
+	Transfer(target->channel(), msg);
+}
+
+/********************************************************************************/
+
+void Coroutine::Transfer(Channel<MessageType>* channel, MessageType msg /*=MSG_TRANSFER*/) {
+	safe_assert(BETWEEN(ENABLED, status_, ENDED));
+
+	if(status_ < ENDED) {
+		status_ = WAITING;
+	}
+
 	// send-receive main
-	msg = this->channel()->SendWaitReceive(target->channel(), msg);
-	this->HandleMessage(msg);
+	msg = channel_.SendWaitReceive(channel, msg);
+	HandleMessage(msg);
+
+	if(status_ < ENDED) {
+		status_ = ENABLED;
+	}
 }
 
 /********************************************************************************/
