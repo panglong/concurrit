@@ -136,13 +136,13 @@ std::string Timer::EndTimeToString() {
 /********************************************************************************/
 
 std::string Timer::ElapsedTimeToString() {
-	char buff[64];
+	char buff[256];
 	double h = getElapsedTimeInHours();
 	double m = getElapsedTimeInMin() - (h * 60.0);
 	double s = getElapsedTimeInSec() - (m * 60.0);
 	double ml = getElapsedTimeInMilliSec() - (s * 1000.0);
 	double mc = getElapsedTimeInMicroSec() - (ml * 1000.0);
-	sprintf(buff, "%.2f h:%.2f m:%.2f s:%.2f ml:%.2f mc", h, m, s, ml, mc);
+	snprintf(buff, 256, "%.2f h:%.2f m:%.2f s:%.2f ml:%.2f mc", h, m, s, ml, mc);
 	return std::string(buff);
 }
 

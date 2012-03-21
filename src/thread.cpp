@@ -100,6 +100,14 @@ void* ThreadEntry(void* arg) {
 	safe_assert(thread->pthread() == self);
 	thread->attach_pthread(self);
 
+	// set cancellable
+	int oldstate;
+	int result = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
+	safe_assert(result == PTH_SUCCESS);
+
+	result = pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &oldstate);
+	safe_assert(result == PTH_SUCCESS);
+
 	void* return_value = thread->Run();
 
 	thread->detach_pthread(self);

@@ -18,11 +18,11 @@ public:
 	}
 
 	void SetUp() {
-
+		bounded_buf_init(&buffer, 3);
 	}
 
 	void TearDown() {
-
+		bounded_buf_destroy(&buffer);
 	}
 
 	bounded_buf_t buffer;
@@ -32,7 +32,7 @@ public:
 		thread_t consumers[CONSUMER_SUM];
 		int i;
 
-		bounded_buf_init(&buffer, 3);
+
 
 		for (i = 0; i < PRODUCER_SUM; i++)
 		{
@@ -67,8 +67,6 @@ public:
 		} while(!ALL_ENDED);
 
 		printf("Ending\n");
-
-		bounded_buf_destroy(&buffer);
 	}
 
 };

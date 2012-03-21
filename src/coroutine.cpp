@@ -114,11 +114,21 @@ void Coroutine::Finish() {
 	safe_assert(!IsMain());
 	safe_assert(status_ > PASSIVE); // no need to start an non-started one
 	if(status_ < TERMINATED) { // if terminated, we are done
-		// send the finish message
-		VLOG(2) << CO_TITLE << "Sending finish signal";
-		this->channel_.SendNoWait(MSG_TERMINATE);
-		this->Join();
+		if(status_ == ENDED || status_ == WAITING) {
+			// send the finish message
+			VLOG(2) << CO_TITLE << "Sending finish signal";
+			this->channel_.SendNoWait(MSG_TERMINATE);
+			this->Join();
+		} else {
+			// kill the thread
+			VLOG(2) << CO_TITLE << "Cancelling the thread";
+			this->Cancel();
+			VLOG(2) << CO_TITLE << "Waiting for the thread";
+			this->Join();
+		}
 	}
+
+	status_ = TERMINATED;
 }
 
 /********************************************************************************/
@@ -139,8 +149,7 @@ void Coroutine::Start(bool conc /*= false*/) {
 	} else {
 		// kill the thread and restart
 		VLOG(2) << CO_TITLE << "Cancelling and restarting the thread";
-		Thread::Cancel();
-		Thread::Join();
+		this->Finish();
 		Thread::Start();
 	}
 

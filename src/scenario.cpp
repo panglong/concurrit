@@ -319,6 +319,18 @@ void Scenario::RunOnce() {
 
 	RunTestCase();
 
+	printf("TEARDOWN\n");
+
+	// be ensure that no thread is proceeding
+	// simply, kill enabled threads
+	CoroutinePtrSet active = group_.GetEnabledSet();
+	for(CoroutinePtrSet::iterator itr = active.begin(); itr != active.end(); ++itr) {
+		Coroutine* co = *itr;
+		if(co->status() == ENABLED) {
+			co->Finish();
+		}
+	}
+
 	RunTearDown();
 }
 
@@ -519,13 +531,13 @@ void Scenario::Finish(Result* result) {
 	group_.Finish();
 
 	// finish timer
-	statistics_->timer("Seach time").stop();
+	statistics_->timer("Search time").stop();
 
 	// copy statistics to the result
 	result->set_statistics(statistics_);
 
-	VLOG(2) << SC_TITLE << "********** Statistics ********** ";
-	VLOG(2) << SC_TITLE << statistics_->ToString();
+	std::cout << "********** Statistics **********" << std::endl;
+	std::cout << statistics_->ToString() << std::endl;
 }
 
 /********************************************************************************/

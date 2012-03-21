@@ -1,3 +1,6 @@
+- spec violate edilince programi kendi haline birak, ve normal sonlanmasini sagla!!!
+ -- pin instrumentation'i kaldir!!!
+
 - if(ENABLED <= status && status < BLOCKED) {
 - group.restart ederken blocklayan threadleri kill et.
 - kill edilen threadlerin yeniden calisabilmesini sagla
