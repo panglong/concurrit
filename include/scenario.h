@@ -106,8 +106,8 @@ public:
 	/*
 	 * Methods to be used in testcases to control the test scenario
 	 */
-	Coroutine* CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool conc = false);
-	Coroutine* CreateThread(int id, ThreadEntryFunction function, void* arg, bool conc = false);
+	Coroutine* CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool transfer_on_start = false);
+	Coroutine* CreateThread(int id, ThreadEntryFunction function, void* arg, bool transfer_on_start = false);
 
 	/* returns the same scenario for concatenating calls */
 	Scenario* Until(UntilCondition* until);
@@ -180,7 +180,6 @@ protected:
 
 	virtual void Start();
 	virtual void Finish(Result* result);
-	virtual void Restart();
 
 private:
 

@@ -160,32 +160,35 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 }
 
 /********************************************************************************/
-Coroutine* Scenario::CreateThread(int id, ThreadEntryFunction function, void* arg, bool conc /*= false*/) {
+Coroutine* Scenario::CreateThread(int id, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/) {
 	char buff[MAX_THREAD_NAME_LENGTH];
 	sprintf(buff, "THR-%d", id);
-	return CreateThread(buff, function, arg, conc);
+	return CreateThread(buff, function, arg, transfer_on_start);
 }
 
-Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool conc /*= false*/) {
+// create a new thread or fetch the existing one, and start it.
+Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/) {
 	std::string strname = std::string(name);
 	Coroutine* co = group_.GetMember(strname);
 	if(co == NULL) {
 		// create a new thread
 		VLOG(2) << SC_TITLE << "Creating new coroutine " << name;
 		co = new Coroutine(name, function, arg);
+		co->set_transfer_on_start(transfer_on_start);
 		group_.AddMember(co);
-		// start it. in the usual case, waits until a transfer happens. if conc, then does not wait, but runs concurrently
-		co->Start(conc);
 	} else {
-		VLOG(2) << SC_TITLE << "Re-creating new coroutine " << name;
+		VLOG(2) << SC_TITLE << "Re-creating and restarting coroutine " << name;
 		if(co->status() <= PASSIVE) {
 			printf("Cannot create new thread with the same name!");
 			_Exit(UNRECOVERABLE_ERROR);
 		}
-		// already restarted, so just update the function and arguments
+		// update the function and arguments
 		co->set_entry_function(function);
 		co->set_entry_arg(arg);
+		co->set_transfer_on_start(transfer_on_start);
 	}
+	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
+	co->Start();
 
 	return co;
 }
@@ -214,8 +217,6 @@ Result* Scenario::ExploreForall() {
 
 Result* Scenario::Explore() {
 
-	Start();
-
 	Result* result = NULL;
 
 	for(;true;) {
@@ -223,6 +224,8 @@ Result* Scenario::Explore() {
 		/************************************************************************/
 		for(;true;) {
 			try {
+
+				Start();
 
 				VLOG(2) << SC_TITLE << "Starting path " << statistics_->counter("Num paths explored");
 
@@ -395,7 +398,7 @@ std::exception* Scenario::RunTestCase() throw() {
 	} catch(...) { // } catch(std::exception* e) {
 		fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
 		_Exit(UNRECOVERABLE_ERROR);
-		// TRIGGER_WRAPPED_EXCEPTION("Teardown", e);
+		// TRIGGER_WRAPPED_EXCEPTION("TestCase", e);
 	}
 	return NULL;
 }
@@ -430,11 +433,7 @@ void Scenario::ResolvePoint(SchedulePoint* point) {
 /********************************************************************************/
 
 bool Scenario::Backtrack() {
-	if(DoBacktrack()) {
-		Restart();
-		return true;
-	}
-	return false;
+	return DoBacktrack();
 }
 
 /********************************************************************************/
@@ -516,7 +515,18 @@ bool Scenario::DoBacktrackCooperative() {
 // although Start and Restart have the same code,
 // we do not directly call Restart, since subclasses may override Start and Restart differently
 void Scenario::Start() {
-	safe_assert(test_status_ == TEST_BEGIN);
+	safe_assert(test_status_ == TEST_BEGIN || test_status_ == TEST_ENDED);
+
+	if(test_status_ == TEST_BEGIN) {
+		// first start
+		// reset statistics
+		statistics_->Reset();
+		statistics_->timer("Search time").start();
+	} else {
+		// restart
+		exec_tree_.Restart();
+	}
+
 	test_status_ = TEST_BEGIN;
 
 	if(schedule_ == NULL) {
@@ -531,32 +541,6 @@ void Scenario::Start() {
 	group_.Restart(); // restarts only already started coroutines
 
 	transfer_criteria_.Reset();
-
-	// reset statistics
-	statistics_->Reset();
-	statistics_->timer("Search time").start();
-}
-
-/********************************************************************************/
-
-void Scenario::Restart() {
-	safe_assert(test_status_ == TEST_ENDED);
-	test_status_ = TEST_BEGIN;
-
-	if(schedule_ == NULL) {
-		schedule_ = new Schedule();
-	} else {
-		schedule_->Restart();
-	}
-
-	// reset vc tracker
-	vcTracker_.Restart();
-
-	group_.Restart(); // restarts only already started coroutines
-
-	transfer_criteria_.Reset();
-
-	exec_tree_.Restart();
 }
 
 /********************************************************************************/

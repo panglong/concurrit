@@ -48,8 +48,8 @@ void ThreadModularScenario::OnAccess(Coroutine* current, SharedAccess* access) {
 
 /********************************************************************************/
 
-void ThreadModularScenario::Restart() {
-	super::Restart();
+void ThreadModularScenario::Start() {
+	super::Start();
 
 	// restart memory trace
 	env_trace_.Restart();

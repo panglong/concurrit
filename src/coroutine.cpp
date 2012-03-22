@@ -45,6 +45,7 @@ Coroutine::Coroutine(const char* name, ThreadEntryFunction entry_function, void*
 	coid_ = -1;
 	vc_clear(vc_);
 	exception_ = NULL;
+	transfer_on_start_ = false;
 }
 
 /********************************************************************************/
@@ -97,21 +98,6 @@ Coroutine* Coroutine::Current() {
 
 /********************************************************************************/
 
-void Coroutine::Restart() {
-	safe_assert(status_ > PASSIVE); // no need to start a non-started one
-
-	// reset yield point to null
-	yield_point_ = NULL;
-
-	vc_clear(vc_);
-
-	exception_ = NULL;
-
-	this->Start();
-}
-
-/********************************************************************************/
-
 // call this only for non-main coroutines.
 // for main, FinishMain is called when ending the entire testing environment.
 void Coroutine::Finish() {
@@ -153,10 +139,13 @@ void Coroutine::WaitForEnd() {
 
 /********************************************************************************/
 
-void Coroutine::Start(bool conc /*= false*/) {
+void Coroutine::Start() {
 	safe_assert(yield_point_ == NULL);
 	safe_assert(BETWEEN(PASSIVE, status_, TERMINATED));
 
+	// reset yield point to null
+	yield_point_ = NULL;
+	vc_clear(vc_);
 	exception_ = NULL;
 
 	//---------------
@@ -192,7 +181,7 @@ void Coroutine::Start(bool conc /*= false*/) {
 	//---------------
 
 	// if conc == true, then send a non-waiting transfer message to run the new coroutine concurrently
-	if(conc) {
+	if(transfer_on_start_) {
 		safe_assert(status_ == WAITING);
 		channel_.SendNoWait(MSG_TRANSFER);
 	}

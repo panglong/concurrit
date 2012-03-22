@@ -141,13 +141,13 @@ void CoroutineGroup::WaitForAllEnd() {
 /********************************************************************************/
 
 void CoroutineGroup::Restart() {
-	// no need to restart main, it is always running
-	for_each_member(co) {
-		if(co->status() > PASSIVE) { // may also be ended, but it is actually waiting for a signal
-			co->Restart();
-		}
-		safe_assert(co->yield_point() == NULL);
-	}
+//	// no need to restart main, it is always running
+//	for_each_member(co) {
+//		if(co->status() > PASSIVE) { // may also be ended, but it is actually waiting for a signal
+//			co->Restart();
+//		}
+//		safe_assert(co->yield_point() == NULL);
+//	}
 	// restart main
 	main_->set_yield_point(NULL);
 	main_->set_group(this);

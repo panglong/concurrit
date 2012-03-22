@@ -11,34 +11,42 @@ class BBScenario : public Scenario {
 public:
 
 	BBScenario() : Scenario("Bounded buffer scenario") {
-
+		buffer = NULL;
 	}
 	~BBScenario() {
 
 	}
 
 	void SetUp() {
-		bounded_buf_init(&buffer, 3);
+		buffer = (bounded_buf_t*) malloc(sizeof(bounded_buf_t));
+		safe_assert(buffer != NULL);
+		int status = bounded_buf_init(buffer, 3);
+		safe_assert(status == 0);
 	}
 
 	void TearDown() {
-//		bounded_buf_destroy(&buffer);
+		safe_assert(buffer != NULL);
+		int status = bounded_buf_destroy(buffer);
+		safe_assert(status == 0);
+		free(buffer);
 	}
 
-	bounded_buf_t buffer;
+	bounded_buf_t* buffer;
 	thread_t producers[PRODUCER_SUM];
 	thread_t consumers[CONSUMER_SUM];
 
 	void TestCase() {
+
+		TEST_FORALL();
 
 		int i;
 
 		for (i = 0; i < PRODUCER_SUM; i++)
 		{
 			producers[i].id =  i;
-			producers[i].bbuf = &buffer;
+			producers[i].bbuf = buffer;
 //			pthread_create(&producers[i].pid, NULL, producer_routine,  (void*)&producers[i]);
-			CREATE_THREAD(i, producer_routine, (void*)&producers[i], true);
+			coroutine_t co = CREATE_THREAD(i, producer_routine, (void*)&producers[i], true);
 		}
 
 		printf("Created producer threads\n");
@@ -46,9 +54,9 @@ public:
 		for (i = 0; i < CONSUMER_SUM; i++)
 		{
 			consumers[i].id =  i;
-			consumers[i].bbuf = &buffer;
+			consumers[i].bbuf = buffer;
 //			pthread_create(&consumers[i].pid, NULL, consumer_routine,  (void*)&consumers[i]);
-			CREATE_THREAD(PRODUCER_SUM+i, consumer_routine, (void*)&consumers[i], true);
+			coroutine_t co = CREATE_THREAD(PRODUCER_SUM+i, consumer_routine, (void*)&consumers[i], true);
 		}
 
 		printf("Created consumer threads\n");

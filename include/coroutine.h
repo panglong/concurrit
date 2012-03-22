@@ -64,10 +64,9 @@ public:
 	explicit Coroutine(const char* name, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
 	virtual ~Coroutine();
 
-	void Start(bool conc = false);
+	void Start();
 	virtual void* Run();
 
-	void Restart();
 	void Finish();
 	void WaitForEnd();
 
@@ -121,6 +120,8 @@ private:
 
 	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD_REF(Semaphore, sem_end)
+
+	DECL_FIELD(bool, transfer_on_start)
 
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };

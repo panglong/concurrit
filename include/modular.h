@@ -279,7 +279,7 @@ public:
 	virtual ~ThreadModularScenario() {}
 
 	void OnAccess(Coroutine* current, SharedAccess* access); // override
-	void Restart(); // override
+	void Start(); // override
 	std::exception* RunOnce() throw(); // override
 	void TestCase(); // override. implements the modular check, threads must be added in setup
 
