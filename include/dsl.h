@@ -111,7 +111,7 @@ public:
 
 	void add_child(ExecutionTree* node);
 
-	void set_child(ExecutionTree* node, int i);
+	void set_child(ExecutionTree* node, int i = 0);
 	ExecutionTree* get_child(int i);
 
 	virtual void ComputeCoverage(bool recurse);
@@ -141,7 +141,6 @@ public:
 	ExecutionTree* get() {
 		safe_assert(parent_ != NULL);
 		ExecutionTree* node = parent_->get_child(child_index_);
-		safe_assert(node == NULL || node->parent() == parent_);
 		return node;
 	}
 
@@ -162,6 +161,23 @@ public:
 private:
 	DECL_FIELD(ExecutionTree*, parent)
 	DECL_FIELD(int, child_index);
+};
+
+/********************************************************************************/
+
+typedef std::map<Coroutine*, std::exception*> CoroutineToExceptionMap;
+class EndNode : public ExecutionTree {
+public:
+	EndNode(ExecutionTree* parent = NULL) : ExecutionTree(parent, 1) {
+		covered_ = true;
+		set_child(this); // points to itself
+		Reset();
+	}
+	void Reset() {
+		exceptions_.clear();
+	}
+private:
+	DECL_FIELD_REF(CoroutineToExceptionMap, exceptions)
 };
 
 /********************************************************************************/
@@ -212,7 +228,7 @@ public:
 
 inline bool REF_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
 inline bool REF_LOCKED(ExecutionTree* n) { return ((n) == (&lock_node_)); }
-inline bool REF_ENDTEST(ExecutionTree* n) { return ((n) == (&end_node_)); }
+inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 
 	// operations by script
 	ExecutionTree* GetNextTransition();
@@ -230,17 +246,17 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return ((n) == (&end_node_)); }
 
 	ExecutionTree* ExchangeRef(ExecutionTree* node);
 
-	void SetRef(ExecutionTree* node);
+	void SetRef(ExecutionTree* node, bool overwrite_end = false);
 
 	ChildLoc GetLastInPath();
+	void AddToPath(ExecutionTree* node, int child_index);
 
-	void SetEnded();
+	void EndWithSuccess();
+	void EndWithException(Coroutine* coroutine, std::exception* exception);
 
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(ExecutionTree, lock_node)
-	DECL_FIELD_REF(ExecutionTree, end_node) // marks the end of the test
-	DECL_FIELD_REF(ExecutionTree, covered_node)
 	ExecutionTreeRef atomic_ref_;
 	DECL_FIELD_REF(std::vector<ChildLoc>, current_path)
 	DECL_FIELD(unsigned, num_paths)

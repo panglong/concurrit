@@ -340,7 +340,7 @@ void Scenario::RunUncontrolled() {
 	// set uncontrolled run flag
 	test_status_ = TEST_UNCONTROLLED;
 	// set ended node to the execution tree
-	exec_tree_.SetEnded();
+	exec_tree_.EndWithSuccess();
 
 	//---------------------------
 
@@ -1145,31 +1145,24 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 bool Scenario::DoBacktrackPreemptive() {
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
-	safe_assert(path->size() >= 1 && (*path)[0].parent() == root);
-	// if path only contains root, then we are done
-	if(path->back().parent() == root){
-		safe_assert(path->size() == 1);
-		root->set_covered(true); // mark the root covered
-		return false;
-	}
+	safe_assert(path->size() >= 2 && (*path)[0].parent() == root && exec_tree_.REF_ENDTEST(path->back().parent()));
 
+	//	// if path only contains root, then we are done
+//	if(path->back().parent() == root){
+//		safe_assert(path->size() == 1);
+//		root->set_covered(true); // mark the root covered
+//		return false;
+//	}
+//
 	// else, compute covered flags, if root is covered, then we are done
 
-	// go back in the path computing coverage locally
-	// check the unsatisfied node
+	// current node must be an end node
 	ExecutionTree* current_node = exec_tree_.GetRef();
-	safe_assert(current_node == NULL || exec_tree_.REF_ENDTEST(current_node) || current_node == path->back());
+	safe_assert(exec_tree_.REF_ENDTEST(current_node));
+	safe_assert(path->back() == current_node);
 
-	// set the child of the last node in the path covered
-	ExecutionTree* child = path->back();
-	if(child != NULL) {
-		child->set_covered(true);
-	} else {
-		path->back().set(exec_tree_.covered_node());
-	}
-
-	// propagate coverage back in the path
-	for(int i = path->size()-1; i >= 0; --i) {
+	// propagate coverage back in the path (skip the end node, which is already covered)
+	for(int i = path->size()-2; i >= 0; --i) {
 		ExecutionTree* node = (*path)[i].parent();
 		node->ComputeCoverage(true); //  do not recurse, only use immediate children
 	}

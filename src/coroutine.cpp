@@ -222,6 +222,9 @@ void* Coroutine::Run() {
 				if(ConcurritExecutionMode == COOPERATIVE) {
 					// send main exception message
 					this->Transfer(group->main(), MSG_EXCEPTION);
+				} else {
+					// (immediatelly) notify all others that there is an exception
+					scenario->exec_tree()->EndWithException(this, exception_);
 				}
 			}
 

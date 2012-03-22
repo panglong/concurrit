@@ -74,10 +74,14 @@ public:
 //		} while(!ALL_ENDED);
 
 
-		if(STAR) {
-			printf("True branch\n");
-		} else {
-			printf("False branch\n");
+		int k = 1;
+		while(STAR) {
+			printf("Iteration %d\n", k);
+			++k;
+
+			if(k == 5) {
+				break;
+			}
 		}
 
 		printf("Ending\n");
