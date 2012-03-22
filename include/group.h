@@ -62,6 +62,7 @@ public:
 
 	void Restart();
 	void Finish();
+	void WaitForAllEnd();
 
 	bool HasMember(Coroutine* member);
 	bool HasMember(const char* name);
@@ -96,7 +97,7 @@ private:
 	DECL_FIELD(Scenario*, scenario)
 	//DECL_FIELD(Coroutine*, current)
 	DECL_STATIC_FIELD(Coroutine*, main)
-	DECL_FIELD(std::exception*, exception)
+//	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD(THREADID, next_coid)
 
 	DECL_FIELD_REF(MembersMap, members)
@@ -104,6 +105,8 @@ private:
 
 	friend void BeginCounit();
 	friend void EndCounit();
+	friend class Scenario;
+	friend class Coroutine;
 };
 
 #define for_each_member(co) \

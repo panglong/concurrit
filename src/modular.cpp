@@ -57,8 +57,8 @@ void ThreadModularScenario::Restart() {
 
 /********************************************************************************/
 
-void ThreadModularScenario::AfterRunOnce() {
-	super::AfterRunOnce();
+std::exception* ThreadModularScenario::RunOnce() throw() {
+	std::exception* exc = super::RunOnce();
 
 	// print the memory trace:
 	printf("Memory trace:\n%s\n", env_trace_.ToString().c_str());
@@ -68,6 +68,8 @@ void ThreadModularScenario::AfterRunOnce() {
 
 	// add memory trace to env graph
 	env_graph_.Update(&env_trace_);
+
+	return exc;
 }
 
 /********************************************************************************/

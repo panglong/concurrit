@@ -1,5 +1,8 @@
+- Teardown'dan once butun threadleri end yap.
+
 - spec violate edilince programi kendi haline birak, ve normal sonlanmasini sagla!!!
  -- pin instrumentation'i kaldir!!!
+- rununcontrolled yield mod icin nasil calisacak, ayri flag gerekebilir!
 
 - if(ENABLED <= status && status < BLOCKED) {
 - group.restart ederken blocklayan threadleri kill et.

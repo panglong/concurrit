@@ -58,6 +58,10 @@
 #include <map>
 #include <set>
 
+#ifdef __linux__
+#define LINUX
+#endif
+
 namespace concurrit {
 
 enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
@@ -155,8 +159,8 @@ extern volatile bool IsInitialized;
 		protected: \
 		volatile type name##_; \
 		public: \
-		inline type name() { return name##_; } \
-		inline void set_##name(type value) { name##_ = value; } \
+		inline type name() { do { return name##_; } while(false); } \
+		inline void set_##name(type value) { do { name##_ = value; } while(false); } \
 		private:	\
 
 /********************************************************************************/

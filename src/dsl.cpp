@@ -123,11 +123,11 @@ ExecutionTree* ExecutionTreeManager::GetNextTransition() {
 	// wait until atomic_ref is not empty
 	while(true) {
 		ExecutionTree* node = GetRef();
+		safe_assert(!REF_ENDTEST(node));
 		if(REF_EMPTY(node)) {
 			// we obtained the lock!
 			return current_node_;
 		}
-		safe_assert(REF_LOCKED(node));
 		Thread::Yield(true);
 	}
 	// unreachable
@@ -158,7 +158,7 @@ void ExecutionTreeManager::SetNextTransition(ExecutionTree* node, ExecutionTree*
 // run by test threads to get the next transition node
 ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
 	while(true) {
-		ExecutionTree* node = ExchangeRef();
+		ExecutionTree* node = ExchangeRef(&lock_node_);
 		if(REF_EMPTY(node)) {
 			// release
 			SetRef(NULL);
@@ -167,7 +167,12 @@ ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
 		if(REF_LOCKED(node)) {
 			// noop
 		}
-		else {
+		else
+		if(REF_ENDTEST(node)) {
+			SetRef(node);
+			return NULL; // indicates end of the test
+		} else {
+
 			// handle this
 			safe_assert(node != NULL);
 			return node;
@@ -205,8 +210,8 @@ ExecutionTree* ExecutionTreeManager::GetRef() {
 	return static_cast<ExecutionTree*>(atomic_ref_.load());
 }
 
-ExecutionTree* ExecutionTreeManager::ExchangeRef() {
-	return static_cast<ExecutionTree*>(atomic_ref_.exchange(&lock_node_));
+ExecutionTree* ExecutionTreeManager::ExchangeRef(ExecutionTree* node) {
+	return static_cast<ExecutionTree*>(atomic_ref_.exchange(node));
 }
 
 void ExecutionTreeManager::SetRef(ExecutionTree* node) {
@@ -216,6 +221,10 @@ void ExecutionTreeManager::SetRef(ExecutionTree* node) {
 ExecutionTree* ExecutionTreeManager::GetLastInPath() {
 	safe_assert(!current_path_.empty());
 	return current_path_.back();
+}
+
+void ExecutionTreeManager::SetEnded() {
+	SetRef(&end_node_);
 }
 
 

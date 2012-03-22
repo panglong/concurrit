@@ -167,6 +167,7 @@ public:
 
 inline bool REF_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
 inline bool REF_LOCKED(ExecutionTree* n) { return ((n) == (&lock_node_)); }
+inline bool REF_ENDTEST(ExecutionTree* n) { return ((n) == (&end_node_)); }
 
 	// operations by script
 	ExecutionTree* GetNextTransition();
@@ -184,15 +185,18 @@ inline bool REF_LOCKED(ExecutionTree* n) { return ((n) == (&lock_node_)); }
 
 	ExecutionTree* GetRef();
 
-	ExecutionTree* ExchangeRef();
+	ExecutionTree* ExchangeRef(ExecutionTree* node);
 
 	void SetRef(ExecutionTree* node);
 
 	ExecutionTree* GetLastInPath();
 
+	void SetEnded();
+
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(ExecutionTree, lock_node)
+	DECL_FIELD_REF(ExecutionTree, end_node) // marks the end of the test
 	ExecutionTreeRef atomic_ref_;
 	DECL_FIELD(ExecutionTree*, current_node)
 

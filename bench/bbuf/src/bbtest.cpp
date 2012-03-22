@@ -22,17 +22,16 @@ public:
 	}
 
 	void TearDown() {
-		bounded_buf_destroy(&buffer);
+//		bounded_buf_destroy(&buffer);
 	}
 
 	bounded_buf_t buffer;
+	thread_t producers[PRODUCER_SUM];
+	thread_t consumers[CONSUMER_SUM];
 
 	void TestCase() {
-		thread_t producers[PRODUCER_SUM];
-		thread_t consumers[CONSUMER_SUM];
+
 		int i;
-
-
 
 		for (i = 0; i < PRODUCER_SUM; i++)
 		{
@@ -61,10 +60,10 @@ public:
 //		for (i = 0; i < CONSUMER_SUM; i++)
 //			pthread_join(consumers[i].pid, NULL);
 
-		do {
-			Thread::Yield(true);
-			short_sleep(1000);
-		} while(!ALL_ENDED);
+//		do {
+//			Thread::Yield(true);
+//			short_sleep(1000);
+//		} while(!ALL_ENDED);
 
 		printf("Ending\n");
 	}

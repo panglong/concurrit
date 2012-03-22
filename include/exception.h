@@ -213,6 +213,13 @@ extern CounitException*    __counit_exception__;
 	VLOG(2) << "TRIGGER_TERMINATE_SEARCH"; \
 	throw CHECK_NOTNULL(__terminate_search_exception__)
 
+inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {
+	VLOG(2) << "WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what();
+	__counit_exception__->set_where(m);
+	__counit_exception__->set_cause(e);
+	return __counit_exception__;
+}
+
 #define TRIGGER_WRAPPED_EXCEPTION(m, e) \
 	{ \
 		VLOG(2) << "TRIGGER_WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what(); \

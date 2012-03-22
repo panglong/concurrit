@@ -119,6 +119,8 @@ Scenario::Scenario(const char* name) {
 	dpor_enabled_ = true;
 
 	statistics_ = boost::shared_ptr<Statistics>(new Statistics());
+
+	test_status_ = TEST_BEGIN;
 }
 
 /********************************************************************************/
@@ -224,9 +226,12 @@ Result* Scenario::Explore() {
 
 				VLOG(2) << SC_TITLE << "Starting path " << statistics_->counter("Num paths explored");
 
-				RunOnce();
+				std::exception* exc = RunOnce();
 
-				AfterRunOnce();
+				// RunOnce should not throw an exception, so throw it here
+				if(exc != NULL) {
+					throw exc;
+				}
 
 				statistics_->counter("Num paths explored").increment();
 
@@ -312,26 +317,40 @@ LOOP_DONE:
 	return result;
 }
 
+
 /********************************************************************************/
 
-void Scenario::RunOnce() {
+std::exception* Scenario::RunOnce() throw() {
+
 	RunSetUp();
 
-	RunTestCase();
+	std::exception* exc = RunTestCase();
 
-	printf("TEARDOWN\n");
-
-	// be ensure that no thread is proceeding
-	// simply, kill enabled threads
-	CoroutinePtrSet active = group_.GetEnabledSet();
-	for(CoroutinePtrSet::iterator itr = active.begin(); itr != active.end(); ++itr) {
-		Coroutine* co = *itr;
-		if(co->status() == ENABLED) {
-			co->Finish();
-		}
-	}
+	RunUncontrolled();
 
 	RunTearDown();
+
+	test_status_ = TEST_ENDED;
+
+	return exc;
+}
+
+/********************************************************************************/
+
+void Scenario::RunUncontrolled() {
+	// set uncontrolled run flag
+//	test_status_ = TEST_UNCONTROLLED;
+	// set ended node to the execution tree
+	exec_tree_.SetEnded();
+
+	//---------------------------
+
+	VLOG(2) << "Starting uncontrolled run";
+
+	// start waiting all to end
+	group_.WaitForAllEnd();
+
+	VLOG(2) << "Ending uncontrolled run";
 }
 
 /********************************************************************************/
@@ -339,32 +358,46 @@ void Scenario::RunOnce() {
 /**
  * Functions to run setup, teardown and testcase and get the exception.
  */
-void Scenario::RunSetUp() {
+void Scenario::RunSetUp() throw() {
+	test_status_ = TEST_SETUP;
 	try {
 		SetUp();
-	} catch(std::exception* e) {
-		TRIGGER_WRAPPED_EXCEPTION("Setup", e);
+	} catch(...) { // } catch(std::exception* e) {
+		fprintf(stderr, "Exceptions in SetUp are not allowed!!!\n");
+		_Exit(UNRECOVERABLE_ERROR);
+		// TRIGGER_WRAPPED_EXCEPTION("Setup", e);
 	}
 }
 
 /********************************************************************************/
 
-void Scenario::RunTearDown() {
+void Scenario::RunTearDown() throw() {
+	test_status_ = TEST_TEARDOWN;
 	try {
 		TearDown();
-	} catch(std::exception* e) {
-		TRIGGER_WRAPPED_EXCEPTION("Teardown", e);
+	} catch(...) { // } catch(std::exception* e) {
+		fprintf(stderr, "Exceptions in TearDown are not allowed!!!\n");
+		_Exit(UNRECOVERABLE_ERROR);
+		// TRIGGER_WRAPPED_EXCEPTION("Teardown", e);
 	}
 }
 
 /********************************************************************************/
 
-void Scenario::RunTestCase() {
+std::exception* Scenario::RunTestCase() throw() {
+	test_status_ = TEST_CONTROLLED;
 	try {
-		TestCase();
-	} catch(std::exception* e) {
-		TRIGGER_WRAPPED_EXCEPTION("TestCase", e);
+		try {
+			TestCase();
+		} catch(std::exception* e) {
+			return WRAP_EXCEPTION("TestCase", e);
+		}
+	} catch(...) { // } catch(std::exception* e) {
+		fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
+		_Exit(UNRECOVERABLE_ERROR);
+		// TRIGGER_WRAPPED_EXCEPTION("Teardown", e);
 	}
+	return NULL;
 }
 
 /********************************************************************************/
@@ -483,6 +516,9 @@ bool Scenario::DoBacktrackCooperative() {
 // although Start and Restart have the same code,
 // we do not directly call Restart, since subclasses may override Start and Restart differently
 void Scenario::Start() {
+	safe_assert(test_status_ == TEST_BEGIN);
+	test_status_ = TEST_BEGIN;
+
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
 	} else {
@@ -504,6 +540,9 @@ void Scenario::Start() {
 /********************************************************************************/
 
 void Scenario::Restart() {
+	safe_assert(test_status_ == TEST_ENDED);
+	test_status_ = TEST_BEGIN;
+
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
 	} else {
@@ -523,6 +562,9 @@ void Scenario::Restart() {
 /********************************************************************************/
 
 void Scenario::Finish(Result* result) {
+	safe_assert(test_status_ == TEST_ENDED);
+	test_status_ = TEST_TERMINATED;
+
 	if(schedule_ != NULL) {
 		delete schedule_;
 		schedule_ = NULL;
@@ -539,6 +581,7 @@ void Scenario::Finish(Result* result) {
 	std::cout << "********** Statistics **********" << std::endl;
 	std::cout << statistics_->ToString() << std::endl;
 }
+
 
 /********************************************************************************/
 
@@ -1088,6 +1131,7 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 
 // program state should be updated before this point
 void Scenario::BeforeControlledTransition(Coroutine* current) {
+	if(test_status_ == TEST_UNCONTROLLED) return;
 
 	printf("Before controlled transition by %s\n", current->name().c_str());
 
@@ -1100,6 +1144,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 }
 
 void Scenario::AfterControlledTransition(Coroutine* current) {
+	if(test_status_ == TEST_UNCONTROLLED) return;
 
 	printf("After controlled transition by %s\n", current->name().c_str());
 

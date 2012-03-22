@@ -92,7 +92,7 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 // callbacks
 void PinMonitor::MemWriteBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc) {
 	safe_assert(loc != NULL);
-	printf("Writing before %s\n", loc->funcname().c_str());
+//	printf("Writing before %s\n", loc->funcname().c_str());
 
 //	Coroutine* current = GetCoroutineByTid(tid);
 //	Scenario* scenario = current->group()->scenario();
@@ -109,12 +109,12 @@ void PinMonitor::MemWriteBefore(THREADID tid, void* addr, uint32_t size, SourceL
 
 void PinMonitor::MemWriteAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc) {
 	safe_assert(loc != NULL);
-	printf("Writing after %s\n", loc->funcname().c_str());
+//	printf("Writing after %s\n", loc->funcname().c_str());
 }
 
 void PinMonitor::MemReadBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc) {
 	safe_assert(loc != NULL);
-	printf("Reading before %s\n", loc->funcname().c_str());
+//	printf("Reading before %s\n", loc->funcname().c_str());
 
 //	Coroutine* current = GetCoroutineByTid(tid);
 //	Scenario* scenario = current->group()->scenario();
@@ -131,19 +131,19 @@ void PinMonitor::MemReadBefore(THREADID tid, void* addr, uint32_t size, SourceLo
 
 void PinMonitor::MemReadAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc) {
 	safe_assert(loc != NULL);
-	printf("Reading after %s\n", loc->funcname().c_str());
+//	printf("Reading after %s\n", loc->funcname().c_str());
 }
 
 void PinMonitor::FuncCall(THREADID threadid, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target) {
-	printf("Calling before: %s\n", loc_target->funcname().c_str());
+//	printf("Calling before: %s\n", loc_target->funcname().c_str());
 }
 
 void PinMonitor::FuncEnter(THREADID threadid, void* addr, SourceLocation* loc) {
-	printf("Entering: %s\n", loc->funcname().c_str());
+//	printf("Entering: %s\n", loc->funcname().c_str());
 }
 
 void PinMonitor::FuncReturn(THREADID threadid, void* addr, SourceLocation* loc, ADDRINT retval) {
-	printf("Returning: %s\n", loc->funcname().c_str());
+//	printf("Returning: %s\n", loc->funcname().c_str());
 }
 
 

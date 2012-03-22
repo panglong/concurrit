@@ -38,6 +38,17 @@
 
 namespace concurrit {
 
+#define CHANNEL_BEGIN_ATOMIC()	Channel<MessageType>::BeginAtomic(); \
+								try { \
+
+
+#define CHANNEL_END_ATOMIC()	} catch(...) { \
+									Channel<MessageType>::EndAtomic(); \
+									throw; \
+								} \
+								Channel<MessageType>::EndAtomic(); \
+
+
 // channel for sending and receiving primitive types (T must be primitive)
 template <class T>
 class Channel {

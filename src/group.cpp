@@ -121,7 +121,21 @@ void CoroutineGroup::Finish() {
 		if(co->status() > PASSIVE) {
 			co->Finish();
 		}
+		safe_assert(co->status() == TERMINATED);
 	}
+}
+
+
+/********************************************************************************/
+
+void CoroutineGroup::WaitForAllEnd() {
+	for_each_member(co) {
+		if(co->status() > PASSIVE) {
+			co->WaitForEnd();
+		}
+	}
+
+	safe_assert(IsAllEnded());
 }
 
 /********************************************************************************/

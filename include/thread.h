@@ -130,8 +130,8 @@ public:
 
 private:
 	DECL_FIELD(pthread_mutex_t, mutex)
-	DECL_FIELD(pthread_t, owner)
-	DECL_FIELD(int, count)
+	DECL_VOL_FIELD(pthread_t, owner)
+	DECL_VOL_FIELD(int, count)
 
 	friend class ConditionVar;
 };

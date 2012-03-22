@@ -440,8 +440,8 @@ void Semaphore::Wait() {
 		(ts)->tv_sec = (tv)->tv_sec;                \
 		(ts)->tv_nsec = (tv)->tv_usec * 1000;       \
 } while (false)
-#else
-#error "TIMEVAL_TO_TIMESPEC already defined!"
+//#else
+//#error "TIMEVAL_TO_TIMESPEC already defined!"
 #endif
 
 

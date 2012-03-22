@@ -69,6 +69,7 @@ public:
 
 	void Restart();
 	void Finish();
+	void WaitForEnd();
 
 	void StartMain();
 	void FinishMain();
@@ -108,7 +109,7 @@ public:
 private:
 
 	DECL_FIELD(THREADID, coid)
-	DECL_FIELD(StatusType, status)
+	DECL_VOL_FIELD(StatusType, status)
 	DECL_FIELD(CoroutineGroup*, group)
 	DECL_FIELD_REF(Channel<MessageType>, channel)
 
@@ -118,6 +119,8 @@ private:
 
 	DECL_FIELD_REF(std::vector<TransitionInfo>, trinfolist)
 
+	DECL_FIELD(std::exception*, exception)
+	DECL_FIELD_REF(Semaphore, sem_end)
 
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };

@@ -44,6 +44,7 @@ Coroutine::Coroutine(const char* name, ThreadEntryFunction entry_function, void*
 	yield_point_ = NULL;
 	coid_ = -1;
 	vc_clear(vc_);
+	exception_ = NULL;
 }
 
 /********************************************************************************/
@@ -62,6 +63,7 @@ void Coroutine::StartMain() {
 	safe_assert(pth_self != PTH_INVALID_THREAD);
 	// for non-main coroutines, this is called in ThreadEntry
 	attach_pthread(pth_self);
+	exception_ = NULL;
 }
 
 void Coroutine::FinishMain() {
@@ -103,6 +105,8 @@ void Coroutine::Restart() {
 
 	vc_clear(vc_);
 
+	exception_ = NULL;
+
 	this->Start();
 }
 
@@ -119,6 +123,7 @@ void Coroutine::Finish() {
 			VLOG(2) << CO_TITLE << "Sending finish signal";
 			this->channel_.SendNoWait(MSG_TERMINATE);
 			this->Join();
+			VLOG(2) << CO_TITLE << "Joined the thread";
 		} else {
 			// kill the thread
 			VLOG(2) << CO_TITLE << "Cancelling the thread";
@@ -133,11 +138,29 @@ void Coroutine::Finish() {
 
 /********************************************************************************/
 
+void Coroutine::WaitForEnd() {
+	safe_assert(BETWEEN(ENABLED, status_, ENDED));
+ 	VLOG(2) << "Waiting for coroutine " << name_ << " to end.";
+ 	// wait for the semaphore twice
+	sem_end_.Wait();
+	sem_end_.Wait(); // Wait(1000000); // wait for 1 sec
+	VLOG(2) << "Detected coroutine " << name_ << " has ended.";
+	safe_assert(status_ == ENDED);
+//	while(status_ != WAITING && status_ != ENDED) {
+//		Thread::Yield(true);
+//	}
+}
+
+/********************************************************************************/
+
 void Coroutine::Start(bool conc /*= false*/) {
 	safe_assert(yield_point_ == NULL);
 	safe_assert(BETWEEN(PASSIVE, status_, TERMINATED));
 
-	Channel<MessageType>::BeginAtomic();
+	exception_ = NULL;
+
+	//---------------
+	CHANNEL_BEGIN_ATOMIC();
 
 	if(status_ == PASSIVE || status_ == TERMINATED) {
 		VLOG(2) << CO_TITLE << "Starting new thread";
@@ -162,7 +185,11 @@ void Coroutine::Start(bool conc /*= false*/) {
 	CHECK(msg == MSG_STARTED) << "Expected a started message from " << this->name();
 	VLOG(2) << CO_TITLE << "Got start signal from the thread";
 
-	Channel<MessageType>::EndAtomic();
+	// first signal
+	sem_end_.Signal();
+
+	CHANNEL_END_ATOMIC();
+	//---------------
 
 	// if conc == true, then send a non-waiting transfer message to run the new coroutine concurrently
 	if(conc) {
@@ -199,22 +226,36 @@ void* Coroutine::Run() {
 				// run the actual function
 				return_value = call_function();
 
-				status_ = ENDED;
-
-				// last yield
-				if(ConcurritExecutionMode == COOPERATIVE) {
-					yield(ENDING_LABEL);
-				} else {
-					MessageType msg = channel_.WaitReceive();
-					HandleMessage(msg);
-				}
-
 			} catch(std::exception* e) {
+				VLOG(2) << CO_TITLE << " threw an exception...";
 				// record the exception in scenario
-				group->set_exception(e);
-				// send main exception message
-				this->Transfer(group->main(), MSG_EXCEPTION);
+				exception_ = e;
+				if(ConcurritExecutionMode == COOPERATIVE) {
+					// send main exception message
+					this->Transfer(group->main(), MSG_EXCEPTION);
+				}
 			}
+
+			VLOG(2) << CO_TITLE << " is ending...";
+
+			status_ = ENDED;
+
+			//---------------
+			CHANNEL_BEGIN_ATOMIC();
+
+			// second signal
+			sem_end_.Signal();
+
+			// last yield
+			if(ConcurritExecutionMode == COOPERATIVE) {
+				yield(ENDING_LABEL);
+			} else {
+				MessageType msg = channel_.WaitReceive();
+				HandleMessage(msg);
+			}
+
+			CHANNEL_END_ATOMIC();
+			//---------------
 
 		} catch(MessageType& m) {
 			// only terminate and restart messages are thrown
@@ -287,10 +328,17 @@ void Coroutine::HandleMessage(MessageType msg) {
 		throw msg; // let the Run() method catch it.
 	} else if(msg == MSG_EXCEPTION) {
 		safe_assert(this->IsMain());
+		std::exception* e = NULL;
 		// notify scenario about exception
-		std::exception* e = group_->exception();
+		CoroutinePtrSet* members = group_->member_set();
+		for(CoroutinePtrSet::iterator itr = members->begin(); itr != members->end(); ++itr) {
+			Coroutine* co = *itr;
+			e = co->exception_;
+			if(e != NULL) {
+				break;
+			}
+		}
 		CHECK(e != NULL) << "MSG_EXCEPTION is received but no exception is found!";
-		group_->set_exception(NULL);
 		group_->scenario()->OnException(e);
 	} else {
 		bool invalid_message_type = false;

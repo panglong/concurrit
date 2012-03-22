@@ -61,6 +61,7 @@ class Result;
 
 // exploration type
 enum ExploreType {FORALL, EXISTS};
+enum TestStatus { TEST_BEGIN = 0, TEST_SETUP = 1, TEST_CONTROLLED = 2, TEST_UNCONTROLLED = 3, TEST_TEARDOWN = 4, TEST_ENDED = 5, TEST_TERMINATED = 6 };
 
 class Scenario : public YieldImpl {
 public:
@@ -153,10 +154,14 @@ public:
 
 protected:
 
-	void RunOnce();
-	void RunSetUp();
-	void RunTearDown();
-	void RunTestCase();
+	// runs the threads uncontrolled way, until they all got into ended state
+	void RunUncontrolled();
+
+	virtual std::exception* RunOnce() throw();
+	std::exception* RunTestCase() throw();
+	void RunSetUp() throw();
+	void RunTearDown() throw();
+
 
 	virtual bool CheckUntil(SchedulePoint* point);
 
@@ -176,8 +181,6 @@ protected:
 	virtual void Start();
 	virtual void Finish(Result* result);
 	virtual void Restart();
-	// right after RunOnce successfully ends
-	virtual void AfterRunOnce() { /* empty for now */ }
 
 private:
 
@@ -191,6 +194,7 @@ private:
 	DECL_FIELD(YieldImpl*, yield_impl)
 
 	DECL_FIELD(bool, dpor_enabled)
+	DECL_VOL_FIELD(TestStatus, test_status)
 
 	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
 
