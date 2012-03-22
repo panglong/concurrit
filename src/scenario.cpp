@@ -338,7 +338,7 @@ std::exception* Scenario::RunOnce() throw() {
 
 void Scenario::RunUncontrolled() {
 	// set uncontrolled run flag
-//	test_status_ = TEST_UNCONTROLLED;
+	test_status_ = TEST_UNCONTROLLED;
 	// set ended node to the execution tree
 	exec_tree_.SetEnded();
 
@@ -1144,9 +1144,10 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 
 bool Scenario::DoBacktrackPreemptive() {
 	ExecutionTree* root = exec_tree_.root_node();
-	ExecutionTreeList* path = exec_tree_.current_path();
+	std::vector<ChildLoc>* path = exec_tree_.current_path();
+	safe_assert(path->size() >= 1 && (*path)[0].parent() == root);
 	// if path only contains root, then we are done
-	if(path->back() == root){
+	if(path->back().parent() == root){
 		safe_assert(path->size() == 1);
 		root->set_covered(true); // mark the root covered
 		return false;
@@ -1156,28 +1157,22 @@ bool Scenario::DoBacktrackPreemptive() {
 
 	// go back in the path computing coverage locally
 	// check the unsatisfied node
-	ExecutionTree* node = exec_tree_.GetRef();
-	safe_assert(exec_tree_.REF_ENDTEST(node)); // must be ended
+	ExecutionTree* current_node = exec_tree_.GetRef();
+	safe_assert(current_node == NULL || exec_tree_.REF_ENDTEST(current_node) || current_node == path->back());
 
-	int dec = 1; // decrement value from the size of the path when going back in the path
-	if(node == NULL) {
-		// get node from the last of the path
-		node = path->back();
-		dec = 2; // to omit the last node
+	// set the child of the last node in the path covered
+	ExecutionTree* child = path->back();
+	if(child != NULL) {
+		child->set_covered(true);
+	} else {
+		path->back().set(exec_tree_.covered_node());
 	}
-	safe_assert(node != NULL);
-
-	// mark node covered, this is either the last unsatisfied node in atomic_ref, or the last node in the path
-	node->set_covered(true);
 
 	// propagate coverage back in the path
-	for(int i = path->size() - dec; i >= 0; --i) {
-		node = (*path)[i];
+	for(int i = path->size()-1; i >= 0; --i) {
+		ExecutionTree* node = (*path)[i].parent();
 		node->ComputeCoverage(true); //  do not recurse, only use immediate children
 	}
-	// first node must be the root one
-	safe_assert(node == root);
-
 	// check if the root is covered
 	return !root->covered();
 }
@@ -1186,14 +1181,14 @@ bool Scenario::DoBacktrackPreemptive() {
 
 bool Scenario::DSLChoice() {
 	VLOG(2) << "Adding DSLChoice";
+	printf("Adding DSLChoice\n");
 
 	bool ret = false;
 	ExecutionTree* node = exec_tree_.GetNextTransition();
 
 	ChoiceNode* choice = NULL;
 	if(node != NULL) {
-		safe_assert(node->parent() == exec_tree_.GetLastInPath());
-		safe_assert(exec_tree_.GetLastInPath()->ContainsChild(node));
+		safe_assert(exec_tree_.GetLastInPath().check(node));
 		safe_assert(INSTANCEOF(node, ChoiceNode*));
 		choice = ASINSTANCEOF(node, ChoiceNode*);
 		if(choice->covered()) {
@@ -1201,7 +1196,9 @@ bool Scenario::DSLChoice() {
 			TRIGGER_BACKTRACK();
 		}
 	} else {
-		choice = new ChoiceNode(exec_tree_.GetLastInPath());
+		ChildLoc parent = exec_tree_.GetLastInPath();
+		choice = new ChoiceNode();
+		parent.set(choice);
 	}
 
 	// not covered yet
@@ -1215,10 +1212,9 @@ bool Scenario::DSLChoice() {
 		ret = false;
 	}
 
-	exec_tree_.ConsumeTransition(choice);
+	exec_tree_.ConsumeTransition(choice, (ret ? 0 : 1));
 
-	// no new transition, next transition is child
-	exec_tree_.SetNextTransition(NULL, child);
+	printf("DSLChoice returns %s\n", (ret ? "true" : "false"));
 
 	return ret;
 }
@@ -1248,7 +1244,7 @@ void Scenario::DSLTransition(TransitionPredicate* pred) {
 	}
 
 	// new transition, next transition is child
-	exec_tree_.SetNextTransition(trans, trans->child());
+//	exec_tree_.SetNextTransition(trans, trans->child());
 }
 
 /********************************************************************************/

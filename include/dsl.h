@@ -109,6 +109,11 @@ public:
 
 	ExecutionTree* child(int i = 0);
 
+	void add_child(ExecutionTree* node);
+
+	void set_child(ExecutionTree* node, int i);
+	ExecutionTree* get_child(int i);
+
 	virtual void ComputeCoverage(bool recurse);
 
 private:
@@ -117,6 +122,46 @@ private:
 	DECL_FIELD(bool, covered)
 
 	friend class ExecutionTreeManager;
+};
+
+/********************************************************************************/
+
+class ChildLoc {
+public:
+	ChildLoc(ExecutionTree* parent, int child_index) : parent_(parent), child_index_(child_index) {}
+	~ChildLoc(){}
+	void set(ExecutionTree* node) {
+		safe_assert(parent_ != NULL);
+		parent_->set_child(node, child_index_);
+		if(node != NULL) {
+			node->set_parent(parent_);
+		}
+	}
+
+	ExecutionTree* get() {
+		safe_assert(parent_ != NULL);
+		ExecutionTree* node = parent_->get_child(child_index_);
+		safe_assert(node == NULL || node->parent() == parent_);
+		return node;
+	}
+
+	bool check(ExecutionTree* node) {
+		safe_assert(parent_ != NULL);
+		return (parent_->get_child(child_index_) == node) && (node == NULL || node->parent() == parent_);
+	}
+
+	ExecutionTree* exchange(ExecutionTree* node) {
+		ExecutionTree* old = get();
+		set(node);
+		return old;
+	}
+
+	operator ExecutionTree* () {
+		return get();
+	}
+private:
+	DECL_FIELD(ExecutionTree*, parent)
+	DECL_FIELD(int, child_index);
 };
 
 /********************************************************************************/
@@ -172,16 +217,14 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return ((n) == (&end_node_)); }
 	// operations by script
 	ExecutionTree* GetNextTransition();
 
-	void SetNextTransition(ExecutionTree* node, ExecutionTree* next_node);
-
 	// operations by clients
 
 	// run by test threads to get the next transition node
 	ExecutionTree* AcquireNextTransition();
 
-	void ReleaseNextTransition(ExecutionTree* node, bool consumed);
+	void ReleaseNextTransition(ExecutionTree* node, int child_index);
 
-	void ConsumeTransition(ExecutionTree* node);
+	void ConsumeTransition(ExecutionTree* node, int child_index);
 
 	ExecutionTree* GetRef();
 
@@ -189,7 +232,7 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return ((n) == (&end_node_)); }
 
 	void SetRef(ExecutionTree* node);
 
-	ExecutionTree* GetLastInPath();
+	ChildLoc GetLastInPath();
 
 	void SetEnded();
 
@@ -197,10 +240,9 @@ private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(ExecutionTree, lock_node)
 	DECL_FIELD_REF(ExecutionTree, end_node) // marks the end of the test
+	DECL_FIELD_REF(ExecutionTree, covered_node)
 	ExecutionTreeRef atomic_ref_;
-	DECL_FIELD(ExecutionTree*, current_node)
-
-	DECL_FIELD_REF(std::vector<ExecutionTree*>, current_path)
+	DECL_FIELD_REF(std::vector<ChildLoc>, current_path)
 	DECL_FIELD(unsigned, num_paths)
 
 	DECL_FIELD(Mutex, mutex)

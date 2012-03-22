@@ -73,6 +73,13 @@ public:
 //			short_sleep(1000);
 //		} while(!ALL_ENDED);
 
+
+		if(STAR) {
+			printf("True branch\n");
+		} else {
+			printf("False branch\n");
+		}
+
 		printf("Ending\n");
 	}
 

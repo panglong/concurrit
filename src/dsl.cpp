@@ -80,6 +80,26 @@ ExecutionTree* ExecutionTree::child(int i /*= 0*/) {
 
 /*************************************************************************************/
 
+void ExecutionTree::add_child(ExecutionTree* node) {
+	if(!ContainsChild(node)) {
+		children_.push_back(node);
+	}
+}
+
+/*************************************************************************************/
+
+void ExecutionTree::set_child(ExecutionTree* node, int i) {
+	safe_assert(BETWEEN(0, i, children_.size()-1));
+	children_[i] = node;
+}
+
+ExecutionTree* ExecutionTree::get_child(int i) {
+	safe_assert(BETWEEN(0, i, children_.size()-1));
+	return children_[i];
+}
+
+/*************************************************************************************/
+
 void ExecutionTree::ComputeCoverage(bool recurse) {
 	if(!covered_) {
 		bool cov = true;
@@ -104,6 +124,10 @@ void ExecutionTree::ComputeCoverage(bool recurse) {
 ExecutionTreeManager::ExecutionTreeManager() {
 	root_node_.InitChildren(1);
 	lock_node_.InitChildren(0);
+
+	covered_node_.InitChildren(0);
+	covered_node_.set_covered(true);
+
 	Restart();
 }
 
@@ -111,9 +135,10 @@ ExecutionTreeManager::ExecutionTreeManager() {
 
 void ExecutionTreeManager::Restart() {
 	SetRef(NULL);
-	current_node_ = NULL;
 	current_path_.clear();
-	current_path_.push_back(&root_node_);
+
+	// sets root as the current parent, and adds it to the path
+	ConsumeTransition(&root_node_, 0);
 }
 
 /*************************************************************************************/
@@ -126,29 +151,13 @@ ExecutionTree* ExecutionTreeManager::GetNextTransition() {
 		safe_assert(!REF_ENDTEST(node));
 		if(REF_EMPTY(node)) {
 			// we obtained the lock!
-			return current_node_;
+			return GetLastInPath();
 		}
 		Thread::Yield(true);
 	}
 	// unreachable
 	safe_assert(false);
 	return NULL;
-}
-
-/*************************************************************************************/
-
-void ExecutionTreeManager::SetNextTransition(ExecutionTree* node, ExecutionTree* next_node) {
-	// we have already obtained the empty-lock!
-	safe_assert(current_node_ == NULL || current_node_ == node);
-	safe_assert(REF_EMPTY(GetRef()));
-
-	// update current node pointer
-	safe_assert(next_node == NULL || (node != NULL && next_node->parent() == node));
-	safe_assert(next_node == NULL || (node != NULL && node->ContainsChild(next_node)));
-	current_node_ = next_node;
-
-	// release
-	SetRef(node);
 }
 
 /*************************************************************************************/
@@ -172,7 +181,6 @@ ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
 			SetRef(node);
 			return NULL; // indicates end of the test
 		} else {
-
 			// handle this
 			safe_assert(node != NULL);
 			return node;
@@ -187,23 +195,22 @@ ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
 
 /*************************************************************************************/
 
-void ExecutionTreeManager::ReleaseNextTransition(ExecutionTree* node, bool consumed) {
+void ExecutionTreeManager::ReleaseNextTransition(ExecutionTree* node, int child_index) {
 	safe_assert(node != NULL);
 	safe_assert(REF_LOCKED(GetRef()));
 
-	if(consumed) {
-		ConsumeTransition(node);
-	}
-
 	// release
-	SetRef(consumed ? NULL : node);
+	SetRef(node);
 }
 
 /*************************************************************************************/
 
-void ExecutionTreeManager::ConsumeTransition(ExecutionTree* node) {
+void ExecutionTreeManager::ConsumeTransition(ExecutionTree* node, int child_index) {
 	// put node to the path
-	current_path_.push_back(node);
+	current_path_.push_back({node, child_index});
+
+	// release
+	SetRef(NULL);
 }
 
 ExecutionTree* ExecutionTreeManager::GetRef() {
@@ -218,12 +225,15 @@ void ExecutionTreeManager::SetRef(ExecutionTree* node) {
 	atomic_ref_.store(node);
 }
 
-ExecutionTree* ExecutionTreeManager::GetLastInPath() {
+ChildLoc ExecutionTreeManager::GetLastInPath() {
 	safe_assert(!current_path_.empty());
 	return current_path_.back();
 }
 
 void ExecutionTreeManager::SetEnded() {
+	// wait until the last transition is consumed, then set end_node
+	ExecutionTree* current_node = GetNextTransition();
+	safe_assert(current_node == NULL); // TODO(elmas) ???
 	SetRef(&end_node_);
 }
 
