@@ -260,16 +260,12 @@ Result* Scenario::Explore() {
 				if(ce->is_backtrack()) {
 					VLOG(2) << SC_TITLE << "Backtracking: " << e->what();
 
-					VLOG(2) << "Backtrack: Starting";
-					VLOG(2) << "Start scenario: " << schedule_->ToString();
-
 					// is backtrack is for terminating the search, exit the search loop
 					if(INSTANCEOF(ce->cause(), TerminateSearchException*)) {
 						goto LOOP_DONE; // break the outermost loop
 					}
 
 					if(Backtrack()) {
-						VLOG(2) << "End scenario: " << schedule_->ToString();
 						continue;
 					} else {
 						VLOG(2) << SC_TITLE << "No feasible execution!!!";
@@ -433,12 +429,6 @@ void Scenario::ResolvePoint(SchedulePoint* point) {
 /********************************************************************************/
 
 bool Scenario::Backtrack() {
-	return DoBacktrack();
-}
-
-/********************************************************************************/
-
-bool Scenario::DoBacktrack() {
 	if(ConcurritExecutionMode == COOPERATIVE) {
 		return DoBacktrackCooperative();
 	} else {
@@ -449,6 +439,8 @@ bool Scenario::DoBacktrack() {
 /********************************************************************************/
 
 bool Scenario::DoBacktrackCooperative() {
+	VLOG(2) << "Start schedule: " << schedule_->ToString();
+
 	// remove all points after current (inclusively).
 	schedule_->RemoveCurrentAndBeyond();
 	for(SchedulePoint* point = schedule_->RemoveLast(); point != NULL; point = schedule_->RemoveLast()) {
@@ -457,6 +449,8 @@ bool Scenario::DoBacktrackCooperative() {
 			// check if there is any more choice
 			if(point->AsChoice()->ChooseNext()) {
 				schedule_->AddLast(point);
+
+				VLOG(2) << "End schedule: " << schedule_->ToString();
 				return true;
 			}
 		}
@@ -472,6 +466,8 @@ bool Scenario::DoBacktrackCooperative() {
 					if(--count > 0) {
 						transfer->yield()->set_count(count);
 						schedule_->AddLast(transfer);
+
+						VLOG(2) << "End schedule: " << schedule_->ToString();
 						return true;
 					}
 				}
@@ -482,6 +478,8 @@ bool Scenario::DoBacktrackCooperative() {
 					// makes this a backtrack point (adds target to done and makes target NULL)
 					transfer->make_backtrack_point();
 					schedule_->AddLast(transfer);
+
+					VLOG(2) << "End schedule: " << schedule_->ToString();
 					return true;
 				}
 			}
@@ -1147,8 +1145,9 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 bool Scenario::DoBacktrackPreemptive() {
 	ExecutionTree* root = exec_tree_.root_node();
 	ExecutionTreeList* path = exec_tree_.current_path();
-	// if path is empty, then we are done
-	if(path->empty()){
+	// if path only contains root, then we are done
+	if(path->back() == root){
+		safe_assert(path->size() == 1);
 		root->set_covered(true); // mark the root covered
 		return false;
 	}
@@ -1158,7 +1157,7 @@ bool Scenario::DoBacktrackPreemptive() {
 	// go back in the path computing coverage locally
 	// check the unsatisfied node
 	ExecutionTree* node = exec_tree_.GetRef();
-	safe_assert(!exec_tree_.REF_LOCKED(node)); // node should not be locked, must be either empty or full
+	safe_assert(exec_tree_.REF_ENDTEST(node)); // must be ended
 
 	int dec = 1; // decrement value from the size of the path when going back in the path
 	if(node == NULL) {

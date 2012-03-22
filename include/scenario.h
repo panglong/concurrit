@@ -174,7 +174,6 @@ protected:
 
 
 	bool Backtrack();
-	bool DoBacktrack();
 	bool DoBacktrackCooperative();
 	bool DoBacktrackPreemptive();
 
