@@ -86,8 +86,11 @@ public:
 //		}
 
 		TrueTransitionPredicate true_trans;
+		FalseTransitionPredicate false_trans;
+		int k = 1;
 		while(STAR) {
-			DSLTransition(&true_trans);
+			printf("Iteration %d\n", k);
+			DSLTransition(&false_trans);
 		}
 
 		printf("Ending\n");

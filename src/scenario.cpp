@@ -1143,6 +1143,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	// new element to be used when the current node is consumed
 	ChildLoc newnode = {NULL, -1};
 
+	//=================================================================
 	// get the node
 	ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_FULL);
 	// if end_node, exit immediatelly
@@ -1160,6 +1161,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	// TPINVALID: cannot occur
 	TPVALUE tval =  TPTRUE;
 
+	//=================================================================
 	// get the node
 	TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 	if(trans != NULL) {
@@ -1173,6 +1175,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		// TODO(elmas): others are not supported yet
 	}
 
+	//=================================================================
 	// take action depending on tval
 	switch(tval) {
 	case TPTRUE: // consume the transition
@@ -1213,6 +1216,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	// TPUNKNOWN: cannot occur
 	TPVALUE tval =  TPTRUE;
 
+	//=================================================================
 	// if we have a current node, then check it
 	ExecutionTree* node = current->current_node();
 	if(node != NULL) {
@@ -1230,6 +1234,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		}
 	}
 
+	//=================================================================
 	// remove all transition info records
 	current->trinfolist()->clear();
 	current->set_current_node(NULL);
@@ -1237,6 +1242,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	// make thread enabled
 	current->set_status(ENABLED);
 
+	//=================================================================
 	// take action depending on tval
 	switch(tval) {
 	case TPTRUE: // consume the transition if node is not null, otherwise, there was no node to handle

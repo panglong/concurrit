@@ -217,6 +217,12 @@ public:
 // DSL for the preemptive mode
 #define STAR	DSLChoice()
 
+#define CONSTRAIN_ALL(pred) \
+	TransitionConstraintAll(this, (pred))
+
+#define CONSTRAIN_FIRST(pred) \
+	TransitionConstraintFirst(this, (pred))
+
 /********************************************************************************/
 
 
