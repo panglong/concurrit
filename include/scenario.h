@@ -158,10 +158,10 @@ protected:
 	void RunUncontrolled();
 
 	virtual std::exception* RunOnce() throw();
-	std::exception* RunTestCase() throw();
+	void RunTestCase() throw();
 	void RunSetUp() throw();
 	void RunTearDown() throw();
-
+	std::exception* CollectExceptions();
 
 	virtual bool CheckUntil(SchedulePoint* point);
 

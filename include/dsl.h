@@ -165,7 +165,6 @@ private:
 
 /********************************************************************************/
 
-typedef std::map<Coroutine*, std::exception*> CoroutineToExceptionMap;
 class EndNode : public ExecutionTree {
 public:
 	EndNode(ExecutionTree* parent = NULL) : ExecutionTree(parent, 1) {
@@ -174,10 +173,14 @@ public:
 		Reset();
 	}
 	void Reset() {
-		exceptions_.clear();
+		exception_ = NULL;
+	}
+
+	void add_exception(std::exception* e, Coroutine* owner, const std::string& where) {
+		exception_ = new ConcurritException(e, owner, where, exception_);
 	}
 private:
-	DECL_FIELD_REF(CoroutineToExceptionMap, exceptions)
+	DECL_FIELD(ConcurritException*, exception)
 };
 
 /********************************************************************************/

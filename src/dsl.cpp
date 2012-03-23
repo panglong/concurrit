@@ -267,31 +267,37 @@ void ExecutionTreeManager::EndWithSuccess() {
 	if(!REF_ENDTEST(end_node)) {
 		safe_assert(end_node == NULL);
 		end_node = new EndNode();
-		SetRef(end_node);
-
-		// add to the path
-		AddToPath(end_node, 0);
+		ExecutionTree* node = ExchangeRef(end_node);
+		if(REF_ENDTEST(node)) {
+			// delete my own end_node, and put back the original end node
+			SetRef(node, true);
+			delete end_node;
+			end_node = static_cast<EndNode*>(node);
+		} else {
+			safe_assert(node == NULL);
+			// add to the path
+			AddToPath(end_node, 0);
+		}
 	}
 }
 
 /*************************************************************************************/
 
 void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception) {
-	ExecutionTree* end_node = new EndNode();
+	EndNode* end_node = new EndNode();
 
 	ExecutionTree* node = ExchangeRef(end_node);
 	if(REF_ENDTEST(node)) {
 		// delete my own end_node, and put back the original end node
-		SetRef(node);
+		SetRef(node, true);
 		delete end_node;
-		end_node = node;
+		end_node = static_cast<EndNode*>(node);
 	} else {
 		// add to the path
 		AddToPath(end_node, 0);
 	}
 	// add my exception to the end node
-	(*static_cast<EndNode>(end_node).exceptions())[current] = exception;
-
+	end_node->add_exception(exception, current, "EndWithException");
 }
 
 

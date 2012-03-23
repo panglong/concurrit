@@ -39,7 +39,7 @@ namespace concurrit {
 
 BacktrackException* __backtrack_exception__ = new BacktrackException();
 TerminateSearchException* __terminate_search_exception__ = new TerminateSearchException();
-CounitException*    __counit_exception__ = new CounitException("", NULL);
+ConcurritException*    __concurrit_exception__ = new ConcurritException(NULL, NULL, "", NULL);
 
 /********************************************************************************/
 

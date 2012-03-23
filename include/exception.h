@@ -39,6 +39,8 @@
 
 namespace concurrit {
 
+class Coroutine;
+
 /*
  * Exceptions
  */
@@ -158,26 +160,23 @@ private:
 /********************************************************************************/
 
 // general counit exception
-class CounitException : public std::exception {
+class ConcurritException : public std::exception {
 public:
-	CounitException(std::string& where, std::exception* e) throw() : std::exception() {
+	ConcurritException(std::exception* e, Coroutine* owner = NULL, const std::string& where = "", ConcurritException* next = NULL) throw() : std::exception() {
 		where_ = where;
 		cause_ = e;
+		owner_ = owner;
+		next_ = next;
 	}
 
-	CounitException(const char* where, std::exception* e) throw() : std::exception() {
-		where_ = where;
-		cause_ = e;
-	}
-
-	~CounitException() throw() {
+	~ConcurritException() throw() {
 		// do not delete the cause!
 	}
 
 	virtual const char* what() const throw()
 	{
 		std::stringstream s(std::stringstream::out);
-		s << "Counit exception in " << where_ << "\n";
+		s << "Exception in " << where_ << "\n";
 		s << "Cause: " << cause_->what() << "\n";
 		return s.str().c_str();
 	}
@@ -197,47 +196,50 @@ public:
 private:
 	DECL_FIELD(std::string, where)
 	DECL_FIELD(std::exception*, cause)
+	DECL_FIELD(Coroutine*, owner)
+	DECL_FIELD(ConcurritException*, next)
 };
 
 /********************************************************************************/
 
 extern BacktrackException* __backtrack_exception__;
 extern TerminateSearchException* __terminate_search_exception__;
-extern CounitException*    __counit_exception__;
+extern ConcurritException*    __concurrit_exception__;
 
-#define TRIGGER_BACKTRACK() \
-	VLOG(2) << "TRIGGER_BACKTRACK"; \
-	throw CHECK_NOTNULL(__backtrack_exception__)
+inline void TRIGGER_BACKTRACK() {
+	VLOG(2) << "TRIGGER_BACKTRACK";
+	throw CHECK_NOTNULL(__backtrack_exception__);
+}
 
-#define TRIGGER_TERMINATE_SEARCH() \
-	VLOG(2) << "TRIGGER_TERMINATE_SEARCH"; \
-	throw CHECK_NOTNULL(__terminate_search_exception__)
+inline void TRIGGER_TERMINATE_SEARCH() {
+	VLOG(2) << "TRIGGER_TERMINATE_SEARCH";
+	throw CHECK_NOTNULL(__terminate_search_exception__);
+}
 
 inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {
 	VLOG(2) << "WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what();
-	__counit_exception__->set_where(m);
-	__counit_exception__->set_cause(e);
-	return __counit_exception__;
+	__concurrit_exception__->set_where(m);
+	__concurrit_exception__->set_cause(e);
+	__concurrit_exception__->set_next(NULL);
+	return __concurrit_exception__;
 }
 
-#define TRIGGER_WRAPPED_EXCEPTION(m, e) \
-	{ \
-		VLOG(2) << "TRIGGER_WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what(); \
-		__counit_exception__->set_where(m); \
-		__counit_exception__->set_cause(e); \
-		throw CHECK_NOTNULL(__counit_exception__); \
-	}
+inline std::exception* TRIGGER_WRAPPED_EXCEPTION(const std::string& m, std::exception* e) {
+	throw WRAP_EXCEPTION(m, e);
+}
 
-#define TRIGGER_WRAPPED_BACKTRACK(m) \
-	TRIGGER_WRAPPED_EXCEPTION(m, (__backtrack_exception__))
+inline void TRIGGER_WRAPPED_BACKTRACK(const std::string& m) {
+	TRIGGER_WRAPPED_EXCEPTION(m, (__backtrack_exception__));
+}
 
-#define TRIGGER_INTERNAL_EXCEPTION(m)	\
-	VLOG(2) << "TRIGGER_INTERNAL_EXCEPTION: " << (m); \
-	throw new InternalException(m, RECORD_SRCLOC())
+inline void TRIGGER_INTERNAL_EXCEPTION(const std::string& m) {
+	VLOG(2) << "TRIGGER_INTERNAL_EXCEPTION: " << (m);
+	throw new InternalException(m, RECORD_SRCLOC());
+}
 
 
 //#define TRIGGER_BACKTRACK()				throw new BacktrackException()
-//#define TRIGGER_WRAPPED_EXCEPTION(m, e)	throw new CounitException(m, e)
+//#define TRIGGER_WRAPPED_EXCEPTION(m, e)	throw new ConcurritException(m, e)
 //#define TRIGGER_WRAPPED_BACKTRACK(m)		TRIGGER_WRAPPED_EXCEPTION(m, new BacktrackException())
 
 

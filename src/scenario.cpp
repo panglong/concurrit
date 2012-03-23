@@ -256,7 +256,7 @@ Result* Scenario::Explore() {
 				}
 
 			} catch(std::exception* e) {
-				CounitException* ce = ASINSTANCEOF(e, CounitException*);
+				ConcurritException* ce = ASINSTANCEOF(e, ConcurritException*);
 				if(ce->is_backtrack()) {
 					VLOG(2) << SC_TITLE << "Backtracking: " << e->what();
 
@@ -319,11 +319,20 @@ LOOP_DONE:
 
 /********************************************************************************/
 
+std::exception* Scenario::CollectExceptions() {
+	ExecutionTree* node = exec_tree_.GetLastInPath();
+	safe_assert(exec_tree_.REF_ENDTEST(node));
+	EndNode* end_node = ASINSTANCEOF(node, EndNode*);
+	return end_node->exception();
+}
+
+/********************************************************************************/
+
 std::exception* Scenario::RunOnce() throw() {
 
 	RunSetUp();
 
-	std::exception* exc = RunTestCase();
+	RunTestCase();
 
 	RunUncontrolled();
 
@@ -331,7 +340,7 @@ std::exception* Scenario::RunOnce() throw() {
 
 	test_status_ = TEST_ENDED;
 
-	return exc;
+	return CollectExceptions();
 }
 
 /********************************************************************************/
@@ -383,20 +392,20 @@ void Scenario::RunTearDown() throw() {
 
 /********************************************************************************/
 
-std::exception* Scenario::RunTestCase() throw() {
+void Scenario::RunTestCase() throw() {
 	test_status_ = TEST_CONTROLLED;
 	try {
 		try {
 			TestCase();
 		} catch(std::exception* e) {
-			return WRAP_EXCEPTION("TestCase", e);
+			exec_tree_.EndWithException(group_.main(), e);
+//			return WRAP_EXCEPTION("TestCase", e);
 		}
 	} catch(...) { // } catch(std::exception* e) {
 		fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
 		_Exit(UNRECOVERABLE_ERROR);
 		// TRIGGER_WRAPPED_EXCEPTION("TestCase", e);
 	}
-	return NULL;
 }
 
 /********************************************************************************/
@@ -1146,15 +1155,6 @@ bool Scenario::DoBacktrackPreemptive() {
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
 	safe_assert(path->size() >= 2 && (*path)[0].parent() == root && exec_tree_.REF_ENDTEST(path->back().parent()));
-
-	//	// if path only contains root, then we are done
-//	if(path->back().parent() == root){
-//		safe_assert(path->size() == 1);
-//		root->set_covered(true); // mark the root covered
-//		return false;
-//	}
-//
-	// else, compute covered flags, if root is covered, then we are done
 
 	// current node must be an end node
 	ExecutionTree* current_node = exec_tree_.GetRef();
