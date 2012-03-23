@@ -37,6 +37,21 @@
 namespace concurrit {
 
 
+/*************************************************************************************/
+
+TPVALUE TPAND(TPVALUE v1, TPVALUE v2) {
+	static TPVALUE __and_table__ [TPUNKNOWN+1][TPUNKNOWN+1] = {
+			{TPTRUE,    TPFALSE, TPUNKNOWN},
+			{TPFALSE,   TPFALSE, TPFALSE},
+			{TPUNKNOWN, TPFALSE, TPUNKNOWN}
+	};
+	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
+	return __and_table__[v1][v2];
+}
+
+
+/*************************************************************************************/
+
 ExecutionTree::~ExecutionTree(){
 	VLOG(2) << "Deleting execution tree!";
 	for_each_child(child) {
@@ -285,7 +300,7 @@ void ExecutionTreeManager::EndWithSuccess() {
 
 /*************************************************************************************/
 
-void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception) {
+void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
@@ -301,8 +316,30 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	}
 	safe_assert(end_node != NULL);
 	// add my exception to the end node
-	end_node->add_exception(exception, current, "EndWithException");
+	end_node->add_exception(exception, current, where);
 }
+
+/*************************************************************************************/
+
+
+void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, const std::string& where) {
+	EndWithException(current, GetBacktrackException(), where);
+}
+
+
+/*************************************************************************************/
+
+TransitionConstraint::TransitionConstraint(Scenario* scenario)
+: scenario_(scenario) {
+	scenario_->trans_constraints()->push_back(this);
+}
+
+TransitionConstraint::~TransitionConstraint(){
+	safe_assert(scenario_->trans_constraints()->back() == this);
+	scenario_->trans_constraints()->pop_back();
+}
+
+/*************************************************************************************/
 
 
 } // end namespace

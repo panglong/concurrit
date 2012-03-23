@@ -74,15 +74,20 @@ public:
 //		} while(!ALL_ENDED);
 
 
-		int k = 1;
-		while(STAR) {
-			printf("Iteration %d\n", k);
-			++k;
+//		int k = 1;
+//		while(STAR) {
+//			printf("Iteration %d\n", k);
+//			++k;
+//
+//			if(k == 5) {
+//				break;
+////				ASSERT(false);
+//			}
+//		}
 
-			if(k == 5) {
-				break;
-//				ASSERT(false);
-			}
+		TrueTransitionPredicate true_trans;
+		while(STAR) {
+			DSLTransition(&true_trans);
 		}
 
 		printf("Ending\n");

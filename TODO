@@ -1,3 +1,6 @@
+- node eklerken threadlerin alive olup olmadigina da bak!!! olurlerse node'lari acquire edemezler 
+- true ve false transition predicateleri static global variable yap, tek instance olsunlar.
+- INSTANCEOF lari ASINSTANCEOF ile yer degistir dynamic castlari bire dusurmek icin
 - multiple exceution'i handle et, su anda sadece tek exception handle ediliyor, assertionlar oncelikli olacak
 
  -- pin instrumentation'i kaldir!!!

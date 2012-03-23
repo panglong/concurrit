@@ -46,6 +46,8 @@ Coroutine::Coroutine(const char* name, ThreadEntryFunction entry_function, void*
 	vc_clear(vc_);
 	exception_ = NULL;
 	transfer_on_start_ = false;
+	current_node_ = NULL;
+	trinfolist_.clear();
 }
 
 /********************************************************************************/
@@ -147,6 +149,8 @@ void Coroutine::Start() {
 	yield_point_ = NULL;
 	vc_clear(vc_);
 	exception_ = NULL;
+	current_node_ = NULL;
+	trinfolist_.clear();
 
 	//---------------
 	CHANNEL_BEGIN_ATOMIC();

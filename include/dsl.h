@@ -43,7 +43,8 @@ namespace concurrit {
 
 class Coroutine;
 
-enum TPVALUE { TPTRUE = 1, TPFALSE = 0, TPUNKNOWN = -1 };
+enum TPVALUE { TPFALSE = 0, TPTRUE = 1, TPUNKNOWN = 2, TPINVALID = -1};
+TPVALUE TPAND(TPVALUE v1, TPVALUE v2);
 
 class TransitionPredicate {
 public:
@@ -235,15 +236,28 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 	// set atomic_ref to lock_node, and return the previous node according to mode
 	// if atomic_ref is end_node, returns it immediatelly
 	ExecutionTree* AcquireRef(AcquireRefMode mode);
+	// same as AcquireRefEx, but triggers backtrack exception if the node is an end node
+	ExecutionTree* AcquireRefEx(AcquireRefMode mode) {
+		ExecutionTree* node = AcquireRef(mode);
+		if(REF_ENDTEST(node)) {
+			TRIGGER_BACKTRACK();
+		}
+		return node;
+	}
 	// if child_index >= 0, adds the (node,child_index) to path and nullifies atomic_ref
 	// otherwise, puts node back to atomic_ref
 	void ReleaseRef(ExecutionTree* node = NULL, int child_index = -1);
+
+	void ReleaseRef(ChildLoc& node) {
+		ReleaseRef(node.parent(), node.child_index());
+	}
 
 	ChildLoc GetLastInPath();
 	void AddToPath(ExecutionTree* node, int child_index);
 
 	void EndWithSuccess();
-	void EndWithException(Coroutine* coroutine, std::exception* exception);
+	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
+	void EndWithBacktrack(Coroutine* current, const std::string& where);
 
 	bool CheckEndOfPath(std::vector<ChildLoc>* path = NULL);
 
@@ -283,6 +297,74 @@ private:
 	DECL_FIELD(TransitionConst, type)
 	DECL_FIELD(void*, arg)
 };
+
+/********************************************************************************/
+
+// constraints
+class TransitionConstraint : public TransitionPredicate {
+public:
+	TransitionConstraint(Scenario* scenario);
+
+	virtual ~TransitionConstraint();
+
+private:
+	DECL_FIELD(Scenario*, scenario)
+};
+
+/********************************************************************************/
+
+class TransitionConstraintAll : public TransitionConstraint {
+public:
+	TransitionConstraintAll(Scenario* scenario, TransitionPredicate* pred)
+	: TransitionConstraint(scenario), pred_(pred) {}
+
+	~TransitionConstraintAll() {}
+
+	virtual TPVALUE EvalPreState() {
+		return pred_->EvalPreState();
+	}
+	virtual bool EvalPostState() {
+		return pred_->EvalPostState();
+	}
+
+private:
+	DECL_FIELD(TransitionPredicate*, pred)
+};
+
+
+/********************************************************************************/
+
+class TransitionConstraintFirst : public TransitionConstraintAll {
+public:
+	TransitionConstraintFirst(Scenario* scenario, TransitionPredicate* pred)
+	: TransitionConstraintAll(scenario, pred), done_(false) {}
+
+	~TransitionConstraintFirst() {}
+
+	virtual TPVALUE EvalPreState() {
+		if(!done_) {
+			done_ = true;
+			return pred_->EvalPreState();
+		} else {
+			return TPTRUE;
+		}
+	}
+
+	virtual bool EvalPostState() {
+		if(!done_) {
+			done_ = true;
+			return pred_->EvalPostState();
+		} else {
+			return TPTRUE;
+		}
+	}
+
+private:
+	DECL_FIELD(bool, done)
+};
+
+
+/********************************************************************************/
 
 } // namespace
 

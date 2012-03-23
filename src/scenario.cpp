@@ -555,6 +555,8 @@ void Scenario::Start() {
 	group_.Restart(); // restarts only already started coroutines
 
 	transfer_criteria_.Reset();
+
+	safe_assert(trans_constraints_.empty());
 }
 
 /********************************************************************************/
@@ -1136,9 +1138,63 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	// make thread blocked
 	current->set_status(BLOCKED);
 
+	safe_assert(current->current_node() == NULL); // TODO(elmas): this may fail for coarse transitions
 
-	//...
+	// new element to be used when the current node is consumed
+	ChildLoc newnode = {NULL, -1};
 
+	// get the node
+	ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_FULL);
+	// if end_node, exit immediatelly
+	if(exec_tree_.REF_ENDTEST(node)) {
+		// uncontrolled mode, but the mode is set by main, so just ignore the rest
+		return;
+	}
+
+	safe_assert(!exec_tree_.REF_EMPTY(node) && !exec_tree_.REF_LOCKED(node));
+
+	// value determining what to with the transition
+	// TPTRUE: consume the transition
+	// TPFALSE: release the transition
+	// TPUNKNOWN: take the transition and decide after the transition
+	// TPINVALID: cannot occur
+	TPVALUE tval =  TPTRUE;
+
+	// get the node
+	TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
+	if(trans != NULL) {
+		// evaluate transition predicate
+		TransitionPredicate* pred = trans->pred();
+		tval = pred->EvalPreState();
+		if(tval == TPTRUE) {
+			newnode = {node, 0}; // newnode is the next of node
+		}
+	} else {
+		// TODO(elmas): others are not supported yet
+	}
+
+	// take action depending on tval
+	switch(tval) {
+	case TPTRUE: // consume the transition
+		// in this case, we insert a new node to the path represented by newnode
+		safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
+		exec_tree_.ReleaseRef(newnode);
+		break;
+
+	case TPFALSE: // release the transition and wait
+		exec_tree_.ReleaseRef(node);
+		break;
+
+	case TPUNKNOWN: // take the transition and decide after the transition
+		current->set_current_node(node);
+		break;
+
+	default:
+		fprintf(stderr, "Invalid TPVALUE: %d\n", tval);
+		bool InvalidTPValue = false;
+		safe_assert(InvalidTPValue);
+		break;
+	}
 }
 
 void Scenario::AfterControlledTransition(Coroutine* current) {
@@ -1146,14 +1202,62 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 
 	printf("After controlled transition by %s\n", current->name().c_str());
 
-	//...
+	safe_assert(current->status() == BLOCKED);
 
+	// new element to be used when the current node is consumed
+	ChildLoc newnode = {NULL, -1};
+
+	// value determining what to with the transition
+	// TPTRUE: continue as normal
+	// TPFALSE: trigger backtrack
+	// TPUNKNOWN: cannot occur
+	TPVALUE tval =  TPTRUE;
+
+	// if we have a current node, then check it
+	ExecutionTree* node = current->current_node();
+	if(node != NULL) {
+		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
+		if(trans != NULL) {
+			// evaluate transition predicate
+			TransitionPredicate* pred = trans->pred();
+			bool ret = pred->EvalPostState();
+			tval = (ret ? TPTRUE : TPFALSE);
+			if(tval == TPTRUE) {
+				newnode = {node, 0}; // newnode is the next of node
+			}
+		} else {
+			// TODO(elmas): others are not supported yet
+		}
+	}
 
 	// remove all transition info records
 	current->trinfolist()->clear();
+	current->set_current_node(NULL);
 
 	// make thread enabled
 	current->set_status(ENABLED);
+
+	// take action depending on tval
+	switch(tval) {
+	case TPTRUE: // consume the transition if node is not null, otherwise, there was no node to handle
+		if(node != NULL) {
+			// in this case, we insert a new node to the path represented by newnode
+			safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
+			exec_tree_.ReleaseRef(newnode);
+		}
+		break;
+
+	case TPFALSE: // release the transition and wait
+		// trigger backtrack, causes current execution to end
+		exec_tree_.EndWithBacktrack(current, "AfterControlledTransition");
+		break;
+
+	default:
+		fprintf(stderr, "Invalid TPVALUE: %d\n", tval);
+		bool InvalidTPValue = false;
+		safe_assert(InvalidTPValue);
+		break;
+	}
 }
 
 /********************************************************************************/
@@ -1178,12 +1282,12 @@ bool Scenario::DSLChoice() {
 	VLOG(2) << "Adding DSLChoice";
 	printf("Adding DSLChoice\n");
 
-	bool ret = false;
-	ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_EMPTY);
-	// if end_node, exit immediatelly
-	if(exec_tree_.REF_ENDTEST(node)) {
+	if(group_.IsAllEnded()) {
 		TRIGGER_BACKTRACK();
 	}
+
+	bool ret = false;
+	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
 	ChoiceNode* choice = NULL;
@@ -1201,6 +1305,8 @@ bool Scenario::DSLChoice() {
 		choice = new ChoiceNode();
 		parent.set(choice);
 	}
+
+	safe_assert(!choice->covered());
 
 	// not covered yet
 	// check children
@@ -1223,29 +1329,40 @@ bool Scenario::DSLChoice() {
 /********************************************************************************/
 
 void Scenario::DSLTransition(TransitionPredicate* pred) {
-//	VLOG(2) << "Adding DSLTransition";
-//
-//	// check if all threads terminated
-//	if(group_.IsAllEnded()) {
-//		TRIGGER_BACKTRACK();
-//	}
-//
-//	ExecutionTree* node = exec_tree_.GetNextTransition();
-//
-//	TransitionNode* trans = NULL;
-//	if(node != NULL) {
-//		safe_assert(INSTANCEOF(node, TransitionNode*));
-//		trans = ASINSTANCEOF(node, TransitionNode*);
-//		if(trans->covered()) {
-//			// backtrack
-//			TRIGGER_BACKTRACK();
-//		}
-//	} else {
-//		trans = new TransitionNode(pred, exec_tree_.GetLastInPath());
-//	}
-//
-//	// new transition, next transition is child
-////	exec_tree_.SetNextTransition(trans, trans->child());
+	VLOG(2) << "Adding DSLTransition";
+	printf("Adding DSLTransition\n");
+
+	if(group_.IsAllEnded()) {
+		TRIGGER_BACKTRACK();
+	}
+
+	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+
+	TransitionNode* trans = NULL;
+	node = exec_tree_.GetLastInPath();
+	if(node != NULL) {
+		safe_assert(exec_tree_.GetLastInPath().check(node));
+		safe_assert(INSTANCEOF(node, TransitionNode*));
+		trans = ASINSTANCEOF(node, TransitionNode*);
+		if(trans->covered()) {
+			// backtrack
+			TRIGGER_BACKTRACK();
+		}
+	} else {
+		ChildLoc parent = exec_tree_.GetLastInPath();
+		trans = new TransitionNode(pred, parent.parent());
+		parent.set(trans);
+	}
+
+	safe_assert(!trans->covered());
+
+	// not covered yet
+
+	// set atomic_ref to point to trans
+	exec_tree_.ReleaseRef(trans, 0);
+
+	printf("Added DSLTransition.\n");
 }
 
 /********************************************************************************/

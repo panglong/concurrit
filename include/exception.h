@@ -229,14 +229,22 @@ extern BacktrackException* __backtrack_exception__;
 extern TerminateSearchException* __terminate_search_exception__;
 //extern ConcurritException*    __concurrit_exception__;
 
+inline BacktrackException* GetBacktrackException() {
+	return CHECK_NOTNULL(__backtrack_exception__);
+}
+
+inline TerminateSearchException* GetTerminateSearchException() {
+	return CHECK_NOTNULL(__terminate_search_exception__);
+}
+
 inline void TRIGGER_BACKTRACK() {
 	VLOG(2) << "TRIGGER_BACKTRACK";
-	throw CHECK_NOTNULL(__backtrack_exception__);
+	throw GetBacktrackException();
 }
 
 inline void TRIGGER_TERMINATE_SEARCH() {
 	VLOG(2) << "TRIGGER_TERMINATE_SEARCH";
-	throw CHECK_NOTNULL(__terminate_search_exception__);
+	throw GetTerminateSearchException();
 }
 
 //inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {

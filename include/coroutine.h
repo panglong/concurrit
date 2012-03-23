@@ -44,6 +44,7 @@ namespace concurrit {
 class CoroutineGroup;
 class SchedulePoint;
 class TransitionInfo;
+class ExecutionTree;
 
 #define MAIN_NAME 	"main"
 
@@ -117,6 +118,7 @@ private:
 	DECL_FIELD(VC, vc)
 
 	DECL_FIELD_REF(std::vector<TransitionInfo>, trinfolist)
+	DECL_FIELD(ExecutionTree*, current_node)
 
 	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD_REF(Semaphore, sem_end)

@@ -194,6 +194,8 @@ private:
 	DECL_FIELD(bool, dpor_enabled)
 	DECL_VOL_FIELD(TestStatus, test_status)
 
+	DECL_FIELD_REF(std::vector<TransitionConstraint*>, trans_constraints)
+
 	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
 
 	DECL_FIELD_GET_REF(ExecutionTreeManager, exec_tree)

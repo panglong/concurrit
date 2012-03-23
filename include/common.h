@@ -58,6 +58,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <stack>
 
 #ifdef __linux__
 #define LINUX
@@ -105,7 +106,7 @@ extern volatile bool IsInitialized;
 
 #define INSTANCEOF(o, c)	(_AS(o,c) != NULL)
 
-#define ASINSTANCEOF(o, c)	/*CHECK_NOTNULL*/(_AS(o,c))
+#define ASINSTANCEOF(o, c)	(_AS(o,c))
 
 /********************************************************************************/
 
