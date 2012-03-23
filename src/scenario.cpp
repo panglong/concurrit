@@ -1165,7 +1165,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	if(trans != NULL) {
 		// evaluate transition predicate
 		TransitionPredicate* pred = trans->pred();
-		tval = pred->EvalPreState();
+		tval = TransitionPredicateEvaluator(this, pred).EvalPreState();
 		if(tval == TPTRUE) {
 			newnode = {node, 0}; // newnode is the next of node
 		}
@@ -1220,7 +1220,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		if(trans != NULL) {
 			// evaluate transition predicate
 			TransitionPredicate* pred = trans->pred();
-			bool ret = pred->EvalPostState();
+			bool ret = TransitionPredicateEvaluator(this, pred).EvalPostState();
 			tval = (ret ? TPTRUE : TPFALSE);
 			if(tval == TPTRUE) {
 				newnode = {node, 0}; // newnode is the next of node

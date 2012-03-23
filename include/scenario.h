@@ -201,6 +201,44 @@ private:
 	DECL_FIELD_GET_REF(ExecutionTreeManager, exec_tree)
 };
 
+/************************************************************************************/
+
+class TransitionPredicateEvaluator : public TransitionPredicate {
+public:
+	TransitionPredicateEvaluator(Scenario* scenario, TransitionPredicate* pred) : scenario_(scenario), pred_(pred) {}
+
+	~TransitionPredicateEvaluator() {}
+
+	virtual TPVALUE EvalPreState() {
+		TransitionPredicate* current = pred_;
+		TPVALUE v = current->EvalPreState();
+		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
+		for(int i = constraints->size()-1; i >= 0 && v != TPFALSE; ++i) {
+			// update current
+			current = (*constraints)[i];
+			// update v
+			v = TPAND(v, current->EvalPreState());
+		}
+		return v;
+	}
+	virtual bool EvalPostState() {
+		TransitionPredicate* current = pred_;
+		bool v = current->EvalPostState();
+		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
+		for(int i = constraints->size()-1; i >= 0 && v != false; ++i) {
+			// update current
+			current = (*constraints)[i];
+			// update v
+			v = (v && current->EvalPostState());
+		}
+		return v;
+	}
+
+private:
+	DECL_FIELD(Scenario*, scenario)
+	DECL_FIELD(TransitionPredicate*, pred)
+};
+
 } // end namespace
 
 #endif /* SCENARIO_H_ */
