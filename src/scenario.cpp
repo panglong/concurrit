@@ -229,10 +229,11 @@ Result* Scenario::Explore() {
 
 				VLOG(2) << SC_TITLE << "Starting path " << statistics_->counter("Num paths explored");
 
-				std::exception* exc = RunOnce();
+				ConcurritException* exc = RunOnce();
 
 				// RunOnce should not throw an exception, so throw it here
 				if(exc != NULL) {
+					VLOG(2) << "Throwing exception from RunOnce: " << exc->what();
 					throw exc;
 				}
 
@@ -330,7 +331,7 @@ LOOP_DONE:
 
 /********************************************************************************/
 
-std::exception* Scenario::CollectExceptions() {
+ConcurritException* Scenario::CollectExceptions() {
 	ExecutionTree* node = exec_tree_.GetLastInPath();
 	safe_assert(exec_tree_.REF_ENDTEST(node));
 	EndNode* end_node = ASINSTANCEOF(node, EndNode*);
@@ -339,7 +340,7 @@ std::exception* Scenario::CollectExceptions() {
 
 /********************************************************************************/
 
-std::exception* Scenario::RunOnce() throw() {
+ConcurritException* Scenario::RunOnce() throw() {
 
 	RunSetUp();
 

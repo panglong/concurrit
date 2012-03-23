@@ -170,9 +170,6 @@ public:
 	EndNode(ExecutionTree* parent = NULL) : ExecutionTree(parent, 1) {
 		covered_ = true;
 		set_child(this); // points to itself
-		Reset();
-	}
-	void Reset() {
 		exception_ = NULL;
 	}
 
@@ -223,7 +220,7 @@ private:
 
 /********************************************************************************/
 
-enum AcquireRefMode { EXIT_ON_EMPTY, EXIT_ON_FULL, EXIT_ON_LOCK};
+enum AcquireRefMode { EXIT_ON_EMPTY = 1, EXIT_ON_FULL = 2, EXIT_ON_LOCK = 3};
 
 class ExecutionTreeManager {
 public:

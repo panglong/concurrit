@@ -147,11 +147,11 @@ void ExecutionTreeManager::Restart() {
 
 // run by test threads to get the next transition node
 ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode) {
-	unsigned long nano_sec = 16;
+	long nano_sec = 1L;
 	while(true) {
 		ExecutionTree* node = ExchangeRef(&lock_node_);
 		if(REF_EMPTY(node)) {
-			if(mode == EXIT_ON_EMPTY) {
+			if(mode == EXIT_ON_EMPTY || mode == EXIT_ON_LOCK) {
 				return NULL;
 			} else {
 				// release
@@ -181,12 +181,13 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode) {
 		Thread::Yield(true);
 
 		nano_sec <<= 1;
-		if(nano_sec >= (ULONG_MAX >> 2)) {
+		if(nano_sec >= 999999999L) {
 			// TODO(elmas): alert, backtrack!
+			fprintf(stderr, "Failing on mode %d\n", mode);
 			safe_assert(false);
 		}
-		if(nano_sec > 128) {
-			short_sleep(nano_sec);
+		if(nano_sec > (1L << 5)) {
+			short_sleep(nano_sec, false);
 		}
 	}
 	// unreachable
@@ -199,7 +200,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode) {
 // TODO(elmas): no need for GetRef, just SetRef is enough if the assertion is valid
 void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_index /*= -1*/) {
 	ExecutionTree* current_node = GetRef();
-	safe_assert(REF_LOCKED(current_node)); // ReleaseRef cannot be called on endnode
+	safe_assert(REF_LOCKED(current_node) || REF_ENDTEST(current_node));
 
 	if(child_index >= 0) {
 		safe_assert(node != NULL);

@@ -57,8 +57,8 @@ void ThreadModularScenario::Start() {
 
 /********************************************************************************/
 
-std::exception* ThreadModularScenario::RunOnce() throw() {
-	std::exception* exc = super::RunOnce();
+ConcurritException* ThreadModularScenario::RunOnce() throw() {
+	ConcurritException* exc = super::RunOnce();
 
 	// print the memory trace:
 	printf("Memory trace:\n%s\n", env_trace_.ToString().c_str());

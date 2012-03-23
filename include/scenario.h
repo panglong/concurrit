@@ -157,11 +157,11 @@ protected:
 	// runs the threads uncontrolled way, until they all got into ended state
 	void RunUncontrolled();
 
-	virtual std::exception* RunOnce() throw();
+	virtual ConcurritException* RunOnce() throw();
 	void RunTestCase() throw();
 	void RunSetUp() throw();
 	void RunTearDown() throw();
-	std::exception* CollectExceptions();
+	ConcurritException* CollectExceptions();
 
 	virtual bool CheckUntil(SchedulePoint* point);
 

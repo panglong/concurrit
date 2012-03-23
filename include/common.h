@@ -212,13 +212,25 @@ typedef unsigned int vctime_t;
 
 /********************************************************************************/
 
-inline void short_sleep(long nanoseconds) {
+inline void short_sleep(long nanoseconds, bool continue_on_signal) {
 	struct timespec tv;
 	tv.tv_sec = (time_t) 0;
 	tv.tv_nsec = nanoseconds;
 
-	int rval = nanosleep(&tv, &tv);
-	safe_assert (rval == 0);
+	int rval = 0;
+	do {
+		rval = nanosleep(&tv, &tv);
+		if(rval == EINVAL) {
+			fprintf(stderr, "Invalid time value: %lu\n", nanoseconds);
+			_Exit(UNRECOVERABLE_ERROR);
+		}
+		if(rval == EFAULT) {
+			fprintf(stderr, "Problem with copying from user space: %lu\n", nanoseconds);
+			_Exit(UNRECOVERABLE_ERROR);
+		}
+		safe_assert (rval == 0 || rval == EINTR);
+
+	} while(rval == EINTR && continue_on_signal);
 }
 
 /********************************************************************************/

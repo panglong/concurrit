@@ -81,6 +81,7 @@ public:
 
 			if(k == 5) {
 				break;
+//				ASSERT(false);
 			}
 		}
 
@@ -97,8 +98,11 @@ int main(int argc, char * argv)
 //  int i;
 
 
+	Suite suite;
 
-  (new BBScenario())->ExploreExists();
+	suite.AddScenario(new BBScenario());
+
+	suite.RunAll();
 
 //  bounded_buf_t buffer;
 //  bounded_buf_init(&buffer, 3);

@@ -280,7 +280,7 @@ public:
 
 	void OnAccess(Coroutine* current, SharedAccess* access); // override
 	void Start(); // override
-	std::exception* RunOnce() throw(); // override
+	ConcurritException* RunOnce() throw(); // override
 	void TestCase(); // override. implements the modular check, threads must be added in setup
 
 private:
