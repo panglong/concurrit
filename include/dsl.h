@@ -245,17 +245,18 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 
 	void ConsumeTransition(ExecutionTree* node, int child_index);
 
-	ExecutionTree* GetRef();
-
-	ExecutionTree* ExchangeRef(ExecutionTree* node);
-
-	void SetRef(ExecutionTree* node, bool overwrite_end = false);
-
 	ChildLoc GetLastInPath();
 	void AddToPath(ExecutionTree* node, int child_index);
 
 	void EndWithSuccess();
 	void EndWithException(Coroutine* coroutine, std::exception* exception);
+
+	bool CheckEndOfPath();
+
+private:
+	ExecutionTree* GetRef();
+	ExecutionTree* ExchangeRef(ExecutionTree* node);
+	void SetRef(ExecutionTree* node, bool overwrite_end = false);
 
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)

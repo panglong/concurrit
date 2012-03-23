@@ -155,6 +155,9 @@ ExecutionTree* ExecutionTreeManager::GetNextTransition() {
 			// we obtained the lock!
 			return GetLastInPath();
 		}
+
+		// node is either lock_node or a node that has not been satisfied yet
+
 		Thread::Yield(true);
 	}
 	// unreachable
@@ -197,6 +200,7 @@ ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
 
 /*************************************************************************************/
 
+// TODO(elmas): no need for GetRef, just SetRef is enough if the assertion is valid
 void ExecutionTreeManager::ReleaseNextTransition(ExecutionTree* node, int child_index) {
 	safe_assert(node != NULL);
 	ExecutionTree* current_node = GetRef();
@@ -257,6 +261,12 @@ void ExecutionTreeManager::SetRef(ExecutionTree* node, bool overwrite_end /*= fa
 ChildLoc ExecutionTreeManager::GetLastInPath() {
 	safe_assert(!current_path_.empty());
 	return current_path_.back();
+}
+
+bool ExecutionTreeManager::CheckEndOfPath() {
+	// current node must be an end node
+	ExecutionTree* current_node = GetRef();
+	return (REF_ENDTEST(current_node)) && (current_path_.back() == current_node);
 }
 
 /*************************************************************************************/

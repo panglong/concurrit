@@ -1152,14 +1152,11 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 /********************************************************************************/
 
 bool Scenario::DoBacktrackPreemptive() {
+	safe_assert(exec_tree_.CheckEndOfPath());
+
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
 	safe_assert(path->size() >= 2 && (*path)[0].parent() == root && exec_tree_.REF_ENDTEST(path->back().parent()));
-
-	// current node must be an end node
-	ExecutionTree* current_node = exec_tree_.GetRef();
-	safe_assert(exec_tree_.REF_ENDTEST(current_node));
-	safe_assert(path->back() == current_node);
 
 	// propagate coverage back in the path (skip the end node, which is already covered)
 	for(int i = path->size()-2; i >= 0; --i) {
