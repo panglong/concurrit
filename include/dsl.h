@@ -223,6 +223,8 @@ private:
 
 /********************************************************************************/
 
+enum AcquireRefMode { EXIT_ON_EMPTY, EXIT_ON_FULL, EXIT_ON_LOCK};
+
 class ExecutionTreeManager {
 public:
 	ExecutionTreeManager();
@@ -233,17 +235,12 @@ inline bool REF_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
 inline bool REF_LOCKED(ExecutionTree* n) { return ((n) == (&lock_node_)); }
 inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 
-	// operations by script
-	ExecutionTree* GetNextTransition();
-
-	// operations by clients
-
-	// run by test threads to get the next transition node
-	ExecutionTree* AcquireNextTransition();
-
-	void ReleaseNextTransition(ExecutionTree* node, int child_index);
-
-	void ConsumeTransition(ExecutionTree* node, int child_index);
+	// set atomic_ref to lock_node, and return the previous node according to mode
+	// if atomic_ref is end_node, returns it immediatelly
+	ExecutionTree* AcquireRef(AcquireRefMode mode);
+	// if child_index >= 0, adds the (node,child_index) to path and nullifies atomic_ref
+	// otherwise, puts node back to atomic_ref
+	void ReleaseRef(ExecutionTree* node = NULL, int child_index = -1);
 
 	ChildLoc GetLastInPath();
 	void AddToPath(ExecutionTree* node, int child_index);
@@ -251,12 +248,12 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 	void EndWithSuccess();
 	void EndWithException(Coroutine* coroutine, std::exception* exception);
 
-	bool CheckEndOfPath();
+	bool CheckEndOfPath(std::vector<ChildLoc>* path = NULL);
 
 private:
 	ExecutionTree* GetRef();
 	ExecutionTree* ExchangeRef(ExecutionTree* node);
-	void SetRef(ExecutionTree* node, bool overwrite_end = false);
+	void SetRef(ExecutionTree* node);
 
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)

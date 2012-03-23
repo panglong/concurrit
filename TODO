@@ -1,3 +1,4 @@
+- multiple exceution'i handle et, su anda sadece tek exception handle ediliyor, assertionlar oncelikli olacak
 
  -- pin instrumentation'i kaldir!!!
 - rununcontrolled yield mod icin nasil calisacak, ayri flag gerekebilir!

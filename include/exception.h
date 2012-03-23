@@ -163,6 +163,7 @@ private:
 class ConcurritException : public std::exception {
 public:
 	ConcurritException(std::exception* e, Coroutine* owner = NULL, const std::string& where = "", ConcurritException* next = NULL) throw() : std::exception() {
+		safe_assert(e != NULL);
 		where_ = where;
 		cause_ = e;
 		owner_ = owner;
@@ -181,16 +182,38 @@ public:
 		return s.str().c_str();
 	}
 
+	// also assume exception
 	bool is_backtrack() {
-		return INSTANCEOF(cause_, BacktrackException*);
+		ConcurritException* ce = this;
+		while(ce != NULL) {
+			if(INSTANCEOF(cause_, BacktrackException*)) {
+				return true;
+			}
+			ce = ce->next_;
+		}
+		return false;
 	}
 
 	bool is_assertion_violation() {
-		return INSTANCEOF(cause_, AssertionViolationException*);
+		ConcurritException* ce = this;
+		while(ce != NULL) {
+			if(INSTANCEOF(cause_, AssertionViolationException*)) {
+				return true;
+			}
+			ce = ce->next_;
+		}
+		return false;
 	}
 
 	bool is_internal() {
-		return INSTANCEOF(cause_, InternalException*);
+		ConcurritException* ce = this;
+		while(ce != NULL) {
+			if(INSTANCEOF(cause_, InternalException*)) {
+				return true;
+			}
+			ce = ce->next_;
+		}
+		return false;
 	}
 
 private:
@@ -204,7 +227,7 @@ private:
 
 extern BacktrackException* __backtrack_exception__;
 extern TerminateSearchException* __terminate_search_exception__;
-extern ConcurritException*    __concurrit_exception__;
+//extern ConcurritException*    __concurrit_exception__;
 
 inline void TRIGGER_BACKTRACK() {
 	VLOG(2) << "TRIGGER_BACKTRACK";
@@ -216,20 +239,20 @@ inline void TRIGGER_TERMINATE_SEARCH() {
 	throw CHECK_NOTNULL(__terminate_search_exception__);
 }
 
-inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {
-	VLOG(2) << "WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what();
-	__concurrit_exception__->set_where(m);
-	__concurrit_exception__->set_cause(e);
-	__concurrit_exception__->set_next(NULL);
-	return __concurrit_exception__;
-}
-
-inline std::exception* TRIGGER_WRAPPED_EXCEPTION(const std::string& m, std::exception* e) {
-	throw WRAP_EXCEPTION(m, e);
-}
+//inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {
+//	VLOG(2) << "WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what();
+//	__concurrit_exception__->set_where(m);
+//	__concurrit_exception__->set_cause(e);
+//	__concurrit_exception__->set_next(NULL);
+//	return __concurrit_exception__;
+//}
+//
+//inline std::exception* TRIGGER_WRAPPED_EXCEPTION(const std::string& m, std::exception* e) {
+//	throw WRAP_EXCEPTION(m, e);
+//}
 
 inline void TRIGGER_WRAPPED_BACKTRACK(const std::string& m) {
-	TRIGGER_WRAPPED_EXCEPTION(m, (__backtrack_exception__));
+	throw new ConcurritException((__backtrack_exception__), NULL, m, NULL);
 }
 
 inline void TRIGGER_INTERNAL_EXCEPTION(const std::string& m) {

@@ -52,6 +52,7 @@
 #include <exception>
 #include <iostream>
 #include <sstream>
+#include <limits.h>
 
 // std libraries
 #include <vector>

@@ -255,10 +255,29 @@ Result* Scenario::Explore() {
 					TRIGGER_WRAPPED_BACKTRACK("Forall");
 				}
 
-			} catch(std::exception* e) {
-				ConcurritException* ce = ASINSTANCEOF(e, ConcurritException*);
-				if(ce->is_backtrack()) {
-					VLOG(2) << SC_TITLE << "Backtracking: " << e->what();
+			} catch(ConcurritException* ce) {
+				// check the contents of ce, check backtrack last
+				if(ce->is_assertion_violation()){
+					VLOG(2) << SC_TITLE << "Assertion is violated!";
+					VLOG(2) << ce->what();
+
+					safe_assert(INSTANCEOF(ce->cause(), AssertionViolationException*));
+					result = new AssertionViolationResult(static_cast<AssertionViolationException*>(ce->cause()), schedule_->Clone());
+				} else if(ce->is_internal()){
+					VLOG(2) << SC_TITLE << "Internal exception thrown!";
+					VLOG(2) << ce->what();
+
+					safe_assert(INSTANCEOF(ce->cause(), InternalException*));
+					throw ce->cause();
+				} else if(!ce->is_backtrack()) {
+					safe_assert(ce->cause() != NULL);
+					VLOG(2) << SC_TITLE << "Exception caught: " << ce->cause()->what();
+
+					safe_assert(INSTANCEOF(ce->cause(), std::exception*));
+					result = new RuntimeExceptionResult(ce->cause(), schedule_->Clone());
+				} else {
+					// Backtrack exception!!!
+					VLOG(2) << SC_TITLE << "Backtracking: " << ce->what();
 
 					// is backtrack is for terminating the search, exit the search loop
 					if(INSTANCEOF(ce->cause(), TerminateSearchException*)) {
@@ -278,27 +297,19 @@ Result* Scenario::Explore() {
 						goto LOOP_DONE; // break the outermost loop
 					}
 
-				} else if(ce->is_assertion_violation()){
-					VLOG(2) << SC_TITLE << "Assertion is violated!";
-					VLOG(2) << ce->what();
-
-					safe_assert(INSTANCEOF(ce->cause(), AssertionViolationException*));
-					result = new AssertionViolationResult(static_cast<AssertionViolationException*>(ce->cause()), schedule_->Clone());
-				} else if(ce->is_internal()){
-					VLOG(2) << SC_TITLE << "Internal exception thrown!";
-					VLOG(2) << ce->what();
-
-					safe_assert(INSTANCEOF(ce->cause(), InternalException*));
-					throw ce->cause();
-				} else {
-					safe_assert(ce->cause() != NULL);
-					VLOG(2) << SC_TITLE << "Exception caught: " << ce->cause()->what();
-
-					safe_assert(INSTANCEOF(ce->cause(), std::exception*));
-					result = new RuntimeExceptionResult(ce->cause(), schedule_->Clone());
 				}
 				break;
 			}
+			catch(std::exception* e) {
+				fprintf(stderr, "Exceptions other than ConcurritException are not expected!!!\n");
+				fprintf(stderr, "Exception caught: %s", e->what());
+				_Exit(UNRECOVERABLE_ERROR);
+			}
+			catch(...) {
+				fprintf(stderr, "Exceptions other than std::exception are not expected!!!\n");
+				_Exit(UNRECOVERABLE_ERROR);
+			}
+
 		} // end for
 		/************************************************************************/
 		safe_assert(result != NULL);
@@ -370,10 +381,9 @@ void Scenario::RunSetUp() throw() {
 	test_status_ = TEST_SETUP;
 	try {
 		SetUp();
-	} catch(...) { // } catch(std::exception* e) {
+	} catch(...) {
 		fprintf(stderr, "Exceptions in SetUp are not allowed!!!\n");
 		_Exit(UNRECOVERABLE_ERROR);
-		// TRIGGER_WRAPPED_EXCEPTION("Setup", e);
 	}
 }
 
@@ -383,10 +393,9 @@ void Scenario::RunTearDown() throw() {
 	test_status_ = TEST_TEARDOWN;
 	try {
 		TearDown();
-	} catch(...) { // } catch(std::exception* e) {
+	} catch(...) {
 		fprintf(stderr, "Exceptions in TearDown are not allowed!!!\n");
 		_Exit(UNRECOVERABLE_ERROR);
-		// TRIGGER_WRAPPED_EXCEPTION("Teardown", e);
 	}
 }
 
@@ -395,16 +404,13 @@ void Scenario::RunTearDown() throw() {
 void Scenario::RunTestCase() throw() {
 	test_status_ = TEST_CONTROLLED;
 	try {
-		try {
-			TestCase();
-		} catch(std::exception* e) {
-			exec_tree_.EndWithException(group_.main(), e);
-//			return WRAP_EXCEPTION("TestCase", e);
-		}
-	} catch(...) { // } catch(std::exception* e) {
+		TestCase();
+	} catch(std::exception* e) {
+		// TODO(elmas): this exception can be backtrack_exception, should we handle it differently?
+		exec_tree_.EndWithException(group_.main(), e);
+	} catch(...) {
 		fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
 		_Exit(UNRECOVERABLE_ERROR);
-		// TRIGGER_WRAPPED_EXCEPTION("TestCase", e);
 	}
 }
 
@@ -1152,11 +1158,9 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 /********************************************************************************/
 
 bool Scenario::DoBacktrackPreemptive() {
-	safe_assert(exec_tree_.CheckEndOfPath());
-
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
-	safe_assert(path->size() >= 2 && (*path)[0].parent() == root && exec_tree_.REF_ENDTEST(path->back().parent()));
+	safe_assert(exec_tree_.CheckEndOfPath(path));
 
 	// propagate coverage back in the path (skip the end node, which is already covered)
 	for(int i = path->size()-2; i >= 0; --i) {
@@ -1174,9 +1178,15 @@ bool Scenario::DSLChoice() {
 	printf("Adding DSLChoice\n");
 
 	bool ret = false;
-	ExecutionTree* node = exec_tree_.GetNextTransition();
+	ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_EMPTY);
+	// if end_node, exit immediatelly
+	if(exec_tree_.REF_ENDTEST(node)) {
+		TRIGGER_BACKTRACK();
+	}
+	safe_assert(node == NULL);
 
 	ChoiceNode* choice = NULL;
+	node = exec_tree_.GetLastInPath();
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
 		safe_assert(INSTANCEOF(node, ChoiceNode*));
@@ -1202,7 +1212,7 @@ bool Scenario::DSLChoice() {
 		ret = false;
 	}
 
-	exec_tree_.ConsumeTransition(choice, (ret ? 0 : 1));
+	exec_tree_.ReleaseRef(choice, (ret ? 0 : 1));
 
 	printf("DSLChoice returns %s\n", (ret ? "true" : "false"));
 
@@ -1212,29 +1222,29 @@ bool Scenario::DSLChoice() {
 /********************************************************************************/
 
 void Scenario::DSLTransition(TransitionPredicate* pred) {
-	VLOG(2) << "Adding DSLTransition";
-
-	// check if all threads terminated
-	if(group_.IsAllEnded()) {
-		TRIGGER_BACKTRACK();
-	}
-
-	ExecutionTree* node = exec_tree_.GetNextTransition();
-
-	TransitionNode* trans = NULL;
-	if(node != NULL) {
-		safe_assert(INSTANCEOF(node, TransitionNode*));
-		trans = ASINSTANCEOF(node, TransitionNode*);
-		if(trans->covered()) {
-			// backtrack
-			TRIGGER_BACKTRACK();
-		}
-	} else {
-		trans = new TransitionNode(pred, exec_tree_.GetLastInPath());
-	}
-
-	// new transition, next transition is child
-//	exec_tree_.SetNextTransition(trans, trans->child());
+//	VLOG(2) << "Adding DSLTransition";
+//
+//	// check if all threads terminated
+//	if(group_.IsAllEnded()) {
+//		TRIGGER_BACKTRACK();
+//	}
+//
+//	ExecutionTree* node = exec_tree_.GetNextTransition();
+//
+//	TransitionNode* trans = NULL;
+//	if(node != NULL) {
+//		safe_assert(INSTANCEOF(node, TransitionNode*));
+//		trans = ASINSTANCEOF(node, TransitionNode*);
+//		if(trans->covered()) {
+//			// backtrack
+//			TRIGGER_BACKTRACK();
+//		}
+//	} else {
+//		trans = new TransitionNode(pred, exec_tree_.GetLastInPath());
+//	}
+//
+//	// new transition, next transition is child
+////	exec_tree_.SetNextTransition(trans, trans->child());
 }
 
 /********************************************************************************/

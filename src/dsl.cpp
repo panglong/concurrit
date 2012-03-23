@@ -137,32 +137,8 @@ void ExecutionTreeManager::Restart() {
 	current_path_.clear();
 	AddToPath(&root_node_, 0);
 
-	SetRef(NULL, true); // overwrites end node
+	SetRef(NULL);
 	safe_assert(GetRef() == NULL || REF_ENDTEST(GetRef()));
-}
-
-/*************************************************************************************/
-
-// operations by script
-ExecutionTree* ExecutionTreeManager::GetNextTransition() {
-	// wait until atomic_ref is not empty
-	while(true) {
-		ExecutionTree* node = GetRef();
-		if(REF_ENDTEST(node)) {
-			return node;
-		}
-		if(REF_EMPTY(node)) {
-			// we obtained the lock!
-			return GetLastInPath();
-		}
-
-		// node is either lock_node or a node that has not been satisfied yet
-
-		Thread::Yield(true);
-	}
-	// unreachable
-	safe_assert(false);
-	return NULL;
 }
 
 /*************************************************************************************/
@@ -170,12 +146,17 @@ ExecutionTree* ExecutionTreeManager::GetNextTransition() {
 // operations by clients
 
 // run by test threads to get the next transition node
-ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
+ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode) {
+	unsigned long nano_sec = 16;
 	while(true) {
 		ExecutionTree* node = ExchangeRef(&lock_node_);
 		if(REF_EMPTY(node)) {
-			// release
-			SetRef(NULL);
+			if(mode == EXIT_ON_EMPTY) {
+				return NULL;
+			} else {
+				// release
+				SetRef(NULL);
+			}
 		}
 		else
 		if(REF_LOCKED(node)) {
@@ -185,13 +166,28 @@ ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
 		if(REF_ENDTEST(node)) {
 			SetRef(node);
 			return node; // indicates end of the test
-		} else {
+		}
+		else // full: non-null, non-lock, non-end
+		if(mode == EXIT_ON_FULL) {
 			// handle this
 			safe_assert(node != NULL);
 			return node;
 		}
+		else
+		if(mode == EXIT_ON_LOCK) {
+			return node;
+		}
 		// retry
 		Thread::Yield(true);
+
+		nano_sec <<= 1;
+		if(nano_sec >= (ULONG_MAX >> 2)) {
+			// TODO(elmas): alert, backtrack!
+			safe_assert(false);
+		}
+		if(nano_sec > 128) {
+			short_sleep(nano_sec);
+		}
 	}
 	// unreachable
 	safe_assert(false);
@@ -201,31 +197,22 @@ ExecutionTree* ExecutionTreeManager::AcquireNextTransition() {
 /*************************************************************************************/
 
 // TODO(elmas): no need for GetRef, just SetRef is enough if the assertion is valid
-void ExecutionTreeManager::ReleaseNextTransition(ExecutionTree* node, int child_index) {
-	safe_assert(node != NULL);
+void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_index /*= -1*/) {
 	ExecutionTree* current_node = GetRef();
+	safe_assert(REF_LOCKED(current_node)); // ReleaseRef cannot be called on endnode
 
-	// somebody else might set end node in between (due to exception, assertion etc.)
-	if(REF_ENDTEST(current_node)) {
-		return;
+	if(child_index >= 0) {
+		safe_assert(node != NULL);
+
+		// put node to the path
+		AddToPath(node, child_index);
+
+		// if released node is an end node, we do not nullify atomic_ref
+		SetRef(REF_ENDTEST(node) ? node : NULL);
+	} else {
+		// release
+		SetRef(node);
 	}
-
-	safe_assert(REF_LOCKED(current_node));
-
-	// release
-	SetRef(node);
-}
-
-/*************************************************************************************/
-
-void ExecutionTreeManager::ConsumeTransition(ExecutionTree* node, int child_index) {
-	safe_assert(GetRef() == NULL || GetRef() == node);
-
-	// put node to the path
-	AddToPath(node, child_index);
-
-	// release
-	SetRef(NULL);
 }
 
 /*************************************************************************************/
@@ -236,7 +223,8 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 		parent.set(node);
 	}
 		// put node to the path
-	current_path_.push_back({node, child_index});}
+	current_path_.push_back({node, child_index});
+}
 
 /*************************************************************************************/
 
@@ -249,11 +237,8 @@ ExecutionTree* ExecutionTreeManager::ExchangeRef(ExecutionTree* node) {
 }
 
 // normally end node cannot be overwritten, unless overwrite_end flag is set
-void ExecutionTreeManager::SetRef(ExecutionTree* node, bool overwrite_end /*= false*/) {
-	ExecutionTree* old = static_cast<ExecutionTree*>(atomic_ref_.exchange(node));
-	if(!overwrite_end && REF_ENDTEST(old)) {
-		atomic_ref_.store(old);
-	}
+void ExecutionTreeManager::SetRef(ExecutionTree* node) {
+	atomic_ref_.store(node);
 }
 
 /*************************************************************************************/
@@ -263,49 +248,57 @@ ChildLoc ExecutionTreeManager::GetLastInPath() {
 	return current_path_.back();
 }
 
-bool ExecutionTreeManager::CheckEndOfPath() {
-	// current node must be an end node
-	ExecutionTree* current_node = GetRef();
-	return (REF_ENDTEST(current_node)) && (current_path_.back() == current_node);
+/*************************************************************************************/
+
+bool ExecutionTreeManager::CheckEndOfPath(std::vector<ChildLoc>* path /*= NULL*/) {
+	if(path == NULL) {
+		path = &current_path_;
+	}
+
+	safe_assert(path->size() >= 2);
+	safe_assert((*path)[0].parent() == &root_node_);
+	safe_assert(REF_ENDTEST(path->back()));
+	safe_assert(GetRef() != NULL);
+	safe_assert(path->back() == GetRef());
+
+	return true;
 }
 
 /*************************************************************************************/
 
 void ExecutionTreeManager::EndWithSuccess() {
-	// wait until the last transition is consumed, then set end_node
-	ExecutionTree* end_node = GetNextTransition();
-	if(!REF_ENDTEST(end_node)) {
-		safe_assert(end_node == NULL);
+	EndNode* end_node = NULL;
+	// wait until the last node is consumed (or an end node is inserted)
+	ExecutionTree* node = AcquireRef(EXIT_ON_EMPTY);
+	if(REF_ENDTEST(node)) {
+		// put back the node
+		ReleaseRef(node);
+		end_node = static_cast<EndNode*>(node);
+	} else {
+		// locked, create a new end node and set it
 		end_node = new EndNode();
-		ExecutionTree* node = ExchangeRef(end_node);
-		if(REF_ENDTEST(node)) {
-			// delete my own end_node, and put back the original end node
-			SetRef(node, true);
-			delete end_node;
-			end_node = static_cast<EndNode*>(node);
-		} else {
-			safe_assert(node == NULL);
-			// add to the path
-			AddToPath(end_node, 0);
-		}
+		// add to the path and set to ref
+		ReleaseRef(end_node, 0);
 	}
 }
 
 /*************************************************************************************/
 
 void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception) {
-	EndNode* end_node = new EndNode();
-
-	ExecutionTree* node = ExchangeRef(end_node);
+	EndNode* end_node = NULL;
+	// wait until we lock the atomic_ref, but the old node can be null or any other node
+	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
 	if(REF_ENDTEST(node)) {
-		// delete my own end_node, and put back the original end node
-		SetRef(node, true);
-		delete end_node;
+		// put back the node
+		ReleaseRef(node);
 		end_node = static_cast<EndNode*>(node);
 	} else {
-		// add to the path
-		AddToPath(end_node, 0);
+		// locked, create a new end node and set it
+		end_node = new EndNode();
+		// add to the path and set to ref
+		ReleaseRef(end_node, 0);
 	}
+	safe_assert(end_node != NULL);
 	// add my exception to the end node
 	end_node->add_exception(exception, current, "EndWithException");
 }
