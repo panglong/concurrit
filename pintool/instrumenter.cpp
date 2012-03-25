@@ -125,7 +125,7 @@ LOCALFUN VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit
 
 //		reinterpret_cast<NativePinMonitorFunType>(NativePinMonitorFunPtr)(info);
 		PIN_CallApplicationFunction(ctxt, tid,
-			CALLINGSTD_CDECL, AFUNPTR(NativePinMonitorFunPtr),
+			CALLINGSTD_DEFAULT, AFUNPTR(NativePinMonitorFunPtr),
 			PIN_PARG(void), PIN_PARG(concurrit::PinMonitorCallInfo*), (info), PIN_PARG_END());
 	}
 }
@@ -326,7 +326,7 @@ MemReadAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 	UINT32 size = AddrSizePairs[threadid].size;
 
 	concurrit::PinMonitorCallInfo info;
-	info.type = concurrit::MemWriteAfter;
+	info.type = concurrit::MemReadAfter;
 	info.threadid = threadid;
 	info.addr = addr;
 	info.size = size;

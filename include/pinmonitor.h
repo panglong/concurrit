@@ -43,6 +43,7 @@
 namespace concurrit {
 
 class Coroutine;
+class Scenario;
 
 /// class to handle pin events
 class PinMonitor {
@@ -54,10 +55,10 @@ private:
 
 	void Reset();
 
-	Coroutine* GetCoroutineByTid(THREADID tid);
-
 public:
 	~PinMonitor(){}
+
+	Coroutine* GetCoroutineByTid(THREADID tid);
 
 	static PinMonitor* GetInstance();
 
@@ -67,13 +68,13 @@ public:
 	/******************************************************************************************/
 
 	// callbacks
-	void MemWriteBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void MemWriteAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void MemReadBefore(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void MemReadAfter(THREADID tid, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void FuncCall(THREADID threadid, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
-	void FuncEnter(THREADID threadid, void* addr, SourceLocation* loc);
-	void FuncReturn(THREADID threadid, void* addr, SourceLocation* loc, ADDRINT retval);
+	void MemWriteBefore(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void MemWriteAfter(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void MemReadBefore(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void MemReadAfter(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void FuncCall(Coroutine* current, Scenario* scenario, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
+	void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc);
+	void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
 
 private:
 	Coroutine* tid_to_coroutine_[MAX_THREADS];

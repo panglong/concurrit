@@ -45,9 +45,11 @@ class Coroutine;
  * Exceptions
  */
 
+enum BacktrackReason { SEARCH_ENDS, SUCCESS, ASSUME_FAILS, TIMEOUT, EXCEPTION, UNKNOWN };
+
 class BacktrackException : public std::exception {
 public:
-	BacktrackException() throw() : std::exception() {
+	BacktrackException(BacktrackReason reason = UNKNOWN) throw() : std::exception(), reason_(reason) {
 
 	}
 
@@ -57,29 +59,42 @@ public:
 
 	virtual const char* what() const throw()
 	{
-		return "Backtrack";
+		std::stringstream s;
+		s << "Backtrack due to ";
+#define print_enum(e) case e: s << #e; break;
+		switch(reason_) {
+			print_enum(SEARCH_ENDS)
+			print_enum(SUCCESS)
+			print_enum(ASSUME_FAILS)
+			print_enum(TIMEOUT)
+			print_enum(EXCEPTION)
+			print_enum(UNKNOWN)
+		}
+#undef print_enum
+		return s.str().c_str();
 	}
 private:
+	DECL_FIELD(BacktrackReason, reason)
 };
 
 /********************************************************************************/
 
-class TerminateSearchException : public BacktrackException {
-public:
-	TerminateSearchException() throw() : BacktrackException() {
-
-	}
-
-	virtual ~TerminateSearchException() throw() {
-
-	}
-
-	virtual const char* what() const throw()
-	{
-		return "Terminate Search";
-	}
-private:
-};
+//class TerminateSearchException : public BacktrackException {
+//public:
+//	TerminateSearchException() throw() : BacktrackException() {
+//
+//	}
+//
+//	virtual ~TerminateSearchException() throw() {
+//
+//	}
+//
+//	virtual const char* what() const throw()
+//	{
+//		return "Terminate Search";
+//	}
+//private:
+//};
 
 /********************************************************************************/
 
@@ -112,7 +127,7 @@ private:
 class AssumptionViolationException : public BacktrackException {
 public:
 	AssumptionViolationException(const char* cond, SourceLocation* loc) throw()
-			: BacktrackException() {
+			: BacktrackException(ASSUME_FAILS) {
 		condition_ = cond == NULL ? "Unknown" : std::string(cond);
 		loc_ = loc;
 	}
@@ -226,25 +241,26 @@ private:
 /********************************************************************************/
 
 extern BacktrackException* __backtrack_exception__;
-extern TerminateSearchException* __terminate_search_exception__;
+//extern TerminateSearchException* __terminate_search_exception__;
 //extern ConcurritException*    __concurrit_exception__;
 
-inline BacktrackException* GetBacktrackException() {
-	return CHECK_NOTNULL(__backtrack_exception__);
+inline BacktrackException* GetBacktrackException(BacktrackReason reason = UNKNOWN) {
+	BacktrackException* e = CHECK_NOTNULL(__backtrack_exception__);
+	e->set_reason(reason);
+	return e;
 }
 
-inline TerminateSearchException* GetTerminateSearchException() {
-	return CHECK_NOTNULL(__terminate_search_exception__);
-}
+//inline TerminateSearchException* GetTerminateSearchException() {
+//	return CHECK_NOTNULL(__terminate_search_exception__);
+//}
 
-inline void TRIGGER_BACKTRACK() {
-	VLOG(2) << "TRIGGER_BACKTRACK";
-	throw GetBacktrackException();
+inline void TRIGGER_BACKTRACK(BacktrackReason reason = UNKNOWN) {
+	VLOG(2) << "TRIGGER_BACKTRACK: " << reason;
+	throw GetBacktrackException(reason);
 }
 
 inline void TRIGGER_TERMINATE_SEARCH() {
-	VLOG(2) << "TRIGGER_TERMINATE_SEARCH";
-	throw GetTerminateSearchException();
+	TRIGGER_BACKTRACK(SEARCH_ENDS);
 }
 
 //inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {

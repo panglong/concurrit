@@ -43,8 +43,10 @@ namespace concurrit {
 
 class Coroutine;
 
-enum TPVALUE { TPFALSE = 0, TPTRUE = 1, TPUNKNOWN = 2, TPINVALID = -1};
+enum TPVALUE { TPFALSE = 0, TPTRUE = 1, TPUNKNOWN = 2, TPINVALID = -1 };
+TPVALUE TPNOT(TPVALUE v);
 TPVALUE TPAND(TPVALUE v1, TPVALUE v2);
+TPVALUE TPOR(TPVALUE v1, TPVALUE v2);
 
 class TransitionPredicate {
 public:
@@ -52,6 +54,9 @@ public:
 	virtual ~TransitionPredicate() {}
 	virtual TPVALUE EvalPreState() = 0;
 	virtual bool EvalPostState() = 0;
+
+	static TransitionPredicate* True();
+	static TransitionPredicate* False();
 };
 
 class TrueTransitionPredicate : public TransitionPredicate {
@@ -71,20 +76,72 @@ public:
 };
 
 /********************************************************************************/
-/********************************************************************************/
+
+extern TrueTransitionPredicate __true_transition_predicate__;
+extern FalseTransitionPredicate __false_transition_predicate__;
+
 /********************************************************************************/
 
-class ThreadVar {
+class NotTransitionPredicate : public TransitionPredicate {
 public:
-	ThreadVar(Coroutine* thread = NULL, std::string name = "<unknown>") : name_(name), thread_(thread) {}
-	~ThreadVar(){}
-
+	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(pred) {}
+	~NotTransitionPredicate() {}
+	TPVALUE EvalPreState() { return TPNOT(pred_->EvalPreState()); }
+	bool EvalPostState() { return !(pred_->EvalPostState()); }
 private:
-	DECL_FIELD(std::string, name)
-	DECL_FIELD(Coroutine*, thread)
+	DECL_FIELD(TransitionPredicate*, pred)
 };
 
+/********************************************************************************/
 
+enum NAryOp { NAryAND, NAryOR };
+class NAryTransitionPredicate : public TransitionPredicate, public std::vector<TransitionPredicate*> {
+public:
+	NAryTransitionPredicate(NAryOp op = NAryAND, std::vector<TransitionPredicate*>* preds = NULL)
+	: TransitionPredicate(), std::vector<TransitionPredicate*>(), op_(op) {
+		if(preds != NULL) {
+			for(iterator itr = preds->begin(), end = preds->end(); itr != end; ++itr) {
+				push_back(*itr);
+			}
+		}
+	}
+	~NAryTransitionPredicate() {}
+
+	TPVALUE EvalPreState() {
+		safe_assert(!empty());
+		TPVALUE v = (op_ == NAryAND) ? TPTRUE : TPFALSE;
+		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
+			// update current
+			TransitionPredicate* current = (*itr);
+			// update v
+			v = (op_ == NAryAND) ? TPAND(v, current->EvalPreState()) : TPOR(v, current->EvalPreState());
+			if((op_ == NAryAND && v == TPFALSE) || (op_ == NAryOR && v == TPTRUE)) {
+				break;
+			}
+		}
+		return v;
+	}
+
+	bool EvalPostState() {
+		safe_assert(!empty());
+		bool v = (op_ == NAryAND) ? true : false;
+		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
+			// update current
+			TransitionPredicate* current = (*itr);
+			// update v
+			v = (op_ == NAryAND) ? (v && current->EvalPostState()) : (v || current->EvalPostState());
+			if((op_ == NAryAND && v == false) || (op_ == NAryOR && v == true)) {
+				break;
+			}
+		}
+		return v;
+	}
+private:
+	DECL_FIELD(NAryOp, op)
+};
+
+/********************************************************************************/
+/********************************************************************************/
 /********************************************************************************/
 
 class ExecutionTree;
@@ -129,7 +186,7 @@ private:
 
 class ChildLoc {
 public:
-	ChildLoc(ExecutionTree* parent, int child_index) : parent_(parent), child_index_(child_index) {}
+	ChildLoc(ExecutionTree* parent = NULL, int child_index = -1) : parent_(parent), child_index_(child_index) {}
 	~ChildLoc(){}
 	void set(ExecutionTree* node) {
 		safe_assert(parent_ != NULL);
@@ -190,12 +247,35 @@ public:
 
 /********************************************************************************/
 
+class ThreadVar {
+public:
+	ThreadVar(ExecutionTree* node = NULL, int child_index = -1, std::string name = "<unknown>")
+	: name_(name), select_node_({node, child_index}) {}
+	~ThreadVar(){}
+
+private:
+	DECL_FIELD(std::string, name)
+	DECL_FIELD_REF(ChildLoc, select_node)
+};
+
+
+/********************************************************************************/
+
+// TODO(elmas): rewrite coverage computation for this
 class SelectThreadNode : public ExecutionTree {
 public:
 	typedef std::map<THREADID, size_t> TidToIdxMap;
+	SelectThreadNode(ThreadVar* var, ExecutionTree* parent = NULL)
+	: ExecutionTree(parent, 0), var_(var) {
+		// set select_info of var
+		ChildLoc info = {this, -1};
+		var->set_select_node(info);
+	}
+	~SelectThreadNode() {}
 
 private:
 	DECL_FIELD_REF(TidToIdxMap, tidToIdxMap)
+	DECL_FIELD(ThreadVar*, var)
 
 };
 
@@ -207,6 +287,7 @@ public:
 
 private:
 	DECL_FIELD(TransitionPredicate*, pred)
+	DECL_FIELD(Coroutine*, thread)
 };
 
 /********************************************************************************/
@@ -235,15 +316,10 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 
 	// set atomic_ref to lock_node, and return the previous node according to mode
 	// if atomic_ref is end_node, returns it immediatelly
-	ExecutionTree* AcquireRef(AcquireRefMode mode);
+	ExecutionTree* AcquireRef(AcquireRefMode mode, long timeout_usec = -1);
 	// same as AcquireRefEx, but triggers backtrack exception if the node is an end node
-	ExecutionTree* AcquireRefEx(AcquireRefMode mode) {
-		ExecutionTree* node = AcquireRef(mode);
-		if(REF_ENDTEST(node)) {
-			TRIGGER_BACKTRACK();
-		}
-		return node;
-	}
+	ExecutionTree* AcquireRefEx(AcquireRefMode mode, long timeout_usec = -1);
+
 	// if child_index >= 0, adds the (node,child_index) to path and nullifies atomic_ref
 	// otherwise, puts node back to atomic_ref
 	void ReleaseRef(ExecutionTree* node = NULL, int child_index = -1);

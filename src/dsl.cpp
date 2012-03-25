@@ -36,19 +36,42 @@
 
 namespace concurrit {
 
+// extern'ed variables
+TrueTransitionPredicate __true_transition_predicate__;
+FalseTransitionPredicate __false_transition_predicate__;
+
+TransitionPredicate* TransitionPredicate::True() { return &__true_transition_predicate__; }
+TransitionPredicate* TransitionPredicate::False() { return &__false_transition_predicate__; }
 
 /*************************************************************************************/
 
+TPVALUE TPNOT(TPVALUE v) {
+	static TPVALUE __not_table__ [3] = {
+			TPTRUE, TPFALSE, TPUNKNOWN
+	};
+	safe_assert(v != TPINVALID);
+	return __not_table__[v];
+}
+
 TPVALUE TPAND(TPVALUE v1, TPVALUE v2) {
-	static TPVALUE __and_table__ [TPUNKNOWN+1][TPUNKNOWN+1] = {
-			{TPTRUE,    TPFALSE, TPUNKNOWN},
-			{TPFALSE,   TPFALSE, TPFALSE},
-			{TPUNKNOWN, TPFALSE, TPUNKNOWN}
+	static TPVALUE __and_table__ [3][3] = {
+			{TPFALSE,   TPFALSE, 	TPFALSE},
+			{TPTRUE,    TPFALSE, 	TPUNKNOWN},
+			{TPFALSE, 	TPUNKNOWN, 	TPUNKNOWN}
 	};
 	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
 	return __and_table__[v1][v2];
 }
 
+TPVALUE TPOR(TPVALUE v1, TPVALUE v2) {
+	static TPVALUE __or_table__ [3][3] = {
+			{TPTRUE,   	TPFALSE,	TPUNKNOWN},
+			{TPTRUE,   	TPTRUE, 	TPTRUE},
+			{TPUNKNOWN,	TPTRUE,		TPUNKNOWN}
+	};
+	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
+	return __or_table__[v1][v2];
+}
 
 /*************************************************************************************/
 
@@ -160,9 +183,26 @@ void ExecutionTreeManager::Restart() {
 
 // operations by clients
 
+// only main can run this!!!
+ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long timeout_usec /*= -1*/) {
+	safe_assert(Coroutine::Current()->IsMain());
+	ExecutionTree* node = AcquireRef(mode, timeout_usec);
+	if(REF_ENDTEST(node)) {
+		safe_assert(static_cast<EndNode*>(node)->exception() != NULL);
+		TRIGGER_BACKTRACK(EXCEPTION);
+	}
+	return node;
+}
+
 // run by test threads to get the next transition node
-ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode) {
-	long nano_sec = 1L;
+// only main can set timeout
+ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeout_usec /*= -1*/) {
+	safe_assert(timeout_usec <= 0 || Coroutine::Current()->IsMain());
+	Timer timer;
+	if(timeout_usec > 0) {
+		timer.start();
+	}
+	long nano_sec = (1L << 10);
 	while(true) {
 		ExecutionTree* node = ExchangeRef(&lock_node_);
 		if(REF_EMPTY(node)) {
@@ -192,17 +232,29 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode) {
 		if(mode == EXIT_ON_LOCK) {
 			return node;
 		}
-		// retry
-		Thread::Yield(true);
 
+		//=========================================
+		// retry
+
+		// check timer
+		if(timeout_usec > 0) {
+			if(timer.getElapsedTimeInMicroSec() > timeout_usec) {
+				// fire timeout (backtrack)
+				TRIGGER_BACKTRACK(TIMEOUT);
+			}
+		}
+
+		// wait for some time
 		nano_sec <<= 1;
-		if(nano_sec >= 999999999L) {
+		if(nano_sec > 1000000000L) {
 			// TODO(elmas): alert, backtrack!
-			fprintf(stderr, "Failing on mode %d\n", mode);
+			fprintf(stderr, "Waiting too much!!! %d\n", mode);
 			safe_assert(false);
 		}
-		if(nano_sec > (1L << 5)) {
+		if(nano_sec > (1L << 15)) {
 			short_sleep(nano_sec, false);
+		} else {
+			Thread::Yield(true);
 		}
 	}
 	// unreachable

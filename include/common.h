@@ -214,6 +214,7 @@ typedef unsigned int vctime_t;
 /********************************************************************************/
 
 inline void short_sleep(long nanoseconds, bool continue_on_signal) {
+	safe_assert(0 <= nanoseconds && nanoseconds < 1000000000L);
 	struct timespec tv;
 	tv.tv_sec = (time_t) 0;
 	tv.tv_nsec = nanoseconds;

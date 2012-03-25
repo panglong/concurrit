@@ -98,11 +98,6 @@ public:
 
 	void OnException(std::exception* e);
 
-	// run before and after each controlled transition
-	void BeforeControlledTransition(Coroutine* current);
-	void AfterControlledTransition(Coroutine* current);
-
-
 	/*
 	 * Methods to be used in testcases to control the test scenario
 	 */
@@ -144,10 +139,18 @@ public:
 
 	/******************************************************************/
 
+	// run before and after each controlled transition
+	void BeforeControlledTransition(Coroutine* current);
+	void AfterControlledTransition(Coroutine* current);
+	void OnControlledTransition(Coroutine* current) {
+		BeforeControlledTransition(current);
+		AfterControlledTransition(current);
+	}
 
 
 	bool DSLChoice();
 	void DSLTransition(TransitionPredicate* pred);
+	ThreadVar* DSLSelectThread();
 
 
 	/******************************************************************/
@@ -194,7 +197,7 @@ private:
 	DECL_FIELD(bool, dpor_enabled)
 	DECL_VOL_FIELD(TestStatus, test_status)
 
-	DECL_FIELD_REF(std::vector<TransitionConstraint*>, trans_constraints)
+	DECL_FIELD_REF(NAryTransitionPredicate, trans_constraints)
 
 	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
 
@@ -203,41 +206,41 @@ private:
 
 /************************************************************************************/
 
-class TransitionPredicateEvaluator : public TransitionPredicate {
-public:
-	TransitionPredicateEvaluator(Scenario* scenario, TransitionPredicate* pred) : scenario_(scenario), pred_(pred) {}
-
-	~TransitionPredicateEvaluator() {}
-
-	virtual TPVALUE EvalPreState() {
-		TransitionPredicate* current = pred_;
-		TPVALUE v = current->EvalPreState();
-		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
-		for(int i = constraints->size()-1; i >= 0 && v != TPFALSE; ++i) {
-			// update current
-			current = (*constraints)[i];
-			// update v
-			v = TPAND(v, current->EvalPreState());
-		}
-		return v;
-	}
-	virtual bool EvalPostState() {
-		TransitionPredicate* current = pred_;
-		bool v = current->EvalPostState();
-		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
-		for(int i = constraints->size()-1; i >= 0 && v != false; ++i) {
-			// update current
-			current = (*constraints)[i];
-			// update v
-			v = (v && current->EvalPostState());
-		}
-		return v;
-	}
-
-private:
-	DECL_FIELD(Scenario*, scenario)
-	DECL_FIELD(TransitionPredicate*, pred)
-};
+//class TransitionPredicateEvaluator : public TransitionPredicate {
+//public:
+//	TransitionPredicateEvaluator(Scenario* scenario, TransitionPredicate* pred) : scenario_(scenario), pred_(pred) {}
+//
+//	~TransitionPredicateEvaluator() {}
+//
+//	virtual TPVALUE EvalPreState() {
+//		TransitionPredicate* current = pred_;
+//		TPVALUE v = current->EvalPreState();
+//		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
+//		for(int i = constraints->size()-1; i >= 0 && v != TPFALSE; ++i) {
+//			// update current
+//			current = (*constraints)[i];
+//			// update v
+//			v = TPAND(v, current->EvalPreState());
+//		}
+//		return v;
+//	}
+//	virtual bool EvalPostState() {
+//		TransitionPredicate* current = pred_;
+//		bool v = current->EvalPostState();
+//		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
+//		for(int i = constraints->size()-1; i >= 0 && v != false; ++i) {
+//			// update current
+//			current = (*constraints)[i];
+//			// update v
+//			v = (v && current->EvalPostState());
+//		}
+//		return v;
+//	}
+//
+//private:
+//	DECL_FIELD(Scenario*, scenario)
+//	DECL_FIELD(TransitionPredicate*, pred)
+//};
 
 } // end namespace
 

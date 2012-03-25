@@ -1,9 +1,9 @@
+- satisfy edilmeyen transitionlar nedeniyle olan backtrackli executionlari forall'da sayma
+- beforecontrolled transition'dan sonra timer koy, after transition olana kadar timer expire olursa handle et.
 - bir transition'i hic bir thread satisfy etmezse ne olacak? backtrack yapmamiz gerekiyor!!!
-- transition node'larina o transition'i yerine getiren thread'in id'sini falan koy
 - node eklerken threadlerin alive olup olmadigina da bak!!! olurlerse node'lari acquire edemezler, su anda bu yapiliyor ama daha efficient nasil yapilabilir? 
 - true ve false transition predicateleri static global variable yap, tek instance olsunlar.
 - INSTANCEOF lari ASINSTANCEOF ile yer degistir dynamic castlari bire dusurmek icin
-- multiple exceution'i handle et, su anda sadece tek exception handle ediliyor, assertionlar oncelikli olacak
 
  -- pin instrumentation'i kaldir!!!
 - rununcontrolled yield mod icin nasil calisacak, ayri flag gerekebilir!
