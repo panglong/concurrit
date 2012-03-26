@@ -49,11 +49,7 @@ class Scenario;
 class PinMonitor {
 private:
 	static PinMonitor* instance_;
-	PinMonitor(){
-		Reset();
-	}
-
-	void Reset();
+	PinMonitor();
 
 public:
 	~PinMonitor(){}
@@ -64,6 +60,9 @@ public:
 
 	MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
 	SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);
+
+	void Enable();
+	void Disable();
 
 	/******************************************************************************************/
 
@@ -78,6 +77,7 @@ public:
 
 private:
 	Coroutine* tid_to_coroutine_[MAX_THREADS];
+	DECL_FIELD(bool, enabled)
 };
 
 typedef uint32_t PinMonitorCallType;

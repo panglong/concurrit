@@ -337,6 +337,28 @@ MemReadAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 }
 
 /* ===================================================================== */
+static const char* NativePinEnableFunName = "ConcurritPinEnable";
+static const char* NativePinDisableFunName = "ConcurritPinDisable";
+
+const UINT32 ENABLED  = 1;
+const UINT32 DISABLED = 0;
+
+LOCALVAR volatile UINT32 pin_status = DISABLED;
+
+VOID // PIN_FAST_ANALYSIS_CALL
+PinEnableDisable(const CONTEXT * ctxt, UINT32 command) {
+	if(pin_status == command) {
+		return;
+	}
+
+	do {
+		pin_status = command;
+	} while(FALSE);
+
+	PIN_RemoveInstrumentation();
+}
+
+/* ===================================================================== */
 
 //LOCALFUN VOID Fini(INT32 code, VOID *v);
 //
@@ -397,11 +419,53 @@ LOCALFUN void InitFilteredImages() {
 
 /* ===================================================================== */
 
-static volatile bool has_main_loaded = false;
+LOCALVAR volatile bool is_concurrit_loaded = false;
+
+LOCALFUN VOID OnLoadConcurrit(IMG img) {
+	ASSERTX(!is_concurrit_loaded);
+
+	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
+	{
+		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
+		{
+			if(RTN_Name(rtn) == NativePinMonitorFunName) {
+				RTN_Open(rtn);
+				NativePinMonitorFunPtr = RTN_Funptr(rtn);
+				RTN_Close(rtn);
+				cout << "Detected callback " << NativePinMonitorFunName << endl;
+
+			} else if(RTN_Name(rtn) == NativePinEnableFunName) {
+				RTN_Open(rtn);
+
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), // IARG_FAST_ANALYSIS_CALL,
+						   IARG_CONTEXT,
+						   IARG_UINT32, ENABLED, IARG_END);
+
+				RTN_Close(rtn);
+				cout << "Detected callback " << NativePinEnableFunName << endl;
+
+			}  else if(RTN_Name(rtn) == NativePinDisableFunName) {
+				RTN_Open(rtn);
+
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), // IARG_FAST_ANALYSIS_CALL,
+						   IARG_CONTEXT,
+						   IARG_UINT32, DISABLED, IARG_END);
+
+				RTN_Close(rtn);
+
+				cout << "Detected callback " << NativePinDisableFunName << endl;
+			}
+		}
+	}
+	ASSERTX(NativePinMonitorFunPtr != NULL);
+
+	is_concurrit_loaded = true;
+}
+
+/* ===================================================================== */
 
 LOCALFUN BOOL IsImageFiltered(IMG img, BOOL loading = FALSE) {
-	if(loading && !has_main_loaded) {
-		has_main_loaded = true;
+	if(IMG_IsMainExecutable(img)) {
 		return TRUE;
 	}
 
@@ -417,21 +481,8 @@ LOCALFUN BOOL IsImageFiltered(IMG img, BOOL loading = FALSE) {
 		if(img_name.find(*itr) != string::npos) {
 
 			/* ================================= */
-			if (NativePinMonitorFunPtr == NULL && *itr == "libconcurrit.so") {
-				for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
-				{
-					for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
-					{
-						if(RTN_Name(rtn) == NativePinMonitorFunName) {
-							RTN_Open(rtn);
-							NativePinMonitorFunPtr = RTN_Funptr(rtn);
-							RTN_Close(rtn);
-							cout << "Detected callback CallPinMonitor !" << endl;
-							goto DONE;
-						}
-					}
-				}
-				ASSERTX(NativePinMonitorFunPtr != NULL);
+			if (!is_concurrit_loaded && *itr == "libconcurrit.so") {
+				OnLoadConcurrit(img);
 			}
 			/* ================================= */
 DONE:
@@ -442,15 +493,43 @@ DONE:
 	return FALSE;
 }
 
-INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn) {
+INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
 	if(RTN_Valid(rtn)) {
-		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)));
+		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)), loading);
 	}
 	return TRUE;
 }
 
 INLINE LOCALFUN BOOL IsTraceFiltered(TRACE trace) {
 	return IsRoutineFiltered(TRACE_Rtn(trace));
+}
+
+/* ===================================================================== */
+
+VOID Routine(RTN rtn, VOID *v)
+{
+	if(pin_status == DISABLED) return;
+
+	// filter out standard libraries
+	// we treat this while loading, since Routine can be called before ImageLoad is called
+	if(IsRoutineFiltered(rtn, TRUE)) {
+		return;
+	}
+
+	cout << "+++ RTN +++ " << RTN_Name(rtn) << endl;
+
+	RTN_Open(rtn);
+
+	PinSourceLocation* loc = PinSourceLocation::get(rtn);
+
+	RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), // IARG_FAST_ANALYSIS_CALL,
+			   IARG_CONTEXT,
+			   IARG_THREAD_ID, IARG_PTR, loc,
+			   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+			   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+			   IARG_END);
+
+	RTN_Close(rtn);
 }
 
 /* ===================================================================== */
@@ -467,26 +546,26 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 	cout << "+++ IMG +++ " << IMG_Name(img) << endl;
 
 
-	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
-	{
-		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
-		{
-			cout << "\t+++ RTN +++ " << RTN_Name(rtn) << endl;
-
-			RTN_Open(rtn);
-
-			PinSourceLocation* loc = PinSourceLocation::get(rtn);
-
-			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), // IARG_FAST_ANALYSIS_CALL,
-					   IARG_CONTEXT,
-					   IARG_THREAD_ID, IARG_PTR, loc,
-					   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-					   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-					   IARG_END);
-
-			RTN_Close(rtn);
-		}
-	}
+//	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
+//	{
+//		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
+//		{
+//			cout << "\t+++ RTN +++ " << RTN_Name(rtn) << endl;
+//
+//			RTN_Open(rtn);
+//
+//			PinSourceLocation* loc = PinSourceLocation::get(rtn);
+//
+//			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), // IARG_FAST_ANALYSIS_CALL,
+//					   IARG_CONTEXT,
+//					   IARG_THREAD_ID, IARG_PTR, loc,
+//					   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+//					   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+//					   IARG_END);
+//
+//			RTN_Close(rtn);
+//		}
+//	}
 }
 
 /* ===================================================================== */
@@ -608,6 +687,8 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 /* ===================================================================== */
 
 VOID Trace(TRACE trace, VOID *v) {
+	if(pin_status == DISABLED) return;
+
 	if (!filter.SelectTrace(trace))
 		return;
 
@@ -757,6 +838,8 @@ int main(int argc, CHAR *argv[]) {
 
 	IMG_AddInstrumentFunction(ImageLoad, 0);
 	IMG_AddUnloadFunction(ImageUnload, 0);
+
+	RTN_AddInstrumentFunction(Routine, 0);
 
 	TRACE_AddInstrumentFunction(Trace, 0);
 	PIN_AddContextChangeFunction(OnSig, 0);

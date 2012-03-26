@@ -71,6 +71,9 @@ enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
 const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
 extern volatile bool IsInitialized;
 
+extern "C" void ConcurritPinEnable();
+extern "C" void ConcurritPinDisable();
+
 /********************************************************************************/
 
 #ifndef RESTRICT

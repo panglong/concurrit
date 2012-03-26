@@ -1,3 +1,12 @@
+- end of script olan branchlara, endscriptnode : endnode ve bir backtrack(endofscript) exception
+- AcquireRef'deki timer'in zamanini parametre yap
+- testin argumanlarini concurrit'e ilet. onlari parse etmeye calis library bul bunun icin
+- end node'u ekleyince tree'ye ekliyor mu diye kontrol et.
+--- end node'u ekleyince ortadan onceki child'lara ne olacak?
+- eger script bittigi icin backtrack yapan kod varsa, backtrack sirasinda bunu tespit edip covered yap
+--- ayni nodelari tespit etmek icin source location kullan.
+- son transition'i controllable yap ends() burada true yapilacak, nasil???
+- pin icin variable ve functionlari basta belirle, sadece bunlarin instrumente edilmesini sagla
 - script bittikten sonra controlled transition devam ediyorsa backtrack et, success olmasin.
 ---- satisfy edilmeyen transitionlar nedeniyle olan backtrackli executionlari forall'da sayma
 - hem read, hem de write yapan instructionlarda ne yapacagiz?

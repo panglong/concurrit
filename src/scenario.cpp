@@ -369,6 +369,8 @@ void Scenario::RunUncontrolled() {
 	// set uncontrolled run flag
 	test_status_ = TEST_UNCONTROLLED;
 
+	PinMonitor::GetInstance()->Disable();
+
 	//---------------------------
 
 	VLOG(2) << "Starting uncontrolled run";
@@ -410,6 +412,9 @@ void Scenario::RunTearDown() throw() {
 
 void Scenario::RunTestCase() throw() {
 	test_status_ = TEST_CONTROLLED;
+
+	PinMonitor::GetInstance()->Enable();
+
 	try {
 
 		TestCase();

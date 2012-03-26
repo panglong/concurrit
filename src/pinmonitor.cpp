@@ -48,11 +48,13 @@ PinMonitor* PinMonitor::GetInstance() {
 	return instance_;
 }
 
-void PinMonitor::Reset() {
+PinMonitor::PinMonitor() {
 	// clean tid_to_coroutine
 	for(int i = 0; i < MAX_THREADS; ++i) {
 		tid_to_coroutine_[i] = NULL;
 	}
+
+	Disable();
 }
 
 Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
@@ -86,6 +88,19 @@ MemoryCellBase* PinMonitor::GetMemoryCell(void* addr, uint32_t size) {
 
 SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell) {
 	return new SharedAccess(type, cell);
+}
+
+/******************************************************************************************/
+
+void PinMonitor::Enable() {
+	printf(">>> Enabling Pin instrumentation\n");
+	enabled_ = true;
+	ConcurritPinEnable();
+}
+void PinMonitor::Disable() {
+	printf(">>> Disabling Pin instrumentation\n");
+	enabled_ = false;
+	ConcurritPinDisable();
 }
 
 /******************************************************************************************/
@@ -184,6 +199,10 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	safe_assert(monitor != NULL);
 	safe_assert(info != NULL);
 
+	if(!monitor->enabled()) {
+		return;
+	}
+
 	Coroutine* current = CHECK_NOTNULL(monitor->GetCoroutineByTid(info->threadid));
 	CoroutineGroup* group = current->group();
 	// TODO(elmas): when might this happen? (for main?)
@@ -233,6 +252,14 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 			break;
 	}
 }
+
+/********************************************************************************/
+
+void ConcurritPinEnable() { VLOG(2) << "Enabling pin instrumentation"; }
+void ConcurritPinDisable() { VLOG(2) << "Disabling pin instrumentation"; }
+
+/********************************************************************************/
+
 
 } // end namespace
 
