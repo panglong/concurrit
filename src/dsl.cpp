@@ -189,7 +189,7 @@ void ExecutionTreeManager::Restart() {
 // this always sets the timeout
 ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long timeout_usec /*= -1*/) {
 	safe_assert(Coroutine::Current()->IsMain());
-	if(timeout_usec < 0) timeout_usec = 999999999L;
+	if(timeout_usec < 0) timeout_usec = 999999L;
 	ExecutionTree* node = AcquireRef(mode, timeout_usec);
 	if(REF_ENDTEST(node)) {
 		// main has not ended the execution, so this must be due to an exception by another thread
@@ -242,8 +242,20 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				SetRef(node);
 			}
 
+			//=========================================
 			// yield and wait
-			sem_ref_.Wait();
+			if(timeout_usec > 0) {
+				VLOG(2) << "Timed wait in AcquireRef";
+				int result = sem_ref_.WaitTimed(timeout_usec);
+				if(result == ETIMEDOUT) {
+					// fire timeout (backtrack)
+					TRIGGER_BACKTRACK(TIMEOUT);
+				}
+				safe_assert(result == PTH_SUCCESS);
+			} else {
+				VLOG(2) << "Untimed wait in AcquireRef";
+				sem_ref_.Wait();
+			}
 			sem_ref_.Signal();
 		}
 

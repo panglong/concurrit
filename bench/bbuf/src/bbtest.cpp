@@ -88,7 +88,7 @@ public:
 		int k = 1;
 		while(STAR) {
 			printf("Iteration %d\n", k);
-			DSLTransition(TransitionPredicate::False());
+			DSLTransition(TransitionPredicate::True());
 			k++;
 		}
 

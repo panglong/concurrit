@@ -270,8 +270,8 @@ inline BacktrackException* GetBacktrackException(BacktrackReason reason = UNKNOW
 //}
 
 inline void TRIGGER_BACKTRACK(BacktrackReason reason = UNKNOWN, bool wrap = false) {
-	VLOG(2) << "TRIGGER_BACKTRACK: " << reason;
 	BacktrackException* e = GetBacktrackException(reason);
+	VLOG(2) << "TRIGGER_BACKTRACK: " << e->what();
 	if(wrap) {
 		throw new ConcurritException(e);
 	} else {

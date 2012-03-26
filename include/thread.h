@@ -165,9 +165,9 @@ public:
 	virtual void P() { this->Wait(); }
 
 #ifdef LINUX
-	virtual bool Wait(int timeout);
-	virtual void Down(int timeout) { this->Wait(timeout); }
-	virtual void P(int timeout) { this->Wait(timeout); }
+	virtual int WaitTimed(long timeout);
+	virtual int DownTimed(long timeout) { return WaitTimed(timeout); }
+	virtual int PTimed(long timeout) { return WaitTimed(timeout); }
 #endif
 
 	virtual void Signal();

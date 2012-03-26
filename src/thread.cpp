@@ -445,8 +445,8 @@ void Semaphore::Wait() {
 #endif
 
 
-bool Semaphore::Wait(int timeout) {
-	const long kOneSecondMicros = 1000000;  // NOLINT
+int Semaphore::WaitTimed(long timeout) {
+	const long kOneSecondMicros = 1000000L;  // NOLINT
 
 	// Split timeout into second and nanosecond parts.
 	struct timeval delta;
@@ -456,7 +456,7 @@ bool Semaphore::Wait(int timeout) {
 	struct timeval current_time;
 	// Get the current time.
 	if (gettimeofday(&current_time, NULL) == -1) {
-		return false;
+		return errno;
 	}
 
 	// Calculate time for end of timeout.
@@ -468,13 +468,13 @@ bool Semaphore::Wait(int timeout) {
 	// Wait for semaphore signalled or timeout.
 	while (true) {
 		int result = sem_timedwait(&sem_, &ts);
-		if (result == PTH_SUCCESS) return true;  // Successfully got semaphore.
+		if (result == PTH_SUCCESS) return 0;  // Successfully got semaphore.
 		if (result > 0) {
 			// For glibc prior to 2.3.4 sem_timedwait returns the error instead of -1.
 			errno = result;
 			result = -1;
 		}
-		if (result == -1 && errno == ETIMEDOUT) return false;  // Timeout.
+		if (result == -1 && errno == ETIMEDOUT) return errno;  // Timeout.
 		safe_assert(result == -1 && errno == EINTR);  // Signal caused spurious wakeup.
 	}
 }
