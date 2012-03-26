@@ -285,6 +285,28 @@ public:
 		return index < 0 ? NULL : child(index);
 	}
 
+	// returns the index of the new child
+	int add_or_get_thread(Coroutine* co) {
+		THREADID tid = co->coid();
+		int child_index = child_index_by_tid(tid);
+		if(child_index < 0) {
+			int sz = children_.size();
+			safe_assert(idxToThreadMap_.size() == sz);
+			tidToIdxMap_[tid] = sz;
+			children_.push_back(NULL);
+			idxToThreadMap_.push_back(co);
+			return sz;
+		} else {
+			return child_index;
+		}
+	}
+
+	Coroutine* thread_by_child_index(int index) {
+		safe_assert(BETWEEN(0, index, idxToThreadMap_.size()-1));
+		safe_assert(idxToThreadMap_.size() == children_.size());
+		return idxToThreadMap_[index];
+	}
+
 	int child_index_by_tid(THREADID tid) {
 		TidToIdxMap::iterator itr = tidToIdxMap_.find(tid);
 		if(itr == tidToIdxMap_.end()) {
@@ -292,23 +314,6 @@ public:
 		} else {
 			return itr->second;
 		}
-	}
-
-	// returns the index of the new child
-	int add_thread(Coroutine* co) {
-		THREADID tid = co->coid();
-		safe_assert(child_index_by_tid(tid) < 0);
-
-		safe_assert(idxToThreadMap_.size() == children_.size());
-		tidToIdxMap_[tid] = children_.size();
-		children_.push_back(NULL);
-		idxToThreadMap_.push_back(co);
-	}
-
-	Coroutine* thread_by_child_index(int index) {
-		safe_assert(BETWEEN(0, index, idxToThreadMap_.size()-1));
-		safe_assert(idxToThreadMap_.size() == children_.size());
-		return idxToThreadMap_[index];
 	}
 
 private:

@@ -45,7 +45,15 @@ class Coroutine;
  * Exceptions
  */
 
-enum BacktrackReason { SEARCH_ENDS, SUCCESS, SPEC_UNSATISFIED, THREADS_ALLENDED, TREENODE_COVERED, ASSUME_FAILS, TIMEOUT, EXCEPTION, UNKNOWN };
+enum BacktrackReason { SEARCH_ENDS = 1,
+					   SUCCESS = 2,
+					   SPEC_UNSATISFIED = 3,
+					   THREADS_ALLENDED = 4,
+					   TREENODE_COVERED = 5,
+					   ASSUME_FAILS = 6,
+					   TIMEOUT = 7,
+					   EXCEPTION = 8,
+					   UNKNOWN = 9};
 
 class BacktrackException : public std::exception {
 public:

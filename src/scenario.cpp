@@ -368,8 +368,6 @@ ConcurritException* Scenario::RunOnce() throw() {
 void Scenario::RunUncontrolled() {
 	// set uncontrolled run flag
 	test_status_ = TEST_UNCONTROLLED;
-	// set ended node to the execution tree
-	exec_tree_.EndWithSuccess();
 
 	//---------------------------
 
@@ -413,7 +411,13 @@ void Scenario::RunTearDown() throw() {
 void Scenario::RunTestCase() throw() {
 	test_status_ = TEST_CONTROLLED;
 	try {
+
 		TestCase();
+
+		// set ended node to the execution tree
+		// this also takes care of checking if the last-inserted node was consumed on time
+		exec_tree_.EndWithSuccess();
+
 	} catch(std::exception* e) {
 		// TODO(elmas): this exception can be backtrack_exception, should we handle it differently?
 		exec_tree_.EndWithException(group_.main(), e);
@@ -1161,6 +1165,8 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 	//=================================================================
 
+	ExecutionTree* prev_unsat_node = NULL; // previous node which was not satisfied
+
 	do { // we loop until either we get hold of and process the current node in the execution tree
 
 		tval =  TPTRUE;
@@ -1169,6 +1175,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		VLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
 		// get the node
 		ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_FULL);
+
 		// if end_node, exit immediatelly
 		if(exec_tree_.REF_ENDTEST(node)) {
 			// uncontrolled mode, but the mode is set by main, so just ignore the rest
@@ -1178,28 +1185,53 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 		safe_assert(!exec_tree_.REF_EMPTY(node) && !exec_tree_.REF_LOCKED(node));
 
-		//=================================================================
-		VLOG(2) << "Checking execution tree node type";
-		tval =  TPTRUE;
-		// get the node
-		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
-		if(trans != NULL) {
-			// evaluate transition predicate
-			TransitionPredicate* pred = trans->pred();
-
-			trans_constraints_.push_back(pred);
-			tval = trans_constraints_.EvalPreState();
-			trans_constraints_.pop_back();
-
-			if(tval == TPTRUE) {
-				VLOG(2) << "Will consume the current transition";
-				newnode = {node, 0}; // newnode is the next of node
-				// set performer thread
-				trans->set_thread(current);
-			}
+		// if previously unsatisfied node, then retry
+		if(node == prev_unsat_node) {
+			VLOG(2) << "Detected same unsatisfied node, will retry";
+			tval = TPFALSE; // indicates that node was unsatisfied (will retry for another node)
 		} else {
-			// TODO(elmas): others are not supported yet
-			safe_assert(false);
+			//=================================================================
+			VLOG(2) << "Checking execution tree node type";
+			tval =  TPTRUE;
+			// get the node
+			TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
+			if(trans != NULL) {
+				// evaluate transition predicate
+				TransitionPredicate* pred = trans->pred();
+
+				trans_constraints_.push_back(pred);
+				tval = trans_constraints_.EvalPreState();
+				trans_constraints_.pop_back();
+
+				if(tval == TPTRUE) {
+					VLOG(2) << "Will consume the current transition";
+					newnode = {node, 0}; // newnode is the next of node
+					// set performer thread
+					trans->set_thread(current);
+				}
+			} else {
+				SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
+				if(select != NULL) {
+					// check if this thread has been covered
+					ExecutionTree* child = select->child_by_tid(current->coid());
+					if(child == NULL || !child->covered()) {
+						int child_index = select->add_or_get_thread(current);
+						// not covered
+						tval = TPTRUE; // we are consuming this node
+						// update newnode to point to the proper child index of select thread
+						newnode = {select, child_index};
+						// update thread variable associated by the select node
+						select->var()->set_select_node(newnode);
+					} else { // already covered, skip this
+						// covered
+						tval = TPFALSE; // we are not consuming this node
+					}
+
+				} else {
+					// TODO(elmas): others are not supported yet
+					safe_assert(false);
+				}
+			}
 		}
 
 		//=================================================================
@@ -1216,6 +1248,9 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		case TPFALSE: // release the transition and wait
 			VLOG(2) << "Releasing transition back";
 			exec_tree_.ReleaseRef(node);
+
+			prev_unsat_node = node; // update previously unsatisfied node
+			Thread::Yield(true);
 			break; // do not exit method
 
 		case TPUNKNOWN: // take the transition and decide after the transition
@@ -1276,26 +1311,9 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 			}
 		}
 		else {
-			SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
-			if(select != NULL) {
-				// check if this thread has been covered
-				ExecutionTree* child = select->child_by_tid(current->coid());
-				if(child == NULL || !child->covered()) {
-					// not covered
-					tval = TPTRUE; // we are consuming this node
-					// update newnode to point to the proper child index of select thread
-					newnode = {select, select->child_index_by_tid(current->coid())};
-					// update thread variable associated by the select node
-					select->var()->set_select_node(newnode);
-				} else {
-					// covered
-					tval = TPFALSE; // we are not consuming this node
-				}
-
-			} else {
-				// TODO(elmas): others are not supported yet
-				safe_assert(false);
-			}
+			safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
+			// TODO(elmas): others are not supported yet
+			safe_assert(false);
 		}
 
 		//=================================================================

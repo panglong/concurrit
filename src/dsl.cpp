@@ -186,11 +186,13 @@ void ExecutionTreeManager::Restart() {
 // operations by clients
 
 // only main can run this!!!
+// this always sets the timeout
 ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long timeout_usec /*= -1*/) {
 	safe_assert(Coroutine::Current()->IsMain());
-	if(timeout_usec < 0) timeout_usec = 999999999;
+	if(timeout_usec < 0) timeout_usec = 999999999L;
 	ExecutionTree* node = AcquireRef(mode, timeout_usec);
 	if(REF_ENDTEST(node)) {
+		// main has not ended the execution, so this must be due to an exception by another thread
 		safe_assert(static_cast<EndNode*>(node)->exception() != NULL);
 		TRIGGER_BACKTRACK(EXCEPTION);
 	}
@@ -210,6 +212,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 		ExecutionTree* node = ExchangeRef(&lock_node_);
 		if(REF_LOCKED(node)) {
 			// noop
+			Thread::Yield(true);
 		}
 		else
 		if(REF_ENDTEST(node)) {
@@ -220,28 +223,32 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 		if(mode == EXIT_ON_LOCK) {
 			return node; //  can be null, but cannot be lock or end node
 		}
-		else
-		if(REF_EMPTY(node)) {
-			if(mode == EXIT_ON_EMPTY) {
-				// will process this
-				return NULL;
-			} else {
-				SetRef(NULL);
+		else {
+			if(REF_EMPTY(node)) {
+				if(mode == EXIT_ON_EMPTY) {
+					// will process this
+					return NULL;
+				} else {
+					SetRef(NULL);
+				}
 			}
-		}
-		else // FULL
-		if(mode == EXIT_ON_FULL) {
-			// will process this
-			safe_assert(node != NULL);
-			return node;
-		} else {
-			// release
-			SetRef(node);
+			else // FULL
+			if(mode == EXIT_ON_FULL) {
+				// will process this
+				safe_assert(node != NULL);
+				return node;
+			} else {
+				// release
+				SetRef(node);
+			}
+
+			// yield and wait
+			sem_ref_.Wait();
+			sem_ref_.Signal();
 		}
 
 		//=========================================
 		// retry
-
 		// check timer
 		if(timeout_usec > 0) {
 			if(timer.getElapsedTimeInMicroSec() > timeout_usec) {
@@ -249,11 +256,6 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				TRIGGER_BACKTRACK(TIMEOUT);
 			}
 		}
-
-		// yield and wait
-		sem_ref_.Wait();
-		sem_ref_.Signal();
-//		Thread::Yield(true);
 	}
 	// unreachable
 	safe_assert(false);
@@ -336,21 +338,19 @@ bool ExecutionTreeManager::CheckEndOfPath(std::vector<ChildLoc>* path /*= NULL*/
 /*************************************************************************************/
 
 void ExecutionTreeManager::EndWithSuccess() {
-	EndNode* end_node = NULL;
 	// wait until the last node is consumed (or an end node is inserted)
-	ExecutionTree* node = AcquireRef(EXIT_ON_EMPTY);
-	if(REF_ENDTEST(node)) {
-		end_node = static_cast<EndNode*>(node);
-	} else {
-		// locked, create a new end node and set it
-		end_node = new EndNode();
-		// add to the path and set to ref
-		ReleaseRef(end_node, 0);
-	}
+	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
+	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
+	ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(!REF_ENDTEST(node));
+	// locked, create a new end node and set it
+	// also adds to the path and set to ref
+	ReleaseRef(new EndNode(), 0);
 }
 
 /*************************************************************************************/
 
+// (do not use AcquireRefEx here)
 void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
