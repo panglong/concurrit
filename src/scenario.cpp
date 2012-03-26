@@ -256,7 +256,7 @@ Result* Scenario::Explore() {
 
 					ASINSTANCEOF(result, ForallResult*)->AddSchedule(schedule_->Clone());
 					VLOG(2) << "Found one path for forall search.";
-					TRIGGER_WRAPPED_BACKTRACK("Forall");
+					TRIGGER_BACKTRACK(SUCCESS, true);
 				}
 
 			} catch(ConcurritException* ce) {
@@ -635,7 +635,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 		// if source of transfer is not the current source of yield then there is a problem, so backtrack
 		if(transfer->yield()->source() != point->source()) {
 			printf("Execution diverged from the recorded schedule. Backtracking...");
-			TRIGGER_BACKTRACK();
+			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 		}
 
 		target = transfer->target();
@@ -658,7 +658,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 				target = GetNextEnabled(transfer);
 				if(target == NULL) {
 					// no enable thread found, so backtrack
-					TRIGGER_BACKTRACK();
+					TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 				}
 			}
 			safe_assert(target != NULL);
@@ -675,7 +675,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 			}
 
 			if(!CheckUntil(transfer)) {
-				TRIGGER_BACKTRACK();
+				TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 			}
 		}
 
@@ -685,7 +685,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 		// check if the target is enabled
 		StatusType status = target->status();
 		if(status < ENABLED && BLOCKED <= status) {
-			TRIGGER_BACKTRACK();
+			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 		}
 
 		VLOG(2) << SC_TITLE << "Consuming transfer.";
@@ -712,7 +712,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 				target = GetNextEnabled();
 				if(target == NULL) {
 					// no enabled thread found, so backtrack
-					TRIGGER_BACKTRACK();
+					TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 				}
 			}
 			safe_assert(target != main);
@@ -750,7 +750,7 @@ DONE:
 
 		// if the ending yield and transfer is still NULL, then there is a problem, so we should backtrack
 		if(is_ending) {
-			TRIGGER_BACKTRACK();
+			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 		}
 
 		// update schedule to add this yield point
@@ -869,7 +869,7 @@ SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
 
 		// backtrack if target is not enabled
 		if(target->status() != ENABLED) {
-			TRIGGER_BACKTRACK();
+			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 		}
 	}
 
@@ -1139,14 +1139,15 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 
 // program state should be updated before this point
 void Scenario::BeforeControlledTransition(Coroutine* current) {
-	if(test_status_ == TEST_UNCONTROLLED) return;
+	if(test_status_ != TEST_CONTROLLED) return;
 
-	printf("Before controlled transition by %s\n", current->name().c_str());
+	VLOG(2) << "Before controlled transition by " << current->name();
 
 	// make thread blocked
 	current->set_status(BLOCKED);
 
-	safe_assert(current->current_node() == NULL); // TODO(elmas): this may fail for coarse transitions
+	// TODO(elmas): this may fail for coarse transitions!!!
+	safe_assert(current->current_node() == NULL);
 
 	// new element to be used when the current node is consumed
 	ChildLoc newnode = {NULL, -1};
@@ -1157,9 +1158,12 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	// TPUNKNOWN: take the transition and decide after the transition
 	// TPINVALID: cannot occur
 	TPVALUE tval =  TPTRUE;
+
 	//=================================================================
 
 	do { // we loop until either we get hold of and process the current node in the execution tree
+
+		tval =  TPTRUE;
 
 		//=================================================================
 		VLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
@@ -1168,6 +1172,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		// if end_node, exit immediatelly
 		if(exec_tree_.REF_ENDTEST(node)) {
 			// uncontrolled mode, but the mode is set by main, so just ignore the rest
+			// no need to release node, because AcquireRef does not overwrite end nodes.
 			return;
 		}
 
@@ -1187,12 +1192,14 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			trans_constraints_.pop_back();
 
 			if(tval == TPTRUE) {
+				VLOG(2) << "Will consume the current transition";
 				newnode = {node, 0}; // newnode is the next of node
 				// set performer thread
 				trans->set_thread(current);
 			}
 		} else {
 			// TODO(elmas): others are not supported yet
+			safe_assert(false);
 		}
 
 		//=================================================================
@@ -1200,16 +1207,19 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		// take action depending on tval
 		switch(tval) {
 		case TPTRUE: // consume the transition
+			VLOG(2) << "Consuming transition";
 			// in this case, we insert a new node to the path represented by newnode
-			safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
+			safe_assert(!newnode.empty());
 			exec_tree_.ReleaseRef(newnode);
 			break;
 
 		case TPFALSE: // release the transition and wait
+			VLOG(2) << "Releasing transition back";
 			exec_tree_.ReleaseRef(node);
 			break; // do not exit method
 
 		case TPUNKNOWN: // take the transition and decide after the transition
+			VLOG(2) << "Unknown, to be decided after the transition";
 			current->set_current_node(node);
 			break;
 
@@ -1226,26 +1236,28 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 }
 
 void Scenario::AfterControlledTransition(Coroutine* current) {
-	if(test_status_ == TEST_UNCONTROLLED) return;
+	if(test_status_ != TEST_CONTROLLED) return;
 
-	printf("After controlled transition by %s\n", current->name().c_str());
+	VLOG(2) << "After controlled transition by " << current->name();
 
+	VLOG(2) << "Current mode is " << current->status();
 	safe_assert(current->status() == BLOCKED);
 
 	// new element to be used when the current node is consumed
 	ChildLoc newnode = {NULL, -1};
-
-	// value determining what to with the transition
-	// TPTRUE: continue as normal
-	// TPFALSE: trigger backtrack
-	// TPUNKNOWN: cannot occur
-	TPVALUE tval =  TPTRUE;
 
 	//=================================================================
 	VLOG(2) << "Checking execution tree node type";
 	// if we have a current node, then check it
 	ExecutionTree* node = current->current_node();
 	if(node != NULL) {
+
+		// value determining what to with the transition
+		// TPTRUE: continue as normal
+		// TPFALSE: trigger backtrack
+		// TPUNKNOWN: cannot occur
+		TPVALUE tval =  TPTRUE;
+
 		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 		if(trans != NULL) {
 			// evaluate transition predicate
@@ -1257,46 +1269,72 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 
 			tval = (ret ? TPTRUE : TPFALSE);
 			if(tval == TPTRUE) {
+				VLOG(2) << "Will consume the current transition";
 				newnode = {node, 0}; // newnode is the next of node
 				// set performer thread
 				trans->set_thread(current);
 			}
-		} else {
-			// TODO(elmas): others are not supported yet
 		}
-	}
+		else {
+			SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
+			if(select != NULL) {
+				// check if this thread has been covered
+				ExecutionTree* child = select->child_by_tid(current->coid());
+				if(child == NULL || !child->covered()) {
+					// not covered
+					tval = TPTRUE; // we are consuming this node
+					// update newnode to point to the proper child index of select thread
+					newnode = {select, select->child_index_by_tid(current->coid())};
+					// update thread variable associated by the select node
+					select->var()->set_select_node(newnode);
+				} else {
+					// covered
+					tval = TPFALSE; // we are not consuming this node
+				}
+
+			} else {
+				// TODO(elmas): others are not supported yet
+				safe_assert(false);
+			}
+		}
+
+		//=================================================================
+		VLOG(2) << "Switching on three-valued variable";
+		// take action depending on tval
+		switch(tval) {
+		case TPTRUE: // consume the transition if node is not null, otherwise, there was no node to handle
+			VLOG(2) << "Consuming transition";
+			if(node != NULL) {
+				// in this case, we insert a new node to the path represented by newnode
+				safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
+				exec_tree_.ReleaseRef(newnode);
+			}
+			break;
+
+		case TPFALSE: // trigger backtrack
+			VLOG(2) << "Transition not satisfied, will release transition back and backtrack";
+			exec_tree_.ReleaseRef(node);
+			// trigger backtrack, causes current execution to end
+			exec_tree_.EndWithBacktrack(current, "AfterControlledTransition");
+			break;
+
+		default:
+			fprintf(stderr, "Invalid TPVALUE: %d\n", tval);
+			bool InvalidTPValue = false;
+			safe_assert(InvalidTPValue);
+			break;
+		}
+
+	} // end if(node != NULL)
 
 	//=================================================================
+DONE:
 	// remove all transition info records
 	current->trinfolist()->clear();
 	current->set_current_node(NULL);
 
 	// make thread enabled
 	current->set_status(ENABLED);
-
-	//=================================================================
-	VLOG(2) << "Switching on three-valued variable";
-	// take action depending on tval
-	switch(tval) {
-	case TPTRUE: // consume the transition if node is not null, otherwise, there was no node to handle
-		if(node != NULL) {
-			// in this case, we insert a new node to the path represented by newnode
-			safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
-			exec_tree_.ReleaseRef(newnode);
-		}
-		break;
-
-	case TPFALSE: // release the transition and wait
-		// trigger backtrack, causes current execution to end
-		exec_tree_.EndWithBacktrack(current, "AfterControlledTransition");
-		break;
-
-	default:
-		fprintf(stderr, "Invalid TPVALUE: %d\n", tval);
-		bool InvalidTPValue = false;
-		safe_assert(InvalidTPValue);
-		break;
-	}
 }
 
 /********************************************************************************/
@@ -1319,11 +1357,10 @@ bool Scenario::DoBacktrackPreemptive() {
 
 bool Scenario::DSLChoice() {
 	VLOG(2) << "Adding DSLChoice";
-	printf("Adding DSLChoice\n");
 
-	if(group_.IsAllEnded()) {
-		TRIGGER_BACKTRACK();
-	}
+//	if(group_.IsAllEnded()) {
+//		TRIGGER_BACKTRACK(THREADS_ALLENDED);
+//	}
 
 	bool ret = false;
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
@@ -1336,8 +1373,10 @@ bool Scenario::DSLChoice() {
 		choice = ASINSTANCEOF(node, ChoiceNode*);
 		safe_assert(choice != NULL);
 		if(choice->covered()) {
+			// release lock
+			exec_tree_.ReleaseRef(NULL);
 			// backtrack
-			TRIGGER_BACKTRACK();
+			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 	} else {
 		ChildLoc parent = exec_tree_.GetLastInPath();
@@ -1360,7 +1399,7 @@ bool Scenario::DSLChoice() {
 
 	exec_tree_.ReleaseRef(choice, (ret ? 0 : 1));
 
-	printf("DSLChoice returns %s\n", (ret ? "true" : "false"));
+	VLOG(2) << "DSLChoice returns " << ret;
 
 	return ret;
 }
@@ -1369,10 +1408,9 @@ bool Scenario::DSLChoice() {
 
 void Scenario::DSLTransition(TransitionPredicate* pred) {
 	VLOG(2) << "Adding DSLTransition";
-	printf("Adding DSLTransition\n");
 
 	if(group_.IsAllEnded()) {
-		TRIGGER_BACKTRACK();
+		TRIGGER_BACKTRACK(THREADS_ALLENDED);
 	}
 
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
@@ -1385,8 +1423,10 @@ void Scenario::DSLTransition(TransitionPredicate* pred) {
 		trans = ASINSTANCEOF(node, TransitionNode*);
 		safe_assert(trans != NULL);
 		if(trans->covered()) {
+			// release lock
+			exec_tree_.ReleaseRef(NULL);
 			// backtrack
-			TRIGGER_BACKTRACK();
+			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 	} else {
 		ChildLoc parent = exec_tree_.GetLastInPath();
@@ -1401,17 +1441,16 @@ void Scenario::DSLTransition(TransitionPredicate* pred) {
 	// set atomic_ref to point to trans
 	exec_tree_.ReleaseRef(trans);
 
-	printf("Added DSLTransition.\n");
+	VLOG(2) << "Added DSLTransition.";
 }
 
 /********************************************************************************/
 
 ThreadVar* Scenario::DSLSelectThread() {
 	VLOG(2) << "Adding DSLSelectThread";
-	printf("Adding DSLSelectThread\n");
 
 	if(group_.IsAllEnded()) {
-		TRIGGER_BACKTRACK();
+		TRIGGER_BACKTRACK(THREADS_ALLENDED);
 	}
 
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
@@ -1425,25 +1464,26 @@ ThreadVar* Scenario::DSLSelectThread() {
 		select = ASINSTANCEOF(node, SelectThreadNode*);
 		safe_assert(select != NULL);
 		if(select->covered()) {
+			// release lock
+			exec_tree_.ReleaseRef(NULL);
 			// backtrack
-			TRIGGER_BACKTRACK();
+			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
-		var = select->var();
 	} else {
 		ChildLoc parent = exec_tree_.GetLastInPath();
 		var = new ThreadVar();
 		select = new SelectThreadNode(var);
 		parent.set(select);
 	}
-
 	safe_assert(!select->covered());
+	var = select->var();
 
 	// not covered yet
 
 	// set atomic_ref to point to select
 	exec_tree_.ReleaseRef(select);
 
-	printf("Added DSLSelectThread.\n");
+	VLOG(2) << "Added DSLSelectThread.";
 
 	return var;
 }

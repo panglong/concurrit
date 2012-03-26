@@ -216,6 +216,10 @@ public:
 	operator ExecutionTree* () {
 		return get();
 	}
+
+	bool empty() {
+		return parent_ == NULL || child_index_ < 0;
+	}
 private:
 	DECL_FIELD(ExecutionTree*, parent)
 	DECL_FIELD(int, child_index);
@@ -253,6 +257,9 @@ public:
 	: name_(name), select_node_({node, child_index}) {}
 	~ThreadVar(){}
 
+	// returns the coroutine selected, if any
+	Coroutine* thread();
+
 private:
 	DECL_FIELD(std::string, name)
 	DECL_FIELD_REF(ChildLoc, select_node)
@@ -264,7 +271,7 @@ private:
 // TODO(elmas): rewrite coverage computation for this
 class SelectThreadNode : public ExecutionTree {
 public:
-	typedef std::map<THREADID, size_t> TidToIdxMap;
+	typedef std::map<THREADID, int> TidToIdxMap;
 	SelectThreadNode(ThreadVar* var, ExecutionTree* parent = NULL)
 	: ExecutionTree(parent, 0), var_(var) {
 		// set select_info of var
@@ -273,9 +280,41 @@ public:
 	}
 	~SelectThreadNode() {}
 
+	ExecutionTree* child_by_tid(THREADID tid) {
+		int index = child_index_by_tid(tid);
+		return index < 0 ? NULL : child(index);
+	}
+
+	int child_index_by_tid(THREADID tid) {
+		TidToIdxMap::iterator itr = tidToIdxMap_.find(tid);
+		if(itr == tidToIdxMap_.end()) {
+			return -1;
+		} else {
+			return itr->second;
+		}
+	}
+
+	// returns the index of the new child
+	int add_thread(Coroutine* co) {
+		THREADID tid = co->coid();
+		safe_assert(child_index_by_tid(tid) < 0);
+
+		safe_assert(idxToThreadMap_.size() == children_.size());
+		tidToIdxMap_[tid] = children_.size();
+		children_.push_back(NULL);
+		idxToThreadMap_.push_back(co);
+	}
+
+	Coroutine* thread_by_child_index(int index) {
+		safe_assert(BETWEEN(0, index, idxToThreadMap_.size()-1));
+		safe_assert(idxToThreadMap_.size() == children_.size());
+		return idxToThreadMap_[index];
+	}
+
 private:
 	DECL_FIELD_REF(TidToIdxMap, tidToIdxMap)
 	DECL_FIELD(ThreadVar*, var)
+	DECL_FIELD_REF(std::vector<Coroutine*>, idxToThreadMap)
 
 };
 
@@ -345,9 +384,11 @@ private:
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(ExecutionTree, lock_node)
-	ExecutionTreeRef atomic_ref_;
 	DECL_FIELD_REF(std::vector<ChildLoc>, current_path)
 	DECL_FIELD(unsigned, num_paths)
+
+	ExecutionTreeRef atomic_ref_;
+	Semaphore sem_ref_;
 
 	DECL_FIELD(Mutex, mutex)
 	DECL_FIELD(ConditionVar, cv)

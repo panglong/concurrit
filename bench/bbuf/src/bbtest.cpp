@@ -85,12 +85,12 @@ public:
 //			}
 //		}
 
-//		int k = 1;
-//		while(STAR) {
-//			printf("Iteration %d\n", k);
-//			DSLTransition(TransitionPredicate::True());
-//			k++;
-//		}
+		int k = 1;
+		while(STAR) {
+			printf("Iteration %d\n", k);
+			DSLTransition(TransitionPredicate::False());
+			k++;
+		}
 
 		printf("Ending\n");
 	}

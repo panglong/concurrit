@@ -55,9 +55,10 @@ TPVALUE TPNOT(TPVALUE v) {
 
 TPVALUE TPAND(TPVALUE v1, TPVALUE v2) {
 	static TPVALUE __and_table__ [3][3] = {
-			{TPFALSE,   TPFALSE, 	TPFALSE},
-			{TPTRUE,    TPFALSE, 	TPUNKNOWN},
-			{TPFALSE, 	TPUNKNOWN, 	TPUNKNOWN}
+	//		F			T			U
+	/*F*/	{TPFALSE,   TPFALSE, 	TPFALSE},
+	/*T*/	{TPFALSE,   TPTRUE, 	TPUNKNOWN},
+	/*U*/	{TPFALSE, 	TPUNKNOWN, 	TPUNKNOWN}
 	};
 	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
 	return __and_table__[v1][v2];
@@ -65,9 +66,10 @@ TPVALUE TPAND(TPVALUE v1, TPVALUE v2) {
 
 TPVALUE TPOR(TPVALUE v1, TPVALUE v2) {
 	static TPVALUE __or_table__ [3][3] = {
-			{TPTRUE,   	TPFALSE,	TPUNKNOWN},
-			{TPTRUE,   	TPTRUE, 	TPTRUE},
-			{TPUNKNOWN,	TPTRUE,		TPUNKNOWN}
+	//		F			T			U
+	/*F*/	{TPFALSE,   TPTRUE,		TPUNKNOWN},
+	/*T*/	{TPTRUE,   	TPTRUE, 	TPTRUE},
+	/*U*/	{TPUNKNOWN,	TPTRUE,		TPUNKNOWN}
 	};
 	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
 	return __or_table__[v1][v2];
@@ -186,6 +188,7 @@ void ExecutionTreeManager::Restart() {
 // only main can run this!!!
 ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long timeout_usec /*= -1*/) {
 	safe_assert(Coroutine::Current()->IsMain());
+	if(timeout_usec < 0) timeout_usec = 999999999;
 	ExecutionTree* node = AcquireRef(mode, timeout_usec);
 	if(REF_ENDTEST(node)) {
 		safe_assert(static_cast<EndNode*>(node)->exception() != NULL);
@@ -202,18 +205,9 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 	if(timeout_usec > 0) {
 		timer.start();
 	}
-	long nano_sec = (1L << 10);
+
 	while(true) {
 		ExecutionTree* node = ExchangeRef(&lock_node_);
-		if(REF_EMPTY(node)) {
-			if(mode == EXIT_ON_EMPTY || mode == EXIT_ON_LOCK) {
-				return NULL;
-			} else {
-				// release
-				SetRef(NULL);
-			}
-		}
-		else
 		if(REF_LOCKED(node)) {
 			// noop
 		}
@@ -222,15 +216,27 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			SetRef(node);
 			return node; // indicates end of the test
 		}
-		else // full: non-null, non-lock, non-end
-		if(mode == EXIT_ON_FULL) {
-			// handle this
-			safe_assert(node != NULL);
-			return node;
-		}
 		else
 		if(mode == EXIT_ON_LOCK) {
+			return node; //  can be null, but cannot be lock or end node
+		}
+		else
+		if(REF_EMPTY(node)) {
+			if(mode == EXIT_ON_EMPTY) {
+				// will process this
+				return NULL;
+			} else {
+				SetRef(NULL);
+			}
+		}
+		else // FULL
+		if(mode == EXIT_ON_FULL) {
+			// will process this
+			safe_assert(node != NULL);
 			return node;
+		} else {
+			// release
+			SetRef(node);
 		}
 
 		//=========================================
@@ -244,18 +250,10 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			}
 		}
 
-		// wait for some time
-		nano_sec <<= 1;
-		if(nano_sec > 1000000000L) {
-			// TODO(elmas): alert, backtrack!
-			fprintf(stderr, "Waiting too much!!! %d\n", mode);
-			safe_assert(false);
-		}
-		if(nano_sec > (1L << 15)) {
-			short_sleep(nano_sec, false);
-		} else {
-			Thread::Yield(true);
-		}
+		// yield and wait
+		sem_ref_.Wait();
+		sem_ref_.Signal();
+//		Thread::Yield(true);
 	}
 	// unreachable
 	safe_assert(false);
@@ -278,9 +276,12 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 		// if released node is an end node, we do not nullify atomic_ref
 		SetRef(REF_ENDTEST(node) ? node : NULL);
 	} else {
+		safe_assert(REF_LOCKED(current_node) && !REF_ENDTEST(current_node));
 		// release
 		SetRef(node);
 	}
+	sem_ref_.Signal();
+//	Thread::Yield(true);
 }
 
 /*************************************************************************************/
@@ -339,8 +340,6 @@ void ExecutionTreeManager::EndWithSuccess() {
 	// wait until the last node is consumed (or an end node is inserted)
 	ExecutionTree* node = AcquireRef(EXIT_ON_EMPTY);
 	if(REF_ENDTEST(node)) {
-		// put back the node
-		ReleaseRef(node);
 		end_node = static_cast<EndNode*>(node);
 	} else {
 		// locked, create a new end node and set it
@@ -357,8 +356,6 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
 	if(REF_ENDTEST(node)) {
-		// put back the node
-		ReleaseRef(node);
 		end_node = static_cast<EndNode*>(node);
 	} else {
 		// locked, create a new end node and set it
@@ -393,6 +390,15 @@ TransitionConstraint::~TransitionConstraint(){
 
 /*************************************************************************************/
 
+// returns the coroutine selected, if any
+Coroutine* ThreadVar::thread() {
+	if(select_node_.empty()) {
+		return NULL;
+	}
+	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
+	safe_assert(select != NULL);
+	return select->thread_by_child_index(select_node_.child_index());
+}
 
 } // end namespace
 

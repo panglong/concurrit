@@ -546,7 +546,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 	if (INS_IsStackRead(ins) || INS_IsStackWrite(ins))
 		return;
 
-	if (INS_IsMemoryWrite(ins)) {
+	if (INS_IsMemoryWrite(ins) && (INS_HasFallThrough(ins) || INS_IsBranchOrCall(ins))) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
 		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWriteBefore), // IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
@@ -566,7 +566,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	/* ==================== */
 
-	if (INS_HasMemoryRead2(ins)) {
+	if (INS_HasMemoryRead2(ins) && (INS_HasFallThrough(ins) || INS_IsBranchOrCall(ins))) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
 		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), // IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
@@ -586,7 +586,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	/* ==================== */
 
-	if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins)) {
+	if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins) && (INS_HasFallThrough(ins) || INS_IsBranchOrCall(ins))) {
 		PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
 		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemReadBefore), // IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,

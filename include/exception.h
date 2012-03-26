@@ -45,7 +45,7 @@ class Coroutine;
  * Exceptions
  */
 
-enum BacktrackReason { SEARCH_ENDS, SUCCESS, ASSUME_FAILS, TIMEOUT, EXCEPTION, UNKNOWN };
+enum BacktrackReason { SEARCH_ENDS, SUCCESS, SPEC_UNSATISFIED, THREADS_ALLENDED, TREENODE_COVERED, ASSUME_FAILS, TIMEOUT, EXCEPTION, UNKNOWN };
 
 class BacktrackException : public std::exception {
 public:
@@ -65,10 +65,17 @@ public:
 		switch(reason_) {
 			print_enum(SEARCH_ENDS)
 			print_enum(SUCCESS)
+			print_enum(SPEC_UNSATISFIED)
+			print_enum(THREADS_ALLENDED)
+			print_enum(TREENODE_COVERED)
 			print_enum(ASSUME_FAILS)
 			print_enum(TIMEOUT)
 			print_enum(EXCEPTION)
 			print_enum(UNKNOWN)
+		default:
+			bool UnknownBacktrackReason = false;
+			safe_assert(UnknownBacktrackReason);
+			break;
 		}
 #undef print_enum
 		return s.str().c_str();
@@ -254,9 +261,14 @@ inline BacktrackException* GetBacktrackException(BacktrackReason reason = UNKNOW
 //	return CHECK_NOTNULL(__terminate_search_exception__);
 //}
 
-inline void TRIGGER_BACKTRACK(BacktrackReason reason = UNKNOWN) {
+inline void TRIGGER_BACKTRACK(BacktrackReason reason = UNKNOWN, bool wrap = false) {
 	VLOG(2) << "TRIGGER_BACKTRACK: " << reason;
-	throw GetBacktrackException(reason);
+	BacktrackException* e = GetBacktrackException(reason);
+	if(wrap) {
+		throw new ConcurritException(e);
+	} else {
+		throw e;
+	}
 }
 
 inline void TRIGGER_TERMINATE_SEARCH() {
@@ -275,9 +287,9 @@ inline void TRIGGER_TERMINATE_SEARCH() {
 //	throw WRAP_EXCEPTION(m, e);
 //}
 
-inline void TRIGGER_WRAPPED_BACKTRACK(const std::string& m) {
-	throw new ConcurritException((__backtrack_exception__), NULL, m, NULL);
-}
+//inline void TRIGGER_WRAPPED_BACKTRACK(const std::string& m) {
+//	throw new ConcurritException((__backtrack_exception__), NULL, m, NULL);
+//}
 
 inline void TRIGGER_INTERNAL_EXCEPTION(const std::string& m) {
 	VLOG(2) << "TRIGGER_INTERNAL_EXCEPTION: " << (m);

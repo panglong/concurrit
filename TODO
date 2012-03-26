@@ -1,3 +1,6 @@
+- script bittikten sonra controlled transition devam ediyorsa backtrack et, success olmasin.
+- sem_ref_'i kontrol et!!!
+- hem read, hem de write yapan instructionlarda ne yapacagiz?
 - satisfy edilmeyen transitionlar nedeniyle olan backtrackli executionlari forall'da sayma
 - beforecontrolled transition'dan sonra timer koy, after transition olana kadar timer expire olursa handle et.
 - bir transition'i hic bir thread satisfy etmezse ne olacak? backtrack yapmamiz gerekiyor!!!

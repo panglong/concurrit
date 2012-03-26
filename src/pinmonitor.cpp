@@ -102,7 +102,6 @@ void PinMonitor::MemWriteBefore(Coroutine* current, Scenario* scenario, void* ad
 
 //	current->trinfolist()->push_back(TransitionInfo(MEM_WRITE, access));
 
-	printf("Calling pin monitor!\n");
 	scenario->BeforeControlledTransition(current);
 }
 
@@ -117,7 +116,6 @@ void PinMonitor::MemWriteAfter(Coroutine* current, Scenario* scenario, void* add
 
 //	current->trinfolist()->push_back(TransitionInfo(MEM_WRITE, access));
 
-	printf("Calling pin monitor!\n");
 	scenario->AfterControlledTransition(current);
 }
 
@@ -132,7 +130,7 @@ void PinMonitor::MemReadBefore(Coroutine* current, Scenario* scenario, void* add
 //
 //	current->trinfolist()->push_back(TransitionInfo(MEM_READ, access));
 //
-//	scenario->BeforeControlledTransition(current);
+	scenario->BeforeControlledTransition(current);
 }
 
 void PinMonitor::MemReadAfter(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc) {
@@ -146,7 +144,7 @@ void PinMonitor::MemReadAfter(Coroutine* current, Scenario* scenario, void* addr
 
 //	current->trinfolist()->push_back(TransitionInfo(MEM_WRITE, access));
 
-//	scenario->AfterControlledTransition(current);
+	scenario->AfterControlledTransition(current);
 }
 
 void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target) {
@@ -154,7 +152,7 @@ void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr, bo
 
 
 
-//	scenario->OnControlledTransition(current);
+	scenario->OnControlledTransition(current);
 }
 
 void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc) {
@@ -162,7 +160,7 @@ void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, S
 
 
 
-//	scenario->OnControlledTransition(current);
+	scenario->OnControlledTransition(current);
 }
 
 void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval) {
@@ -170,7 +168,7 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, 
 
 
 
-//	scenario->OnControlledTransition(current);
+	scenario->OnControlledTransition(current);
 }
 
 
@@ -208,16 +206,16 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 
 	switch(info->type) {
 		case MemWriteBefore:
-			monitor->MemWriteBefore(current, scenario, info->addr, info->size, info->loc_src);
+//			monitor->MemWriteBefore(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case MemWriteAfter:
-			monitor->MemWriteAfter(current, scenario, info->addr, info->size, info->loc_src);
+//			monitor->MemWriteAfter(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case MemReadBefore:
-			monitor->MemReadBefore(current, scenario, info->addr, info->size, info->loc_src);
+//			monitor->MemReadBefore(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case MemReadAfter:
-			monitor->MemReadAfter(current, scenario, info->addr, info->size, info->loc_src);
+//			monitor->MemReadAfter(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case FuncCall:
 			monitor->FuncCall(current, scenario, info->addr, info->direct, info->loc_src, info->loc_target);
