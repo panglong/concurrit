@@ -293,7 +293,7 @@ Result* Scenario::Explore() {
 					printf("BACKTRACK: %s\n", ce->cause()->what());
 
 					// is backtrack is for terminating the search, exit the search loop
-					if(be->reason() == SEARCH_ENDS) {
+					if(Config::ExitOnFirstExecution || be->reason() == SEARCH_ENDS) {
 						goto LOOP_DONE; // break the outermost loop
 					}
 

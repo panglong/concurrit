@@ -37,8 +37,12 @@ namespace concurrit {
 
 // set to default values
 bool Config::CanEnableDisablePinTool = false;
+bool Config::ExitOnFirstExecution = false;
 
 /********************************************************************************/
+
+// e: CanEnableDisablePinTool
+// f: ExitOnFirstExecution
 
 void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	if(argc <= 0 || argv == NULL) return;
@@ -46,10 +50,13 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "e")) != -1) {
+	while ((c = getopt(argc, argv, "ef")) != -1) {
 		switch(c) {
 		case 'e':
 			Config::CanEnableDisablePinTool = true;
+			break;
+		case 'f':
+			Config::ExitOnFirstExecution = true;
 			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");
