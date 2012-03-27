@@ -189,6 +189,7 @@ class ChildLoc {
 public:
 	ChildLoc(ExecutionTree* parent = NULL, int child_index = -1) : parent_(parent), child_index_(child_index) {}
 	~ChildLoc(){}
+
 	void set(ExecutionTree* node) {
 		safe_assert(parent_ != NULL);
 		parent_->set_child(node, child_index_);

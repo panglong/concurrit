@@ -48,7 +48,7 @@ std::map<std::string, Result*> Suite::RunScenarios() {
 		Scenario* scenario = (*itr);
 		printf("Running scenario %s\n", scenario->name());
 		Result* result = scenario->Explore();
-		safe_assert(Config::ExitOnFirstExecution || result != NULL);
+		safe_assert(Config::ExitOnFirstExecution >= 0 || result != NULL);
 		if(result != NULL) {
 			// accumulate coverage
 			if(result->IsSuccess()) {

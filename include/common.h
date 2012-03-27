@@ -243,7 +243,7 @@ inline void short_sleep(long nanoseconds, bool continue_on_signal) {
 class Config {
 public:
 	static bool CanEnableDisablePinTool;
-	static bool ExitOnFirstExecution;
+	static int ExitOnFirstExecution;
 	static void ParseCommandLine(int argc = -1, char **argv = NULL);
 };
 

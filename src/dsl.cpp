@@ -156,6 +156,7 @@ void ExecutionTree::ComputeCoverage(Scenario* scenario, bool recurse) {
 			} else {
 				cov = false; // NULL child means undiscovered-yet branch
 			}
+			if(!cov) break;
 		}
 		covered_ = cov;
 	}
@@ -310,7 +311,7 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 			// if node is not end node, the we are either overwriting NULL or the same value
 			safe_assert(parent.check(NULL) || parent.check(node));
 		}
-		parent.set(node);
+		parent.set(node); // also sets node's parent
 	}
 		// put node to the path
 	current_path_.push_back({node, child_index});
@@ -348,6 +349,7 @@ bool ExecutionTreeManager::CheckEndOfPath(std::vector<ChildLoc>* path /*= NULL*/
 	safe_assert(path->size() >= 2);
 	safe_assert((*path)[0].parent() == &root_node_);
 	safe_assert(REF_ENDTEST(path->back()));
+	safe_assert(REF_ENDTEST(path->back().parent()));
 	safe_assert(GetRef() != NULL);
 	safe_assert(path->back() == GetRef());
 

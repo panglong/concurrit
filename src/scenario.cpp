@@ -293,7 +293,7 @@ Result* Scenario::Explore() {
 					printf("BACKTRACK: %s\n", ce->cause()->what());
 
 					// is backtrack is for terminating the search, exit the search loop
-					if(Config::ExitOnFirstExecution || be->reason() == SEARCH_ENDS) {
+					if((--Config::ExitOnFirstExecution == 0) || be->reason() == SEARCH_ENDS) {
 						goto LOOP_DONE; // break the outermost loop
 					}
 
@@ -609,7 +609,7 @@ void Scenario::Finish(Result* result) {
 	std::cout << "********** Statistics **********" << std::endl;
 	std::cout << statistics_->ToString() << std::endl;
 
-	safe_assert(Config::ExitOnFirstExecution || result != NULL);
+	safe_assert(Config::ExitOnFirstExecution >= 0 || result != NULL);
 	if(result != NULL) {
 		// copy statistics to the result
 		result->set_statistics(statistics_);
@@ -1399,22 +1399,28 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 /********************************************************************************/
 
 bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
+	VLOG(2) << "DoBacktrackPreemptive for reason: " << reason;
+
 	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
 
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
 	safe_assert(path != NULL && exec_tree_.CheckEndOfPath(path));
 
+	const int sz = path->size();
 	//===========================
-	// make the parent of last element covered, because there is no way to cover it
-	if(reason == THREADS_ALLENDED && path->size() > 1) {
-		ChildLoc last = (*path)[path->size()-2]; // not the end node but the previous node
-		last.parent()->set_covered(true);
+	// make the parent of last element (if SelectThreadNode) covered, because there is no way to cover it
+	if(reason == THREADS_ALLENDED && sz > 1) {
+		ChildLoc last = (*path)[sz-2]; // not the end node but the previous node
+		ExecutionTree* last_parent = last.parent();
+		if(INSTANCEOF(last_parent, SelectThreadNode*)) {
+			last_parent->set_covered(true);
+		}
 	}
 
 	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
-	for(int i = path->size()-2; i >= 0; --i) {
+	for(int i = sz-2; i >= 0; --i) {
 		ChildLoc element = (*path)[i];
 		safe_assert(!element.empty());
 		safe_assert(element.check((*path)[i+1].parent()));
