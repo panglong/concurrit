@@ -1422,7 +1422,7 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
-	safe_assert(path != NULL && exec_tree_.CheckEndOfPath(path));
+	safe_assert(path != NULL && exec_tree_.CheckCompletePath(path));
 
 	const int sz = path->size();
 	//===========================

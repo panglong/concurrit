@@ -38,7 +38,7 @@ public:
 
 	void TestCase() {
 
-		TEST_FORALL();
+		TEST_EXISTS();
 
 		int i;
 

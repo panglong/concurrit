@@ -152,11 +152,12 @@ void ExecutionTree::ComputeCoverage(Scenario* scenario, bool recurse) {
 						child->ComputeCoverage(scenario, recurse);
 					}
 					cov = cov && child->covered_;
+					if(!cov) break;
 				}
 			} else {
 				cov = false; // NULL child means undiscovered-yet branch
+				break;
 			}
-			if(!cov) break;
 		}
 		covered_ = cov;
 	}
@@ -179,7 +180,6 @@ void ExecutionTreeManager::Restart() {
 	AddToPath(&root_node_, 0);
 
 	SetRef(NULL);
-	safe_assert(GetRef() == NULL || REF_ENDTEST(GetRef()));
 }
 
 /*************************************************************************************/
@@ -343,7 +343,7 @@ ChildLoc ExecutionTreeManager::GetLastInPath() {
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::CheckEndOfPath(std::vector<ChildLoc>* path /*= NULL*/) {
+bool ExecutionTreeManager::CheckCompletePath(std::vector<ChildLoc>* path /*= NULL*/) {
 	if(path == NULL) {
 		path = &current_path_;
 	}
@@ -351,7 +351,7 @@ bool ExecutionTreeManager::CheckEndOfPath(std::vector<ChildLoc>* path /*= NULL*/
 	safe_assert(path->size() >= 2);
 	safe_assert((*path)[0].parent() == &root_node_);
 	safe_assert(REF_ENDTEST(path->back()));
-	safe_assert(REF_ENDTEST(path->back().parent()));
+	safe_assert(path->back().parent() == path->back());
 	safe_assert(GetRef() != NULL);
 	safe_assert(path->back() == GetRef());
 

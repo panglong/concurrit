@@ -390,7 +390,7 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
 	void EndWithBacktrack(Coroutine* current, const std::string& where);
 
-	bool CheckEndOfPath(std::vector<ChildLoc>* path = NULL);
+	bool CheckCompletePath(std::vector<ChildLoc>* path = NULL);
 
 private:
 	ExecutionTree* GetRef();
