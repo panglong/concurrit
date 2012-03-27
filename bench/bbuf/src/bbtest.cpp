@@ -5,6 +5,9 @@ using namespace concurrit;
 
 #include "boundedBuffer.h"
 
+#define PRODUCER_SUM  2
+#define CONSUMER_SUM  2
+
 class BBScenario : public Scenario {
 public:
 
@@ -92,19 +95,22 @@ public:
 
 
 //		while(STAR)
-//		{
-//				EXISTS(t);
-//				DSLTransition(TransitionPredicate::True(), t);
-//		}
+		for(int j = 0; j < 4; ++j)
 		{
-			EXISTS(t);
-			DSLTransition(TransitionPredicate::True(), t);
-		}
+				EXISTS(t);
+				DSLTransition(TransitionPredicate::True(), t);
 
-		{
-			EXISTS(t);
-			DSLTransition(TransitionPredicate::True(), t);
+//				DSLTransition(TransitionPredicate::False());
 		}
+//		{
+//			EXISTS(t);
+//			DSLTransition(TransitionPredicate::True(), t);
+//		}
+//
+//		{
+//			EXISTS(t);
+//			DSLTransition(TransitionPredicate::True(), t);
+//		}
 
 //		{
 //			EXISTS(t);

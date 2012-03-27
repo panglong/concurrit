@@ -424,25 +424,6 @@ void SelectThreadNode::ComputeCoverage(Scenario* scenario, bool recurse) {
 
 /*************************************************************************************/
 
-ThreadVar::~ThreadVar() {
-//	// nullify the variable pointer of the select node
-//	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
-//	// selectthread node may be null, if not satisfied at all
-//	if(select != NULL) {
-//		select->set_var(boost::shared_ptr<ThreadVar>());
-//	}
-}
-
-// returns the coroutine selected, if any (can be NULL, if not selected yet, but non-null is selected)
-//Coroutine* ThreadVar::thread() {
-//	// do not call before thread is selected
-//	safe_assert(!select_node_.empty());
-//
-//	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
-//	safe_assert(select != NULL);
-//	safe_assert(select->var().get() == this);
-//	return select->get_selected_thread();
-//}
 
 } // end namespace
 

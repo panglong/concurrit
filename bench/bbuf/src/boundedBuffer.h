@@ -50,10 +50,6 @@ int bounded_buf_is_empty(bounded_buf_t* bbuf);
 
 int bounded_buf_is_full(bounded_buf_t* bbuf);
 
-#define PRODUCER_SUM  5
-#define CONSUMER_SUM  5
-
-
 typedef struct thread_tag
 {
   pthread_t       pid;
