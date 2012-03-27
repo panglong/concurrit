@@ -1,3 +1,5 @@
+- ENDING diye bir status'a ihtiyac var mi?
+- before ve after controlled transition'dan status'in ended olma durumunu cikar.
 - transition eklerken predicate False'a esitse direk backtrack at
 - end of script olan branchlara, endscriptnode : endnode ve bir backtrack(endofscript) exception
 - AcquireRef'deki timer'in zamanini parametre yap

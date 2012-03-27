@@ -1173,12 +1173,6 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		current->set_status(BLOCKED);
 	}
 
-	// TODO(elmas): this may fail for coarse transitions!!!
-	safe_assert(current->current_node() == NULL);
-
-	// new element to be used when the current node is consumed
-	ChildLoc newnode = {NULL, -1};
-
 	// to continue waiting or exit?
 	bool done = true;
 
@@ -1187,6 +1181,12 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	ExecutionTree* prev_unsat_node = NULL; // previous node which was not satisfied
 
 	do { // we loop until either we get hold of and process the current node in the execution tree
+
+		// TODO(elmas): this may fail for coarse transitions!!!
+		safe_assert(current->current_node() == NULL);
+
+		// new element to be used when the current node is consumed
+		ChildLoc newnode = {NULL, -1};
 
 		// value determining what to with the transition
 		// TPTRUE: consume the transition

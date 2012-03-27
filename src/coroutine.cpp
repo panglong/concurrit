@@ -233,12 +233,12 @@ void* Coroutine::Run() {
 			}
 
 			//---------------
-			VLOG(2) << CO_TITLE << " is ending...";
-
-			status_ = ENDED;
-
 			// last controlled transition
+			// set predicate for "will end" before this transition
 			scenario->OnControlledTransition(this);
+
+			VLOG(2) << CO_TITLE << " is ending...";
+			status_ = ENDED;
 
 			//---------------
 			CHANNEL_BEGIN_ATOMIC();
