@@ -333,10 +333,9 @@ Result* Scenario::Explore() {
 	} // end for
 
 LOOP_DONE:
-
+	// result may be NULL!!!
 	Finish(result); // deletes schedule_
 
-	safe_assert(result != NULL);
 	return result;
 }
 
@@ -606,12 +605,15 @@ void Scenario::Finish(Result* result) {
 
 	// finish timer
 	statistics_->timer("Search time").stop();
-
-	// copy statistics to the result
-	result->set_statistics(statistics_);
-
+	// print statistics
 	std::cout << "********** Statistics **********" << std::endl;
 	std::cout << statistics_->ToString() << std::endl;
+
+	safe_assert(Config::ExitOnFirstExecution || result != NULL);
+	if(result != NULL) {
+		// copy statistics to the result
+		result->set_statistics(statistics_);
+	}
 }
 
 

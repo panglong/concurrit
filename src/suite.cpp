@@ -48,13 +48,15 @@ std::map<std::string, Result*> Suite::RunScenarios() {
 		Scenario* scenario = (*itr);
 		printf("Running scenario %s\n", scenario->name());
 		Result* result = scenario->Explore();
-		safe_assert(result != NULL);
-		// accumulate coverage
-		if(result->IsSuccess()) {
-			coverage_.AddAll(static_cast<SuccessResult*>(result)->coverage());
+		safe_assert(Config::ExitOnFirstExecution || result != NULL);
+		if(result != NULL) {
+			// accumulate coverage
+			if(result->IsSuccess()) {
+				coverage_.AddAll(static_cast<SuccessResult*>(result)->coverage());
+			}
+			results[scenario->name()] = result;
+			printf("Done with scenario %s. %s\n", scenario->name(), (result->IsSuccess() ? "SUCCESS" : "FAILURE"));
 		}
-		results[scenario->name()] = result;
-		printf("Done with scenario %s. %s\n", scenario->name(), (result->IsSuccess() ? "SUCCESS" : "FAILURE"));
 	}
 	return results;
 }
