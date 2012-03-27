@@ -94,7 +94,7 @@ public:
 		while(STAR)
 		{
 			EXISTS(t);
-			DSLTransition(TransitionPredicate::True());
+			DSLTransition(TransitionPredicate::False());
 		}
 
 //		{

@@ -89,7 +89,7 @@ public:
 		}
 
 		for(CounterMap::iterator itr = counters_.begin(); itr != counters_.end(); ++itr) {
-			s << itr->second.ToString();
+			s << itr->second.ToString() << std::endl;
 		}
 
 		return s.str();

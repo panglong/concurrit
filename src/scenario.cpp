@@ -297,6 +297,7 @@ Result* Scenario::Explore() {
 						goto LOOP_DONE; // break the outermost loop
 					}
 
+					statistics_->counter("Num backtracks").increment();
 					if(Backtrack(be->reason())) {
 						continue;
 					} else {
