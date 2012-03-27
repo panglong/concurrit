@@ -93,19 +93,33 @@ public:
 
 		while(STAR)
 		{
-			EXISTS(t);
-			DSLTransition(TransitionPredicate::True(), t);
+				EXISTS(t);
+				DSLTransition(TransitionPredicate::True(), t);
 		}
-
 //		{
-//					EXISTS(t);
-//					DSLTransition(TransitionPredicate::True());
-//				}
+//			EXISTS(t);
+//			DSLTransition(TransitionPredicate::True(), t);
+//		}
 //
 //		{
-//					EXISTS(t);
-//					DSLTransition(TransitionPredicate::True());
-//				}
+//			EXISTS(t);
+//			DSLTransition(TransitionPredicate::True(), t);
+//		}
+//
+//		{
+//			EXISTS(t);
+//			DSLTransition(TransitionPredicate::True(), t);
+//		}
+//
+//		{
+//			EXISTS(t);
+//			DSLTransition(TransitionPredicate::True(), t);
+//		}
+//
+//		{
+//			EXISTS(t);
+//			DSLTransition(TransitionPredicate::True(), t);
+//		}
 	}
 
 };

@@ -68,10 +68,12 @@ public:
 	/******************************************************************************************/
 
 	// callbacks
-	void MemWriteBefore(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void MemWriteAfter(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void MemReadBefore(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void MemReadAfter(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	void MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
+	void MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
+
+	void MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size);
+	void MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size);
+
 	void FuncCall(Coroutine* current, Scenario* scenario, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
 	void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc);
 	void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
@@ -83,10 +85,10 @@ private:
 
 typedef uint32_t PinMonitorCallType;
 const PinMonitorCallType
-	MemWriteBefore = 1,
-	MemWriteAfter = 2,
-	MemReadBefore = 3,
-	MemReadAfter = 4,
+	MemAccessBefore = 1,
+	MemAccessAfter = 2,
+	MemWrite = 3,
+	MemRead = 4,
 	FuncCall = 5,
 	FuncEnter = 6,
 	FuncReturn = 7;
