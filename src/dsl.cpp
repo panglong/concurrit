@@ -434,15 +434,15 @@ ThreadVar::~ThreadVar() {
 }
 
 // returns the coroutine selected, if any (can be NULL, if not selected yet, but non-null is selected)
-Coroutine* ThreadVar::thread() {
-	// do not call before thread is selected
-	safe_assert(!select_node_.empty());
-
-	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
-	safe_assert(select != NULL);
-	safe_assert(select->var().get() == this);
-	return select->get_selected_thread();
-}
+//Coroutine* ThreadVar::thread() {
+//	// do not call before thread is selected
+//	safe_assert(!select_node_.empty());
+//
+//	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
+//	safe_assert(select != NULL);
+//	safe_assert(select->var().get() == this);
+//	return select->get_selected_thread();
+//}
 
 } // end namespace
 

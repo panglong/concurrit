@@ -91,21 +91,21 @@ public:
 //		printf("Ending with k=%d\n", k);
 
 
-		while(STAR)
+//		while(STAR)
+//		{
+//				EXISTS(t);
+//				DSLTransition(TransitionPredicate::True(), t);
+//		}
 		{
-				EXISTS(t);
-				DSLTransition(TransitionPredicate::True(), t);
+			EXISTS(t);
+			DSLTransition(TransitionPredicate::True(), t);
 		}
-//		{
-//			EXISTS(t);
-//			DSLTransition(TransitionPredicate::True(), t);
-//		}
-//
-//		{
-//			EXISTS(t);
-//			DSLTransition(TransitionPredicate::True(), t);
-//		}
-//
+
+		{
+			EXISTS(t);
+			DSLTransition(TransitionPredicate::True(), t);
+		}
+
 //		{
 //			EXISTS(t);
 //			DSLTransition(TransitionPredicate::True(), t);

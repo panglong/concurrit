@@ -257,16 +257,16 @@ public:
 
 class ThreadVar {
 public:
-	ThreadVar(ExecutionTree* node = NULL, int child_index = -1, std::string name = "<unknown>")
-	: name_(name), select_node_({node, child_index}) {}
+	ThreadVar(Coroutine* thread = NULL, std::string name = "<unknown>")
+	: name_(name), thread_(thread) {}
 	~ThreadVar();
 
 	// returns the coroutine selected, if any
-	Coroutine* thread();
+//	Coroutine* thread();
 
 private:
 	DECL_FIELD(std::string, name)
-	DECL_FIELD_REF(ChildLoc, select_node)
+	DECL_FIELD(Coroutine*, thread)
 };
 
 typedef boost::shared_ptr<ThreadVar> ThreadVarPtr;
@@ -280,8 +280,9 @@ public:
 	SelectThreadNode(ThreadVarPtr var, ExecutionTree* parent = NULL)
 	: ExecutionTree(parent, 0), var_(var) {
 		// set select_info of var
-		ChildLoc info = {this, -1};
-		var_->set_select_node(info);
+		safe_assert(var_->thread() == NULL);
+//		ChildLoc info = {this, -1};
+//		var_->set_select_node(info);
 	}
 	~SelectThreadNode() {}
 
@@ -291,18 +292,21 @@ public:
 		ChildLoc newnode = {this, child_index};
 		safe_assert(!newnode.empty());
 		// update thread variable associated by the select node
-		safe_assert(var_->select_node()->parent() == this);
-		var_->set_select_node(newnode);
+//		safe_assert(var_->select_node()->parent() == this);
+//		var_->set_select_node(newnode);
+		var_->set_thread(co);
 		return newnode;
 	}
 
 	Coroutine* get_selected_thread() {
 		safe_assert(var_ != NULL);
-		safe_assert(var_->select_node()->parent() == this);
-		int index = var_->select_node()->child_index();
-		safe_assert(BETWEEN(0, index, idxToThreadMap_.size()-1));
-		safe_assert(idxToThreadMap_.size() == children_.size());
-		return idxToThreadMap_[index];
+//		safe_assert(var_->select_node()->parent() == this);
+//		int index = var_->select_node()->child_index();
+//		safe_assert(BETWEEN(0, index, idxToThreadMap_.size()-1));
+//		safe_assert(idxToThreadMap_.size() == children_.size());
+//		Coroutine* co = idxToThreadMap_[index];
+//		safe_assert(var_->thread() == co);
+		return var_->thread();
 	}
 
 	ExecutionTree* child_by_tid(THREADID tid) {

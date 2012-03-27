@@ -1561,8 +1561,8 @@ void Scenario::DSLSelectThread(ThreadVarPtr var) {
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 		select->set_var(var);
-		ChildLoc info(select, -1);
-		var->set_select_node(info);
+//		ChildLoc info(select, -1);
+//		var->set_select_node(info);
 	} else {
 		select = new SelectThreadNode(var);
 	}
