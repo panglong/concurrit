@@ -103,7 +103,7 @@ private:
 	DECL_FIELD_REF(MembersMap, members)
 	CoroutinePtrSet* member_set();
 
-	friend void BeginCounit();
+	friend void BeginCounit(int argc, char **argv);
 	friend void EndCounit();
 	friend class Scenario;
 	friend class Coroutine;

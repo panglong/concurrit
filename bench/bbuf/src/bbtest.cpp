@@ -5,8 +5,6 @@ using namespace concurrit;
 
 #include "boundedBuffer.h"
 
-INIT_CONCURRIT();
-
 class BBScenario : public Scenario {
 public:
 
@@ -98,12 +96,13 @@ public:
 };
 
 
-int main(int argc, char * argv)
+int main(int argc, char ** argv)
 {
 //  thread_t producers[PRODUCER_SUM];
 //  thread_t consumers[CONSUMER_SUM];
 //  int i;
 
+	INIT_CONCURRIT(argc, argv);
 
 	Suite suite;
 

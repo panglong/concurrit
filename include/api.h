@@ -199,18 +199,18 @@ extern void BeginStrand(const char* name);
 
 /********************************************************************************/
 
-extern void BeginCounit();
+extern void BeginCounit(int argc = -1, char **argv = NULL);
 extern void EndCounit();
 
 /********************************************************************************/
 
 class ConcurritInitializer {
 public:
-	ConcurritInitializer();
+	ConcurritInitializer(int argc = -1, char **argv = NULL);
 	~ConcurritInitializer();
 };
 
-#define INIT_CONCURRIT()	static ConcurritInitializer __concurrit__initializer__
+#define INIT_CONCURRIT(argc, argv)	static ConcurritInitializer __concurrit__initializer__(argc, argv)
 
 /********************************************************************************/
 

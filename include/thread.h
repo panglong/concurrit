@@ -106,7 +106,7 @@ private:
 	DISALLOW_COPY_AND_ASSIGN(Thread)
 
 	friend void* ThreadEntry(void* arg);
-	friend void BeginCounit();
+	friend void BeginCounit(int argc, char **argv);
 	friend void EndCounit();
 };
 
@@ -177,7 +177,7 @@ public:
 private:
 	DECL_FIELD(sem_t, sem)
 
-	friend void BeginCounit();
+	friend void BeginCounit(int argc, char **argv);
 	friend void EndCounit();
 };
 

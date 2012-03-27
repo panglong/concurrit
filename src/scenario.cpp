@@ -41,7 +41,7 @@ const char* CONCURRIT_HOME = NULL;
 
 volatile bool IsInitialized = false;
 
-void BeginCounit() {
+void BeginCounit(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(IsInitialized == false);
 
 	printf("Initializing Concurrit\n");
@@ -82,8 +82,8 @@ void EndCounit() {
 	} while(false);
 }
 
-ConcurritInitializer::ConcurritInitializer() {
-	BeginCounit();
+ConcurritInitializer::ConcurritInitializer(int argc /*= -1*/, char **argv /*= NULL*/) {
+	BeginCounit(argc, argv);
 }
 ConcurritInitializer::~ConcurritInitializer() {
 	EndCounit();
