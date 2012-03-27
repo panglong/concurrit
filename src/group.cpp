@@ -187,6 +187,12 @@ CoroutinePtrSet CoroutineGroup::GetEnabledSet() {
 
 /********************************************************************************/
 
+int CoroutineGroup::GetNumMembers() {
+	return members_.size();
+}
+
+/********************************************************************************/
+
 CoroutinePtrSet CoroutineGroup::GetMemberSet() {
 	CoroutinePtrSet members;
 	for_each_member(co) {

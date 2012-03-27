@@ -83,14 +83,18 @@ public:
 //			}
 //		}
 
-		int k = 1;
-		while(STAR) {
-			printf("Iteration %d\n", k);
-			DSLTransition(TransitionPredicate::True());
-			k++;
-		}
+//		int k = 1;
+//		while(STAR) {
+//			DSLTransition(TransitionPredicate::True());
+//			k++;
+//		}
+//		printf("Ending with k=%d\n", k);
 
-		printf("Ending\n");
+
+		{
+			EXISTS(t);
+			DSLTransition(TransitionPredicate::True());
+		}
 	}
 
 };

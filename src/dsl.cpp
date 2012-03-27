@@ -142,14 +142,14 @@ ExecutionTree* ExecutionTree::get_child(int i) {
 
 /*************************************************************************************/
 
-void ExecutionTree::ComputeCoverage(bool recurse) {
+void ExecutionTree::ComputeCoverage(Scenario* scenario, bool recurse) {
 	if(!covered_) {
 		bool cov = true;
 		for_each_child(child) {
 			if(child != NULL) {
 				if(!child->covered_) {
 					if(recurse) {
-						child->ComputeCoverage(recurse);
+						child->ComputeCoverage(scenario, recurse);
 					}
 					cov = cov && child->covered_;
 				}
@@ -409,14 +409,30 @@ TransitionConstraint::~TransitionConstraint(){
 
 /*************************************************************************************/
 
-// returns the coroutine selected, if any
-Coroutine* ThreadVar::thread() {
-	if(select_node_.empty()) {
-		return NULL;
-	}
+void SelectThreadNode::ComputeCoverage(Scenario* scenario, bool recurse) {
+	safe_assert(scenario != NULL);
+	ExecutionTree::ComputeCoverage(scenario, recurse);
+	covered_ = covered_ && (children_.size() == scenario->group()->GetNumMembers());
+}
+
+/*************************************************************************************/
+
+ThreadVar::~ThreadVar() {
+	// nullify the variable pointer of the select node
 	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
 	safe_assert(select != NULL);
-	return select->thread_by_child_index(select_node_.child_index());
+	select->set_var(NULL);
+}
+
+// returns the coroutine selected, if any
+Coroutine* ThreadVar::thread() {
+	// do not call before thread is selected
+	safe_assert(!select_node_.empty());
+
+	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
+	safe_assert(select != NULL);
+	safe_assert(select->var() == this);
+	return select->get_selected_thread();
 }
 
 } // end namespace

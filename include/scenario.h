@@ -150,7 +150,7 @@ public:
 
 	bool DSLChoice();
 	void DSLTransition(TransitionPredicate* pred);
-	ThreadVar* DSLSelectThread();
+	void DSLSelectThread(ThreadVar* var);
 
 
 	/******************************************************************/

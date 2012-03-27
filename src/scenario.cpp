@@ -1223,15 +1223,14 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 				SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
 				if(select != NULL) {
 					// check if this thread has been covered
-					ExecutionTree* child = select->child_by_tid(current->coid());
+					THREADID tid = current->coid();
+					safe_assert(tid >= 0);
+					ExecutionTree* child = select->child_by_tid(tid);
 					if(child == NULL || !child->covered()) {
-						int child_index = select->add_or_get_thread(current);
 						// not covered
 						tval = TPTRUE; // we are consuming this node
-						// update newnode to point to the proper child index of select thread
-						newnode = {select, child_index};
-						// update thread variable associated by the select node
-						select->var()->set_select_node(newnode);
+						// set the selected thread to current
+						newnode = select->set_selected_thread(current);
 					} else { // already covered, skip this
 						// covered
 						tval = TPFALSE; // we are not consuming this node
@@ -1378,7 +1377,7 @@ bool Scenario::DoBacktrackPreemptive() {
 		safe_assert(!element.empty());
 		safe_assert(element.check((*path)[i+1].parent()));
 		ExecutionTree* node = element.parent();
-		node->ComputeCoverage(true); //  do not recurse, only use immediate children
+		node->ComputeCoverage(this, true); //  do not recurse, only use immediate children
 	}
 	// check if the root is covered
 	return !root->covered();
@@ -1473,7 +1472,7 @@ void Scenario::DSLTransition(TransitionPredicate* pred) {
 
 /********************************************************************************/
 
-ThreadVar* Scenario::DSLSelectThread() {
+void Scenario::DSLSelectThread(ThreadVar* var) {
 	VLOG(2) << "Adding DSLSelectThread";
 
 	if(group_.IsAllEnded()) {
@@ -1484,7 +1483,6 @@ ThreadVar* Scenario::DSLSelectThread() {
 	safe_assert(node == NULL);
 
 	SelectThreadNode* select = NULL;
-	ThreadVar* var = NULL;
 	node = exec_tree_.GetLastInPath();
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
@@ -1496,12 +1494,13 @@ ThreadVar* Scenario::DSLSelectThread() {
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
+		select->set_var(var);
+		ChildLoc info(select, -1);
+		var->set_select_node(info);
 	} else {
-		var = new ThreadVar();
 		select = new SelectThreadNode(var);
 	}
 	safe_assert(!select->covered());
-	var = select->var();
 
 	// not covered yet
 
@@ -1509,8 +1508,6 @@ ThreadVar* Scenario::DSLSelectThread() {
 	exec_tree_.ReleaseRef(select);
 
 	VLOG(2) << "Added DSLSelectThread.";
-
-	return var;
 }
 
 /********************************************************************************/

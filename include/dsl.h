@@ -41,6 +41,7 @@
 
 namespace concurrit {
 
+class Scenario;
 class Coroutine;
 
 enum TPVALUE { TPFALSE = 0, TPTRUE = 1, TPUNKNOWN = 2, TPINVALID = -1 };
@@ -172,7 +173,7 @@ public:
 	void set_child(ExecutionTree* node, int i = 0);
 	ExecutionTree* get_child(int i);
 
-	virtual void ComputeCoverage(bool recurse);
+	virtual void ComputeCoverage(Scenario* scenario, bool recurse);
 
 private:
 	DECL_FIELD(ExecutionTree*, parent)
@@ -257,7 +258,7 @@ class ThreadVar {
 public:
 	ThreadVar(ExecutionTree* node = NULL, int child_index = -1, std::string name = "<unknown>")
 	: name_(name), select_node_({node, child_index}) {}
-	~ThreadVar(){}
+	~ThreadVar();
 
 	// returns the coroutine selected, if any
 	Coroutine* thread();
@@ -270,7 +271,6 @@ private:
 
 /********************************************************************************/
 
-// TODO(elmas): rewrite coverage computation for this
 class SelectThreadNode : public ExecutionTree {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
@@ -282,10 +282,33 @@ public:
 	}
 	~SelectThreadNode() {}
 
+	ChildLoc set_selected_thread(Coroutine* co) {
+		int child_index = add_or_get_thread(co);
+		// update newnode to point to the proper child index of select thread
+		ChildLoc newnode = {this, child_index};
+		// update thread variable associated by the select node
+		var_->set_select_node(newnode);
+		return newnode;
+	}
+
+	Coroutine* get_selected_thread() {
+		safe_assert(var_ != NULL);
+		safe_assert(var_->select_node()->parent() == this);
+		int index = var_->select_node()->child_index();
+		safe_assert(BETWEEN(0, index, idxToThreadMap_.size()-1));
+		safe_assert(idxToThreadMap_.size() == children_.size());
+		return idxToThreadMap_[index];
+	}
+
 	ExecutionTree* child_by_tid(THREADID tid) {
 		int index = child_index_by_tid(tid);
 		return index < 0 ? NULL : child(index);
 	}
+
+	// override
+	void ComputeCoverage(Scenario* scenario, bool recurse);
+
+private:
 
 	// returns the index of the new child
 	int add_or_get_thread(Coroutine* co) {
@@ -301,12 +324,6 @@ public:
 		} else {
 			return child_index;
 		}
-	}
-
-	Coroutine* thread_by_child_index(int index) {
-		safe_assert(BETWEEN(0, index, idxToThreadMap_.size()-1));
-		safe_assert(idxToThreadMap_.size() == children_.size());
-		return idxToThreadMap_[index];
 	}
 
 	int child_index_by_tid(THREADID tid) {

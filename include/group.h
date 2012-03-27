@@ -82,6 +82,8 @@ public:
 	CoroutinePtrSet GetEnabledSet();
 	CoroutinePtrSet GetMemberSet();
 
+	int GetNumMembers();
+
 	/*
 	 * return if all of the members have ended
 	 */
