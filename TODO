@@ -1,3 +1,4 @@
+- transition eklerken predicate False'a esitse direk backtrack at
 - end of script olan branchlara, endscriptnode : endnode ve bir backtrack(endofscript) exception
 - AcquireRef'deki timer'in zamanini parametre yap
 --- end node'u ekleyince ortadan onceki child'lara ne olacak?

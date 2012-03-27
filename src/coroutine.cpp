@@ -232,6 +232,7 @@ void* Coroutine::Run() {
 				}
 			}
 
+			//---------------
 			VLOG(2) << CO_TITLE << " is ending...";
 
 			status_ = ENDED;

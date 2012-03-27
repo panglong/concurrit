@@ -374,6 +374,7 @@ void Scenario::RunUncontrolled() {
 	test_status_ = TEST_UNCONTROLLED;
 
 	PinMonitor::GetInstance()->Disable();
+
 	Thread::Yield(true);
 
 	//---------------------------
@@ -1196,7 +1197,8 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 		if(!done) {
 			Thread::Yield(true);
-			done = true;
+		} else {
+			done = false;
 		}
 
 		//=================================================================
@@ -1215,8 +1217,10 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 		// if previously unsatisfied node, then retry
 		if(node == prev_unsat_node) {
+
 			VLOG(2) << "Detected same unsatisfied node, will retry";
 			tval = TPFALSE; // indicates that node was unsatisfied (will retry for another node)
+
 		} else {
 			//=================================================================
 			VLOG(2) << "Checking execution tree node type";
@@ -1242,6 +1246,9 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			} else {
 				SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
 				if(select != NULL) {
+					// if select is covered, we should not be reaching this
+					safe_assert(!select->covered());
+
 					// check if this thread has been covered
 					THREADID tid = current->coid();
 					safe_assert(tid >= 0);
@@ -1255,8 +1262,8 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 						// covered
 						tval = TPFALSE; // we are not consuming this node
 					}
-					// we are not done yet
-					done = false;
+					// we are not done yet, so leave done as false
+					safe_assert(!done);
 
 				} else {
 					// TODO(elmas): others are not supported yet
