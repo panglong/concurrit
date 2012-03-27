@@ -297,7 +297,7 @@ Result* Scenario::Explore() {
 						goto LOOP_DONE; // break the outermost loop
 					}
 
-					if(Backtrack()) {
+					if(Backtrack(be->reason())) {
 						continue;
 					} else {
 						VLOG(2) << SC_TITLE << "No feasible execution!!!";
@@ -429,8 +429,17 @@ void Scenario::RunTestCase() throw() {
 		exec_tree_.EndWithSuccess();
 
 	} catch(std::exception* e) {
-		// TODO(elmas): this exception can be backtrack_exception, should we handle it differently?
+		//====================================
+		// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
+		// then change the backtrack type to THREADS_ALLENDED
+		BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
+		if(be != NULL && be->reason() == TIMEOUT && group_.IsAllEnded()) {
+			be->set_reason(THREADS_ALLENDED);
+		}
+		//====================================
+		// mark the end of the path with end node and the corresponding exception
 		exec_tree_.EndWithException(group_.main(), e);
+
 	} catch(...) {
 		fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
 		_Exit(UNRECOVERABLE_ERROR);
@@ -466,17 +475,17 @@ void Scenario::ResolvePoint(SchedulePoint* point) {
 
 /********************************************************************************/
 
-bool Scenario::Backtrack() {
+bool Scenario::Backtrack(BacktrackReason reason) {
 	if(ConcurritExecutionMode == COOPERATIVE) {
-		return DoBacktrackCooperative();
+		return DoBacktrackCooperative(reason);
 	} else {
-		return DoBacktrackPreemptive();
+		return DoBacktrackPreemptive(reason);
 	}
 }
 
 /********************************************************************************/
 
-bool Scenario::DoBacktrackCooperative() {
+bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 	VLOG(2) << "Start schedule: " << schedule_->ToString();
 
 	// remove all points after current (inclusively).
@@ -1158,7 +1167,10 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	VLOG(2) << "Before controlled transition by " << current->name();
 
 	// make thread blocked
-	current->set_status(BLOCKED);
+	safe_assert(current->status() == ENABLED || current->status() == ENDED)
+	if(current->status() == ENABLED) {
+		current->set_status(BLOCKED);
+	}
 
 	// TODO(elmas): this may fail for coarse transitions!!!
 	safe_assert(current->current_node() == NULL);
@@ -1166,12 +1178,8 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 	// new element to be used when the current node is consumed
 	ChildLoc newnode = {NULL, -1};
 
-	// value determining what to with the transition
-	// TPTRUE: consume the transition
-	// TPFALSE: release the transition
-	// TPUNKNOWN: take the transition and decide after the transition
-	// TPINVALID: cannot occur
-	TPVALUE tval =  TPTRUE;
+	// to continue waiting or exit?
+	bool done = true;
 
 	//=================================================================
 
@@ -1179,7 +1187,17 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 	do { // we loop until either we get hold of and process the current node in the execution tree
 
-		tval =  TPTRUE;
+		// value determining what to with the transition
+		// TPTRUE: consume the transition
+		// TPFALSE: release the transition
+		// TPUNKNOWN: take the transition and decide after the transition
+		// TPINVALID: cannot occur
+		TPVALUE tval =  TPTRUE;
+
+		if(!done) {
+			Thread::Yield(true);
+			done = true;
+		}
 
 		//=================================================================
 		VLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
@@ -1202,7 +1220,6 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		} else {
 			//=================================================================
 			VLOG(2) << "Checking execution tree node type";
-			tval =  TPTRUE;
 			// get the node
 			TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 			if(trans != NULL) {
@@ -1219,6 +1236,9 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 					// set performer thread
 					trans->set_thread(current);
 				}
+
+				done = (tval == TPTRUE) || (tval == TPUNKNOWN);
+
 			} else {
 				SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
 				if(select != NULL) {
@@ -1235,6 +1255,8 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 						// covered
 						tval = TPFALSE; // we are not consuming this node
 					}
+					// we are not done yet
+					done = false;
 
 				} else {
 					// TODO(elmas): others are not supported yet
@@ -1276,7 +1298,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 	//=================================================================
 
-	} while(tval == TPFALSE);
+	} while(!done);
 }
 
 void Scenario::AfterControlledTransition(Coroutine* current) {
@@ -1285,7 +1307,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	VLOG(2) << "After controlled transition by " << current->name();
 
 	VLOG(2) << "Current mode is " << current->status();
-	safe_assert(current->status() == BLOCKED);
+	safe_assert(current->status() == BLOCKED || current->status() == ENDED);
 
 	// new element to be used when the current node is consumed
 	ChildLoc newnode = {NULL, -1};
@@ -1355,29 +1377,40 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	} // end if(node != NULL)
 
 	//=================================================================
-DONE:
 	// remove all transition info records
 	current->trinfolist()->clear();
 	current->set_current_node(NULL);
 
 	// make thread enabled
-	current->set_status(ENABLED);
+	if(current->status() == BLOCKED) {
+		current->set_status(ENABLED);
+	}
 }
 
 /********************************************************************************/
 
-bool Scenario::DoBacktrackPreemptive() {
+bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
+	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
+
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
 	safe_assert(path != NULL && exec_tree_.CheckEndOfPath(path));
 
+	//===========================
+	// make the parent of last element covered, because there is no way to cover it
+	if(reason == THREADS_ALLENDED && path->size() > 1) {
+		ChildLoc last = (*path)[path->size()-2]; // not the end node but the previous node
+		last.parent()->set_covered(true);
+	}
+
+	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
 	for(int i = path->size()-2; i >= 0; --i) {
 		ChildLoc element = (*path)[i];
 		safe_assert(!element.empty());
 		safe_assert(element.check((*path)[i+1].parent()));
 		ExecutionTree* node = element.parent();
-		node->ComputeCoverage(this, true); //  do not recurse, only use immediate children
+		node->ComputeCoverage(this, false); //  do not recurse, only use immediate children
 	}
 	// check if the root is covered
 	return !root->covered();

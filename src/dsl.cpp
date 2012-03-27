@@ -411,8 +411,12 @@ TransitionConstraint::~TransitionConstraint(){
 
 void SelectThreadNode::ComputeCoverage(Scenario* scenario, bool recurse) {
 	safe_assert(scenario != NULL);
-	ExecutionTree::ComputeCoverage(scenario, recurse);
-	covered_ = covered_ && (children_.size() == scenario->group()->GetNumMembers());
+	// this check is important, because we should not compute coverage at all if already covered
+	// since the computation below may turn already covered not covered
+	if(!covered_) {
+		ExecutionTree::ComputeCoverage(scenario, recurse);
+		covered_ = covered_ && (children_.size() == scenario->group()->GetNumMembers());
+	}
 }
 
 /*************************************************************************************/
@@ -420,8 +424,10 @@ void SelectThreadNode::ComputeCoverage(Scenario* scenario, bool recurse) {
 ThreadVar::~ThreadVar() {
 	// nullify the variable pointer of the select node
 	SelectThreadNode* select = ASINSTANCEOF(select_node_.parent(), SelectThreadNode*);
-	safe_assert(select != NULL);
-	select->set_var(NULL);
+	// selectthread node may be null, if not satisfied at all
+	if(select != NULL) {
+		select->set_var(NULL);
+	}
 }
 
 // returns the coroutine selected, if any

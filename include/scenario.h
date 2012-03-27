@@ -176,9 +176,9 @@ protected:
 	void UpdateBacktrackSets();
 
 
-	bool Backtrack();
-	bool DoBacktrackCooperative();
-	bool DoBacktrackPreemptive();
+	bool Backtrack(BacktrackReason reason);
+	bool DoBacktrackCooperative(BacktrackReason reason);
+	bool DoBacktrackPreemptive(BacktrackReason reason);
 
 	virtual void Start();
 	virtual void Finish(Result* result);

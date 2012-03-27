@@ -236,6 +236,9 @@ void* Coroutine::Run() {
 
 			status_ = ENDED;
 
+			// last controlled transition
+			scenario->OnControlledTransition(this);
+
 			//---------------
 			CHANNEL_BEGIN_ATOMIC();
 

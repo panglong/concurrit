@@ -47,7 +47,7 @@ public:
 			coroutine_t co = CREATE_THREAD(i, producer_routine, (void*)&producers[i], true);
 		}
 
-		printf("Created producer threads\n");
+//		printf("Created producer threads\n");
 
 		for (i = 0; i < CONSUMER_SUM; i++)
 		{
@@ -57,7 +57,7 @@ public:
 			coroutine_t co = CREATE_THREAD(PRODUCER_SUM+i, consumer_routine, (void*)&consumers[i], true);
 		}
 
-		printf("Created consumer threads\n");
+//		printf("Created consumer threads\n");
 
 
 //		for (i = 0; i < PRODUCER_SUM; i++)
@@ -91,10 +91,21 @@ public:
 //		printf("Ending with k=%d\n", k);
 
 
+		while(STAR)
 		{
 			EXISTS(t);
 			DSLTransition(TransitionPredicate::True());
 		}
+
+//		{
+//					EXISTS(t);
+//					DSLTransition(TransitionPredicate::True());
+//				}
+//
+//		{
+//					EXISTS(t);
+//					DSLTransition(TransitionPredicate::True());
+//				}
 	}
 
 };
