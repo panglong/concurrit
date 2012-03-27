@@ -71,8 +71,8 @@ enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
 const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
 extern volatile bool IsInitialized;
 
-extern "C" void ConcurritPinEnable();
-extern "C" void ConcurritPinDisable();
+extern "C" void EnablePinTool();
+extern "C" void DisablePinTool();
 
 /********************************************************************************/
 
@@ -237,6 +237,14 @@ inline void short_sleep(long nanoseconds, bool continue_on_signal) {
 
 	} while(rval == EINTR && continue_on_signal);
 }
+
+/********************************************************************************/
+
+class Config {
+public:
+	static bool CanEnableDisablePinTool;
+	static void ParseCommandLine(int argc = -1, char **argv = NULL);
+};
 
 /********************************************************************************/
 

@@ -7,9 +7,10 @@ CONCURRIT_OBJS=$(patsubst %.cpp, %.o, $(subst $(CONCURRIT_SRCDIR), $(CONCURRIT_O
 CONCURRIT_HEADERS=$(wildcard $(CONCURRIT_INCDIR)/*.h)
 
 DEFINES=-DDPOR
-FLAGS=-g -Wall -Winline -fPIC -gdwarf-2 -O3 -fexceptions \
-		-Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses \
-		$(CONCURRIT_C_STD)
+FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions \
+		$(CONCURRIT_C_STD) \
+		-w -Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
+		# -Wall -Winline 
 
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux
@@ -19,6 +20,7 @@ all: makedirs $(CONCURRIT_LIBDIR)/$(TARGET).so
 $(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
 	g++ $(CONCURRIT_LIB_FLAGS) $(DEFINES) $(FLAGS) -shared -o $@ $^
 	ar rcs $(CONCURRIT_LIBDIR)/$(TARGET).a $^
+	$(CONCURRIT_HOME)/scripts/compile_pintool.sh
 
 $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
 	g++ $(CONCURRIT_INC_FLAGS) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp

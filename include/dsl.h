@@ -233,6 +233,7 @@ public:
 		covered_ = true;
 		set_child(this); // points to itself
 		exception_ = NULL;
+		old_root_ = NULL;
 	}
 
 	void add_exception(std::exception* e, Coroutine* owner, const std::string& where) {
@@ -240,6 +241,7 @@ public:
 	}
 private:
 	DECL_FIELD(ConcurritException*, exception)
+	DECL_FIELD(ExecutionTree*, old_root)
 };
 
 /********************************************************************************/

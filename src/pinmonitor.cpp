@@ -42,10 +42,12 @@ PinMonitor* PinMonitor::instance_ = NULL;
 
 
 PinMonitor* PinMonitor::GetInstance() {
-	if(instance_ == NULL) {
-		instance_ = new PinMonitor();
-	}
 	return instance_;
+}
+
+void PinMonitor::InitInstance() {
+	safe_assert(instance_ == NULL);
+	instance_ = new PinMonitor();
 }
 
 PinMonitor::PinMonitor() {
@@ -54,7 +56,7 @@ PinMonitor::PinMonitor() {
 		tid_to_coroutine_[i] = NULL;
 	}
 
-	Disable();
+	Enable();
 }
 
 Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
@@ -93,14 +95,18 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 /******************************************************************************************/
 
 void PinMonitor::Enable() {
-	printf(">>> Enabling Pin instrumentation\n");
+	if(Config::CanEnableDisablePinTool) {
+		printf(">>> Enabling Pin instrumentation\n");
+		EnablePinTool();
+	}
 	enabled_ = true;
-	ConcurritPinEnable();
 }
 void PinMonitor::Disable() {
-	printf(">>> Disabling Pin instrumentation\n");
+	if(Config::CanEnableDisablePinTool) {
+		printf(">>> Disabling Pin instrumentation\n");
+		DisablePinTool();
+	}
 	enabled_ = false;
-	ConcurritPinDisable();
 }
 
 /******************************************************************************************/
@@ -190,16 +196,10 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, 
 /********************************************************************************/
 
 void CallPinMonitor(PinMonitorCallInfo* info) {
-	// check if concurrit is initialized
-	if(!IsInitialized) {
-		return;
-	}
-
-	static PinMonitor* monitor = PinMonitor::GetInstance();
-	safe_assert(monitor != NULL);
 	safe_assert(info != NULL);
 
-	if(!monitor->enabled()) {
+	PinMonitor* monitor = PinMonitor::GetInstance();
+	if(monitor == NULL || !monitor->enabled()) {
 		return;
 	}
 
@@ -255,8 +255,8 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 
 /********************************************************************************/
 
-void ConcurritPinEnable() { VLOG(2) << "Enabling pin instrumentation"; }
-void ConcurritPinDisable() { VLOG(2) << "Disabling pin instrumentation"; }
+void EnablePinTool() { VLOG(2) << "Enabling pin instrumentation"; }
+void DisablePinTool() { VLOG(2) << "Disabling pin instrumentation"; }
 
 /********************************************************************************/
 

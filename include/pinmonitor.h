@@ -57,6 +57,7 @@ public:
 	Coroutine* GetCoroutineByTid(THREADID tid);
 
 	static PinMonitor* GetInstance();
+	static void InitInstance();
 
 	MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
 	SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);

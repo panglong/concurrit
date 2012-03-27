@@ -46,6 +46,8 @@ void BeginCounit(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	printf("Initializing Concurrit\n");
 
+	Config::ParseCommandLine(argc, argv);
+
 	// init pth
 //	int pth_init_result = pth_init();
 //	safe_assert(pth_init_result == TRUE);
@@ -59,6 +61,8 @@ void BeginCounit(int argc /*= -1*/, char **argv /*= NULL*/) {
 	Thread::init_tls_key();
 
 	CoroutineGroup::init_main();
+
+	PinMonitor::InitInstance();
 
 	do { // need a fence here
 		IsInitialized = true;
@@ -370,6 +374,7 @@ void Scenario::RunUncontrolled() {
 	test_status_ = TEST_UNCONTROLLED;
 
 	PinMonitor::GetInstance()->Disable();
+	Thread::Yield(true);
 
 	//---------------------------
 
@@ -1365,11 +1370,14 @@ DONE:
 bool Scenario::DoBacktrackPreemptive() {
 	ExecutionTree* root = exec_tree_.root_node();
 	std::vector<ChildLoc>* path = exec_tree_.current_path();
-	safe_assert(exec_tree_.CheckEndOfPath(path));
+	safe_assert(path != NULL && exec_tree_.CheckEndOfPath(path));
 
 	// propagate coverage back in the path (skip the end node, which is already covered)
 	for(int i = path->size()-2; i >= 0; --i) {
-		ExecutionTree* node = (*path)[i].parent();
+		ChildLoc element = (*path)[i];
+		safe_assert(!element.empty());
+		safe_assert(element.check((*path)[i+1].parent()));
+		ExecutionTree* node = element.parent();
 		node->ComputeCoverage(true); //  do not recurse, only use immediate children
 	}
 	// check if the root is covered
@@ -1402,9 +1410,7 @@ bool Scenario::DSLChoice() {
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 	} else {
-		ChildLoc parent = exec_tree_.GetLastInPath();
 		choice = new ChoiceNode();
-		parent.set(choice);
 	}
 
 	safe_assert(!choice->covered());
@@ -1452,9 +1458,7 @@ void Scenario::DSLTransition(TransitionPredicate* pred) {
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 	} else {
-		ChildLoc parent = exec_tree_.GetLastInPath();
-		trans = new TransitionNode(pred, parent.parent());
-		parent.set(trans);
+		trans = new TransitionNode(pred);
 	}
 
 	safe_assert(!trans->covered());
@@ -1493,10 +1497,8 @@ ThreadVar* Scenario::DSLSelectThread() {
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 	} else {
-		ChildLoc parent = exec_tree_.GetLastInPath();
 		var = new ThreadVar();
 		select = new SelectThreadNode(var);
-		parent.set(select);
 	}
 	safe_assert(!select->covered());
 	var = select->var();

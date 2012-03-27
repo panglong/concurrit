@@ -337,13 +337,13 @@ MemReadAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 }
 
 /* ===================================================================== */
-static const char* NativePinEnableFunName = "ConcurritPinEnable";
-static const char* NativePinDisableFunName = "ConcurritPinDisable";
+static const char* NativePinEnableFunName = "EnablePinTool";
+static const char* NativePinDisableFunName = "DisablePinTool";
 
 const UINT32 ENABLED  = 1;
 const UINT32 DISABLED = 0;
 
-LOCALVAR volatile UINT32 pin_status = DISABLED;
+LOCALVAR volatile UINT32 pin_status = ENABLED;
 
 VOID // PIN_FAST_ANALYSIS_CALL
 PinEnableDisable(const CONTEXT * ctxt, UINT32 command) {
@@ -396,7 +396,8 @@ PinEnableDisable(const CONTEXT * ctxt, UINT32 command) {
 /* ===================================================================== */
 
 LOCALVAR std::vector<string> FilteredImages;
-LOCALVAR std::set<UINT32> FilteredImageIds;
+typedef tbb::concurrent_hash_map<UINT32,BOOL> FilteredImageIdsType;
+LOCALVAR FilteredImageIdsType FilteredImageIds;
 
 LOCALFUN void InitFilteredImages() {
 	FilteredImages.push_back("libstdc++.so");
@@ -464,18 +465,21 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 
 /* ===================================================================== */
 
-LOCALFUN BOOL IsImageFiltered(IMG img, BOOL loading = FALSE) {
+LOCALFUN BOOL IsImageFiltered(IMG img) {
 	if(IMG_IsMainExecutable(img)) {
 		return TRUE;
 	}
 
 	UINT32 img_id = IMG_Id(img);
-	if(FilteredImageIds.find(img_id) != FilteredImageIds.end()) {
-		return TRUE;
+
+	FilteredImageIdsType::const_accessor c_acc;
+	if(FilteredImageIds.find(c_acc, img_id)) {
+		BOOL value = c_acc->second;
+		safe_assert(value == TRUE || value == FALSE);
+		return value;
 	}
-	if(!loading) {
-		return FALSE;
-	}
+	c_acc.release();
+
 	string img_name = IMG_Name(img);
 	for(std::vector<string>::iterator itr = FilteredImages.begin(); itr < FilteredImages.end(); ++itr) {
 		if(img_name.find(*itr) != string::npos) {
@@ -485,17 +489,25 @@ LOCALFUN BOOL IsImageFiltered(IMG img, BOOL loading = FALSE) {
 				OnLoadConcurrit(img);
 			}
 			/* ================================= */
-DONE:
-			FilteredImageIds.insert(img_id);
+
+			cout << "--- IMG --- " << IMG_Name(img) << endl;
+			FilteredImageIdsType::accessor acc;
+			FilteredImageIds.insert(acc, img_id);
+			acc->second = TRUE;
 			return TRUE;
 		}
 	}
+
+	cout << "+++ IMG +++ " << IMG_Name(img) << endl;
+	FilteredImageIdsType::accessor acc;
+	FilteredImageIds.insert(acc, img_id);
+	acc->second = FALSE;
 	return FALSE;
 }
 
 INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
 	if(RTN_Valid(rtn)) {
-		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)), loading);
+		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)));
 	}
 	return TRUE;
 }
@@ -538,13 +550,9 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 
 	// filter out standard libraries
 	// also updates filtered image ids
-	if(IsImageFiltered(img, TRUE)) {
-		cout << "--- IMG --- " << IMG_Name(img) << endl;
+	if(IsImageFiltered(img)) {
 		return;
 	}
-
-	cout << "+++ IMG +++ " << IMG_Name(img) << endl;
-
 
 //	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
 //	{

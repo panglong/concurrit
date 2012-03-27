@@ -303,6 +303,13 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 	if(!current_path_.empty()) {
 		ChildLoc parent = GetLastInPath();
+		if(REF_ENDTEST(node) && parent.get() != NULL) {
+			// set old_root of end node
+			static_cast<EndNode*>(node)->set_old_root(parent.get());
+		} else {
+			// if node is not end node, the we are either overwriting NULL or the same value
+			safe_assert(parent.check(NULL) || parent.check(node));
+		}
 		parent.set(node);
 	}
 		// put node to the path
