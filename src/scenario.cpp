@@ -1230,18 +1230,34 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			// get the node
 			TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 			if(trans != NULL) {
-				// evaluate transition predicate
-				TransitionPredicate* pred = trans->pred();
 
-				trans_constraints_.push_back(pred);
-				tval = trans_constraints_.EvalPreState();
-				trans_constraints_.pop_back();
+				Coroutine* selected_thread = current; // initialize to current
 
-				if(tval == TPTRUE) {
-					VLOG(2) << "Will consume the current transition";
-					newnode = {node, 0}; // newnode is the next of node
-					// set performer thread
-					trans->set_thread(current);
+				// first look at the thread var
+				ThreadVarPtr var = trans->var();
+				if(var != NULL) {
+					selected_thread = var->thread();
+					safe_assert(selected_thread != NULL);
+				}
+
+				if(selected_thread != current) {
+					// we are not supposed to take this transition, so retry
+					tval = TPFALSE;
+				} else {
+					// this is the selected thread
+					// evaluate transition predicate
+					TransitionPredicate* pred = trans->pred();
+
+					trans_constraints_.push_back(pred);
+					tval = trans_constraints_.EvalPreState();
+					trans_constraints_.pop_back();
+
+					if(tval == TPTRUE) {
+						VLOG(2) << "Will consume the current transition";
+						newnode = {node, 0}; // newnode is the next of node
+						// set performer thread
+						trans->set_thread(current);
+					}
 				}
 
 				done = (tval == TPTRUE) || (tval == TPUNKNOWN);
@@ -1483,7 +1499,7 @@ bool Scenario::DSLChoice() {
 
 /********************************************************************************/
 
-void Scenario::DSLTransition(TransitionPredicate* pred) {
+void Scenario::DSLTransition(TransitionPredicate* pred, ThreadVarPtr var /*= boost::shared_ptr()*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	if(group_.IsAllEnded()) {
@@ -1505,8 +1521,9 @@ void Scenario::DSLTransition(TransitionPredicate* pred) {
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
+		trans->set_var(var); // should set the variabl again, because var is a local object
 	} else {
-		trans = new TransitionNode(pred);
+		trans = new TransitionNode(pred, var);
 	}
 
 	safe_assert(!trans->covered());
@@ -1521,7 +1538,7 @@ void Scenario::DSLTransition(TransitionPredicate* pred) {
 
 /********************************************************************************/
 
-void Scenario::DSLSelectThread(ThreadVar* var) {
+void Scenario::DSLSelectThread(ThreadVarPtr var) {
 	VLOG(2) << "Adding DSLSelectThread";
 
 	if(group_.IsAllEnded()) {

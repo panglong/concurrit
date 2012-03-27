@@ -149,8 +149,8 @@ public:
 
 
 	bool DSLChoice();
-	void DSLTransition(TransitionPredicate* pred);
-	void DSLSelectThread(ThreadVar* var);
+	void DSLTransition(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>());
+	void DSLSelectThread(ThreadVarPtr var);
 
 
 	/******************************************************************/
