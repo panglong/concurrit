@@ -1,7 +1,5 @@
 - end of script olan branchlara, endscriptnode : endnode ve bir backtrack(endofscript) exception
 - AcquireRef'deki timer'in zamanini parametre yap
-- testin argumanlarini concurrit'e ilet. onlari parse etmeye calis library bul bunun icin
-- end node'u ekleyince tree'ye ekliyor mu diye kontrol et.
 --- end node'u ekleyince ortadan onceki child'lara ne olacak?
 - eger script bittigi icin backtrack yapan kod varsa, backtrack sirasinda bunu tespit edip covered yap
 --- ayni nodelari tespit etmek icin source location kullan.

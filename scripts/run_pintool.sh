@@ -2,7 +2,7 @@
 
 PWD=`pwd`
 
-PIN_ARGS=" -mt 1 -slow_asserts -follow_execv -separate_memory"
+PIN_ARGS=" -mt 1 -inline -slow_asserts -follow_execv -separate_memory"
 PINTOOL_ARGS="-skip_int3"
 # -filter_rtn <name>
 # -filter_no_shared_libs

@@ -345,7 +345,7 @@ const UINT32 DISABLED = 0;
 
 LOCALVAR volatile UINT32 pin_status = ENABLED;
 
-VOID // PIN_FAST_ANALYSIS_CALL
+VOID PIN_FAST_ANALYSIS_CALL
 PinEnableDisable(const CONTEXT * ctxt, UINT32 command) {
 	if(pin_status == command) {
 		return;
@@ -438,7 +438,7 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 			} else if(RTN_Name(rtn) == NativePinEnableFunName) {
 				RTN_Open(rtn);
 
-				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), // IARG_FAST_ANALYSIS_CALL,
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), IARG_FAST_ANALYSIS_CALL,
 						   IARG_CONTEXT,
 						   IARG_UINT32, ENABLED, IARG_END);
 
@@ -448,7 +448,7 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 			}  else if(RTN_Name(rtn) == NativePinDisableFunName) {
 				RTN_Open(rtn);
 
-				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), // IARG_FAST_ANALYSIS_CALL,
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), IARG_FAST_ANALYSIS_CALL,
 						   IARG_CONTEXT,
 						   IARG_UINT32, DISABLED, IARG_END);
 

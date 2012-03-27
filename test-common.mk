@@ -26,4 +26,4 @@ test: $(TARGET)
 	$(TARGET)
 	
 pin: $(TARGET)
-	$(CONCURRIT_HOME)/scripts/run_pintool.sh ./$(TARGET)
+	$(CONCURRIT_HOME)/scripts/run_pintool.sh ./$(TARGET) $(ARGS)
