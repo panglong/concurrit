@@ -154,7 +154,7 @@ typedef std::vector<ExecutionTree*> ExecutionTreeList;
 	ExecutionTree* child = (__itr__ != children_.end() ? *__itr__ : NULL); \
 	for (; __itr__ != children_.end(); child = ((++__itr__) != children_.end() ? *__itr__ : NULL))
 
-class ExecutionTree {
+class ExecutionTree : public Writable {
 public:
 	ExecutionTree(ExecutionTree* parent = NULL, int num_children = 0) : parent_(parent), covered_(false) {
 		InitChildren(num_children);
@@ -174,6 +174,10 @@ public:
 	ExecutionTree* get_child(int i);
 
 	virtual void ComputeCoverage(Scenario* scenario, bool recurse);
+
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
+	}
 
 private:
 	DECL_FIELD(ExecutionTree*, parent)
@@ -241,6 +245,12 @@ public:
 	void add_exception(std::exception* e, Coroutine* owner, const std::string& where) {
 		exception_ = new ConcurritException(e, owner, where, exception_);
 	}
+
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "EndNode. %s exception.", (exception_ == NULL ? "Has no " : "Has "));
+		ExecutionTree::ToStream(file);
+	}
+
 private:
 	DECL_FIELD(ConcurritException*, exception)
 	DECL_FIELD(ExecutionTree*, old_root)
@@ -251,6 +261,11 @@ private:
 class ChoiceNode : public ExecutionTree {
 public:
 	ChoiceNode(ExecutionTree* parent = NULL) : ExecutionTree(parent, 2) {}
+
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "ChoiceNode.");
+		ExecutionTree::ToStream(file);
+	}
 };
 
 /********************************************************************************/
@@ -299,6 +314,11 @@ public:
 	// override
 	virtual void ComputeCoverage(Scenario* scenario, bool recurse);
 
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "SelectThreadNode. Selected %s.", ((var_ != NULL && var_->thread() != NULL) ? var_->thread()->name().c_str() : "no thread"));
+		ExecutionTree::ToStream(file);
+	}
+
 private:
 
 	// returns the index of the new child
@@ -339,6 +359,10 @@ class TransitionNode : public ExecutionTree {
 public:
 	TransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL) : ExecutionTree(parent, 1), pred_(pred), thread_(NULL), var_(var) {}
 
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "TransitionNode.");
+		ExecutionTree::ToStream(file);
+	}
 private:
 	DECL_FIELD(TransitionPredicate*, pred)
 	DECL_FIELD(Coroutine*, thread)

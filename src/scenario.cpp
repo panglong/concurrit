@@ -1444,6 +1444,18 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 		ExecutionTree* node = element.parent();
 		node->ComputeCoverage(this, false); //  do not recurse, only use immediate children
 	}
+
+
+//	// sanity prints
+//	fprintf(stderr, "Path length: %d.", path->size());
+//	for(int i = sz-1; i >= 0; --i) {
+//		ChildLoc element = (*path)[i];
+//		element.parent()->ToStream(stderr);
+//		fprintf(stderr, " index %d\n", element.child_index());
+//	}
+//	fprintf(stderr, "\n\n\n");
+
+
 	// check if the root is covered
 	return !root->covered();
 }
