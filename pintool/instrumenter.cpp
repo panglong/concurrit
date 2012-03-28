@@ -300,7 +300,7 @@ MemAccessAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) 
 /* ===================================================================== */
 
 VOID // PIN_FAST_ANALYSIS_CALL
-MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size) {
+MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSourceLocation* loc) {
 
 	CaptureAddrSize(threadid, addr, size);
 
@@ -309,13 +309,14 @@ MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size) {
 	info.threadid = threadid;
 	info.addr = addr;
 	info.size = size;
+	info.loc_src = loc;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
 	// monitor->MemReadBefore(threadid, addr, size, loc);
 }
 
 VOID // PIN_FAST_ANALYSIS_CALL
-MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size) {
+MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSourceLocation* loc) {
 
 	CaptureAddrSize(threadid, addr, size);
 
@@ -324,6 +325,7 @@ MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size) {
 	info.threadid = threadid;
 	info.addr = addr;
 	info.size = size;
+	info.loc_src = loc;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
 	// monitor->MemReadBefore(threadid, addr, size, loc);
@@ -632,19 +634,14 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 	bool is_branchorcall = INS_IsBranchOrCall(ins);
 	if(!has_fallthrough && !is_branchorcall) return;
 
-	/* ==================== */
-
 	PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-	INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemAccessBefore), // IARG_FAST_ANALYSIS_CALL,
-			IARG_CONTEXT,
-			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 
 	/* ==================== */
 
 	if (INS_IsMemoryWrite(ins)) {
 		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWrite), // IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
-				IARG_THREAD_ID, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
+				IARG_THREAD_ID, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_PTR, loc, IARG_END);
 	}
 
 	/* ==================== */
@@ -652,7 +649,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 	if (INS_HasMemoryRead2(ins)) {
 		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), // IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
-				IARG_THREAD_ID, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
+				IARG_THREAD_ID, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_PTR, loc, IARG_END);
 	}
 
 	/* ==================== */
@@ -660,8 +657,14 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 	if (INS_IsMemoryRead(ins)) {
 		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), // IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
-				IARG_THREAD_ID, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
+				IARG_THREAD_ID, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_PTR, loc, IARG_END);
 	}
+
+	/* ======================================== */
+
+	INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemAccessBefore), // IARG_FAST_ANALYSIS_CALL,
+			IARG_CONTEXT,
+			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 
 	/* ==================== */
 

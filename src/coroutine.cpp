@@ -81,7 +81,7 @@ void Coroutine::FinishMain() {
 
 bool Coroutine::IsMain() {
 	if(name() == MAIN_NAME) {
-		safe_assert(CHECK_NOTNULL(group_)->main() == this);
+		safe_assert(group_ == NULL || group_->main() == this);
 		return true;
 	}
 	return false;
@@ -235,6 +235,9 @@ void* Coroutine::Run() {
 			//---------------
 			// last controlled transition
 			// set predicate for "will end" before this transition
+			safe_assert(status_ == ENABLED);
+			safe_assert(trinfolist_.empty());
+			trinfolist_.push_back(EndingTransitionInfo()); // put predicate indicating ending state
 			scenario->OnControlledTransition(this);
 
 			VLOG(2) << CO_TITLE << " is ending...";
@@ -406,6 +409,20 @@ void Coroutine::OnAccess(SharedAccess* access) {
 }
 
 /********************************************************************************/
+
+void Coroutine::FinishControlledTransition() {
+	safe_assert(status_ == BLOCKED || !trinfolist_.empty());
+
+	// remove all transition info records
+	trinfolist_.clear();
+	current_node_ = NULL;
+
+	// make it enabled
+	status_ = ENABLED;
+}
+
+/********************************************************************************/
+
 
 } // end namespace
 

@@ -1170,15 +1170,13 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 
 // program state should be updated before this point
 void Scenario::BeforeControlledTransition(Coroutine* current) {
-	if(test_status_ != TEST_CONTROLLED) return;
-
-	VLOG(2) << "Before controlled transition by " << current->name();
+	safe_assert(!current->trinfolist()->empty());
 
 	// make thread blocked
-	safe_assert(current->status() == ENABLED || current->status() == ENDED)
-	if(current->status() == ENABLED) {
-		current->set_status(BLOCKED);
-	}
+	safe_assert(current->status() == ENABLED);
+	current->set_status(BLOCKED);
+
+	VLOG(2) << "Before controlled transition by " << current->name();
 
 	// to continue waiting or exit?
 	bool done = true;
@@ -1332,21 +1330,18 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 }
 
 void Scenario::AfterControlledTransition(Coroutine* current) {
-	if(test_status_ != TEST_CONTROLLED) return;
+	safe_assert(current->status() == BLOCKED);
 
 	VLOG(2) << "After controlled transition by " << current->name();
-
-	VLOG(2) << "Current mode is " << current->status();
-	safe_assert(current->status() == BLOCKED || current->status() == ENDED);
-
-	// new element to be used when the current node is consumed
-	ChildLoc newnode = {NULL, -1};
 
 	//=================================================================
 	VLOG(2) << "Checking execution tree node type";
 	// if we have a current node, then check it
 	ExecutionTree* node = current->current_node();
 	if(node != NULL) {
+
+		// new element to be used when the current node is consumed
+		ChildLoc newnode = {NULL, -1};
 
 		// value determining what to with the transition
 		// TPTRUE: continue as normal
@@ -1407,14 +1402,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	} // end if(node != NULL)
 
 	//=================================================================
-	// remove all transition info records
-	current->trinfolist()->clear();
-	current->set_current_node(NULL);
-
-	// make thread enabled
-	if(current->status() == BLOCKED) {
-		current->set_status(ENABLED);
-	}
+	current->FinishControlledTransition();
 }
 
 /********************************************************************************/

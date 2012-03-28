@@ -106,6 +106,8 @@ public:
 		return (status_ >= ENDED);
 	}
 
+	void FinishControlledTransition();
+
 private:
 
 	DECL_FIELD(THREADID, coid)

@@ -110,6 +110,7 @@ void PinMonitor::Disable() {
 }
 
 /******************************************************************************************/
+
 // callbacks
 
 void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
@@ -124,60 +125,45 @@ void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLo
 	scenario->AfterControlledTransition(current);
 }
 
+/********************************************************************************/
 
-// callbacks
-void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size) {
-//	safe_assert(loc != NULL);
-//	printf("Writing before %s\n", loc->funcname().c_str());
+void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
+	safe_assert(loc != NULL);
 
-
-
-//	MemoryCellBase* cell = GetMemoryCell(addr, size);
-//	SharedAccess* access = GetSharedAccess(WRITE_ACCESS, cell);
-
-//	current->trinfolist()->push_back(TransitionInfo(MEM_WRITE, access));
-
-//	scenario->BeforeControlledTransition(current);
+	current->trinfolist()->push_back(MemAccessTransitionInfo(TRANS_MEM_WRITE, addr, size, loc));
 }
 
-void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size) {
-//	safe_assert(loc != NULL);
-//	printf("Writing after %s\n", loc->funcname().c_str());
+void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
+	safe_assert(loc != NULL);
 
-
-
-//	MemoryCellBase* cell = GetMemoryCell(addr, size);
-//	SharedAccess* access = GetSharedAccess(WRITE_ACCESS, cell);
-
-//	current->trinfolist()->push_back(TransitionInfo(MEM_WRITE, access));
-
-//	scenario->AfterControlledTransition(current);
+	current->trinfolist()->push_back(MemAccessTransitionInfo(TRANS_MEM_READ, addr, size, loc));
 }
+
+/********************************************************************************/
 
 void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target) {
-//	printf("Calling before: %s\n", loc_target->funcname().c_str());
+	safe_assert(loc_src != NULL && loc_target != NULL);
 
-
+	current->trinfolist()->push_back(FuncCallTransitionInfo(addr, loc_src, loc_target, direct));
 
 	scenario->OnControlledTransition(current);
 }
 
 void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc) {
-//	printf("Entering: %s\n", loc->funcname().c_str());
+	safe_assert(loc != NULL);
 
-
+	current->trinfolist()->push_back(FuncEnterTransitionInfo(addr, loc));
 
 	scenario->OnControlledTransition(current);
 }
 
 void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval) {
-//	printf("Returning: %s\n", loc->funcname().c_str());
+	safe_assert(loc != NULL);
 
-
+	current->trinfolist()->push_back(FuncReturnTransitionInfo(addr, loc, retval));
 
 	scenario->OnControlledTransition(current);
 }
-
 
 /********************************************************************************/
 
@@ -185,29 +171,27 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	safe_assert(info != NULL);
 
 	PinMonitor* monitor = PinMonitor::GetInstance();
-	if(monitor == NULL || !monitor->enabled()) {
+	if(monitor == NULL) {
 		return;
 	}
 
 	Coroutine* current = CHECK_NOTNULL(monitor->GetCoroutineByTid(info->threadid));
-	CoroutineGroup* group = current->group();
-	// TODO(elmas): when might this happen? (for main?)
-	if(group == NULL) {
-		return;
-	}
-
-	// be sure to call this before the check group == NULL,
-	// because IsMain asserts that current->group_ is not null
 	if(current->IsMain()) {
 		return;
 	}
 
-	Scenario* scenario = CHECK_NOTNULL(group->scenario());
-	if(scenario->test_status() != TEST_CONTROLLED) {
+	if(!monitor->enabled()) {
+		// if aftercontrolledtransition has not been called, reset the transition state
+		if(current->status() == BLOCKED || !current->trinfolist()->empty()) {
+			current->FinishControlledTransition();
+		}
 		return;
 	}
 
 	VLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
+
+	CoroutineGroup* group = CHECK_NOTNULL(current->group());
+	Scenario* scenario = CHECK_NOTNULL(group->scenario());
 
 	switch(info->type) {
 		case MemAccessBefore:
@@ -217,10 +201,10 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 			monitor->MemAccessAfter(current, scenario, info->loc_src);
 			break;
 		case MemWrite:
-			monitor->MemWrite(current, scenario, info->addr, info->size);
+			monitor->MemWrite(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case MemRead:
-			monitor->MemRead(current, scenario, info->addr, info->size);
+			monitor->MemRead(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case FuncCall:
 			monitor->FuncCall(current, scenario, info->addr, info->direct, info->loc_src, info->loc_target);

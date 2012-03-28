@@ -445,23 +445,91 @@ private:
 };
 
 /********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
 
 enum TransitionConst {
-	MEM_READ, MEM_WRITE,
-	ENDING
+	TRANS_MEM_WRITE,
+	TRANS_MEM_READ,
+	TRANS_FUNC_CALL,
+	TRANS_FUNC_RETURN,
+	TRANS_FUNC_ENTER,
+	TRANS_ENDING
 };
 
 // class storing information about a single transition
 class TransitionInfo {
 public:
-	TransitionInfo(TransitionConst type, void* arg = NULL):
-		type_(type), arg_(arg) {}
-	~TransitionInfo(){}
+	TransitionInfo(TransitionConst type):
+		type_(type) {}
+	virtual ~TransitionInfo(){}
 private:
 	DECL_FIELD(TransitionConst, type)
-	DECL_FIELD(void*, arg)
 };
 
+/********************************************************************************/
+
+class EndingTransitionInfo : public TransitionInfo {
+public:
+	EndingTransitionInfo(): TransitionInfo(TRANS_ENDING){}
+	~EndingTransitionInfo(){}
+};
+
+/********************************************************************************/
+
+class MemAccessTransitionInfo : public TransitionInfo {
+public:
+	MemAccessTransitionInfo(TransitionConst type, void* addr, uint32_t size, SourceLocation* loc):
+		TransitionInfo(type), addr_(addr), size_(size), loc_(loc) {}
+	~MemAccessTransitionInfo(){}
+private:
+	DECL_FIELD(void*, addr)
+	DECL_FIELD(uint32_t, size)
+	DECL_FIELD(SourceLocation*, loc)
+};
+
+/********************************************************************************/
+
+class FuncCallTransitionInfo : public TransitionInfo {
+public:
+	FuncCallTransitionInfo(void* addr, SourceLocation* loc_src, SourceLocation* loc_target = NULL, bool direct = false):
+		TransitionInfo(TRANS_FUNC_CALL), addr_(addr), loc_src_(loc_src), loc_target_(loc_target), direct_(direct) {}
+	~FuncCallTransitionInfo(){}
+private:
+	DECL_FIELD(void*, addr)
+	DECL_FIELD(bool, direct)
+	DECL_FIELD(SourceLocation*, loc_src)
+	DECL_FIELD(SourceLocation*, loc_target)
+};
+
+/********************************************************************************/
+
+class FuncReturnTransitionInfo : public TransitionInfo {
+public:
+	FuncReturnTransitionInfo(void* addr, SourceLocation* loc, ADDRINT retval):
+		TransitionInfo(TRANS_FUNC_RETURN), addr_(addr), loc_(loc), retval_(retval) {}
+	~FuncReturnTransitionInfo(){}
+private:
+	DECL_FIELD(void*, addr)
+	DECL_FIELD(SourceLocation*, loc)
+	DECL_FIELD(ADDRINT, retval)
+};
+
+/********************************************************************************/
+
+class FuncEnterTransitionInfo : public TransitionInfo {
+public:
+	FuncEnterTransitionInfo(void* addr, SourceLocation* loc):
+		TransitionInfo(TRANS_FUNC_ENTER), addr_(addr), loc_(loc) {}
+	~FuncEnterTransitionInfo(){}
+private:
+	DECL_FIELD(void*, addr)
+	DECL_FIELD(SourceLocation*, loc)
+};
+
+
+/********************************************************************************/
+/********************************************************************************/
 /********************************************************************************/
 
 // constraints
