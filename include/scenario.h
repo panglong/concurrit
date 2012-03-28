@@ -45,6 +45,7 @@
 #include "until.h"
 #include "vc.h"
 #include "schedule.h"
+#include "transpred.h"
 #include "dsl.h"
 
 namespace concurrit {

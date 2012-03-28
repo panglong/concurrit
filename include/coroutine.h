@@ -38,12 +38,12 @@
 #include "thread.h"
 #include "channel.h"
 #include "vc.h"
+#include "transinfo.h"
 
 namespace concurrit {
 
 class CoroutineGroup;
 class SchedulePoint;
-class TransitionInfo;
 class ExecutionTree;
 
 #define MAIN_NAME 	"main"
