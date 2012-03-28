@@ -180,7 +180,7 @@ public:
 class SelectThreadNode : public ExecutionTree {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
-	SelectThreadNode(ThreadVarPtr var, ExecutionTree* parent = NULL)
+	SelectThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL)
 	: ExecutionTree(parent, 0), var_(var) {
 		safe_assert(var_->thread() == NULL);
 	}

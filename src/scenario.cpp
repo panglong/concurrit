@@ -1542,7 +1542,7 @@ void Scenario::DSLTransition(TransitionPredicate* pred, ThreadVarPtr var /*= boo
 
 /********************************************************************************/
 
-void Scenario::DSLSelectThread(ThreadVarPtr var) {
+void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 	VLOG(2) << "Adding DSLSelectThread";
 
 	if(group_.IsAllEnded()) {

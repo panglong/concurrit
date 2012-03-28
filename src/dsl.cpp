@@ -36,13 +36,6 @@
 
 namespace concurrit {
 
-// extern'ed variables
-TrueTransitionPredicate __true_transition_predicate__;
-FalseTransitionPredicate __false_transition_predicate__;
-
-TransitionPredicate* TransitionPredicate::True() { return &__true_transition_predicate__; }
-TransitionPredicate* TransitionPredicate::False() { return &__false_transition_predicate__; }
-
 /*************************************************************************************/
 
 TPVALUE TPNOT(TPVALUE v) {
@@ -433,20 +426,6 @@ void SelectThreadNode::ComputeCoverage(Scenario* scenario, bool recurse) {
 		ExecutionTree::ComputeCoverage(scenario, recurse);
 		covered_ = covered_ && (children_.size() == scenario->group()->GetNumMembers());
 	}
-}
-
-/*************************************************************************************/
-
-TransitionPredicate* TransitionPredicate::operator!() {
-	return new NotTransitionPredicate(this);
-}
-
-TransitionPredicate* TransitionPredicate::operator &&(const TransitionPredicate& pred) {
-	return new NAryTransitionPredicate(NAryAND, this, const_cast<TransitionPredicate*>(&pred));
-}
-
-TransitionPredicate* TransitionPredicate::operator ||(const TransitionPredicate& pred) {
-	return new NAryTransitionPredicate(NAryOR, this, const_cast<TransitionPredicate*>(&pred));
 }
 
 /*************************************************************************************/

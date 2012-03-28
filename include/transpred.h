@@ -67,8 +67,9 @@ class TransitionPredicate {
 public:
 	TransitionPredicate() {}
 	virtual ~TransitionPredicate() {}
-	virtual TPVALUE EvalPreState() = 0;
-	virtual bool EvalPostState() = 0;
+
+	virtual TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) = 0;
+	virtual bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) = 0;
 
 	static TransitionPredicate* True();
 	static TransitionPredicate* False();
@@ -77,29 +78,26 @@ public:
 	TransitionPredicate* operator && (const TransitionPredicate& pred);
 	TransitionPredicate* operator || (const TransitionPredicate& pred);
 
-	TransitionPredicate* operator && (const bool& b) {
-		return (this->operator&& (b ? TransitionPredicate::True() : TransitionPredicate::False()));
-	}
-
-	TransitionPredicate* operator || (const bool& b) {
-		return (this->operator|| (b ? TransitionPredicate::True() : TransitionPredicate::False()));
-	}
+	TransitionPredicate* operator && (const bool& b);
+	TransitionPredicate* operator || (const bool& b);
 };
+
+/********************************************************************************/
 
 class TrueTransitionPredicate : public TransitionPredicate {
 public:
 	TrueTransitionPredicate() : TransitionPredicate() {}
 	~TrueTransitionPredicate() {}
-	TPVALUE EvalPreState() { return TPTRUE; }
-	bool EvalPostState() { return TPTRUE; }
+	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPTRUE; }
+	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPTRUE; }
 };
 
 class FalseTransitionPredicate : public TransitionPredicate {
 public:
 	FalseTransitionPredicate() : TransitionPredicate() {}
 	~FalseTransitionPredicate() {}
-	TPVALUE EvalPreState() { return TPFALSE; }
-	bool EvalPostState() { return TPFALSE; }
+	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPFALSE; }
+	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPFALSE; }
 };
 
 /********************************************************************************/
@@ -112,9 +110,9 @@ extern FalseTransitionPredicate __false_transition_predicate__;
 class NotTransitionPredicate : public TransitionPredicate {
 public:
 	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(pred) {}
-	~NotTransitionPredicate() {}
-	TPVALUE EvalPreState() { return TPNOT(pred_->EvalPreState()); }
-	bool EvalPostState() { return !(pred_->EvalPostState()); }
+	~NotTransitionPredicate() { if(pred_ != NULL) delete pred_; }
+	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPNOT(pred_->EvalPreState(t)); }
+	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) { return !(pred_->EvalPostState(t)); }
 private:
 	DECL_FIELD(TransitionPredicate*, pred)
 };
@@ -137,16 +135,20 @@ public:
 		push_back(pred1);
 		push_back(pred2);
 	}
-	~NAryTransitionPredicate() {}
+	~NAryTransitionPredicate() {
+		for(iterator itr = this->begin(), end = this->end(); itr != end; ++itr) {
+			if(*itr != NULL) delete (*itr);
+		}
+	}
 
-	TPVALUE EvalPreState() {
+	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) {
 		safe_assert(!empty());
 		TPVALUE v = (op_ == NAryAND) ? TPTRUE : TPFALSE;
 		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
 			// update current
 			TransitionPredicate* current = (*itr);
 			// update v
-			v = (op_ == NAryAND) ? TPAND(v, current->EvalPreState()) : TPOR(v, current->EvalPreState());
+			v = (op_ == NAryAND) ? TPAND(v, current->EvalPreState(t)) : TPOR(v, current->EvalPreState(t));
 			if((op_ == NAryAND && v == TPFALSE) || (op_ == NAryOR && v == TPTRUE)) {
 				break;
 			}
@@ -154,14 +156,14 @@ public:
 		return v;
 	}
 
-	bool EvalPostState() {
+	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) {
 		safe_assert(!empty());
 		bool v = (op_ == NAryAND) ? true : false;
 		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
 			// update current
 			TransitionPredicate* current = (*itr);
 			// update v
-			v = (op_ == NAryAND) ? (v && current->EvalPostState()) : (v || current->EvalPostState());
+			v = (op_ == NAryAND) ? (v && current->EvalPostState(t)) : (v || current->EvalPostState(t));
 			if((op_ == NAryAND && v == false) || (op_ == NAryOR && v == true)) {
 				break;
 			}
@@ -194,13 +196,13 @@ public:
 	TransitionConstraintAll(Scenario* scenario, TransitionPredicate* pred)
 	: TransitionConstraint(scenario), pred_(pred) {}
 
-	~TransitionConstraintAll() {}
+	~TransitionConstraintAll() { if(pred_ != NULL) delete pred_; }
 
-	virtual TPVALUE EvalPreState() {
-		return pred_->EvalPreState();
+	virtual TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) {
+		return pred_->EvalPreState(t);
 	}
-	virtual bool EvalPostState() {
-		return pred_->EvalPostState();
+	virtual bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) {
+		return pred_->EvalPostState(t);
 	}
 
 private:
@@ -217,19 +219,19 @@ public:
 
 	~TransitionConstraintFirst() {}
 
-	virtual TPVALUE EvalPreState() {
+	virtual TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) {
 		if(!done_) {
 			done_ = true;
-			return pred_->EvalPreState();
+			return pred_->EvalPreState(t);
 		} else {
 			return TPTRUE;
 		}
 	}
 
-	virtual bool EvalPostState() {
+	virtual bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) {
 		if(!done_) {
 			done_ = true;
-			return pred_->EvalPostState();
+			return pred_->EvalPostState(t);
 		} else {
 			return TPTRUE;
 		}
@@ -243,7 +245,7 @@ private:
 /********************************************************************************/
 /********************************************************************************/
 
-// various kinds of transition predicates are defined here
+
 
 
 } // end namespace

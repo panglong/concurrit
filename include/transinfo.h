@@ -60,6 +60,8 @@ private:
 	DECL_FIELD(TransitionConst, type)
 };
 
+typedef std::vector<TransitionInfo> TransitionInfoList;
+
 /********************************************************************************/
 
 class EndingTransitionInfo : public TransitionInfo {
