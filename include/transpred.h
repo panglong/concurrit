@@ -41,6 +41,21 @@ namespace concurrit {
 
 /********************************************************************************/
 
+class ThreadVar {
+public:
+	ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
+	: name_(name), thread_(thread) {}
+	~ThreadVar() {}
+
+private:
+	DECL_FIELD(std::string, name)
+	DECL_FIELD(Coroutine*, thread)
+};
+
+typedef boost::shared_ptr<ThreadVar> ThreadVarPtr;
+
+/********************************************************************************/
+
 enum TPVALUE { TPFALSE = 0, TPTRUE = 1, TPUNKNOWN = 2, TPINVALID = -1 };
 TPVALUE TPNOT(TPVALUE v);
 TPVALUE TPAND(TPVALUE v1, TPVALUE v2);

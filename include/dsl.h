@@ -177,22 +177,6 @@ public:
 
 /********************************************************************************/
 
-class ThreadVar {
-public:
-	ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
-	: name_(name), thread_(thread) {}
-	~ThreadVar() {}
-
-private:
-	DECL_FIELD(std::string, name)
-	DECL_FIELD(Coroutine*, thread)
-};
-
-typedef boost::shared_ptr<ThreadVar> ThreadVarPtr;
-
-
-/********************************************************************************/
-
 class SelectThreadNode : public ExecutionTree {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
