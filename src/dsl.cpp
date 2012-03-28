@@ -126,8 +126,8 @@ ExecutionTree* ExecutionTree::child(int i /*= 0*/) {
 
 bool ExecutionTree::child_covered(int i /*= 0*/) {
 	safe_assert(BETWEEN(0, i, children_.size()-1));
-	ExecutionTree* child = child(i);
-	return child != NULL && child->covered();
+	ExecutionTree* c = child(i);
+	return c != NULL && c->covered();
 }
 
 /*************************************************************************************/
