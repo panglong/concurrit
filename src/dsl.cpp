@@ -307,6 +307,7 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 		ChildLoc parent = GetLastInPath();
 		if(REF_ENDTEST(node) && parent.get() != NULL) {
 			// set old_root of end node
+			safe_assert(!REF_ENDTEST(parent.get()));
 			static_cast<EndNode*>(node)->set_old_root(parent.get());
 		} else {
 			// if node is not end node, the we are either overwriting NULL or the same value
@@ -314,7 +315,7 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 		}
 		parent.set(node); // also sets node's parent
 	}
-		// put node to the path
+	// put node to the path
 	current_path_.push_back({node, child_index});
 }
 

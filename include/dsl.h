@@ -257,12 +257,9 @@ public:
 
 class ThreadVar {
 public:
-	ThreadVar(Coroutine* thread = NULL, std::string name = "<unknown>")
+	ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
 	: name_(name), thread_(thread) {}
 	~ThreadVar() {}
-
-	// returns the coroutine selected, if any
-//	Coroutine* thread();
 
 private:
 	DECL_FIELD(std::string, name)

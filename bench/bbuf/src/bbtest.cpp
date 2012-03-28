@@ -5,8 +5,8 @@ using namespace concurrit;
 
 #include "boundedBuffer.h"
 
-#define PRODUCER_SUM  2
-#define CONSUMER_SUM  2
+#define PRODUCER_SUM  1
+#define CONSUMER_SUM  1
 
 class BBScenario : public Scenario {
 public:
@@ -94,8 +94,8 @@ public:
 //		printf("Ending with k=%d\n", k);
 
 
-//		while(STAR)
-		for(int j = 0; j < 4; ++j)
+		while(STAR)
+//		for(int j = 0; j < 4; ++j)
 		{
 				EXISTS(t);
 				DSLTransition(TransitionPredicate::True(), t);
