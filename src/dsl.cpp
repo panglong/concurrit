@@ -77,6 +77,10 @@ TPVALUE TPOR(TPVALUE v1, TPVALUE v2) {
 
 /*************************************************************************************/
 
+int ExecutionTree::num_nodes_ = 0;
+
+/*************************************************************************************/
+
 ExecutionTree::~ExecutionTree(){
 	VLOG(2) << "Deleting execution tree!";
 	for_each_child(child) {
@@ -116,6 +120,14 @@ ExecutionTree* ExecutionTree::child(int i /*= 0*/) {
 		return NULL;
 	}
 	return children_[i];
+}
+
+/*************************************************************************************/
+
+bool ExecutionTree::child_covered(int i /*= 0*/) {
+	safe_assert(BETWEEN(0, i, children_.size()-1));
+	ExecutionTree* child = child(i);
+	return child != NULL && child->covered();
 }
 
 /*************************************************************************************/

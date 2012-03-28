@@ -158,6 +158,7 @@ class ExecutionTree : public Writable {
 public:
 	ExecutionTree(ExecutionTree* parent = NULL, int num_children = 0) : parent_(parent), covered_(false) {
 		InitChildren(num_children);
+		num_nodes_++;
 	}
 
 	virtual ~ExecutionTree();
@@ -173,6 +174,8 @@ public:
 	void set_child(ExecutionTree* node, int i = 0);
 	ExecutionTree* get_child(int i);
 
+	bool child_covered(int i = 0);
+
 	virtual void ComputeCoverage(Scenario* scenario, bool recurse);
 
 	virtual void ToStream(FILE* file) {
@@ -183,6 +186,8 @@ private:
 	DECL_FIELD(ExecutionTree*, parent)
 	DECL_FIELD_REF(ExecutionTreeList, children)
 	DECL_FIELD(bool, covered)
+
+	DECL_STATIC_FIELD(int, num_nodes)
 
 	friend class ExecutionTreeManager;
 };
@@ -357,7 +362,8 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
-	TransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL) : ExecutionTree(parent, 1), pred_(pred), thread_(NULL), var_(var) {}
+	TransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
+	: ExecutionTree(parent, 1), pred_(pred), thread_(NULL), var_(var) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransitionNode.");
@@ -373,7 +379,8 @@ private:
 
 class TransferUntilNode : public ExecutionTree {
 public:
-	TransferUntilNode(TransitionPredicate* pred) : pred_(pred) {}
+	TransferUntilNode(TransitionPredicate* pred, ExecutionTree* parent = NULL)
+	: ExecutionTree(parent, 1), pred_(pred) {}
 
 private:
 	DECL_FIELD(TransitionPredicate*, pred)

@@ -563,6 +563,8 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 void Scenario::Start() {
 	safe_assert(test_status_ == TEST_BEGIN || test_status_ == TEST_ENDED);
 
+	srand(time(NULL));
+
 	if(test_status_ == TEST_BEGIN) {
 		// first start
 		// reset statistics
@@ -603,6 +605,8 @@ void Scenario::Finish(Result* result) {
 	}
 
 	group_.Finish();
+
+	statistics_->counter("Num execution-tree nodes").set_value(ExecutionTree::num_nodes());
 
 	// finish timer
 	statistics_->timer("Search time").stop();
@@ -1445,9 +1449,10 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 		node->ComputeCoverage(this, false); //  do not recurse, only use immediate children
 	}
 
-
+//	fprintf(stderr, "Path length: %d\n", path->size());
+//	fprintf(stderr, "Num execution tree nodes: %d\n", ExecutionTree::num_nodes());
+//
 //	// sanity prints
-//	fprintf(stderr, "Path length: %d.", path->size());
 //	for(int i = sz-1; i >= 0; --i) {
 //		ChildLoc element = (*path)[i];
 //		element.parent()->ToStream(stderr);
@@ -1469,7 +1474,6 @@ bool Scenario::DSLChoice() {
 //		TRIGGER_BACKTRACK(THREADS_ALLENDED);
 //	}
 
-	bool ret = false;
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
@@ -1491,22 +1495,22 @@ bool Scenario::DSLChoice() {
 
 	safe_assert(!choice->covered());
 
-	// not covered yet
-	// check children
-	ExecutionTree* child = choice->child(0);
-	if(child == NULL || !child->covered()) {
-		ret = true;
+	// 0: false, 1: true
+	int ret = -1;
+	bool cov_0 = choice->child_covered(0);
+	bool cov_1 = choice->child_covered(1);
+	if(!cov_0 && !cov_1) {
+		// select randomly
+		ret = rand() % 2;
 	} else {
-		child = choice->child(1);
-		safe_assert(child == NULL || !child->covered());
-		ret = false;
+		ret = !cov_0 ? 0 : 1;
 	}
 
-	exec_tree_.ReleaseRef(choice, (ret ? 0 : 1));
+	exec_tree_.ReleaseRef(choice, ret);
 
 	VLOG(2) << "DSLChoice returns " << ret;
 
-	return ret;
+	return (ret == 1);
 }
 
 /********************************************************************************/
