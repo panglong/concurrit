@@ -437,6 +437,19 @@ void SelectThreadNode::ComputeCoverage(Scenario* scenario, bool recurse) {
 
 /*************************************************************************************/
 
+TransitionPredicate* TransitionPredicate::operator!() {
+	return new NotTransitionPredicate(this);
+}
+
+TransitionPredicate* TransitionPredicate::operator &&(const TransitionPredicate& pred) {
+	return new NAryTransitionPredicate(NAryAND, this, const_cast<TransitionPredicate*>(&pred));
+}
+
+TransitionPredicate* TransitionPredicate::operator ||(const TransitionPredicate& pred) {
+	return new NAryTransitionPredicate(NAryOR, this, const_cast<TransitionPredicate*>(&pred));
+}
+
+/*************************************************************************************/
 
 } // end namespace
 

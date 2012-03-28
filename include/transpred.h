@@ -72,6 +72,18 @@ public:
 
 	static TransitionPredicate* True();
 	static TransitionPredicate* False();
+
+	TransitionPredicate* operator ! ();
+	TransitionPredicate* operator && (const TransitionPredicate& pred);
+	TransitionPredicate* operator || (const TransitionPredicate& pred);
+
+	TransitionPredicate* operator && (const bool& b) {
+		return (this->operator&& (b ? TransitionPredicate::True() : TransitionPredicate::False()));
+	}
+
+	TransitionPredicate* operator || (const bool& b) {
+		return (this->operator|| (b ? TransitionPredicate::True() : TransitionPredicate::False()));
+	}
 };
 
 class TrueTransitionPredicate : public TransitionPredicate {
@@ -119,6 +131,11 @@ public:
 				push_back(*itr);
 			}
 		}
+	}
+	NAryTransitionPredicate(NAryOp op, TransitionPredicate* pred1, TransitionPredicate* pred2)
+	: TransitionPredicate(), std::vector<TransitionPredicate*>(), op_(op) {
+		push_back(pred1);
+		push_back(pred2);
 	}
 	~NAryTransitionPredicate() {}
 

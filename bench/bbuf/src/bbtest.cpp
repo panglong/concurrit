@@ -5,8 +5,8 @@ using namespace concurrit;
 
 #include "boundedBuffer.h"
 
-#define PRODUCER_SUM  1
-#define CONSUMER_SUM  1
+#define PRODUCER_SUM  5
+#define CONSUMER_SUM  5
 
 class BBScenario : public Scenario {
 public:
