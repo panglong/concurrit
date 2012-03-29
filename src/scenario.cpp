@@ -1215,8 +1215,10 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 			// if end_node, exit immediatelly
 			if(exec_tree_.REF_ENDTEST(node)) {
+				VLOG(2) << "Detected end node, exiting handling code";
 				// uncontrolled mode, but the mode is set by main, so just ignore the rest
 				// no need to release node, because AcquireRef does not overwrite end nodes.
+				current->set_current_node(node); // this is to inform AfterControlledTransition for the ending
 				return;
 			}
 		}
@@ -1374,10 +1376,16 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	VLOG(2) << "After controlled transition by " << current->name();
 
 	//=================================================================
-	VLOG(2) << "Checking execution tree node type";
 	// if we have a current node, then check it
 	ExecutionTree* node = current->current_node();
 	if(node != NULL) {
+
+		// if end_node, exit immediatelly
+		if(exec_tree_.REF_ENDTEST(node)) {
+			VLOG(2) << "Detected end node, exiting handling code";
+			current->FinishControlledTransition();
+			return;
+		}
 
 		// new element to be used when the current node is consumed
 		ChildLoc newnode = {NULL, -1};
@@ -1387,6 +1395,8 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		// TPFALSE: trigger backtrack
 		// TPUNKNOWN: continue holding the transition node (can occur only for multip-step transitions)
 		TPVALUE tval =  TPTRUE;
+
+		VLOG(2) << "Checking execution tree node type";
 
 		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 		if(trans != NULL) {

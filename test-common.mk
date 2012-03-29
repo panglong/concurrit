@@ -21,6 +21,7 @@ clean:
 	rm $(TARGET)
 	rm $(TARGET).o
 	rm $(TARGET).a
+	rm $(TARGET).so
 	
 test: $(TARGET)
 	$(TARGET)

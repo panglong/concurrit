@@ -16,7 +16,6 @@ struct Counter {
 	void increment() {
 
 		while(true) {
-			int t = YIELD_READ("L1", x);
 			int k = t + 1;
 
 			lock();
@@ -62,5 +61,4 @@ private:
 		return ret;
 	}
 };
-
 

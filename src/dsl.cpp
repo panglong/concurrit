@@ -366,6 +366,7 @@ bool ExecutionTreeManager::CheckCompletePath(std::vector<ChildLoc>* path /*= NUL
 /*************************************************************************************/
 
 void ExecutionTreeManager::EndWithSuccess() {
+	VLOG(2) << "Inserting end node to indicate success.";
 	// wait until the last node is consumed (or an end node is inserted)
 	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
@@ -380,6 +381,7 @@ void ExecutionTreeManager::EndWithSuccess() {
 
 // (do not use AcquireRefEx here)
 void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
+	VLOG(2) << "Inserting end node to indicate exception.";
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
