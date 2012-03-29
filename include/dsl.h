@@ -37,6 +37,7 @@
 
 #include "common.h"
 #include "transpred.h"
+#include "dot.h"
 
 #include <cstdatomic>
 
@@ -83,6 +84,9 @@ public:
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
 	}
+
+	virtual DotNode* UpdateDotGraph(DotGraph* g);
+	DotGraph* CreateDotGraph();
 
 private:
 	DECL_FIELD(ExecutionTree*, parent)
@@ -158,6 +162,13 @@ public:
 		ExecutionTree::ToStream(file);
 	}
 
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("EndNode");
+		g->AddNode(node);
+		g->AddEdge(new DotEdge(node, node));
+		return node;
+	}
+
 private:
 	DECL_FIELD(ConcurritException*, exception)
 	DECL_FIELD(ExecutionTree*, old_root)
@@ -172,6 +183,30 @@ public:
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "ChoiceNode.");
 		ExecutionTree::ToStream(file);
+	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("ChoiceNode");
+		ExecutionTree* c = child(0);
+		DotNode* cn = NULL;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, "F"));
+
+		c = child(1);
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, "T"));
+
+		return node;
 	}
 };
 
@@ -208,6 +243,23 @@ public:
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "SelectThreadNode. Selected %s.", ((var_ != NULL && var_->thread() != NULL) ? var_->thread()->name().c_str() : "no thread"));
 		ExecutionTree::ToStream(file);
+	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("SelectThreadNode");
+		for(int i = 0; i < children_.size(); ++i) {
+			ExecutionTree* c = child(i);
+			DotNode* cn = NULL;
+			if(c != NULL) {
+				cn = c->UpdateDotGraph(g);
+			} else {
+				cn = new DotNode("NULL");
+			}
+			g->AddNode(cn);
+			g->AddEdge(new DotEdge(node, cn, CHECK_NOTNULL(idxToThreadMap_[i])->name()));
+		}
+
+		return node;
 	}
 
 private:
@@ -255,6 +307,21 @@ public:
 		fprintf(file, "TransitionNode.");
 		ExecutionTree::ToStream(file);
 	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("TransitionNode");
+		ExecutionTree* c = child();
+		DotNode* cn = NULL;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, thread_ == NULL ? "?" : thread_->name()));
+		return node;
+	}
+
 private:
 	DECL_FIELD(TransitionPredicate*, pred)
 	DECL_FIELD(ThreadVarPtr, var)
@@ -284,6 +351,20 @@ public:
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransferUntilNode.");
 		ExecutionTree::ToStream(file);
+	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("TransferUntilNode");
+		ExecutionTree* c = child();
+		DotNode* cn = NULL;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, CHECK_NOTNULL(var_->thread())->name()));
+		return node;
 	}
 private:
 	DECL_FIELD(ThreadVarPtr, var)
@@ -326,6 +407,8 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 	void EndWithBacktrack(Coroutine* current, const std::string& where);
 
 	bool CheckCompletePath(std::vector<ChildLoc>* path = NULL);
+
+	void SaveDotGraph(const char* filename);
 
 private:
 	ExecutionTree* GetRef();

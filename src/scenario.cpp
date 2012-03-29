@@ -619,6 +619,11 @@ void Scenario::Finish(Result* result) {
 		// copy statistics to the result
 		result->set_statistics(statistics_);
 	}
+
+	if(Config::SaveDotGraphToFile != NULL) {
+		std::cout << "Saving dot file of the execution graph to: " << Config::SaveDotGraphToFile << std::endl;
+		exec_tree_.SaveDotGraph(Config::SaveDotGraphToFile);
+	}
 }
 
 

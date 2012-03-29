@@ -170,6 +170,45 @@ void ExecutionTree::ComputeCoverage(Scenario* scenario, bool recurse) {
 
 /*************************************************************************************/
 
+DotNode* ExecutionTree::UpdateDotGraph(DotGraph* g) {
+	DotNode* node = new DotNode("");
+	for(int i = 0; i < children_.size(); ++i) {
+		ExecutionTree* c = child(i);
+		DotNode* cn = NULL;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		char s[8];
+		snprintf(s, 8, "%d", i);
+		g->AddEdge(new DotEdge(node, cn, s));
+	}
+	return node;
+}
+
+/*************************************************************************************/
+
+DotGraph* ExecutionTree::CreateDotGraph() {
+	DotGraph* g = new DotGraph("ExecutionTree");
+	UpdateDotGraph(g);
+	return g;
+}
+
+/*************************************************************************************/
+
+void ExecutionTreeManager::SaveDotGraph(const char* filename) {
+	safe_assert(filename != NULL);
+	DotGraph g("ExecutionTree");
+	DotNode* node = root_node_.UpdateDotGraph(&g);
+	node->set_label("Root");
+	g.WriteToFile(filename);
+	printf("Wrote dot file to %s\n", filename);
+}
+
+/*************************************************************************************/
+
 ExecutionTreeManager::ExecutionTreeManager() {
 	root_node_.InitChildren(1);
 	lock_node_.InitChildren(0);

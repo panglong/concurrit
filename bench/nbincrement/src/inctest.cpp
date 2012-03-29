@@ -33,7 +33,8 @@ public:
 	}
 
 	void TearDown() {
-//		delete counter;
+		if(counter != NULL)
+			delete counter;
 		counter = NULL;
 	}
 
@@ -50,8 +51,8 @@ public:
 		}
 
 
-		while(STAR)
-//		for(int j = 0; j < 4; ++j)
+//		while(STAR)
+		for(int j = 0; j < 4; ++j)
 		{
 				EXISTS(t);
 				DSLTransition(TransitionPredicate::True(), t);

@@ -1,3 +1,4 @@
+- dot file classlarinin renk/stil gibi ozelliklerini de class constructor parametrelere ekle
 - execution tree'yi dot dosyasina dump et, grafigini cikart.
 - ENDING diye bir status'a ihtiyac var mi?
 - transition eklerken predicate False'a esitse direk backtrack at

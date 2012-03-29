@@ -38,11 +38,13 @@ namespace concurrit {
 // set to default values
 bool Config::CanEnableDisablePinTool = false;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
+char* Config::SaveDotGraphToFile = NULL;
 
 /********************************************************************************/
 
 // e: CanEnableDisablePinTool
 // f: ExitOnFirstExecution
+// d: SaveDotGraphToFile
 
 void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	if(argc <= 0 || argv == NULL) return;
@@ -50,7 +52,7 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "ef::")) != -1) {
+	while ((c = getopt(argc, argv, "ef::d::")) != -1) {
 		switch(c) {
 		case 'e':
 			Config::CanEnableDisablePinTool = true;
@@ -58,6 +60,14 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 		case 'f':
 			Config::ExitOnFirstExecution = (optarg == NULL) ? 1 : atoi(optarg);
 			safe_assert(Config::ExitOnFirstExecution >= 1);
+			break;
+		case 'd':
+			if(optarg != NULL) {
+				Config::SaveDotGraphToFile = strdup(optarg);
+			} else {
+				Config::SaveDotGraphToFile = "/tmp/graph.dot";
+			}
+			safe_assert(Config::SaveDotGraphToFile != NULL);
 			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");

@@ -248,6 +248,7 @@ class Config {
 public:
 	static bool CanEnableDisablePinTool;
 	static int ExitOnFirstExecution;
+	static char* SaveDotGraphToFile;
 	static void ParseCommandLine(int argc = -1, char **argv = NULL);
 };
 

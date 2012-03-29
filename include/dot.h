@@ -42,6 +42,7 @@ namespace concurrit {
 #define DotShape_Circle 	"circle"
 
 #define DotColor_Black		"black"
+#define DotColor_Blue		"blue"
 
 #define DotStyle_Solid		"solid"
 #define DotStyle_Dashed		"dashed"
@@ -51,7 +52,7 @@ namespace concurrit {
 class DotNode : public Writable {
 public:
 	DotNode(std::string label, int id = -1)
-	: label_(label), id_(id) {}
+	: label_(label), id_(id), shape_(DotShape_Box), color_(DotColor_Blue) {}
 	~DotNode() {}
 
 	void ToStream(FILE* file);
@@ -69,8 +70,8 @@ private:
 
 class DotEdge : public Writable {
 public:
-	DotEdge(std::string label, DotNode* source, DotNode* target)
-	: label_(label), source_(source), target_(target) {}
+	DotEdge(DotNode* source, DotNode* target, std::string label = "")
+	: label_(label), source_(source), target_(target), style_(DotStyle_Solid), color_(DotColor_Black) {}
 	~DotEdge() {}
 
 	void ToStream(FILE* file);

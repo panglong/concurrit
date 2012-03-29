@@ -38,11 +38,15 @@ namespace concurrit {
 /********************************************************************************/
 
 void DotGraph::AddNode(DotNode* node) {
-	safe_assert(nodes_.find(node->id_) == nodes_.end());
-	if(node->id_ < 0) {
-		node->id_ = nodes_.size();
+	DotNodeMap::iterator itr = nodes_.find(node->id_);
+	if(itr == nodes_.end()) {
+		if(node->id_ < 0) {
+			node->id_ = nodes_.size();
+		}
+		nodes_[node->id_] = node;
+	} else {
+		safe_assert(itr->second == node);
 	}
-	nodes_[node->id_] = node;
 }
 
 /********************************************************************************/
@@ -68,13 +72,14 @@ DotGraph::~DotGraph() {
 	for(DotNodeMap::iterator itr = nodes_.begin(); itr != nodes_.end(); ++itr) {
 		DotNode* node = itr->second;
 		delete CHECK_NOTNULL(node);
-		nodes_.erase(itr);
 	}
+	nodes_.clear();
 
-	for(DotEdgeList::iterator itr = edges_.begin(); itr < edges_.end(); itr = edges_.erase(itr)) {
+	for(DotEdgeList::iterator itr = edges_.begin(); itr < edges_.end(); ++itr) {
 		DotEdge* edge = *itr;
 		delete CHECK_NOTNULL(edge);
 	}
+	edges_.clear();
 }
 
 
@@ -82,7 +87,7 @@ DotGraph::~DotGraph() {
 
 void DotGraph::Show(const char* filename /*= NULL*/) {
 	if(filename == NULL) {
-		filename = "/tmp/g.dot";
+		filename = "/tmp/graph.dot";
 	}
 
 	WriteToFile(filename);
