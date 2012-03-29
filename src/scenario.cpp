@@ -1187,9 +1187,6 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 	do { // we loop until either we get hold of and process the current node in the execution tree
 
-		// TODO(elmas): this may fail for coarse transitions!!!
-		safe_assert(current->current_node() == NULL);
-
 		// new element to be used when the current node is consumed
 		ChildLoc newnode = {NULL, -1};
 
@@ -1209,13 +1206,19 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		//=================================================================
 		VLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
 		// get the node
-		ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_FULL);
+		ExecutionTree* node = current->current_node();
+		if(node != NULL){
+			// only multi-transition nodes can live across transitions, otherwise current_node must be NULL
+			safe_assert(INSTANCEOF(current->current_node(), MultiTransitionNode*));
+		} else {
+			node = exec_tree_.AcquireRef(EXIT_ON_FULL);
 
-		// if end_node, exit immediatelly
-		if(exec_tree_.REF_ENDTEST(node)) {
-			// uncontrolled mode, but the mode is set by main, so just ignore the rest
-			// no need to release node, because AcquireRef does not overwrite end nodes.
-			return;
+			// if end_node, exit immediatelly
+			if(exec_tree_.REF_ENDTEST(node)) {
+				// uncontrolled mode, but the mode is set by main, so just ignore the rest
+				// no need to release node, because AcquireRef does not overwrite end nodes.
+				return;
+			}
 		}
 
 		safe_assert(!exec_tree_.REF_EMPTY(node) && !exec_tree_.REF_LOCKED(node));
@@ -1236,7 +1239,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 				Coroutine* selected_thread = current; // initialize to current
 
 				// first look at the thread var
-				ThreadVarPtr var = trans->var();
+				ThreadVarPtr& var = trans->var();
 				if(var != NULL) {
 					selected_thread = var->thread();
 					safe_assert(selected_thread != NULL);
@@ -1251,7 +1254,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 					TransitionPredicate* pred = trans->pred();
 
 					trans_constraints_.push_back(pred);
-					tval = trans_constraints_.EvalPreState();
+					tval = trans_constraints_.EvalPreState(current);
 					trans_constraints_.pop_back();
 
 					if(tval == TPTRUE) {
@@ -1287,8 +1290,15 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 					safe_assert(!done);
 
 				} else {
-					// TODO(elmas): others are not supported yet
-					safe_assert(false);
+					TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
+					if(truntil != NULL) {
+
+
+
+					} else {
+						// TODO(elmas): others are not supported yet
+						safe_assert(false);
+					}
 				}
 			}
 		}
@@ -1355,7 +1365,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 			TransitionPredicate* pred = trans->pred();
 
 			trans_constraints_.push_back(pred);
-			bool ret = trans_constraints_.EvalPostState();
+			bool ret = trans_constraints_.EvalPostState(current);
 			trans_constraints_.pop_back();
 
 			tval = (ret ? TPTRUE : TPFALSE);

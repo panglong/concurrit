@@ -39,6 +39,8 @@
 
 namespace concurrit {
 
+class Coroutine;
+
 /********************************************************************************/
 
 class ThreadVar {
@@ -68,8 +70,15 @@ public:
 	TransitionPredicate() {}
 	virtual ~TransitionPredicate() {}
 
-	virtual TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) = 0;
-	virtual bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) = 0;
+	virtual TPVALUE EvalPreState(Coroutine* t = NULL) = 0;
+	virtual bool EvalPostState(Coroutine* t = NULL) = 0;
+
+	TPVALUE EvalPreState(const ThreadVarPtr& var) {
+		return EvalPreState(var->thread());
+	}
+	bool EvalPostState(const ThreadVarPtr& var) {
+		return EvalPostState(var->thread());
+	}
 
 	static TransitionPredicate* True();
 	static TransitionPredicate* False();
@@ -88,16 +97,16 @@ class TrueTransitionPredicate : public TransitionPredicate {
 public:
 	TrueTransitionPredicate() : TransitionPredicate() {}
 	~TrueTransitionPredicate() {}
-	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPTRUE; }
-	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPTRUE; }
+	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPTRUE; }
+	bool EvalPostState(Coroutine* t = NULL) { return TPTRUE; }
 };
 
 class FalseTransitionPredicate : public TransitionPredicate {
 public:
 	FalseTransitionPredicate() : TransitionPredicate() {}
 	~FalseTransitionPredicate() {}
-	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPFALSE; }
-	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPFALSE; }
+	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPFALSE; }
+	bool EvalPostState(Coroutine* t = NULL) { return TPFALSE; }
 };
 
 /********************************************************************************/
@@ -111,8 +120,8 @@ class NotTransitionPredicate : public TransitionPredicate {
 public:
 	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(pred) {}
 	~NotTransitionPredicate() { if(pred_ != NULL) delete pred_; }
-	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) { return TPNOT(pred_->EvalPreState(t)); }
-	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) { return !(pred_->EvalPostState(t)); }
+	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPNOT(pred_->EvalPreState(t)); }
+	bool EvalPostState(Coroutine* t = NULL) { return !(pred_->EvalPostState(t)); }
 private:
 	DECL_FIELD(TransitionPredicate*, pred)
 };
@@ -141,7 +150,7 @@ public:
 		}
 	}
 
-	TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) {
+	TPVALUE EvalPreState(Coroutine* t = NULL) {
 		safe_assert(!empty());
 		TPVALUE v = (op_ == NAryAND) ? TPTRUE : TPFALSE;
 		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
@@ -156,7 +165,7 @@ public:
 		return v;
 	}
 
-	bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) {
+	bool EvalPostState(Coroutine* t = NULL) {
 		safe_assert(!empty());
 		bool v = (op_ == NAryAND) ? true : false;
 		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
@@ -185,6 +194,9 @@ public:
 
 	virtual ~TransitionConstraint();
 
+	virtual TPVALUE EvalPreState(Coroutine* t = NULL) = 0;
+	virtual bool EvalPostState(Coroutine* t = NULL) = 0;
+
 private:
 	DECL_FIELD(Scenario*, scenario)
 };
@@ -198,10 +210,10 @@ public:
 
 	~TransitionConstraintAll() { if(pred_ != NULL) delete pred_; }
 
-	virtual TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) {
+	virtual TPVALUE EvalPreState(Coroutine* t = NULL) {
 		return pred_->EvalPreState(t);
 	}
-	virtual bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) {
+	virtual bool EvalPostState(Coroutine* t = NULL) {
 		return pred_->EvalPostState(t);
 	}
 
@@ -219,7 +231,7 @@ public:
 
 	~TransitionConstraintFirst() {}
 
-	virtual TPVALUE EvalPreState(const ThreadVarPtr& t = ThreadVarPtr()) {
+	virtual TPVALUE EvalPreState(Coroutine* t = NULL) {
 		if(!done_) {
 			done_ = true;
 			return pred_->EvalPreState(t);
@@ -228,7 +240,7 @@ public:
 		}
 	}
 
-	virtual bool EvalPostState(const ThreadVarPtr& t = ThreadVarPtr()) {
+	virtual bool EvalPostState(Coroutine* t = NULL) {
 		if(!done_) {
 			done_ = true;
 			return pred_->EvalPostState(t);

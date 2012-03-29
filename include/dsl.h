@@ -263,10 +263,23 @@ private:
 
 /********************************************************************************/
 
-class TransferUntilNode : public ExecutionTree {
+class MultiTransitionNode : public ExecutionTree {
+public:
+	MultiTransitionNode(ExecutionTree* parent = NULL, int num_children = 1)
+	: ExecutionTree(parent, num_children) {}
+
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "MultiTransitionNode.");
+		ExecutionTree::ToStream(file);
+	}
+};
+
+/********************************************************************************/
+
+class TransferUntilNode : public MultiTransitionNode {
 public:
 	TransferUntilNode(const ThreadVarPtr& var, TransitionPredicate* pred, ExecutionTree* parent = NULL)
-	: ExecutionTree(parent, 1), var_(var), pred_(pred) {}
+	: MultiTransitionNode(parent, 1), var_(var), pred_(pred) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransferUntilNode.");
