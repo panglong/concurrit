@@ -116,6 +116,30 @@ extern FalseTransitionPredicate __false_transition_predicate__;
 
 /********************************************************************************/
 
+class PreStateTransitionPredicate : public TransitionPredicate {
+public:
+	PreStateTransitionPredicate() : TransitionPredicate(), result_(TPINVALID) {}
+	~PreStateTransitionPredicate() {}
+
+	// function to overrride
+	virtual bool EvalState(Coroutine* t = NULL) = 0;
+
+	TPVALUE EvalPreState(Coroutine* t = NULL) {
+		bool result = EvalState(t);
+		result_ = (result ? TPTRUE : TPFALSE);
+		return result_;
+	}
+
+	bool EvalPostState(Coroutine* t = NULL) {
+		safe_assert(result_ == TPTRUE || result_ == TPFALSE);
+		return (result_ == TPTRUE);
+	}
+private:
+	DECL_FIELD(TPVALUE, result)
+};
+
+/********************************************************************************/
+
 class NotTransitionPredicate : public TransitionPredicate {
 public:
 	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(pred) {}

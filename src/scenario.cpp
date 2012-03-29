@@ -1300,7 +1300,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 						safe_assert(selected_thread != NULL);
 
 						if(selected_thread != current) {
-							// we are not supposed to take this transition, so retry
+							// we are not supposed to take this transition, so put it back and retry
 							tval = TPFALSE;
 						} else {
 							// this is the selected thread
@@ -1385,7 +1385,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		// value determining what to with the transition
 		// TPTRUE: continue as normal
 		// TPFALSE: trigger backtrack
-		// TPUNKNOWN: cannot occur
+		// TPUNKNOWN: continue holding the transition node (can occur only for multip-step transitions)
 		TPVALUE tval =  TPTRUE;
 
 		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
@@ -1454,6 +1454,12 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 			exec_tree_.ReleaseRef(node);
 			// trigger backtrack, causes current execution to end
 			exec_tree_.EndWithBacktrack(current, "AfterControlledTransition");
+			break;
+
+		case TPUNKNOWN: // continue holding the transition node
+			VLOG(2) << "Unknown, continuing holding the transition";
+			safe_assert(INSTANCEOF(node, MultiTransitionNode*));
+			current->set_current_node(node);
 			break;
 
 		default:
