@@ -1293,7 +1293,36 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 					TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
 					if(truntil != NULL) {
 
+						// first look at the thread var
+						ThreadVarPtr& var = truntil->var();
+						safe_assert(var != NULL);
+						Coroutine* selected_thread = var->thread();
+						safe_assert(selected_thread != NULL);
 
+						if(selected_thread != current) {
+							// we are not supposed to take this transition, so retry
+							tval = TPFALSE;
+						} else {
+							// this is the selected thread
+							// evaluate transition predicate
+							TransitionPredicate* pred = trans->pred();
+
+							trans_constraints_.push_back(pred);
+							tval = trans_constraints_.EvalPreState(current);
+							trans_constraints_.pop_back();
+
+							if(tval == TPFALSE) {
+								// continue holding the node
+								// the following causes holding the node in the switch below
+								tval = TPUNKNOWN;
+							}
+							else if(tval == TPTRUE) {
+								VLOG(2) << "Will consume the current transfer-until";
+								newnode = {truntil, 0}; // newnode is the next of node
+							}
+						}
+
+						done = (tval == TPTRUE) || (tval == TPUNKNOWN);
 
 					} else {
 						// TODO(elmas): others are not supported yet
@@ -1378,8 +1407,33 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		}
 		else {
 			safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
-			// TODO(elmas): others are not supported yet
-			safe_assert(false);
+
+			TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
+			if(truntil != NULL) {
+
+				// evaluate transition predicate
+				TransitionPredicate* pred = trans->pred();
+
+				trans_constraints_.push_back(pred);
+				bool ret = trans_constraints_.EvalPostState(current);
+				trans_constraints_.pop_back();
+
+				tval = (ret ? TPTRUE : TPFALSE);
+
+				if(tval == TPFALSE) {
+					// continue holding the node
+					// the following causes holding the node in the switch below
+					tval = TPUNKNOWN;
+				}
+				else if(tval == TPTRUE) {
+					VLOG(2) << "Will consume the current transfer-until";
+					newnode = {truntil, 0}; // newnode is the next of node
+				}
+
+			} else {
+				// TODO(elmas): others are not supported yet
+				safe_assert(false);
+			}
 		}
 
 		//=================================================================

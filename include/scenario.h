@@ -148,6 +148,7 @@ public:
 		AfterControlledTransition(current);
 	}
 
+	/******************************************************************/
 
 	bool DSLChoice();
 	void DSLTransition(TransitionPredicate* pred, Coroutine* thread);
