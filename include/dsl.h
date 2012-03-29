@@ -217,7 +217,7 @@ private:
 		THREADID tid = co->coid();
 		int child_index = child_index_by_tid(tid);
 		if(child_index < 0) {
-			const int sz = children_.size();
+			const size_t sz = children_.size();
 			safe_assert(idxToThreadMap_.size() == sz);
 			tidToIdxMap_[tid] = sz;
 			children_.push_back(NULL);
@@ -249,7 +249,7 @@ private:
 class TransitionNode : public ExecutionTree {
 public:
 	TransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
-	: ExecutionTree(parent, 1), pred_(pred), thread_(NULL), var_(var) {}
+	: ExecutionTree(parent, 1), pred_(pred), var_(var), thread_(NULL) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransitionNode.");
@@ -257,18 +257,23 @@ public:
 	}
 private:
 	DECL_FIELD(TransitionPredicate*, pred)
-	DECL_FIELD(Coroutine*, thread)
 	DECL_FIELD(ThreadVarPtr, var)
+	DECL_FIELD(Coroutine*, thread) // keep performing thread here
 };
 
 /********************************************************************************/
 
 class TransferUntilNode : public ExecutionTree {
 public:
-	TransferUntilNode(TransitionPredicate* pred, ExecutionTree* parent = NULL)
-	: ExecutionTree(parent, 1), pred_(pred) {}
+	TransferUntilNode(const ThreadVarPtr& var, TransitionPredicate* pred, ExecutionTree* parent = NULL)
+	: ExecutionTree(parent, 1), var_(var), pred_(pred) {}
 
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "TransferUntilNode.");
+		ExecutionTree::ToStream(file);
+	}
 private:
+	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(TransitionPredicate*, pred)
 };
 

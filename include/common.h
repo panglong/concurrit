@@ -240,6 +240,10 @@ inline void short_sleep(long nanoseconds, bool continue_on_signal) {
 
 /********************************************************************************/
 
+const long MaxWaitTimeUSecs = 999999L;
+
+/********************************************************************************/
+
 class Config {
 public:
 	static bool CanEnableDisablePinTool;

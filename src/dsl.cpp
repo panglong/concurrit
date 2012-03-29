@@ -195,7 +195,7 @@ void ExecutionTreeManager::Restart() {
 // this always sets the timeout
 ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long timeout_usec /*= -1*/) {
 	safe_assert(Coroutine::Current()->IsMain());
-	if(timeout_usec < 0) timeout_usec = 999999L;
+	if(timeout_usec < 0) timeout_usec = MaxWaitTimeUSecs;
 	ExecutionTree* node = AcquireRef(mode, timeout_usec);
 	if(REF_ENDTEST(node)) {
 		// main has not ended the execution, so this must be due to an exception by another thread

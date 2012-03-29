@@ -92,9 +92,9 @@ public:
 	~FuncCallTransitionInfo(){}
 private:
 	DECL_FIELD(void*, addr)
-	DECL_FIELD(bool, direct)
 	DECL_FIELD(SourceLocation*, loc_src)
 	DECL_FIELD(SourceLocation*, loc_target)
+	DECL_FIELD(bool, direct)
 };
 
 /********************************************************************************/

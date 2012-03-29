@@ -1503,7 +1503,11 @@ bool Scenario::DSLChoice() {
 
 /********************************************************************************/
 
-void Scenario::DSLTransition(TransitionPredicate* pred, ThreadVarPtr var /*= boost::shared_ptr()*/) {
+void Scenario::DSLTransition(TransitionPredicate* pred, Coroutine* thread) {
+	DSLTransition(pred, ThreadVarPtr(new ThreadVar(thread)));
+}
+
+void Scenario::DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var /*= boost::shared_ptr()*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	if(group_.IsAllEnded()) {
@@ -1539,6 +1543,50 @@ void Scenario::DSLTransition(TransitionPredicate* pred, ThreadVarPtr var /*= boo
 
 	VLOG(2) << "Added DSLTransition.";
 }
+
+/********************************************************************************/
+
+void Scenario::DSLTransferUntil(Coroutine* thread, TransitionPredicate* pred) {
+	DSLTransferUntil(ThreadVarPtr(new ThreadVar(thread)), pred);
+}
+
+void Scenario::DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pred) {
+	VLOG(2) << "Adding DSLTransferUntil";
+
+	if(group_.IsAllEnded()) {
+		TRIGGER_BACKTRACK(THREADS_ALLENDED);
+	}
+
+	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+
+	TransferUntilNode* trans = NULL;
+	node = exec_tree_.GetLastInPath();
+	if(node != NULL) {
+		safe_assert(exec_tree_.GetLastInPath().check(node));
+		trans = ASINSTANCEOF(node, TransferUntilNode*);
+		safe_assert(trans != NULL);
+		if(trans->covered()) {
+			// release lock
+			exec_tree_.ReleaseRef(NULL);
+			// backtrack
+			TRIGGER_BACKTRACK(TREENODE_COVERED);
+		}
+		trans->set_var(var); // should set the variabl again, because var is a local object
+	} else {
+		trans = new TransferUntilNode(var, pred);
+	}
+
+	safe_assert(!trans->covered());
+
+	// not covered yet
+
+	// set atomic_ref to point to trans
+	exec_tree_.ReleaseRef(trans);
+
+	VLOG(2) << "Added DSLTransferUntil.";
+}
+
 
 /********************************************************************************/
 

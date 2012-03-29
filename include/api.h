@@ -227,7 +227,7 @@ public:
 
 // exists thread
 
-#define EXISTS(t)	ThreadVarPtr t = boost::shared_ptr<ThreadVar>(new ThreadVar()); \
+#define EXISTS(t)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
 					DSLSelectThread(t);
 
 

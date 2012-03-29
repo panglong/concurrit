@@ -5,8 +5,8 @@ using namespace concurrit;
 
 #include "boundedBuffer.h"
 
-#define PRODUCER_SUM  5
-#define CONSUMER_SUM  5
+#define PRODUCER_SUM  1
+#define CONSUMER_SUM  1
 
 class BBScenario : public Scenario {
 public:
@@ -36,6 +36,9 @@ public:
 	thread_t producers[PRODUCER_SUM];
 	thread_t consumers[CONSUMER_SUM];
 
+	coroutine_t co_producers[PRODUCER_SUM];
+	coroutine_t co_consumers[CONSUMER_SUM];
+
 	void TestCase() {
 
 		TEST_FORALL();
@@ -47,7 +50,7 @@ public:
 			producers[i].id =  i;
 			producers[i].bbuf = buffer;
 //			pthread_create(&producers[i].pid, NULL, producer_routine,  (void*)&producers[i]);
-			coroutine_t co = CREATE_THREAD(i, producer_routine, (void*)&producers[i], true);
+			co_producers[i] = CREATE_THREAD(i, producer_routine, (void*)&producers[i], true);
 		}
 
 //		printf("Created producer threads\n");
@@ -57,7 +60,7 @@ public:
 			consumers[i].id =  i;
 			consumers[i].bbuf = buffer;
 //			pthread_create(&consumers[i].pid, NULL, consumer_routine,  (void*)&consumers[i]);
-			coroutine_t co = CREATE_THREAD(PRODUCER_SUM+i, consumer_routine, (void*)&consumers[i], true);
+			co_consumers[i] = CREATE_THREAD(PRODUCER_SUM+i, consumer_routine, (void*)&consumers[i], true);
 		}
 
 //		printf("Created consumer threads\n");
@@ -98,9 +101,10 @@ public:
 //		for(int j = 0; j < 4; ++j)
 		{
 				EXISTS(t);
-				DSLTransition(TransitionPredicate::True(), t);
+//				DSLTransition(TransitionPredicate::True(), co_producers[0]);
+//				DSLTransferUntil(co_producers[0], TransitionPredicate::True());
 
-//				DSLTransition(TransitionPredicate::False());
+				DSLTransition(TransitionPredicate::True());
 		}
 //		{
 //			EXISTS(t);
