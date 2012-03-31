@@ -1,3 +1,4 @@
+- static variable koy, ayni dslxxx'den olusturmak icin.
 - pinden gelen before ve after transition callari standard olacak, sadece aux statei degistiren callbackler de olacak.
 - state'i map yap, daha efficient olabilir.
 - dot file classlarinin renk/stil gibi ozelliklerini de class constructor parametrelere ekle

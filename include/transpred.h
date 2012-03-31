@@ -281,8 +281,152 @@ private:
 /********************************************************************************/
 /********************************************************************************/
 
+/********************************************************************************/
+
+template<typename T>
+class AuxVar0 {
+	typedef std::map<T, AuxVar0<T>*> M;
+public:
+	AuxVar0(T value) : value_(value) {}
+	~AuxVar0(){}
+
+	operator T() {
+		return get();
+	}
+
+	TransitionPredicate* operator ()(const T& value) {
+		return this->operator()(new AuxVar0(value));
+	}
+
+	TransitionPredicate* operator ()(AuxVar0* var);
+
+	AuxVar0& operator = (T value) {
+		value_ = value;
+		return this;
+	}
+
+protected:
+	T get() {
+		return value_;
+	}
+
+	void set(const T& value) {
+		value_ = value;
+	}
+
+private:
+	DECL_FIELD(T, value)
+};
+
+/********************************************************************************/
+
+template<typename T>
+class AuxVar0Pre : public PreStateTransitionPredicate {
+public:
+	AuxVar0Pre(AuxVar0<T>* var1, AuxVar0<T>* var2) : PreStateTransitionPredicate(), var1_(var1), var2_(var2) {}
+	~AuxVar0Pre(){}
+
+	bool EvalState(Coroutine* t = NULL) {
+		return var1_->get() == var2_->get();
+	}
+
+private:
+	DECL_FIELD(AuxVar0<T>*, var1)
+	DECL_FIELD(AuxVar0<T>*, var2)
+};
 
 
+template<typename T>
+TransitionPredicate* AuxVar0<T>::operator ()(AuxVar0* var) {
+	return new AuxVar0Pre<T>(this, var);
+}
+
+
+/********************************************************************************/
+
+
+template<typename K, typename T, K undef_key_, T undef_value_>
+class AuxVar1 {
+protected:
+	typedef std::map<K, T> M;
+public:
+
+	AuxVar1() {}
+	~AuxVar1(){}
+
+	TransitionPredicate* operator ()(const K& key, const T& value) {
+		return this->operator()(this, new AuxVar0<K>(key), new AuxVar0<T>(value));
+	}
+
+	TransitionPredicate* operator ()(const K& key) {
+		return this->operator()(this, new AuxVar0<K>(key), NULL);
+	}
+
+	TransitionPredicate* operator ()(AuxVar0<K>* key = NULL, AuxVar0<K>* value = NULL);
+
+protected:
+
+	T get(const K& key) {
+		typename M::iterator itr = map_.find(key);
+		if(itr == map_.end()) {
+			return undef_value_;
+		}
+		return itr->second;
+	}
+
+	bool isset(const K& key = undef_key_) {
+		if(key == undef_key_) {
+			return !map_.empty();
+		}
+		typename M::iterator itr = map_.find(key);
+		return (itr != map_.end());
+	}
+
+	void set(const K& key = undef_key_, const T& value = undef_value_) {
+		map_[key] = value;
+	}
+
+	void reset() {
+		map_.clear();
+	}
+
+private:
+	DECL_FIELD(M, map)
+};
+
+/********************************************************************************/
+
+template<typename K, typename T,  K undef_key_, T undef_value_>
+class AuxVar1Pre : public PreStateTransitionPredicate {
+public:
+	AuxVar1Pre(AuxVar1<K,T,undef_key_,undef_value_>* var, AuxVar0<K>* key, AuxVar0<T>* value)
+	: PreStateTransitionPredicate(), var_(var), key_(key), value_(value) {}
+	~AuxVar1Pre(){}
+
+	bool EvalState(Coroutine* t = NULL) {
+		safe_assert(var_ != NULL);
+		if(key_ == NULL) {
+			safe_assert(value_ == NULL);
+			return var_->isset();
+		} else if(value_ == NULL) {
+			return var_->isset(key_->get());
+		} else {
+			return var_->get(key_->get()) == value_->get();
+		}
+	}
+
+private:
+	AuxVar1<K,T,undef_key_,undef_value_>* var_;
+	DECL_FIELD(AuxVar0<K>*, key)
+	DECL_FIELD(AuxVar0<T>*, value)
+};
+
+/********************************************************************************/
+
+template<typename K, typename T, K undef_key_, T undef_value_>
+TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxVar0<K>* key /*= NULL*/, AuxVar0<K>* value /*= NULL*/) {
+	return new AuxVar1Pre<K,T,undef_key_,undef_value_>(this, key, value);
+}
 
 } // end namespace
 
