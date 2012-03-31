@@ -117,6 +117,17 @@ ExecutionTree* ExecutionTree::child(int i /*= 0*/) {
 
 /*************************************************************************************/
 
+int ExecutionTree::index_of(ExecutionTree* node) {
+	for(int i = 0, e = children_.size(); i < e; ++i) {
+		if(children_[i] == node) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+/*************************************************************************************/
+
 bool ExecutionTree::child_covered(int i /*= 0*/) {
 	safe_assert(BETWEEN(0, i, children_.size()-1));
 	ExecutionTree* c = child(i);
@@ -221,8 +232,7 @@ ExecutionTreeManager::ExecutionTreeManager() {
 
 void ExecutionTreeManager::Restart() {
 	// sets root as the current parent, and adds it to the path
-	current_path_.clear();
-	AddToPath(&root_node_, 0);
+	current_node_ = {&root_node_, 0};
 
 	SetRef(NULL);
 }
@@ -348,20 +358,54 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 /*************************************************************************************/
 
 void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
-	if(!current_path_.empty()) {
-		ChildLoc parent = GetLastInPath();
-		if(REF_ENDTEST(node) && parent.get() != NULL) {
-			// set old_root of end node
-			safe_assert(!REF_ENDTEST(parent.get()));
-			static_cast<EndNode*>(node)->set_old_root(parent.get());
-		} else {
-			// if node is not end node, the we are either overwriting NULL or the same value
-			safe_assert(parent.check(NULL) || parent.check(node));
-		}
-		parent.set(node); // also sets node's parent
+	safe_assert(!current_node_.empty());
+
+	ChildLoc parent = GetLastInPath();
+	if(REF_ENDTEST(node) && parent.get() != NULL) {
+		// set old_root of end node
+		safe_assert(!REF_ENDTEST(parent.get()));
+		static_cast<EndNode*>(node)->set_old_root(parent.get());
+	} else {
+		// if node is not end node, the we are either overwriting NULL or the same value
+		safe_assert(parent.check(NULL) || parent.check(node));
 	}
+	parent.set(node); // also sets node's parent
+
 	// put node to the path
-	current_path_.push_back({node, child_index});
+	current_node_ = {node, child_index};
+}
+
+/*************************************************************************************/
+
+ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTreePath* path /*= NULL*/) {
+	if(path == NULL) {
+		path = new ExecutionTreePath();
+	}
+	safe_assert(path->empty());
+	safe_assert(!node.empty());
+
+	ExecutionTree* p = NULL;
+	while(true) {
+		path->insert(path->begin(), loc);
+		ExecutionTree* n = loc.parent();
+		ExecutionTree* p = n->parent();
+		safe_assert(p != NULL || n == &root_node_);
+		if(p == NULL) {
+			safe_assert(n == &root_node_);
+			break;
+		}
+		int i = p->index_of(n);
+		safe_assert(i >= 0);
+		loc = {p, i};
+	}
+
+	return path;
+}
+
+/*************************************************************************************/
+
+ExecutionTreePath* ExecutionTreeManager::ComputeCurrentPath(ExecutionTreePath* path /*= NULL*/) {
+	return ComputePath(path, current_node_);
 }
 
 /*************************************************************************************/
@@ -382,23 +426,20 @@ void ExecutionTreeManager::SetRef(ExecutionTree* node) {
 /*************************************************************************************/
 
 ChildLoc ExecutionTreeManager::GetLastInPath() {
-	safe_assert(!current_path_.empty());
-	return current_path_.back();
+	safe_assert(!current_node_.empty());
+	return current_node_;
 }
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::CheckCompletePath(std::vector<ChildLoc>* path /*= NULL*/) {
-	if(path == NULL) {
-		path = &current_path_;
-	}
-
+bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path /*= NULL*/) {
 	safe_assert(path->size() >= 2);
 	safe_assert((*path)[0].parent() == &root_node_);
+	safe_assert(path->back() == current_node_);
 	safe_assert(REF_ENDTEST(path->back()));
 	safe_assert(path->back().parent() == path->back());
 	safe_assert(GetRef() != NULL);
-	safe_assert(path->back() == GetRef());
+	safe_assert(path->back().get() == GetRef());
 
 	return true;
 }

@@ -258,7 +258,9 @@ Result* Scenario::Explore() {
 					}
 
 					if(ConcurritExecutionMode == PREEMPTIVE) {
-						printf("Explored new path of length %d\n", exec_tree_.current_path()->size());
+						ExecutionTreePath path;
+						exec_tree_.ComputeCurrentPath(&path);
+						printf("Explored new path of length %d\n", path.size());
 					}
 
 					ASINSTANCEOF(result, ForallResult*)->AddSchedule(schedule_->Clone());
@@ -1500,15 +1502,17 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 
 	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
 
-	ExecutionTree* root = exec_tree_.root_node();
-	std::vector<ChildLoc>* path = exec_tree_.current_path();
-	safe_assert(path != NULL && exec_tree_.CheckCompletePath(path));
+	ExecutionTreePath path;
+	exec_tree_.ComputeCurrentPath(&path);
+	safe_assert(exec_tree_.CheckCompletePath(&path));
 
-	const int sz = path->size();
+	ExecutionTree* root = exec_tree_.root_node();
+
+	const int sz = path.size();
 	//===========================
 	// make the parent of last element (if SelectThreadNode) covered, because there is no way to cover it
 	if(reason == THREADS_ALLENDED && sz > 1) {
-		ChildLoc last = (*path)[sz-2]; // not the end node but the previous node
+		ChildLoc last = path[sz-2]; // not the end node but the previous node
 		ExecutionTree* last_parent = last.parent();
 		if(INSTANCEOF(last_parent, SelectThreadNode*)) {
 			last_parent->set_covered(true);
@@ -1518,9 +1522,9 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
 	for(int i = sz-2; i >= 0; --i) {
-		ChildLoc element = (*path)[i];
+		ChildLoc element = path[i];
 		safe_assert(!element.empty());
-		safe_assert(element.check((*path)[i+1].parent()));
+		safe_assert(element.check(path[i+1].parent()));
 		ExecutionTree* node = element.parent();
 		node->ComputeCoverage(this, false); //  do not recurse, only use immediate children
 	}

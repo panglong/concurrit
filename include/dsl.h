@@ -71,6 +71,7 @@ public:
 	void InitChildren(int n);
 
 	ExecutionTree* child(int i = 0);
+	int index_of(ExecutionTree* node);
 
 	void add_child(ExecutionTree* node);
 
@@ -136,6 +137,18 @@ public:
 
 	bool empty() {
 		return parent_ == NULL || child_index_ < 0;
+	}
+
+	bool operator == (const ChildLoc& other) {
+		return this->parent_ == other.parent_ && this->child_index_ == other.child_index_;
+	}
+
+	bool operator != (const ChildLoc& other) {
+		return !(this->operator ==(other));
+	}
+
+	static ChildLoc EMPTY() {
+		return {NULL, -1};
 	}
 private:
 	DECL_FIELD(ExecutionTree*, parent)
@@ -377,6 +390,8 @@ private:
 
 /********************************************************************************/
 
+typedef std::vector<ChildLoc> ExecutionTreePath;
+
 enum AcquireRefMode { EXIT_ON_EMPTY = 1, EXIT_ON_FULL = 2, EXIT_ON_LOCK = 3};
 
 class ExecutionTreeManager {
@@ -405,12 +420,14 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 
 	ChildLoc GetLastInPath();
 	void AddToPath(ExecutionTree* node, int child_index);
+	ExecutionTreePath* ComputePath(ChildLoc loc, ExecutionTreePath* path = NULL);
+	ExecutionTreePath* ComputeCurrentPath(ExecutionTreePath* path = NULL);
 
 	void EndWithSuccess();
 	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
 	void EndWithBacktrack(Coroutine* current, const std::string& where);
 
-	bool CheckCompletePath(std::vector<ChildLoc>* path = NULL);
+	bool CheckCompletePath(ExecutionTreePath* path = NULL);
 
 	void SaveDotGraph(const char* filename);
 
@@ -422,7 +439,7 @@ private:
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(ExecutionTree, lock_node)
-	DECL_FIELD_REF(std::vector<ChildLoc>, current_path)
+	DECL_FIELD_REF(ChildLoc, current_node)
 	DECL_FIELD(unsigned, num_paths)
 
 	ExecutionTreeRef atomic_ref_;
