@@ -382,7 +382,7 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTree
 		path = new ExecutionTreePath();
 	}
 	safe_assert(path->empty());
-	safe_assert(!node.empty());
+	safe_assert(!loc.empty());
 
 	ExecutionTree* p = NULL;
 	while(true) {
@@ -405,7 +405,7 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTree
 /*************************************************************************************/
 
 ExecutionTreePath* ExecutionTreeManager::ComputeCurrentPath(ExecutionTreePath* path /*= NULL*/) {
-	return ComputePath(path, current_node_);
+	return ComputePath(current_node_, path);
 }
 
 /*************************************************************************************/
