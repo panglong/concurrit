@@ -283,11 +283,26 @@ private:
 
 /********************************************************************************/
 
-template<typename T>
-class AuxVar0 {
-	typedef std::map<T, AuxVar0<T>*> M;
+// base class for auxiliary variables
+
+class AuxVar {
 public:
-	AuxVar0(T value) : value_(value) {}
+	AuxVar(const std::string& name) : name_(name) {}
+	virtual ~AuxVar(){}
+
+	virtual void reset() = 0;
+	virtual bool isset() = 0;
+
+private:
+	DECL_FIELD(std::string, name)
+};
+
+/********************************************************************************/
+
+template<typename T, T undef_value_>
+class AuxVar0 : public AuxVar {
+public:
+	AuxVar0(const std::string& name, const T& value = undef_value_) : AuxVar(name), value_(value) {}
 	~AuxVar0(){}
 
 	operator T() {
@@ -305,7 +320,15 @@ public:
 		return this;
 	}
 
-protected:
+	void reset() {
+		set(undef_value_);
+	}
+
+	bool isset() {
+		return value_ != undef_value_;
+	}
+
+	//================================================
 	T get() {
 		return value_;
 	}
@@ -320,10 +343,11 @@ private:
 
 /********************************************************************************/
 
-template<typename T>
+template<typename T, T undef_value_>
 class AuxVar0Pre : public PreStateTransitionPredicate {
+	typedef AuxVar0<T,undef_value_> AuxVarType;
 public:
-	AuxVar0Pre(AuxVar0<T>* var1, AuxVar0<T>* var2) : PreStateTransitionPredicate(), var1_(var1), var2_(var2) {}
+	AuxVar0Pre(AuxVarType* var1, AuxVarType* var2) : PreStateTransitionPredicate(), var1_(var1), var2_(var2) {}
 	~AuxVar0Pre(){}
 
 	bool EvalState(Coroutine* t = NULL) {
@@ -331,40 +355,41 @@ public:
 	}
 
 private:
-	DECL_FIELD(AuxVar0<T>*, var1)
-	DECL_FIELD(AuxVar0<T>*, var2)
+	DECL_FIELD(AuxVarType*, var1)
+	DECL_FIELD(AuxVarType*, var2)
 };
 
 
-template<typename T>
-TransitionPredicate* AuxVar0<T>::operator ()(AuxVar0* var) {
-	return new AuxVar0Pre<T>(this, var);
+template<typename T, T undef_value_>
+TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(AuxVar0* var) {
+	return new AuxVar0Pre<T,undef_value_>(this, var);
 }
 
 
 /********************************************************************************/
 
-
 template<typename K, typename T, K undef_key_, T undef_value_>
-class AuxVar1 {
+class AuxVar1 : public AuxVar {
 protected:
 	typedef std::map<K, T> M;
+	typedef AuxVar0<K,undef_key_> AuxKeyType;
+	typedef AuxVar0<T,undef_value_> AuxValueType;
 public:
 
-	AuxVar1() {}
+	AuxVar1(const std::string& name) : AuxVar(name) {}
 	~AuxVar1(){}
 
 	TransitionPredicate* operator ()(const K& key, const T& value) {
-		return this->operator()(this, new AuxVar0<K>(key), new AuxVar0<T>(value));
+		return this->operator()(this, new AuxKeyType(key), new AuxValueType(value));
 	}
 
 	TransitionPredicate* operator ()(const K& key) {
-		return this->operator()(this, new AuxVar0<K>(key), NULL);
+		return this->operator()(this, new AuxKeyType(key), NULL);
 	}
 
-	TransitionPredicate* operator ()(AuxVar0<K>* key = NULL, AuxVar0<K>* value = NULL);
+	TransitionPredicate* operator ()(AuxKeyType* key = NULL, AuxValueType* value = NULL);
 
-protected:
+	//================================================
 
 	T get(const K& key) {
 		typename M::iterator itr = map_.find(key);
@@ -398,8 +423,11 @@ private:
 
 template<typename K, typename T,  K undef_key_, T undef_value_>
 class AuxVar1Pre : public PreStateTransitionPredicate {
+	typedef AuxVar1<K,T,undef_key_,undef_value_> AuxVarType;
+	typedef AuxVar0<K,undef_key_> AuxKeyType;
+	typedef AuxVar0<T,undef_value_> AuxValueType;
 public:
-	AuxVar1Pre(AuxVar1<K,T,undef_key_,undef_value_>* var, AuxVar0<K>* key, AuxVar0<T>* value)
+	AuxVar1Pre(AuxVarType* var, AuxKeyType* key, AuxValueType* value)
 	: PreStateTransitionPredicate(), var_(var), key_(key), value_(value) {}
 	~AuxVar1Pre(){}
 
@@ -416,15 +444,15 @@ public:
 	}
 
 private:
-	AuxVar1<K,T,undef_key_,undef_value_>* var_;
-	DECL_FIELD(AuxVar0<K>*, key)
-	DECL_FIELD(AuxVar0<T>*, value)
+	DECL_FIELD(AuxVarType*, var)
+	DECL_FIELD(AuxKeyType*, key)
+	DECL_FIELD(AuxValueType*, value)
 };
 
 /********************************************************************************/
 
 template<typename K, typename T, K undef_key_, T undef_value_>
-TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxVar0<K>* key /*= NULL*/, AuxVar0<K>* value /*= NULL*/) {
+TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxKeyType* key /*= NULL*/, AuxValueType* value /*= NULL*/) {
 	return new AuxVar1Pre<K,T,undef_key_,undef_value_>(this, key, value);
 }
 
