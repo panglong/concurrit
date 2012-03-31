@@ -1,3 +1,5 @@
+- pinden gelen before ve after transition callari standard olacak, sadece aux statei degistiren callbackler de olacak.
+- state'i map yap, daha efficient olabilir.
 - dot file classlarinin renk/stil gibi ozelliklerini de class constructor parametrelere ekle
 - execution tree'yi dot dosyasina dump et, grafigini cikart.
 - ENDING diye bir status'a ihtiyac var mi?

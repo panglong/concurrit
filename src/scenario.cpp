@@ -47,6 +47,9 @@ void BeginCounit(int argc /*= -1*/, char **argv /*= NULL*/) {
 	printf("Initializing Concurrit\n");
 
 	Config::ParseCommandLine(argc, argv);
+	if(Config::OnlyShowHelp) {
+		_Exit(EXIT_SUCCESS);
+	}
 
 	// init pth
 //	int pth_init_result = pth_init();

@@ -246,6 +246,7 @@ const long MaxWaitTimeUSecs = 999999L;
 
 class Config {
 public:
+	static bool OnlyShowHelp;
 	static bool CanEnableDisablePinTool;
 	static int ExitOnFirstExecution;
 	static char* SaveDotGraphToFile;
