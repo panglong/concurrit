@@ -172,6 +172,7 @@ void ExecutionTree::ComputeCoverage(Scenario* scenario, bool recurse) {
 
 DotNode* ExecutionTree::UpdateDotGraph(DotGraph* g) {
 	DotNode* node = new DotNode("");
+	g->AddNode(node);
 	for(int i = 0; i < children_.size(); ++i) {
 		ExecutionTree* c = child(i);
 		DotNode* cn = NULL;

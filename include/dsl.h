@@ -187,6 +187,7 @@ public:
 
 	DotNode* UpdateDotGraph(DotGraph* g) {
 		DotNode* node = new DotNode("ChoiceNode");
+		g->AddNode(node);
 		ExecutionTree* c = child(0);
 		DotNode* cn = NULL;
 		if(c != NULL) {
@@ -247,6 +248,7 @@ public:
 
 	DotNode* UpdateDotGraph(DotGraph* g) {
 		DotNode* node = new DotNode("SelectThreadNode");
+		g->AddNode(node);
 		for(int i = 0; i < children_.size(); ++i) {
 			ExecutionTree* c = child(i);
 			DotNode* cn = NULL;
@@ -310,6 +312,7 @@ public:
 
 	DotNode* UpdateDotGraph(DotGraph* g) {
 		DotNode* node = new DotNode("TransitionNode");
+		g->AddNode(node);
 		ExecutionTree* c = child();
 		DotNode* cn = NULL;
 		if(c != NULL) {
@@ -355,6 +358,7 @@ public:
 
 	DotNode* UpdateDotGraph(DotGraph* g) {
 		DotNode* node = new DotNode("TransferUntilNode");
+		g->AddNode(node);
 		ExecutionTree* c = child();
 		DotNode* cn = NULL;
 		if(c != NULL) {

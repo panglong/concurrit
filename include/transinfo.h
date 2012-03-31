@@ -124,6 +124,32 @@ private:
 
 /********************************************************************************/
 
+//typedef std::string AuxKeyType;
+//typedef uint64_t AuxValueType;
+//typedef std::map<AuxKeyType, AuxValueType> AuxMap;
+//
+//class AuxState {
+//public:
+//	AuxState(){}
+//	~AuxState(){}
+//
+//	template<typename T>
+//	void add(AuxKeyType key, T value) {
+//		if(sizeof(T) == sizeof(AuxValueType)) {
+//			map_[]
+//		} else {
+//
+//		}
+//	}
+//
+//	void
+//
+//private:
+//	DECL_FIELD(AuxMap, map)
+//};
+
+/********************************************************************************/
+
 } // namespace
 
 
