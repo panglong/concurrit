@@ -100,11 +100,11 @@ public:
 		while(STAR)
 //		for(int j = 0; j < 4; ++j)
 		{
-//				EXISTS(t);
+				EXISTS(t);
 //				DSLTransition(TransitionPredicate::True(), co_producers[0]);
 //				DSLTransferUntil(co_producers[0], TransitionPredicate::True());
 
-				DSLTransition(TransitionPredicate::True());
+				DSLTransition(TransitionPredicate::True(), t);
 		}
 //		{
 //			EXISTS(t);

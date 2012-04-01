@@ -47,7 +47,7 @@ class Scenario;
 class Coroutine;
 
 /********************************************************************************/
-
+class ChildLoc;
 class ExecutionTree;
 typedef std::atomic_address ExecutionTreeRef;
 typedef std::vector<ExecutionTree*> ExecutionTreeList;
@@ -86,6 +86,8 @@ public:
 		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
 	}
 
+	void PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* current_nodes);
+
 	virtual DotNode* UpdateDotGraph(DotGraph* g);
 	DotGraph* CreateDotGraph();
 
@@ -97,6 +99,20 @@ private:
 	DECL_STATIC_FIELD(int, num_nodes)
 
 	friend class ExecutionTreeManager;
+};
+
+/********************************************************************************/
+
+class TransitionNode : public ExecutionTree {
+public:
+	TransitionNode(ExecutionTree* parent = NULL, int num_children = 0) : ExecutionTree(parent, num_children) {}
+	virtual ~TransitionNode(){}
+};
+
+class SelectionNode : public ExecutionTree {
+public:
+	SelectionNode(ExecutionTree* parent = NULL, int num_children = 0) : ExecutionTree(parent, num_children) {}
+	virtual ~SelectionNode(){}
 };
 
 /********************************************************************************/
@@ -189,9 +205,9 @@ private:
 
 /********************************************************************************/
 
-class ChoiceNode : public ExecutionTree {
+class ChoiceNode : public SelectionNode {
 public:
-	ChoiceNode(ExecutionTree* parent = NULL) : ExecutionTree(parent, 2) {}
+	ChoiceNode(ExecutionTree* parent = NULL) : SelectionNode(parent, 2) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "ChoiceNode.");
@@ -226,17 +242,29 @@ public:
 
 /********************************************************************************/
 
-class SelectThreadNode : public ExecutionTree {
+class SelectThreadNode : public SelectionNode {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
 	SelectThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL)
-	: ExecutionTree(parent, 0), var_(var) {
+	: SelectionNode(parent, 0), var_(var) {
 		safe_assert(var_->thread() == NULL);
 	}
 	~SelectThreadNode() {}
 
 	ChildLoc set_selected_thread(Coroutine* co) {
 		int child_index = add_or_get_thread(co);
+		// update newnode to point to the proper child index of select thread
+		ChildLoc newnode = {this, child_index};
+		safe_assert(!newnode.empty());
+		// set thread of the variable
+		safe_assert(var_->thread() == NULL);
+		var_->set_thread(co);
+		return newnode;
+	}
+
+	ChildLoc set_selected_thread(int child_index) {
+		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
+		Coroutine* co = idxToThreadMap_[child_index];
 		// update newnode to point to the proper child index of select thread
 		ChildLoc newnode = {this, child_index};
 		safe_assert(!newnode.empty());
@@ -313,10 +341,10 @@ private:
 
 /********************************************************************************/
 
-class TransitionNode : public ExecutionTree {
+class SingleTransitionNode : public TransitionNode {
 public:
-	TransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
-	: ExecutionTree(parent, 1), pred_(pred), var_(var), thread_(NULL) {}
+	SingleTransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
+	: TransitionNode(parent, 1), pred_(pred), var_(var), thread_(NULL) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransitionNode.");
@@ -346,10 +374,10 @@ private:
 
 /********************************************************************************/
 
-class MultiTransitionNode : public ExecutionTree {
+class MultiTransitionNode : public TransitionNode {
 public:
 	MultiTransitionNode(ExecutionTree* parent = NULL, int num_children = 1)
-	: ExecutionTree(parent, num_children) {}
+	: TransitionNode(parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -400,9 +428,12 @@ public:
 
 	void Restart();
 
-inline bool REF_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
-inline bool REF_LOCKED(ExecutionTree* n) { return ((n) == (&lock_node_)); }
-inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
+static inline bool IS_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
+inline bool IS_LOCKNODE(ExecutionTree* n) { return ((n) == (&lock_node_)); }
+static inline bool IS_ENDNODE(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
+static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
+static inline bool IS_MULTITRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, MultiTransitionNode*)); }
+static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectionNode*)); }
 
 	// set atomic_ref to lock_node, and return the previous node according to mode
 	// if atomic_ref is end_node, returns it immediatelly
@@ -425,9 +456,11 @@ inline bool REF_ENDTEST(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 
 	void EndWithSuccess();
 	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
-	void EndWithBacktrack(Coroutine* current, const std::string& where);
+	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where);
 
 	bool CheckCompletePath(ExecutionTreePath* path = NULL);
+
+	void PopulateLocations(bool current_only = false);
 
 	void SaveDotGraph(const char* filename);
 
@@ -440,6 +473,7 @@ private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(ExecutionTree, lock_node)
 	DECL_FIELD_REF(ChildLoc, current_node)
+	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
 	DECL_FIELD(unsigned, num_paths)
 
 	ExecutionTreeRef atomic_ref_;

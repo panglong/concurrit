@@ -159,6 +159,10 @@ public:
 	void DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pred);
 
 
+	TPVALUE EvalPreState(Coroutine* current, SingleTransitionNode* trans, ChildLoc* newnode);
+	TPVALUE EvalPostState(Coroutine* current, SingleTransitionNode* trans, ChildLoc* newnode);
+	void UpdateAlternateLocations(Coroutine* current, bool pre_state);
+
 	/******************************************************************/
 
 protected:
@@ -202,6 +206,7 @@ private:
 
 	DECL_FIELD(bool, dpor_enabled)
 	DECL_VOL_FIELD(TestStatus, test_status)
+	DECL_FIELD(ExecutionTreePath, replay_path)
 
 	DECL_FIELD_REF(NAryTransitionPredicate, trans_constraints)
 
