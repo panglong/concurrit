@@ -69,6 +69,10 @@ public:
 	explicit Scenario(const char* name);
 	virtual ~Scenario();
 
+	static Scenario* Current() {
+		return CHECK_NOTNULL(CHECK_NOTNULL(Coroutine::Current())->group())->scenario();
+	}
+
 	void LoadScheduleFromFile(const char* filename);
 
 	/*
@@ -159,8 +163,8 @@ public:
 	void DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pred);
 
 
-	TPVALUE EvalPreState(Coroutine* current, SingleTransitionNode* trans, ChildLoc* newnode);
-	TPVALUE EvalPostState(Coroutine* current, SingleTransitionNode* trans, ChildLoc* newnode);
+	TPVALUE EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
+	TPVALUE EvalPostState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
 	void UpdateAlternateLocations(Coroutine* current, bool pre_state);
 
 	/******************************************************************/

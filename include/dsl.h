@@ -80,7 +80,7 @@ public:
 
 	bool child_covered(int i = 0);
 
-	virtual void ComputeCoverage(Scenario* scenario, bool recurse);
+	virtual void ComputeCoverage(bool recurse);
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
@@ -195,6 +195,11 @@ public:
 		DotNode* node = new DotNode("EndNode");
 		g->AddNode(node);
 		g->AddEdge(new DotEdge(node, node));
+		if(old_root_ != NULL) {
+			DotNode* cn = old_root_->UpdateDotGraph(g);
+			g->AddNode(cn);
+			g->AddEdge(new DotEdge(node, cn, "OLD"));
+		}
 		return node;
 	}
 
@@ -280,7 +285,7 @@ public:
 	}
 
 	// override
-	virtual void ComputeCoverage(Scenario* scenario, bool recurse);
+	virtual void ComputeCoverage(bool recurse);
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "SelectThreadNode. Selected %s.", ((var_ != NULL && var_->thread() != NULL) ? var_->thread()->name().c_str() : "no thread"));
@@ -451,16 +456,17 @@ static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, Selec
 
 	ChildLoc GetLastInPath();
 	void AddToPath(ExecutionTree* node, int child_index);
-	ExecutionTreePath* ComputePath(ChildLoc loc, ExecutionTreePath* path = NULL);
+	ExecutionTreePath* ComputePath(ChildLoc& loc, ExecutionTreePath* path = NULL);
 	ExecutionTreePath* ComputeCurrentPath(ExecutionTreePath* path = NULL);
+	bool DoBacktrack(ChildLoc& loc, BacktrackReason reason = SUCCESS);
 
 	void EndWithSuccess();
 	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
 	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where);
 
-	bool CheckCompletePath(ExecutionTreePath* path = NULL);
+	bool CheckCompletePath(ExecutionTreePath* path, ChildLoc& first);
 
-	void PopulateLocations(bool current_only = false);
+	void PopulateLocations();
 
 	void SaveDotGraph(const char* filename);
 

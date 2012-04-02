@@ -158,14 +158,14 @@ ExecutionTree* ExecutionTree::get_child(int i) {
 
 /*************************************************************************************/
 
-void ExecutionTree::ComputeCoverage(Scenario* scenario, bool recurse) {
+void ExecutionTree::ComputeCoverage(bool recurse) {
 	if(!covered_) {
 		bool cov = true;
 		for_each_child(child) {
 			if(child != NULL) {
 				if(!child->covered_) {
 					if(recurse) {
-						child->ComputeCoverage(scenario, recurse);
+						child->ComputeCoverage(recurse);
 					}
 					cov = cov && child->covered_;
 					if(!cov) break;
@@ -185,10 +185,11 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 	if(ExecutionTreeManager::IS_SELECTNODE(this)) {
 		int sz = children_.size();
 		int child_index = loc.child_index();
-		safe_assert(loc.parent() == this && BETWEEN(-1, child_index, sz-1));
+		safe_assert(loc.parent() == this);
+		safe_assert(BETWEEN(-1, child_index, sz-1));
 
 		// if select thread and child_index is -1, then add this with index -1
-		if(child_index == -1 && INSTANCEOF(this, SelectThreadNode*)) {
+		if(INSTANCEOF(this, SelectThreadNode*)) {
 			current_nodes->push_back({this, -1});
 		}
 
@@ -198,8 +199,8 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 				if(c == NULL || ExecutionTreeManager::IS_TRANSNODE(c)) {
 					current_nodes->push_back({this, i});
 				} else {
-					ChildLoc l = {c, -1};
-					c->PopulateLocations(l, current_nodes);
+					ChildLoc cloc = {c, -1};
+					c->PopulateLocations(cloc, current_nodes);
 				}
 			}
 		}
@@ -258,28 +259,26 @@ ExecutionTreeManager::ExecutionTreeManager() {
 /*************************************************************************************/
 
 void ExecutionTreeManager::Restart() {
-	// sets root as the current parent, and adds it to the path
 	current_nodes_.clear();
+
+	// sets root as the current parent, and adds it to the path
 	current_node_ = {&root_node_, 0};
+	root_node_.PopulateLocations(current_node_, &current_nodes_);
 
 	SetRef(NULL);
 }
 
 /*************************************************************************************/
 
-void ExecutionTreeManager::PopulateLocations(bool current_only /*= false*/) {
+void ExecutionTreeManager::PopulateLocations() {
 	// evaluate other nodes in current_nodes_
-	safe_assert(!current_node_.empty());
-	current_node_.parent()->PopulateLocations(current_node_, &current_nodes_);
-	if(!current_only) {
-		// do not touch the first one, which is the current one
-		for(int i = 0, sz = current_nodes_.size(); i < sz; ++i) {
-			ChildLoc loc = current_nodes_[i];
-			safe_assert(!loc.empty()); // safe_assert(loc.parent() != NULL);
-			ExecutionTree* parent = loc.parent();
-			// populate alternate paths
-			parent->PopulateLocations(loc, &current_nodes_);
-		}
+	// do not touch the first one, which is the current one
+	for(int i = 0, sz = current_nodes_.size(); i < sz; ++i) {
+		ChildLoc loc = current_nodes_[i];
+		ExecutionTree* parent = loc.parent();
+		safe_assert(parent != NULL); // TODO(elmas): this can be NULL?
+		// populate alternate paths
+		parent->PopulateLocations(loc, &current_nodes_);
 	}
 }
 
@@ -405,11 +404,12 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 
 void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 	safe_assert(!current_node_.empty());
+	safe_assert(node != NULL);
 
 	ChildLoc parent = GetLastInPath();
 	if(IS_ENDNODE(node) && parent.get() != NULL) {
 		// set old_root of end node
-		safe_assert(!IS_ENDNODE(parent.get()));
+		safe_assert(!IS_ENDNODE(parent.get()) || node == parent.get());
 		static_cast<EndNode*>(node)->set_old_root(parent.get());
 	} else {
 		// if node is not end node, the we are either overwriting NULL or the same value
@@ -419,11 +419,13 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 
 	// put node to the path
 	current_node_ = {node, child_index};
+
+	node->PopulateLocations(current_node_, &current_nodes_);
 }
 
 /*************************************************************************************/
 
-ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTreePath* path /*= NULL*/) {
+ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc& loc, ExecutionTreePath* path /*= NULL*/) {
 	if(path == NULL) {
 		path = new ExecutionTreePath();
 	}
@@ -447,6 +449,53 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTree
 
 	return path;
 }
+
+/*************************************************************************************/
+
+bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*= SUCCESS*/) {
+	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
+
+	ExecutionTreePath path;
+	ComputePath(loc, &path);
+//	safe_assert(CheckCompletePath(&path, loc));
+
+	const int sz = path.size();
+	//===========================
+	// make the parent of last element (if SelectThreadNode) covered, because there is no way to cover it
+	if(reason == THREADS_ALLENDED && sz > 1) {
+		ChildLoc last = path[1]; // not the end node but the previous node
+		ExecutionTree* last_parent = last.parent();
+		if(INSTANCEOF(last_parent, SelectThreadNode*)) {
+			last_parent->set_covered(true);
+		}
+	}
+
+	//===========================
+	// propagate coverage back in the path (skip the end node, which is already covered)
+	for(int i = 1; i < sz; ++i) {
+		ChildLoc element = path[i];
+		safe_assert(!element.empty());
+		safe_assert(element.check(path[i-1].parent()));
+		ExecutionTree* node = element.parent();
+		node->ComputeCoverage(false); //  do not recurse, only use immediate children
+	}
+
+//	fprintf(stderr, "Path length: %d\n", path->size());
+//	fprintf(stderr, "Num execution tree nodes: %d\n", ExecutionTree::num_nodes());
+//
+//	// sanity prints
+//	for(int i = sz-1; i >= 0; --i) {
+//		ChildLoc element = (*path)[i];
+//		element.parent()->ToStream(stderr);
+//		fprintf(stderr, " index %d\n", element.child_index());
+//	}
+//	fprintf(stderr, "\n\n\n");
+
+
+	// check if the root is covered
+	return !root_node_.covered();
+}
+
 
 /*************************************************************************************/
 
@@ -478,10 +527,10 @@ ChildLoc ExecutionTreeManager::GetLastInPath() {
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path /*= NULL*/) {
+bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc& first) {
 	safe_assert(path->size() >= 2);
 	safe_assert(path->back().parent() == &root_node_);
-	safe_assert((*path)[0] == current_node_);
+	safe_assert((*path)[0] == first);
 	safe_assert(IS_ENDNODE((*path)[0].get()));
 	safe_assert(IS_ENDNODE((*path)[0].parent()));
 	safe_assert((*path)[0].parent() == (*path)[0].get());
@@ -500,9 +549,18 @@ void ExecutionTreeManager::EndWithSuccess() {
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
 	ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(!IS_ENDNODE(node));
-	// locked, create a new end node and set it
-	// also adds to the path and set to ref
-	ReleaseRef(new EndNode(), 0);
+	safe_assert(!IS_ENDNODE(current_node_.parent()));
+
+	EndNode* end_node = NULL;
+	ExecutionTree* last = GetLastInPath().get();
+	if(IS_ENDNODE(last)) {
+		end_node = static_cast<EndNode*>(last);
+	} else {
+		// locked, create a new end node and set it
+		end_node = new EndNode();
+	}
+	// add to the path and set to ref
+	ReleaseRef(end_node, 0);
 }
 
 /*************************************************************************************/
@@ -513,11 +571,17 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
+	safe_assert(!IS_ENDNODE(current_node_.parent()));
 	if(IS_ENDNODE(node)) {
 		end_node = static_cast<EndNode*>(node);
 	} else {
-		// locked, create a new end node and set it
-		end_node = new EndNode();
+		ExecutionTree* last = GetLastInPath().get();
+		if(IS_ENDNODE(last)) {
+			end_node = static_cast<EndNode*>(last);
+		} else {
+			// locked, create a new end node and set it
+			end_node = new EndNode();
+		}
 		// add to the path and set to ref
 		ReleaseRef(end_node, 0);
 	}
@@ -548,12 +612,13 @@ TransitionConstraint::~TransitionConstraint(){
 
 /*************************************************************************************/
 
-void SelectThreadNode::ComputeCoverage(Scenario* scenario, bool recurse) {
+void SelectThreadNode::ComputeCoverage(bool recurse) {
+	Scenario* scenario = Scenario::Current();
 	safe_assert(scenario != NULL);
 	// this check is important, because we should not compute coverage at all if already covered
 	// since the computation below may turn already covered not covered
 	if(!covered_) {
-		ExecutionTree::ComputeCoverage(scenario, recurse);
+		ExecutionTree::ComputeCoverage(recurse);
 		covered_ = covered_ && (children_.size() == scenario->group()->GetNumMembers());
 	}
 }
