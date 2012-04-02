@@ -296,6 +296,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long time
 	ExecutionTree* node = AcquireRef(mode, timeout_usec);
 	if(IS_ENDNODE(node)) {
 		// main has not ended the execution, so this must be due to an exception by another thread
+		safe_assert(current_node_.parent() == node);
 		safe_assert(static_cast<EndNode*>(node)->exception() != NULL);
 		TRIGGER_BACKTRACK(EXCEPTION);
 	}
@@ -430,7 +431,7 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc& leaf_loc, Executi
 		path = new ExecutionTreePath();
 	}
 	safe_assert(path->empty());
-	safe_assert(!leaf_loc.empty());
+	safe_assert(leaf_loc.parent() != NULL);
 
 	ChildLoc loc = leaf_loc;
 

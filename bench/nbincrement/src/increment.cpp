@@ -24,7 +24,6 @@ void NBCounter::increment() {
 			break;
 		}
 		pthread_mutex_unlock(&mutex);
-		printf("Looping...\n");
 	}
 
 }

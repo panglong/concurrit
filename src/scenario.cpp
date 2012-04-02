@@ -303,7 +303,7 @@ Result* Scenario::Explore() {
 					safe_assert(be->reason() != UNKNOWN);
 
 					VLOG(2) << SC_TITLE << "Backtracking: " << ce->cause()->what();
-					printf("BACKTRACK: %s\n", ce->cause()->what());
+//					printf("BACKTRACK: %s\n", ce->cause()->what());
 
 					// is backtrack is for terminating the search, exit the search loop
 					if((--Config::ExitOnFirstExecution == 0) || be->reason() == SEARCH_ENDS) {
@@ -436,11 +436,32 @@ void Scenario::RunTestCase() throw() {
 
 	try {
 
+		BacktrackReason reason = SUCCESS;
 		do {
+			reason = SUCCESS;
+			try {
 
-			TestCase();
+				TestCase();
 
-		} while(exec_tree_.EndWithSuccess(SUCCESS));
+			} catch(std::exception* e) {
+				// EndWithSuccess may ignore some
+				BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
+				if(be == NULL) {
+					throw e;
+				}
+
+				reason = be->reason();
+				safe_assert(reason != SUCCESS);
+				if((reason == TIMEOUT && !group_.IsAllEnded()) ||
+					reason == TREENODE_COVERED ||
+					reason == ASSUME_FAILS) {
+					// retry...
+				} else {
+					throw e;
+				}
+			}
+
+		} while(exec_tree_.EndWithSuccess(reason));
 
 	} catch(std::exception* e) {
 		//====================================
@@ -1641,8 +1662,8 @@ bool Scenario::DSLChoice() {
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
 		choice = ASINSTANCEOF(node, ChoiceNode*);
-		safe_assert(choice != NULL);
-		if(choice->covered()) {
+		if(choice == NULL || choice->covered()) {
+			safe_assert(choice != NULL || exec_tree_.IS_ENDNODE(node));
 			// release lock
 			exec_tree_.ReleaseRef(NULL);
 			// backtrack
@@ -1711,8 +1732,8 @@ void Scenario::DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var 
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
 		trans = ASINSTANCEOF(node, SingleTransitionNode*);
-		safe_assert(trans != NULL);
-		if(trans->covered()) {
+		if(trans == NULL || trans->covered()) {
+			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
 			// release lock
 			exec_tree_.ReleaseRef(NULL);
 			// backtrack
@@ -1772,8 +1793,8 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pr
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
 		trans = ASINSTANCEOF(node, TransferUntilNode*);
-		safe_assert(trans != NULL);
-		if(trans->covered()) {
+		if(trans == NULL || trans->covered()) {
+			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
 			// release lock
 			exec_tree_.ReleaseRef(NULL);
 			// backtrack
@@ -1804,7 +1825,7 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 
 	if(!exec_tree_.replay_path()->empty()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
-		safe_assert(!reploc.empty());
+		safe_assert(reploc.parent() != NULL);
 		SelectThreadNode* select = ASINSTANCEOF(reploc.parent(), SelectThreadNode*);
 		safe_assert(select != NULL);
 
@@ -1838,8 +1859,8 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
 		select = ASINSTANCEOF(node, SelectThreadNode*);
-		safe_assert(select != NULL);
-		if(select->covered()) {
+		if(select == NULL || select->covered()) {
+			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
 			// release lock
 			exec_tree_.ReleaseRef(NULL);
 			// backtrack
