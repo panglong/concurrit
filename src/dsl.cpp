@@ -572,7 +572,10 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason reason /*= SUCCESS*/) 
 		safe_assert(root_node_.covered());
 		// no need to continue
 		safe_assert(IS_ENDNODE(current_node_.get()));
-		return false;
+		// notify threads about the end of the controlled run
+		ReleaseRef(end_node); // this does not add the node to the path, it is already added
+		TRIGGER_BACKTRACK(SEARCH_ENDS);
+		safe_assert(false); return false; // not executed
 	}
 
 	//================================================
@@ -582,6 +585,9 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason reason /*= SUCCESS*/) 
 		// notify threads about the end of the controlled run
 		ReleaseRef(end_node); // this does not add the node to the path, it is already added
 		safe_assert(IS_ENDNODE(current_node_.get()));
+		if(reason != SUCCESS) {
+			TRIGGER_BACKTRACK(reason);
+		}
 		return false;
 	}
 
@@ -616,21 +622,24 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
-	safe_assert(!IS_ENDNODE(current_node_.parent()));
-	if(IS_ENDNODE(node)) {
-		safe_assert(IS_ENDNODE(current_node_.get()));
-		end_node = static_cast<EndNode*>(node);
-	} else {
-		ExecutionTree* last = GetLastInPath().get();
-		if(IS_ENDNODE(last)) {
-			end_node = static_cast<EndNode*>(last);
+	if(IS_ENDNODE(current_node_.parent())) {
+		safe_assert(IS_ENDNODE(node));
+		end_node = static_cast<EndNode*>(current_node_.parent());
+	} else
+		if(IS_ENDNODE(node)) {
+			safe_assert(IS_ENDNODE(current_node_.get()));
+			end_node = static_cast<EndNode*>(node);
 		} else {
-			// locked, create a new end node and set it
-			end_node = new EndNode();
+			ExecutionTree* last = GetLastInPath().get();
+			if(IS_ENDNODE(last)) {
+				end_node = static_cast<EndNode*>(last);
+			} else {
+				// locked, create a new end node and set it
+				end_node = new EndNode();
+			}
+			// add to the path and set to ref
+			ReleaseRef(end_node, 0);
 		}
-		// add to the path and set to ref
-		ReleaseRef(end_node, 0);
-	}
 	safe_assert(end_node != NULL);
 	// add my exception to the end node
 	end_node->add_exception(exception, current, where);

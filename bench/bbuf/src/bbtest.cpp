@@ -78,58 +78,13 @@ public:
 //		} while(!ALL_ENDED);
 
 
-//		int k = 1;
-//		while(STAR) {
-//			printf("Iteration %d\n", k);
-//			++k;
-//
-//			if(k == 5) {
-//				break;
-////				ASSERT(false);
-//			}
-//		}
-
-//		int k = 1;
-//		while(STAR) {
-//			DSLTransition(TransitionPredicate::True());
-//			k++;
-//		}
-//		printf("Ending with k=%d\n", k);
-
-
 		while(STAR)
-//		for(int j = 0; j < 4; ++j)
 		{
-				EXISTS(t);
-//				DSLTransition(TransitionPredicate::True(), co_producers[0]);
-//				DSLTransferUntil(co_producers[0], TransitionPredicate::True());
+			EXISTS(t);
+			DSLTransition(TransitionPredicate::True(), t);
 
-				DSLTransition(TransitionPredicate::True(), t);
+//			DSLTransition(TransitionPredicate::True());
 		}
-//		{
-//			EXISTS(t);
-//			DSLTransition(TransitionPredicate::True(), t);
-//		}
-//
-//		{
-//			EXISTS(t);
-//			DSLTransition(TransitionPredicate::True(), t);
-//		}
-
-//		{
-//			EXISTS(t);
-//			DSLTransition(TransitionPredicate::True(), t);
-//		}
-//
-//		{
-//			EXISTS(t);
-//			DSLTransition(TransitionPredicate::True(), t);
-//		}
-//
-//		{
-//			EXISTS(t);
-//			DSLTransition(TransitionPredicate::True(), t);
-//		}
 	}
 
 };

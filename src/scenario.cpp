@@ -452,9 +452,10 @@ void Scenario::RunTestCase() throw() {
 
 				reason = be->reason();
 				safe_assert(reason != SUCCESS);
-				if((reason == TIMEOUT && !group_.IsAllEnded()) ||
+				if(reason == TIMEOUT ||
 					reason == TREENODE_COVERED ||
-					reason == ASSUME_FAILS) {
+					reason == ASSUME_FAILS ||
+					reason == THREADS_ALLENDED) { // TODO(elmas): we can find without restarting which ones win here
 					// retry...
 				} else {
 					throw e;
