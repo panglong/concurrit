@@ -56,7 +56,10 @@ public:
 //				EXISTS(t);
 //				DSLTransition(TransitionPredicate::True(), t);
 
-			DSLTransition(TransitionPredicate::True());
+//			DSLTransition(TransitionPredicate::True());
+
+			EXISTS(t);
+			DSLTransferUntil(t, TransitionPredicate::True());
 		}
 	}
 

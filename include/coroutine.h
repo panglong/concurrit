@@ -38,7 +38,6 @@
 #include "thread.h"
 #include "channel.h"
 #include "vc.h"
-#include "transinfo.h"
 
 namespace concurrit {
 
@@ -106,7 +105,7 @@ public:
 		return (status_ >= ENDED);
 	}
 
-	void FinishControlledTransition();
+	void FinishControlledTransition(bool holding_current_node);
 
 private:
 

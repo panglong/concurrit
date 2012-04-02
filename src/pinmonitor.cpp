@@ -198,7 +198,7 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 
 	if(!monitor->enabled()) {
 		// if aftercontrolledtransition has not been called, reset the transition state
-		current->FinishControlledTransition();
+		current->FinishControlledTransition(false);
 		return;
 	}
 

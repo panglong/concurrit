@@ -1272,6 +1272,7 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 			// this is the selected thread
 			// evaluate transition predicate
 			TransitionPredicate* pred = trans->pred();
+			safe_assert(pred != NULL);
 
 			trans_constraints_.push_back(pred);
 			tval = trans_constraints_.EvalPreState(current);
@@ -1300,7 +1301,8 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 			} else {
 				// this is the selected thread
 				// evaluate transition predicate
-				TransitionPredicate* pred = trans->pred();
+				TransitionPredicate* pred = truntil->pred();
+				safe_assert(pred != NULL);
 
 				trans_constraints_.push_back(pred);
 				tval = trans_constraints_.EvalPreState(current);
@@ -1340,6 +1342,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 
 		// evaluate transition predicate
 		TransitionPredicate* pred = trans->pred();
+		safe_assert(pred != NULL);
 
 		trans_constraints_.push_back(pred);
 		bool ret = trans_constraints_.EvalPostState(current);
@@ -1357,7 +1360,8 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 		if(truntil != NULL) {
 
 			// evaluate transition predicate
-			TransitionPredicate* pred = trans->pred();
+			TransitionPredicate* pred = truntil->pred();
+			safe_assert(pred != NULL);
 
 			trans_constraints_.push_back(pred);
 			bool ret = trans_constraints_.EvalPostState(current);
@@ -1441,6 +1445,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			}
 		}
 
+		safe_assert(node != NULL);
 		safe_assert(!exec_tree_.IS_EMPTY(node) && !exec_tree_.IS_LOCKNODE(node));
 
 		// if previously unsatisfied node, then retry
@@ -1455,6 +1460,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			// get the node
 			SingleTransitionNode* trans = ASINSTANCEOF(node, SingleTransitionNode*);
 			if(trans != NULL) {
+				VLOG(2) << "Evaluating single transition predicate";
 
 				tval = EvalPreState(current, trans, &newnode);
 
@@ -1463,12 +1469,14 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			} else { //=======================================================
 				TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
 				if(truntil != NULL) {
+					VLOG(2) << "Evaluating transfer-until predicate";
 
 					tval = EvalPreState(current, truntil, &newnode);
 
-					done = (tval == TPTRUE) || (tval == TPUNKNOWN);
+					done = (tval == TPUNKNOWN);
 
 				} else { //=======================================================
+					VLOG(2) << "Evaluating select-thread node";
 					SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
 					if(select != NULL) {
 						// if select is covered, we should not be reaching this
@@ -1479,10 +1487,10 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 						safe_assert(tid >= 0);
 						ExecutionTree* child = select->child_by_tid(tid);
 						if(child == NULL || !child->covered()) {
-							// not covered
-							tval = TPTRUE; // we are consuming this node
 							// set the selected thread to current
 							newnode = select->set_selected_thread(current);
+							// we are consuming this node, but we are not done, yet
+							tval = TPTRUE;
 						} else { // already covered, skip this
 							// covered
 							tval = TPFALSE; // we are not consuming this node
@@ -1556,7 +1564,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		// if end_node, exit immediatelly
 		if(exec_tree_.IS_ENDNODE(node)) {
 			VLOG(2) << "Detected end node, exiting handling code";
-			current->FinishControlledTransition();
+			current->FinishControlledTransition(false);
 			return;
 		}
 
@@ -1567,13 +1575,13 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 
 		SingleTransitionNode* trans = ASINSTANCEOF(node, SingleTransitionNode*);
 		if(trans != NULL) {
-
+			VLOG(2) << "Evaluating single transition predicate";
 			tval = EvalPostState(current, trans, &newnode);
 
 		}
 		else {//=======================================================
 			safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
-
+			VLOG(2) << "Evaluating transfer-until predicate";
 			TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
 			if(truntil != NULL) {
 
@@ -1609,7 +1617,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		case TPUNKNOWN: // continue holding the transition node
 			VLOG(2) << "Unknown, continuing holding the transition";
 			safe_assert(exec_tree_.IS_MULTITRANSNODE(node));
-			current->set_current_node(node);
+			safe_assert(current->current_node() == node);
 			UpdateAlternateLocations(current, false);
 			break;
 
@@ -1623,7 +1631,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	} // end if(node != NULL)
 
 	//=================================================================
-	current->FinishControlledTransition();
+	current->FinishControlledTransition(tval == TPUNKNOWN); // hold current node if unknown
 }
 
 /********************************************************************************/
@@ -1711,6 +1719,7 @@ void Scenario::DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var 
 		SingleTransitionNode* trans = ASINSTANCEOF(reploc.parent(), SingleTransitionNode*);
 		safe_assert(trans != NULL);
 		trans->set_var(var);
+		trans->set_pred(pred);
 
 		// update current node
 		exec_tree_.set_current_node(reploc);
@@ -1741,6 +1750,7 @@ void Scenario::DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var 
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 		trans->set_var(var); // should set the variabl again, because var is a local object
+		trans->set_pred(pred);
 	} else {
 		trans = new SingleTransitionNode(pred, var);
 	}
@@ -1769,9 +1779,10 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pr
 	if(!exec_tree_.replay_path()->empty()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
-		TransferUntilNode* trans = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
-		safe_assert(trans != NULL);
-		trans->set_var(var);
+		TransferUntilNode* truntil = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
+		safe_assert(truntil != NULL);
+		truntil->set_var(var);
+		truntil->set_pred(pred);
 
 		// update current node
 		exec_tree_.set_current_node(reploc);
@@ -1789,29 +1800,30 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pr
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
-	TransferUntilNode* trans = NULL;
+	TransferUntilNode* truntil = NULL;
 	node = exec_tree_.GetLastInPath();
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
-		trans = ASINSTANCEOF(node, TransferUntilNode*);
-		if(trans == NULL || trans->covered()) {
-			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
+		truntil = ASINSTANCEOF(node, TransferUntilNode*);
+		if(truntil == NULL || truntil->covered()) {
+			safe_assert(truntil != NULL || exec_tree_.IS_ENDNODE(node));
 			// release lock
 			exec_tree_.ReleaseRef(NULL);
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
-		trans->set_var(var);
+		truntil->set_var(var);
+		truntil->set_pred(pred);
 	} else {
-		trans = new TransferUntilNode(var, pred);
+		truntil = new TransferUntilNode(var, pred);
 	}
 
-	safe_assert(!trans->covered());
+	safe_assert(!truntil->covered());
 
 	// not covered yet
 
 	// set atomic_ref to point to trans
-	exec_tree_.ReleaseRef(trans);
+	exec_tree_.ReleaseRef(truntil);
 
 	VLOG(2) << "Added DSLTransferUntil.";
 }
