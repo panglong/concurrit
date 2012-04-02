@@ -456,11 +456,11 @@ static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, Selec
 
 	ChildLoc GetLastInPath();
 	void AddToPath(ExecutionTree* node, int child_index);
-	ExecutionTreePath* ComputePath(ChildLoc& loc, ExecutionTreePath* path = NULL);
+	ExecutionTreePath* ComputePath(ChildLoc& leaf_loc, ExecutionTreePath* path = NULL);
 	ExecutionTreePath* ComputeCurrentPath(ExecutionTreePath* path = NULL);
 	bool DoBacktrack(ChildLoc& loc, BacktrackReason reason = SUCCESS);
 
-	void EndWithSuccess();
+	bool EndWithSuccess(BacktrackReason reason = SUCCESS);
 	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
 	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where);
 
@@ -488,6 +488,7 @@ private:
 	DECL_FIELD(Mutex, mutex)
 	DECL_FIELD(ConditionVar, cv)
 
+	DECL_FIELD_REF(ExecutionTreePath, replay_path)
 
 	DISALLOW_COPY_AND_ASSIGN(ExecutionTreeManager)
 };

@@ -128,7 +128,6 @@ Scenario::Scenario(const char* name) {
 	statistics_ = boost::shared_ptr<Statistics>(new Statistics());
 
 	test_status_ = TEST_BEGIN;
-	replay_path_.clear();
 }
 
 /********************************************************************************/
@@ -180,7 +179,7 @@ Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function
 	Coroutine* co = group_.GetMember(strname);
 
 	// if replaying, do nothing, but return the thread pointer
-	if(!replay_path_.empty()) {
+	if(!exec_tree_.replay_path()->empty()) {
 		safe_assert(co != NULL);
 		return co;
 	}
@@ -437,59 +436,11 @@ void Scenario::RunTestCase() throw() {
 
 	try {
 
-		while(true) {
+		do {
 
-				TestCase();
+			TestCase();
 
-
-			// check alternate paths
-			if(exec_tree_.current_nodes()->empty()) {
-				break;
-			}
-
-			// mark the end of the path
-			VLOG(2) << "Alternate path exists, will replay";
-			// wait until the last node is consumed (or an end node is inserted)
-			// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
-			// in addition, if there is already an end node, AcquireRefEx throws a backtrack
-			ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
-			safe_assert(node == NULL);
-
-			// locked, create a new end node and set it
-			// also adds to the path and set to ref
-			ChildLoc endloc = *(exec_tree_.current_node());
-			safe_assert(!exec_tree_.IS_ENDNODE(endloc.parent()));
-			if(!exec_tree_.IS_ENDNODE(endloc.get())) {
-				exec_tree_.AddToPath(new EndNode(), 0);
-				endloc = *(exec_tree_.current_node());
-				safe_assert(exec_tree_.IS_ENDNODE(endloc.get()));
-			}
-			// compute coverage for the just-visited node
-			exec_tree_.DoBacktrack(endloc);
-
-			// select the next one and replay
-			ChildLoc next_loc = exec_tree_.current_nodes()->back();
-			exec_tree_.current_nodes()->pop_back();
-
-			// compute the path to follow
-			replay_path_.clear();
-			exec_tree_.ComputePath(next_loc, &replay_path_);
-			// remove root
-			safe_assert(replay_path_.back().parent() == exec_tree_.root_node());
-			safe_assert(replay_path_.back().child_index() == 0);
-			replay_path_.pop_back(); // remove root
-
-			// restart for replay
-			ChildLoc root_loc = {exec_tree_.root_node(), 0};
-			exec_tree_.set_current_node(root_loc);
-			exec_tree_.ReleaseRef(NULL);
-
-			VLOG(2) << "Starting the replay";
- 		}
-
-		// set ended node to the execution tree
-		// this also takes care of checking if the last-inserted node was consumed on time
-		exec_tree_.EndWithSuccess();
+		} while(exec_tree_.EndWithSuccess(SUCCESS));
 
 	} catch(std::exception* e) {
 		//====================================
@@ -638,7 +589,6 @@ void Scenario::Start() {
 	}
 
 	test_status_ = TEST_BEGIN;
-	replay_path_.clear();
 
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
@@ -1659,8 +1609,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 	VLOG(2) << "DoBacktrackPreemptive for reason: " << reason;
 
-	ChildLoc loc = *(exec_tree_.current_node());
-	return exec_tree_.DoBacktrack(loc);
+	return !exec_tree_.root_node()->covered();
 }
 
 /********************************************************************************/
@@ -1670,8 +1619,8 @@ bool Scenario::DSLChoice() {
 
 	//=======================================================
 
-	if(!replay_path_.empty()) {
-		ChildLoc reploc = replay_path_.back(); replay_path_.pop_back();
+	if(!exec_tree_.replay_path()->empty()) {
+		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
 		safe_assert(choice != NULL);
@@ -1734,8 +1683,8 @@ void Scenario::DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var 
 
 	//=======================================================
 
-	if(!replay_path_.empty()) {
-		ChildLoc reploc = replay_path_.back(); replay_path_.pop_back();
+	if(!exec_tree_.replay_path()->empty()) {
+		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		SingleTransitionNode* trans = ASINSTANCEOF(reploc.parent(), SingleTransitionNode*);
 		safe_assert(trans != NULL);
@@ -1795,8 +1744,8 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pr
 
 	//=======================================================
 
-	if(!replay_path_.empty()) {
-		ChildLoc reploc = replay_path_.back(); replay_path_.pop_back();
+	if(!exec_tree_.replay_path()->empty()) {
+		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		TransferUntilNode* trans = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
 		safe_assert(trans != NULL);
@@ -1853,8 +1802,8 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 
 	//=======================================================
 
-	if(!replay_path_.empty()) {
-		ChildLoc reploc = replay_path_.back(); replay_path_.pop_back();
+	if(!exec_tree_.replay_path()->empty()) {
+		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		SelectThreadNode* select = ASINSTANCEOF(reploc.parent(), SelectThreadNode*);
 		safe_assert(select != NULL);
@@ -1872,7 +1821,7 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 			VLOG(2) << "Replaying path with select thread node.";
 			return;
 		}
-		safe_assert(replay_path_.empty());
+		safe_assert(exec_tree_.replay_path()->empty());
 	}
 
 	//=======================================================

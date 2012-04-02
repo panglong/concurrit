@@ -261,6 +261,8 @@ ExecutionTreeManager::ExecutionTreeManager() {
 void ExecutionTreeManager::Restart() {
 	current_nodes_.clear();
 
+	replay_path_.clear();
+
 	// sets root as the current parent, and adds it to the path
 	current_node_ = {&root_node_, 0};
 	root_node_.PopulateLocations(current_node_, &current_nodes_);
@@ -377,11 +379,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 
 /*************************************************************************************/
 
-// TODO(elmas): no need for GetRef, just SetRef is enough if the assertion is valid
 void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_index /*= -1*/) {
-	ExecutionTree* current_node = GetRef();
-	safe_assert(IS_LOCKNODE(current_node) || IS_ENDNODE(current_node));
-
 	if(child_index >= 0) {
 		safe_assert(node != NULL);
 
@@ -391,7 +389,6 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 		// if released node is an end node, we do not nullify atomic_ref
 		SetRef(IS_ENDNODE(node) ? node : NULL);
 	} else {
-		safe_assert(IS_LOCKNODE(current_node) && !IS_ENDNODE(current_node));
 		// release
 		SetRef(node);
 	}
@@ -406,16 +403,19 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 	safe_assert(!current_node_.empty());
 	safe_assert(node != NULL);
 
-	ChildLoc parent = GetLastInPath();
-	if(IS_ENDNODE(node) && parent.get() != NULL) {
+	ChildLoc loc = GetLastInPath();
+	ExecutionTree* last_node = loc.get();
+	if(IS_ENDNODE(node) && last_node != NULL) {
 		// set old_root of end node
-		safe_assert(!IS_ENDNODE(parent.get()) || node == parent.get());
-		static_cast<EndNode*>(node)->set_old_root(parent.get());
+		if(node != last_node) { // last_node can already be node, then skip
+			safe_assert(!IS_ENDNODE(last_node));
+			static_cast<EndNode*>(node)->set_old_root(last_node);
+		}
 	} else {
 		// if node is not end node, the we are either overwriting NULL or the same value
-		safe_assert(parent.check(NULL) || parent.check(node));
+		safe_assert(loc.check(NULL) || loc.check(node));
 	}
-	parent.set(node); // also sets node's parent
+	loc.set(node); // also sets node's parent
 
 	// put node to the path
 	current_node_ = {node, child_index};
@@ -425,12 +425,14 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 
 /*************************************************************************************/
 
-ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc& loc, ExecutionTreePath* path /*= NULL*/) {
+ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc& leaf_loc, ExecutionTreePath* path /*= NULL*/) {
 	if(path == NULL) {
 		path = new ExecutionTreePath();
 	}
 	safe_assert(path->empty());
-	safe_assert(!loc.empty());
+	safe_assert(!leaf_loc.empty());
+
+	ChildLoc loc = leaf_loc;
 
 	ExecutionTree* p = NULL;
 	while(true) {
@@ -542,25 +544,67 @@ bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc& 
 
 /*************************************************************************************/
 
-void ExecutionTreeManager::EndWithSuccess() {
-	VLOG(2) << "Inserting end node to indicate success.";
+bool ExecutionTreeManager::EndWithSuccess(BacktrackReason reason /*= SUCCESS*/) {
+	VLOG(2) << "Ending with success " << reason;
 	// wait until the last node is consumed (or an end node is inserted)
 	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
 	ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
-	safe_assert(!IS_ENDNODE(node));
-	safe_assert(!IS_ENDNODE(current_node_.parent()));
+	safe_assert(node == NULL);
 
-	EndNode* end_node = NULL;
-	ExecutionTree* last = GetLastInPath().get();
-	if(IS_ENDNODE(last)) {
-		end_node = static_cast<EndNode*>(last);
-	} else {
+	// locked, create a new end node and set it
+	// also adds to the path and set to ref
+	safe_assert(!IS_ENDNODE(current_node_.parent()));
+	EndNode* end_node = ASINSTANCEOF(current_node_.get(), EndNode*);
+	if(end_node == NULL) {
 		// locked, create a new end node and set it
 		end_node = new EndNode();
 	}
 	// add to the path and set to ref
-	ReleaseRef(end_node, 0);
+	AddToPath(end_node, 0);
+	safe_assert(current_node_.get() == end_node);
+	safe_assert(IS_ENDNODE(current_node_.get()));
+
+	// compute coverage for the just-visited node
+	if(!DoBacktrack(current_node_, reason)) {
+		// root is covered
+		safe_assert(root_node_.covered());
+		// no need to continue
+		safe_assert(IS_ENDNODE(current_node_.get()));
+		return false;
+	}
+
+	//================================================
+
+	// check alternate paths
+	if(current_nodes_.empty()) {
+		// notify threads about the end of the controlled run
+		ReleaseRef(end_node); // this does not add the node to the path, it is already added
+		safe_assert(IS_ENDNODE(current_node_.get()));
+		return false;
+	}
+
+	VLOG(2) << "Alternate path exists, will replay";
+
+	// select the next one and replay
+	ChildLoc next_loc = current_nodes_.back(); current_nodes_.pop_back();
+
+	// compute the path to follow
+	replay_path_.clear();
+	ComputePath(next_loc, &replay_path_);
+
+	// remove root
+	safe_assert(replay_path_.back().parent() == &root_node_);
+	safe_assert(replay_path_.back().child_index() == 0);
+	replay_path_.pop_back(); // remove root
+
+	// restart for replay
+	current_node_ = {&root_node_, 0};
+	ReleaseRef(NULL); // nullify the atomic ref to continue
+
+	VLOG(2) << "Starting the replay";
+
+	return true;
 }
 
 /*************************************************************************************/
@@ -573,6 +617,7 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
 	safe_assert(!IS_ENDNODE(current_node_.parent()));
 	if(IS_ENDNODE(node)) {
+		safe_assert(IS_ENDNODE(current_node_.get()));
 		end_node = static_cast<EndNode*>(node);
 	} else {
 		ExecutionTree* last = GetLastInPath().get();

@@ -210,7 +210,6 @@ private:
 
 	DECL_FIELD(bool, dpor_enabled)
 	DECL_VOL_FIELD(TestStatus, test_status)
-	DECL_FIELD(ExecutionTreePath, replay_path)
 
 	DECL_FIELD_REF(NAryTransitionPredicate, trans_constraints)
 
