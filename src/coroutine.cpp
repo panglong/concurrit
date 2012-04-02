@@ -47,7 +47,7 @@ Coroutine::Coroutine(const char* name, ThreadEntryFunction entry_function, void*
 	exception_ = NULL;
 	transfer_on_start_ = false;
 	current_node_ = NULL;
-	trinfolist_.clear();
+//	trinfolist_.clear();
 }
 
 /********************************************************************************/
@@ -150,7 +150,7 @@ void Coroutine::Start() {
 	vc_clear(vc_);
 	exception_ = NULL;
 	current_node_ = NULL;
-	trinfolist_.clear();
+//	trinfolist_.clear();
 
 	//---------------
 	CHANNEL_BEGIN_ATOMIC();
@@ -237,8 +237,9 @@ void* Coroutine::Run() {
 				// last controlled transition
 				// set predicate for "will end" before this transition
 				safe_assert(status_ == ENABLED);
-				safe_assert(trinfolist_.empty());
-				trinfolist_.push_back(EndingTransitionInfo()); // put predicate indicating ending state
+//				safe_assert(trinfolist_.empty());
+//				trinfolist_.push_back(EndingTransitionInfo()); // put predicate indicating ending state
+				scenario->aux_state()->Ends.set(true, coid_);
 				scenario->OnControlledTransition(this);
 			}
 
@@ -413,10 +414,12 @@ void Coroutine::OnAccess(SharedAccess* access) {
 /********************************************************************************/
 
 void Coroutine::FinishControlledTransition() {
-	safe_assert(status_ == BLOCKED || !trinfolist_.empty());
-
 	// remove all transition info records
-	trinfolist_.clear();
+//	trinfolist_.clear();
+
+	// remove auxiliary state
+	group_->scenario()->aux_state()->reset(coid_);
+
 	current_node_ = NULL;
 
 	// make it enabled

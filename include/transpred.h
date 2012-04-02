@@ -290,8 +290,8 @@ public:
 	AuxVar(const std::string& name) : name_(name) {}
 	virtual ~AuxVar(){}
 
-	virtual void reset() = 0;
-	virtual bool isset() = 0;
+	virtual void reset(THREADID t = -1) = 0;
+	virtual bool isset(THREADID t = -1) = 0;
 
 private:
 	DECL_FIELD(std::string, name)
@@ -301,39 +301,62 @@ private:
 
 template<typename T, T undef_value_>
 class AuxVar0 : public AuxVar {
+	typedef std::map<THREADID, T> M;
 public:
-	AuxVar0(const std::string& name, const T& value = undef_value_) : AuxVar(name), value_(value) {}
+	AuxVar0(const char* name = "") : AuxVar(name) {}
 	~AuxVar0(){}
 
-	operator T() {
-		return get();
+	TransitionPredicate* operator ()(const T& value, ThreadVar* tvar = NULL);
+
+	TransitionPredicate* operator ()(AuxVar0* var, ThreadVar* tvar = NULL);
+
+	virtual void reset(THREADID t = -1) {
+		set(undef_value_, t);
 	}
 
-	TransitionPredicate* operator ()(const T& value) {
-		return this->operator()(new AuxVar0(value));
+	virtual bool isset(THREADID t = -1) {
+		return get(t) != undef_value_;
 	}
 
-	TransitionPredicate* operator ()(AuxVar0* var);
-
-	AuxVar0& operator = (T value) {
-		value_ = value;
-		return this;
+	//================================================
+	virtual T get(THREADID t = -1) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
+			return undef_value_;
+		}
+		return itr->second;
 	}
 
-	void reset() {
-		set(undef_value_);
+	virtual void set(const T& value, THREADID t = -1) {
+		map_[t] = value;
 	}
 
-	bool isset() {
+private:
+	DECL_FIELD(M, map)
+};
+
+/********************************************************************************/
+
+template<typename T, T undef_value_>
+class AuxConst0 : public AuxVar0<T, undef_value_> {
+public:
+	AuxConst0(const T& value = undef_value_) : AuxVar0<T,undef_value_>("const"), value_(value) {}
+	~AuxConst0(){}
+
+	void reset(THREADID t = -1) {
+		value_ = undef_value_;
+	}
+
+	bool isset(THREADID t = -1) {
 		return value_ != undef_value_;
 	}
 
 	//================================================
-	T get() {
+	T get(THREADID t = -1) {
 		return value_;
 	}
 
-	void set(const T& value) {
+	void set(const T& value, THREADID t = -1) {
 		value_ = value;
 	}
 
@@ -347,72 +370,116 @@ template<typename T, T undef_value_>
 class AuxVar0Pre : public PreStateTransitionPredicate {
 	typedef AuxVar0<T,undef_value_> AuxVarType;
 public:
-	AuxVar0Pre(AuxVarType* var1, AuxVarType* var2) : PreStateTransitionPredicate(), var1_(var1), var2_(var2) {}
+	AuxVar0Pre(AuxVarType* var1, AuxVarType* var2, ThreadVar* tvar = NULL) : PreStateTransitionPredicate(), var1_(var1), var2_(var2), tvar_(tvar) {}
 	~AuxVar0Pre(){}
 
 	bool EvalState(Coroutine* t = NULL) {
-		return var1_->get() == var2_->get();
+		safe_assert(t != NULL);
+		safe_assert(tvar_ == NULL || tvar_->thread() != NULL);
+
+		THREADID tid = tvar_ == NULL ? -1 : tvar_->thread()->coid();
+
+		if(t->coid() != tid) {
+			return false;
+		}
+		return var1_->get(tid) == var2_->get(tid);
 	}
 
 private:
 	DECL_FIELD(AuxVarType*, var1)
 	DECL_FIELD(AuxVarType*, var2)
+	DECL_FIELD(ThreadVar*, tvar)
 };
 
 
 template<typename T, T undef_value_>
-TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(AuxVar0* var) {
-	return new AuxVar0Pre<T,undef_value_>(this, var);
+TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(const T& value, ThreadVar* tvar /*= NULL*/) {
+	return this->operator()(new AuxConst0<T,undef_value_>(value), tvar);
 }
 
+template<typename T, T undef_value_>
+TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(AuxVar0<T, undef_value_>* var, ThreadVar* tvar /*= NULL*/) {
+	return new AuxVar0Pre<T,undef_value_>(this, var, tvar);
+}
 
 /********************************************************************************/
 
 template<typename K, typename T, K undef_key_, T undef_value_>
 class AuxVar1 : public AuxVar {
 protected:
-	typedef std::map<K, T> M;
+	typedef std::map<K, T> MM;
+	typedef std::map<THREADID, MM> M;
 	typedef AuxVar0<K,undef_key_> AuxKeyType;
 	typedef AuxVar0<T,undef_value_> AuxValueType;
+	typedef AuxConst0<K,undef_key_> AuxKeyConstType;
+	typedef AuxConst0<T,undef_value_> AuxValueConstType;
 public:
 
-	AuxVar1(const std::string& name) : AuxVar(name) {}
+	AuxVar1(const char* name = "") : AuxVar(name) {}
 	~AuxVar1(){}
 
-	TransitionPredicate* operator ()(const K& key, const T& value) {
-		return this->operator()(this, new AuxKeyType(key), new AuxValueType(value));
+	TransitionPredicate* operator ()(const K& key, const T& value, ThreadVar* tvar = NULL) {
+		return this->operator()(new AuxKeyConstType(key), new AuxValueConstType(value), tvar);
 	}
 
-	TransitionPredicate* operator ()(const K& key) {
-		return this->operator()(this, new AuxKeyType(key), NULL);
+	TransitionPredicate* operator ()(const K& key, ThreadVar* tvar = NULL) {
+		return this->operator()(new AuxKeyConstType(key), NULL, tvar);
 	}
 
-	TransitionPredicate* operator ()(AuxKeyType* key = NULL, AuxValueType* value = NULL);
+	TransitionPredicate* operator ()(ThreadVar* tvar = NULL) {
+		return this->operator()(NULL, NULL, tvar);
+	}
+
+	TransitionPredicate* operator ()(AuxKeyType* key = NULL, AuxValueType* value = NULL, ThreadVar* tvar = NULL);
 
 	//================================================
 
-	T get(const K& key) {
-		typename M::iterator itr = map_.find(key);
+	T get(const K& key, THREADID t = -1) {
+		typename M::iterator itr = map_.find(t);
 		if(itr == map_.end()) {
 			return undef_value_;
 		}
-		return itr->second;
-	}
-
-	bool isset(const K& key = undef_key_) {
-		if(key == undef_key_) {
-			return !map_.empty();
+		typename MM::iterator itr2 = itr->second.find(key);
+		if(itr2 == itr->second.end()) {
+			return undef_key_;
 		}
-		typename M::iterator itr = map_.find(key);
-		return (itr != map_.end());
+		return itr2->second;
 	}
 
-	void set(const K& key = undef_key_, const T& value = undef_value_) {
-		map_[key] = value;
+	void set(const K& key = undef_key_, const T& value = undef_value_, THREADID t = -1) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
+			map_[t] = MM();
+		}
+		map_[t][key] = value;
 	}
 
-	void reset() {
-		map_.clear();
+	void set(const K& key = undef_key_, THREADID t = -1) {
+		set(key, undef_value_, t);
+	}
+
+	bool isset(const K& key = undef_key_, THREADID t = -1) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
+			return false;
+		}
+		if(key == undef_key_) {
+			return !itr->second.empty();
+		}
+		typename MM::iterator itr2 = itr->second.find(key);
+		return (itr2 != itr->second.end());
+	}
+
+	bool isset(THREADID t = -1) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
+			return false;
+		}
+		return !itr->second.empty();
+	}
+
+	void reset(THREADID t = -1) {
+		map_.erase(t); // delete map of t
 	}
 
 private:
@@ -427,19 +494,27 @@ class AuxVar1Pre : public PreStateTransitionPredicate {
 	typedef AuxVar0<K,undef_key_> AuxKeyType;
 	typedef AuxVar0<T,undef_value_> AuxValueType;
 public:
-	AuxVar1Pre(AuxVarType* var, AuxKeyType* key, AuxValueType* value)
-	: PreStateTransitionPredicate(), var_(var), key_(key), value_(value) {}
+	AuxVar1Pre(AuxVarType* var, AuxKeyType* key, AuxValueType* value, ThreadVar* tvar = NULL)
+	: PreStateTransitionPredicate(), var_(var), key_(key), value_(value), tvar_(tvar) {}
 	~AuxVar1Pre(){}
 
 	bool EvalState(Coroutine* t = NULL) {
+		safe_assert(t != NULL);
+		safe_assert(tvar_ == NULL || tvar_->thread() != NULL);
+
+		THREADID tid = tvar_ == NULL ? -1 : tvar_->thread()->coid();
+
+		if(t->coid() != tid) {
+			return false;
+		}
 		safe_assert(var_ != NULL);
 		if(key_ == NULL) {
 			safe_assert(value_ == NULL);
-			return var_->isset();
+			return var_->isset(tid);
 		} else if(value_ == NULL) {
-			return var_->isset(key_->get());
+			return var_->isset(key_->get(tid));
 		} else {
-			return var_->get(key_->get()) == value_->get();
+			return var_->get(key_->get(tid), tid) == value_->get(tid);
 		}
 	}
 
@@ -447,14 +522,48 @@ private:
 	DECL_FIELD(AuxVarType*, var)
 	DECL_FIELD(AuxKeyType*, key)
 	DECL_FIELD(AuxValueType*, value)
+	DECL_FIELD(ThreadVar*, tvar)
 };
 
 /********************************************************************************/
 
 template<typename K, typename T, K undef_key_, T undef_value_>
-TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxKeyType* key /*= NULL*/, AuxValueType* value /*= NULL*/) {
-	return new AuxVar1Pre<K,T,undef_key_,undef_value_>(this, key, value);
+TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxKeyType* key /*= NULL*/, AuxValueType* value /*= NULL*/, ThreadVar* tvar /*= NULL*/) {
+	return new AuxVar1Pre<K,T,undef_key_,undef_value_>(this, key, value, tvar);
 }
+
+/********************************************************************************/
+
+class AuxState {
+public:
+	AuxState(){}
+	~AuxState(){}
+
+	void reset(THREADID t = -1) {
+		Ends.reset(t);
+		Reads.reset(t);
+		Writes.reset(t);
+		CallsFrom.reset(t);
+		CallsTo.reset(t);
+		Enters.reset(t);
+		Returns.reset(t);
+	}
+
+	// auxiliary variables
+	AuxVar0<bool, false> Ends;
+
+	AuxVar1<ADDRINT, bool, -1, false> Reads;
+	AuxVar1<ADDRINT, bool, -1, false> Writes;
+
+	AuxVar1<ADDRINT, bool, -1, false> CallsFrom;
+	AuxVar1<ADDRINT, bool, -1, false> CallsTo;
+	AuxVar1<ADDRINT, bool, -1, false> Enters;
+	AuxVar1<ADDRINT, bool, -1, false> Returns;
+};
+
+
+
+
 
 } // end namespace
 

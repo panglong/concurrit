@@ -1387,7 +1387,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 
 // program state should be updated before this point
 void Scenario::BeforeControlledTransition(Coroutine* current) {
-	safe_assert(!current->trinfolist()->empty());
+//	safe_assert(!current->trinfolist()->empty());
 
 	// make thread blocked
 	safe_assert(current->status() == ENABLED);

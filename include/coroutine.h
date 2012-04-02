@@ -119,7 +119,7 @@ private:
 
 	DECL_FIELD(VC, vc)
 
-	DECL_FIELD_REF(TransitionInfoList, trinfolist)
+//	DECL_FIELD_REF(TransitionInfoList, trinfolist)
 	DECL_FIELD(ExecutionTree*, current_node)
 
 	DECL_FIELD(std::exception*, exception)

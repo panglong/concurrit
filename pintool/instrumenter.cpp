@@ -212,7 +212,8 @@ FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation
 	concurrit::PinMonitorCallInfo info;
 	info.type = concurrit::FuncCall;
 	info.threadid = threadid;
-	info.addr = loc_target->pointer();
+	info.addr = loc_src->pointer();
+	info.addr_target = loc_target->pointer();
 	info.direct = direct;
 	info.loc_src = loc_src;
 	info.loc_target = loc_target;

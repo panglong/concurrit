@@ -74,7 +74,7 @@ public:
 	void MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
 	void MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
 
-	void FuncCall(Coroutine* current, Scenario* scenario, void* addr, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
+	void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
 	void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc);
 	void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
 
@@ -97,6 +97,7 @@ struct PinMonitorCallInfo {
 	PinMonitorCallType type;
 	THREADID threadid;
 	void* addr;
+	void* addr_target;
 	uint32_t size;
 	bool direct;
 	SourceLocation* loc_src;

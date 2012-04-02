@@ -76,46 +76,46 @@ TransitionPredicate* TransitionPredicate::operator || (const bool& b) {
 
 /********************************************************************************/
 
-class TPBeforeEnds : public PreStateTransitionPredicate {
-public:
-	TPBeforeEnds(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
-	~TPBeforeEnds() {}
-
-	bool EvalState(Coroutine* t = NULL) {
-		for_each_transinfo(info, t->trinfolist()) {
-			EndingTransitionInfo* einfo = ASINSTANCEOF(info, EndingTransitionInfo*);
-			if(einfo != NULL) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-private:
-	DECL_FIELD(void*, addr)
-};
-
-/********************************************************************************/
-
-class TPBeforeReads : public PreStateTransitionPredicate {
-public:
-	TPBeforeReads(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
-	~TPBeforeReads() {}
-
-	bool EvalState(Coroutine* t = NULL) {
-		for_each_transinfo(info, t->trinfolist()) {
-			MemAccessTransitionInfo* minfo = ASINSTANCEOF(info, MemAccessTransitionInfo*);
-			if(minfo != NULL && minfo->type() == TRANS_MEM_READ && (addr_ == NULL || minfo->addr() == addr_)) {
-				return true;
-			}
-		}
-		return false;
-
-	}
-
-private:
-	DECL_FIELD(void*, addr)
-};
+//class TPBeforeEnds : public PreStateTransitionPredicate {
+//public:
+//	TPBeforeEnds(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
+//	~TPBeforeEnds() {}
+//
+//	bool EvalState(Coroutine* t = NULL) {
+//		for_each_transinfo(info, t->trinfolist()) {
+//			EndingTransitionInfo* einfo = ASINSTANCEOF(info, EndingTransitionInfo*);
+//			if(einfo != NULL) {
+//				return true;
+//			}
+//		}
+//		return false;
+//	}
+//
+//private:
+//	DECL_FIELD(void*, addr)
+//};
+//
+///********************************************************************************/
+//
+//class TPBeforeReads : public PreStateTransitionPredicate {
+//public:
+//	TPBeforeReads(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
+//	~TPBeforeReads() {}
+//
+//	bool EvalState(Coroutine* t = NULL) {
+//		for_each_transinfo(info, t->trinfolist()) {
+//			MemAccessTransitionInfo* minfo = ASINSTANCEOF(info, MemAccessTransitionInfo*);
+//			if(minfo != NULL && minfo->type() == TRANS_MEM_READ && (addr_ == NULL || minfo->addr() == addr_)) {
+//				return true;
+//			}
+//		}
+//		return false;
+//
+//	}
+//
+//private:
+//	DECL_FIELD(void*, addr)
+//};
 
 /********************************************************************************/
 /********************************************************************************/
