@@ -460,7 +460,7 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 
 	ExecutionTreePath path;
 	ComputePath(loc, &path);
-//	safe_assert(CheckCompletePath(&path, loc));
+	safe_assert(CheckCompletePath(&path, loc));
 
 	const int sz = path.size();
 	//===========================
@@ -536,9 +536,9 @@ bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc& 
 	safe_assert((*path)[0] == first);
 	safe_assert(IS_ENDNODE((*path)[0].get()));
 	safe_assert(IS_ENDNODE((*path)[0].parent()));
+	safe_assert(IS_ENDNODE((*path)[1].get()));
+	safe_assert(!IS_ENDNODE((*path)[1].parent()));
 	safe_assert((*path)[0].parent() == (*path)[0].get());
-	safe_assert(GetRef() != NULL);
-	safe_assert((*path)[0].get() == GetRef());
 
 	return true;
 }
