@@ -712,7 +712,7 @@ LOCALFUN void OnSig(THREADID threadIndex, CONTEXT_CHANGE_REASON reason,
 class ThreadLocalState {
 public:
 	ThreadLocalState(THREADID tid) {
-		printf("Creating thread local state for tid %d...\n", tid);
+		log_file << "Creating thread local state for tid " << tid << endl;
 
 		ASSERTX(PIN_IsApplicationThread());
 		ASSERTX(tid != INVALID_THREADID);
@@ -722,7 +722,7 @@ public:
 	}
 
 	~ThreadLocalState() {
-		printf("Deleting thread local state for tid %d...\n", tid_);
+		log_file << "Deleting thread local state for tid " << tid << endl;
 	}
 
 private:
@@ -743,7 +743,7 @@ LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid) {
 LOCALFUN VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags,
 		VOID *v) {
 	ASSERTX(threadid == PIN_ThreadId());
-	printf("Thread %d starting...\n", threadid);
+	log_file << "Thread "<< threadid << " starting..." << endl;
 
 	GLB_LOCK();
 	PIN_SetThreadData(tls_key, new ThreadLocalState(threadid), threadid);
@@ -755,7 +755,7 @@ LOCALFUN VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code,
 		VOID *v) {
 	ASSERTX(threadid == PIN_ThreadId());
 
-	printf("Thread %d ending...\n", threadid);
+	log_file << "Thread "<< threadid << " ending..." << endl;
 }
 
 LOCALFUN VOID ThreadLocalDestruct(VOID* ptr) {

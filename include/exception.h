@@ -201,7 +201,16 @@ public:
 	}
 
 	~ConcurritException() throw() {
-		// do not delete the cause!
+		// old comment: do not delete the cause!
+		BacktrackException* be = ASINSTANCEOF(cause_, BacktrackException*);
+		if(be != NULL) {
+			delete be;
+		}
+
+		// but can delete the next
+		if(next_ != NULL) {
+			delete next_;
+		}
 	}
 
 	virtual const char* what() const throw()
@@ -255,12 +264,12 @@ private:
 
 /********************************************************************************/
 
-extern BacktrackException* __backtrack_exception__;
+//extern BacktrackException* __backtrack_exception__;
 //extern TerminateSearchException* __terminate_search_exception__;
 //extern ConcurritException*    __concurrit_exception__;
 
 inline BacktrackException* GetBacktrackException(BacktrackReason reason = UNKNOWN) {
-	BacktrackException* e = CHECK_NOTNULL(__backtrack_exception__);
+	BacktrackException* e = new BacktrackException(reason);
 	e->set_reason(reason);
 	return e;
 }

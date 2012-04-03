@@ -182,6 +182,14 @@ public:
 		old_root_ = NULL;
 	}
 
+	~EndNode(){
+		// delete associated exceptions
+		if(exception_ != NULL) {
+			// this also clears the list of exceptions recursively (following the next_ pointer)
+			delete exception_;
+		}
+	}
+
 	void add_exception(std::exception* e, Coroutine* owner, const std::string& where) {
 		exception_ = new ConcurritException(e, owner, where, exception_);
 	}
@@ -351,6 +359,10 @@ public:
 	SingleTransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
 	: TransitionNode(parent, 1), pred_(pred), var_(var), thread_(NULL) {}
 
+	~SingleTransitionNode() {
+		if(IsSafeToDelete(pred_)) delete pred_;
+	}
+
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransitionNode.");
 		ExecutionTree::ToStream(file);
@@ -397,6 +409,10 @@ public:
 	TransferUntilNode(const ThreadVarPtr& var, TransitionPredicate* pred, ExecutionTree* parent = NULL)
 	: MultiTransitionNode(parent, 1), var_(var), pred_(pred) {}
 
+	~TransferUntilNode() {
+		if(IsSafeToDelete(pred_)) delete pred_;
+	}
+
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransferUntilNode.");
 		ExecutionTree::ToStream(file);
@@ -430,6 +446,7 @@ enum AcquireRefMode { EXIT_ON_EMPTY = 1, EXIT_ON_FULL = 2, EXIT_ON_LOCK = 3};
 class ExecutionTreeManager {
 public:
 	ExecutionTreeManager();
+	~ExecutionTreeManager();
 
 	void Restart();
 

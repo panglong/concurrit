@@ -77,7 +77,7 @@ int ExecutionTree::num_nodes_ = 0;
 ExecutionTree::~ExecutionTree(){
 	VLOG(2) << "Deleting execution tree!";
 	for_each_child(child) {
-		if(child != NULL) {
+		if(child != NULL && child != this /*for EndNode*/) {
 			delete child;
 		}
 	}
@@ -272,6 +272,13 @@ void ExecutionTreeManager::Restart() {
 
 /*************************************************************************************/
 
+ExecutionTreeManager::~ExecutionTreeManager() {
+	// noop for now
+	// destructors of fields are called explicitly
+}
+
+/*************************************************************************************/
+
 void ExecutionTreeManager::PopulateLocations() {
 	// evaluate other nodes in current_nodes_
 	// do not touch the first one, which is the current one
@@ -410,7 +417,9 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 		// set old_root of end node
 		if(node != last_node) { // last_node can already be node, then skip
 			safe_assert(!IS_ENDNODE(last_node));
-			static_cast<EndNode*>(node)->set_old_root(last_node);
+//			static_cast<EndNode*>(node)->set_old_root(last_node);
+			// delete old_root
+			delete last_node;
 		}
 	} else {
 		// if node is not end node, the we are either overwriting NULL or the same value

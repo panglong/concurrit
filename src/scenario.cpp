@@ -281,13 +281,6 @@ Result* Scenario::Explore() {
 						result = new ForallResult();
 					}
 
-					if(ConcurritExecutionMode == PREEMPTIVE) {
-						ExecutionTreePath path;
-						exec_tree_.ComputeCurrentPath(&path);
-						printf("Explored new path of length %d\n", path.size());
-						printf("Number of alternate paths: %d\n", exec_tree_.current_nodes()->size());
-					}
-
 					ASINSTANCEOF(result, ForallResult*)->AddSchedule(schedule_->Clone());
 					VLOG(2) << "Found one path for forall search.";
 					TRIGGER_BACKTRACK(SUCCESS, true);

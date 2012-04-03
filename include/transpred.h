@@ -114,6 +114,10 @@ public:
 extern TrueTransitionPredicate __true_transition_predicate__;
 extern FalseTransitionPredicate __false_transition_predicate__;
 
+inline bool IsSafeToDelete(TransitionPredicate* pred) {
+	return pred != NULL && pred != TransitionPredicate::True() && pred != TransitionPredicate::False();
+}
+
 /********************************************************************************/
 
 class PreStateTransitionPredicate : public TransitionPredicate {
@@ -143,7 +147,7 @@ private:
 class NotTransitionPredicate : public TransitionPredicate {
 public:
 	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(pred) {}
-	~NotTransitionPredicate() { if(pred_ != NULL) delete pred_; }
+	~NotTransitionPredicate() { if(IsSafeToDelete(pred_)) delete pred_; }
 	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPNOT(pred_->EvalPreState(t)); }
 	bool EvalPostState(Coroutine* t = NULL) { return !(pred_->EvalPostState(t)); }
 private:
@@ -170,7 +174,7 @@ public:
 	}
 	~NAryTransitionPredicate() {
 		for(iterator itr = this->begin(), end = this->end(); itr != end; ++itr) {
-			if(*itr != NULL) delete (*itr);
+			if(IsSafeToDelete(*itr)) delete (*itr);
 		}
 	}
 
