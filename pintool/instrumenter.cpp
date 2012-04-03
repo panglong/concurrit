@@ -712,7 +712,7 @@ LOCALFUN void OnSig(THREADID threadIndex, CONTEXT_CHANGE_REASON reason,
 class ThreadLocalState {
 public:
 	ThreadLocalState(THREADID tid) {
-		log_file << "Creating thread local state for tid " << tid << endl;
+		log_file << "Creating thread local state for tid " << tid_ << endl;
 
 		ASSERTX(PIN_IsApplicationThread());
 		ASSERTX(tid != INVALID_THREADID);
@@ -722,7 +722,7 @@ public:
 	}
 
 	~ThreadLocalState() {
-		log_file << "Deleting thread local state for tid " << tid << endl;
+		log_file << "Deleting thread local state for tid " << tid_ << endl;
 	}
 
 private:
