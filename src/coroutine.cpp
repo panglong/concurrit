@@ -141,7 +141,7 @@ void Coroutine::WaitForEnd() {
 
 /********************************************************************************/
 
-void Coroutine::Start() {
+void Coroutine::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
 	safe_assert(yield_point_ == NULL);
 	safe_assert(BETWEEN(PASSIVE, status_, TERMINATED));
 
@@ -157,8 +157,9 @@ void Coroutine::Start() {
 
 	if(status_ == PASSIVE || status_ == TERMINATED) {
 		VLOG(2) << CO_TITLE << "Starting new thread";
-		Thread::Start();
+		Thread::Start(pid);
 	} else if(status_ == WAITING || status_ == ENDED) {
+		if(pid != NULL) *pid = pthread_;
 		// send the restart message
 		VLOG(2) << CO_TITLE << "Sending restart message";
 		channel_.SendNoWait(MSG_RESTART);
@@ -166,7 +167,7 @@ void Coroutine::Start() {
 		// kill the thread and restart
 		VLOG(2) << CO_TITLE << "Cancelling and restarting the thread";
 		this->Finish();
-		Thread::Start();
+		Thread::Start(pid, attr);
 	}
 
 	// check if this is the main (for now only main can start coroutines)

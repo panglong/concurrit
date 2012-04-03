@@ -165,16 +165,17 @@ Thread* Thread::Current() {
 
 /********************************************************************************/
 
-void Thread::Start() {
-	pthread_attr_t* attr_ptr = NULL;
-	pthread_attr_t attr;
-	if (stack_size_ > 0) {
-		pthread_attr_init(&attr);
-		pthread_attr_setstacksize(&attr, static_cast<size_t>(stack_size_));
-		attr_ptr = &attr;
+void Thread::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
+	pthread_attr_t* attr_ptr = attr;
+	pthread_attr_t attr_local;
+	if(attr_ptr == NULL && stack_size_ > 0) {
+		pthread_attr_init(&attr_local);
+		pthread_attr_setstacksize(&attr_local, static_cast<size_t>(stack_size_));
+		attr_ptr = &attr_local;
 	}
 	pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
 	safe_assert(pthread_ != PTH_INVALID_THREAD);
+	if(pid != NULL) *pid = pthread_;
 }
 
 /********************************************************************************/

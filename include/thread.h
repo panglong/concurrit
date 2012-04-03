@@ -68,7 +68,7 @@ public:
 	Thread(const char* name, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
 	virtual ~Thread() {}
 
-	virtual void Start();
+	virtual void Start(pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
 	void Join();
 	void Cancel();
 	virtual void* Run();

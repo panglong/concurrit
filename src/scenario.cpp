@@ -184,14 +184,14 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 }
 
 /********************************************************************************/
-Coroutine* Scenario::CreateThread(int id, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/) {
+Coroutine* Scenario::CreateThread(int id, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
 	char buff[MAX_THREAD_NAME_LENGTH];
 	sprintf(buff, "THR-%d", id);
-	return CreateThread(buff, function, arg, transfer_on_start);
+	return CreateThread(buff, function, arg, transfer_on_start, pid, attr);
 }
 
 // create a new thread or fetch the existing one, and start it.
-Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/) {
+Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
 	std::string strname = std::string(name);
 	Coroutine* co = group_.GetMember(strname);
 
@@ -219,7 +219,7 @@ Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function
 		co->set_transfer_on_start(transfer_on_start);
 	}
 	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
-	co->Start();
+	co->Start(pid, attr);
 
 	return co;
 }
