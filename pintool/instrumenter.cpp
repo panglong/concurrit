@@ -347,8 +347,6 @@ LOCALFUN void InitFilteredImages() {
 	FilteredImages.push_back("ld-linux.so");
 	FilteredImages.push_back("ld-linux-x86-64.so");
 
-	FilteredImages.push_back("libbz2.so");
-
 	FilteredImages.push_back("libpthread.so");
 	FilteredImages.push_back("libpth.so");
 

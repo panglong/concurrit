@@ -38,7 +38,6 @@ namespace concurrit {
 // set to default values
 bool Config::OnlyShowHelp = false;
 bool Config::CanEnableDisablePinTool = false;
-bool Config::IsPinToolEnabled = true;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
 char* Config::SaveDotGraphToFile = NULL;
 
@@ -46,7 +45,7 @@ char* Config::SaveDotGraphToFile = NULL;
 
 static void usage() {
 	printf("-h: Show this help. (OnlyShowHelp)\n"
-			"-e[0/1]: Enable/Disable Pin instrumentation.(CanEnableDisablePinTool, IsPinToolEnabled)\n"
+			"-e: Enable/Disable Pin instrumentation.(CanEnableDisablePinTool)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n");
 }
@@ -57,7 +56,7 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "he::f::d::")) != -1) {
+	while ((c = getopt(argc, argv, "hef::d::")) != -1) {
 		switch(c) {
 		case 'h':
 			Config::OnlyShowHelp = true;
@@ -65,7 +64,6 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			break;
 		case 'e':
 			Config::CanEnableDisablePinTool = true;
-			Config::IsPinToolEnabled = (optarg == NULL) ? true : (atoi(optarg) == 1);
 			break;
 		case 'f':
 			Config::ExitOnFirstExecution = (optarg == NULL) ? 1 : atoi(optarg);

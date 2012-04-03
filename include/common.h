@@ -260,7 +260,6 @@ class Config {
 public:
 	static bool OnlyShowHelp;
 	static bool CanEnableDisablePinTool;
-	static bool IsPinToolEnabled;
 	static int ExitOnFirstExecution;
 	static char* SaveDotGraphToFile;
 	static void ParseCommandLine(int argc = -1, char **argv = NULL);
