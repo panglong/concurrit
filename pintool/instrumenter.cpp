@@ -71,39 +71,13 @@ INT32 Usage() {
 }
 
 /* ===================================================================== */
-
-#define PTR2ADDRINT(p)	(reinterpret_cast<ADDRINT>(p))
-
-/* ===================================================================== */
-
-VOID ShowN(UINT32 n, VOID *ea) {
-	// Print out the bytes in "big endian even though they are in memory little endian.
-	// This is most natural for 8B and 16B quantities that show up most frequently.
-	// The address pointed to
-	cout << std::setfill('0');
-	UINT8 b[512];
-	UINT8* x;
-	if (n > 512)
-		x = new UINT8[n];
-	else
-		x = b;
-	PIN_SafeCopy(x, static_cast<UINT8*>(ea), n);
-	for (UINT32 i = 0; i < n; i++) {
-		cout << std::setw(2) << static_cast<UINT32>(x[n - i - 1]);
-		if (((reinterpret_cast<ADDRINT>(ea) + n - i - 1) & 0x3) == 0
-				&& i < n - 1)
-			cout << "_";
-	}
-	if (n > 512)
-		delete[] x;
-}
-
-/* ===================================================================== */
 /* Global Variables */
 /* ===================================================================== */
 
 LOCALVAR FILTER filter;
 LOCALVAR concurrit::Timer timer("Pin running time");
+
+LOCALVAR ofstream log_file;
 
 //LOCALVAR CONTROL control;
 LOCALVAR SKIPPER skipper;
@@ -356,41 +330,6 @@ PinEnableDisable(const CONTEXT * ctxt, UINT32 command) {
 
 /* ===================================================================== */
 
-//LOCALFUN VOID Fini(INT32 code, VOID *v);
-//
-//LOCALFUN VOID Handler(CONTROL_EVENT ev, VOID *, CONTEXT * ctxt, VOID *,
-//		THREADID) {
-//	switch (ev) {
-//	case CONTROL_START:
-//		enabled = TRUE;
-//		PIN_RemoveInstrumentation();
-//#if defined(TARGET_IA32) || defined(TARGET_IA32E)
-//		// So that the rest of the current trace is re-instrumented.
-//		if (ctxt) PIN_ExecuteAt (ctxt);
-//#endif
-//		break;
-//
-//	case CONTROL_STOP:
-//		enabled = FALSE;
-//		PIN_RemoveInstrumentation();
-//		if (KnobEarlyOut) {
-//			cerr << "Exiting due to -early_out" << endl;
-//			Fini(0, NULL);
-//			exit(0);
-//		}
-//#if defined(TARGET_IA32) || defined(TARGET_IA32E)
-//		// So that the rest of the current trace is re-instrumented.
-//		if (ctxt) PIN_ExecuteAt (ctxt);
-//#endif
-//		break;
-//
-//	default:
-//		ASSERTX(FALSE);
-//	}
-//}
-
-/* ===================================================================== */
-
 LOCALVAR std::vector<string> FilteredImages;
 typedef tbb::concurrent_hash_map<UINT32,BOOL> FilteredImageIdsType;
 LOCALVAR FilteredImageIdsType FilteredImageIds;
@@ -440,7 +379,7 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_Open(rtn);
 				NativePinMonitorFunPtr = RTN_Funptr(rtn);
 				RTN_Close(rtn);
-				cout << "Detected callback " << NativePinMonitorFunName << endl;
+				log_file << "Detected callback " << NativePinMonitorFunName << endl;
 
 			} else if(RTN_Name(rtn) == NativePinEnableFunName) {
 				RTN_Open(rtn);
@@ -450,7 +389,7 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 						   IARG_UINT32, ENABLED, IARG_END);
 
 				RTN_Close(rtn);
-				cout << "Detected callback " << NativePinEnableFunName << endl;
+				log_file << "Detected callback " << NativePinEnableFunName << endl;
 
 			}  else if(RTN_Name(rtn) == NativePinDisableFunName) {
 				RTN_Open(rtn);
@@ -461,7 +400,7 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 
 				RTN_Close(rtn);
 
-				cout << "Detected callback " << NativePinDisableFunName << endl;
+				log_file << "Detected callback " << NativePinDisableFunName << endl;
 			}
 		}
 	}
@@ -497,7 +436,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 			}
 			/* ================================= */
 
-			cout << "--- IMG --- " << IMG_Name(img) << endl;
+			log_file << "--- IMG --- " << IMG_Name(img) << endl;
 			FilteredImageIdsType::accessor acc;
 			FilteredImageIds.insert(acc, img_id);
 			acc->second = TRUE;
@@ -505,7 +444,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 		}
 	}
 
-	cout << "+++ IMG +++ " << IMG_Name(img) << endl;
+	log_file << "+++ IMG +++ " << IMG_Name(img) << endl;
 	FilteredImageIdsType::accessor acc;
 	FilteredImageIds.insert(acc, img_id);
 	acc->second = FALSE;
@@ -535,7 +474,7 @@ VOID Routine(RTN rtn, VOID *v)
 		return;
 	}
 
-	cout << "+++ RTN +++ " << RTN_Name(rtn) << endl;
+	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
 
 	RTN_Open(rtn);
 
@@ -565,7 +504,7 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 //	{
 //		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
 //		{
-//			cout << "\t+++ RTN +++ " << RTN_Name(rtn) << endl;
+//			log_file << "\t+++ RTN +++ " << RTN_Name(rtn) << endl;
 //
 //			RTN_Open(rtn);
 //
@@ -586,7 +525,7 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 /* ===================================================================== */
 
 LOCALFUN VOID ImageUnload(IMG img, VOID *) {
-	cout << "Unloading image: " << IMG_Name(img) << endl;
+	log_file << "Unloading image: " << IMG_Name(img) << endl;
 
 	// delete filtering info about this image
 	UINT32 img_id = IMG_Id(img);
@@ -725,6 +664,8 @@ VOID Fini(INT32 code, VOID *v) {
 	printf("\nTIME for program: %s\n", timer.ElapsedTimeToString().c_str());
 
 	PIN_DeleteThreadDataKey(tls_key);
+
+	log_file.close();
 }
 
 /* ===================================================================== */
@@ -733,37 +674,37 @@ LOCALFUN void OnSig(THREADID threadIndex, CONTEXT_CHANGE_REASON reason,
 		const CONTEXT *ctxtFrom, CONTEXT *ctxtTo, INT32 sig, VOID *v) {
 	if (ctxtFrom != 0) {
 		ADDRINT address = PIN_GetContextReg(ctxtFrom, REG_INST_PTR);
-		cout << "SIG signal=" << sig << " on thread " << threadIndex
+		cerr << "SIG signal=" << sig << " on thread " << threadIndex
 				<< " at address " << hex << address << dec << " ";
 	}
 
 	switch (reason) {
 	case CONTEXT_CHANGE_REASON_FATALSIGNAL:
-		cout << "FATALSIG" << sig;
+		cerr << "FATALSIG" << sig;
 		break;
 	case CONTEXT_CHANGE_REASON_SIGNAL:
-		cout << "SIGNAL " << sig;
+		cerr << "SIGNAL " << sig;
 		break;
 	case CONTEXT_CHANGE_REASON_SIGRETURN:
-		cout << "SIGRET";
+		cerr << "SIGRET";
 		break;
 
 	case CONTEXT_CHANGE_REASON_APC:
-		cout << "APC";
+		cerr << "APC";
 		break;
 
 	case CONTEXT_CHANGE_REASON_EXCEPTION:
-		cout << "EXCEPTION";
+		cerr << "EXCEPTION";
 		break;
 
 	case CONTEXT_CHANGE_REASON_CALLBACK:
-		cout << "CALLBACK";
+		cerr << "CALLBACK";
 		break;
 
 	default:
 		break;
 	}
-	cout << std::endl;
+	cerr << std::endl;
 }
 
 /* ===================================================================== */
@@ -835,6 +776,8 @@ int main(int argc, CHAR *argv[]) {
 
 //	control.CheckKnobs(Handler, 0);
 	skipper.CheckKnobs(0);
+
+	log_file.open("instrumenter.log");
 
 	InitFilteredImages();
 

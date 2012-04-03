@@ -208,6 +208,8 @@ typedef int THREADID;
 typedef uintptr_t ADDRINT;
 #endif
 
+#define PTR2ADDRINT(p)	(reinterpret_cast<ADDRINT>(p))
+
 /********************************************************************************/
 
 #ifndef vctime_t

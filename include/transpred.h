@@ -35,7 +35,6 @@
 #define TRANSPRED_H_
 
 #include "common.h"
-#include "transinfo.h"
 #include "tbb/concurrent_hash_map.h"
 
 namespace concurrit {
