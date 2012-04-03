@@ -20,7 +20,7 @@ all: makedirs $(CONCURRIT_LIBDIR)/$(TARGET).so
 $(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
 	g++ $(CONCURRIT_LIB_FLAGS) $(DEFINES) $(FLAGS) -shared -o $@ $^
 	ar rcs $(CONCURRIT_LIBDIR)/$(TARGET).a $^
-	$(CONCURRIT_HOME)/scripts/compile_pintool.sh
+	$(CONCURRIT_HOME)/scripts/compile_pintool.sh CONCURRIT_DEBUG_FLAGS='$(CONCURRIT_DEBUG_FLAGS)'
 
 $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
 	g++ $(CONCURRIT_INC_FLAGS) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
@@ -30,7 +30,8 @@ makedirs:
 	mkdir -p $(CONCURRIT_LIBDIR)
 	mkdir -p $(CONCURRIT_OBJDIR)
 	mkdir -p $(CONCURRIT_WORKDIR)
-	
+
+.PHONY: clean	
 clean:
 	rm -rf $(CONCURRIT_BINDIR)
 	rm -rf $(CONCURRIT_LIBDIR)

@@ -13,7 +13,7 @@ cp -f $CONCURRIT_HOME/pintool/makefile .
 cp -f $CONCURRIT_HOME/pintool/instrumenter.cpp .
 
 make clean
-make dir instrumenter.test
+make $@ dir instrumenter.test
 
 SOURCE="$PINTOOL_DIR/$PIN_ARCH/instrumenter.so"
 if [ -f "$SOURCE" ]
