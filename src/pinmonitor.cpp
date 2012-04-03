@@ -50,13 +50,15 @@ void PinMonitor::InitInstance() {
 	instance_ = new PinMonitor();
 }
 
-PinMonitor::PinMonitor() {
+PinMonitor::PinMonitor() : enabled_(false) {
 	// clean tid_to_coroutine
 	for(int i = 0; i < MAX_THREADS; ++i) {
 		tid_to_coroutine_[i] = NULL;
 	}
 
-	Enable();
+	if(Config::IsPinToolEnabled) {
+		Enable();
+	}
 }
 
 Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
@@ -95,18 +97,22 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 /******************************************************************************************/
 
 void PinMonitor::Enable() {
-	if(Config::CanEnableDisablePinTool) {
-		printf(">>> Enabling Pin instrumentation\n");
-		EnablePinTool();
+	if(Config::IsPinToolEnabled) {
+		if(Config::CanEnableDisablePinTool) {
+			printf(">>> Enabling Pin instrumentation\n");
+			EnablePinTool();
+		}
+		enabled_ = true;
 	}
-	enabled_ = true;
 }
 void PinMonitor::Disable() {
-	if(Config::CanEnableDisablePinTool) {
-		printf(">>> Disabling Pin instrumentation\n");
-		DisablePinTool();
+	if(Config::IsPinToolEnabled) {
+		if(Config::CanEnableDisablePinTool) {
+			printf(">>> Disabling Pin instrumentation\n");
+			DisablePinTool();
+		}
+		enabled_ = false;
 	}
-	enabled_ = false;
 }
 
 /******************************************************************************************/
