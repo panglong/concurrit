@@ -63,22 +63,7 @@ void CoroutineGroup::delete_main() {
  */
 
 CoroutineGroup:: CoroutineGroup() {
-	// initialize main coroutine, (main is not added to the list of members)
-	safe_assert(main_ != NULL);
-//	current_ = main_;
-	main_->set_group(this);
 	scenario_ = NULL;
-	next_coid_ = 1;
-}
-
-/********************************************************************************/
-
-CoroutineGroup:: CoroutineGroup(Scenario* scenario) {
-	// initialize main coroutine, (main is not added to the list of members)
-	safe_assert(main_ != NULL);
-//	current_ = main_;
-	main_->set_group(this);
-	scenario_ = scenario;
 	next_coid_ = 1;
 }
 
@@ -148,6 +133,9 @@ void CoroutineGroup::Restart() {
 //		}
 //		safe_assert(co->yield_point() == NULL);
 //	}
+
+	// initialize main coroutine, (main is not added to the list of members)
+	safe_assert(main_ != NULL);
 	// restart main
 	main_->set_yield_point(NULL);
 	main_->set_group(this);

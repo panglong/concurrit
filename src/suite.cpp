@@ -40,6 +40,24 @@ void Suite::AddScenario(Scenario* scenario) {
 	scenarios_.push_back(scenario);
 }
 
+void Suite::RemoveScenario(Scenario* scenario) {
+	for(std::vector<Scenario*>::iterator itr = scenarios_.begin(); itr < scenarios_.end(); ++itr) {
+			if(*itr == scenario) {
+				scenarios_.erase(itr);
+				return;
+			}
+	}
+}
+
+void Suite::RemoveScenario(const std::string& name) {
+	for(std::vector<Scenario*>::iterator itr = scenarios_.begin(); itr < scenarios_.end(); ++itr) {
+			if((*itr)->name() == name) {
+				scenarios_.erase(itr);
+				return;
+			}
+	}
+}
+
 std::map<std::string, Result*> Suite::RunScenarios() {
 	std::map<std::string, Result*> results;
 

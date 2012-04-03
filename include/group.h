@@ -51,7 +51,6 @@ class CoroutineGroup {
 public:
 
 	CoroutineGroup();
-	explicit CoroutineGroup(Scenario* scenario);
 	~CoroutineGroup() {}
 
 	void AddMember(Coroutine* member);

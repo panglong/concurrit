@@ -210,8 +210,6 @@ public:
 	~ConcurritInitializer();
 };
 
-#define INIT_CONCURRIT(argc, argv)	static ConcurritInitializer __concurrit__initializer__(argc, argv)
-
 /********************************************************************************/
 
 // DSL for the preemptive mode
@@ -230,9 +228,38 @@ public:
 #define EXISTS(t)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
 					DSLSelectThread(t);
 
-
 /********************************************************************************/
 
+#define CONCURRIT_BEGIN_MAIN() \
+		using namespace concurrit; \
+		Suite __concurrit_suite__; \
+
+
+#define CONCURRIT_END_MAIN() \
+		int main(int argc, char ** argv) { \
+			static ConcurritInitializer __concurrit__initializer__(argc, argv); \
+			__concurrit_suite__.RunAll(); \
+			return EXIT_SUCCESS; \
+		} \
+
+
+#define CONCURRIT_BEGIN_TEST(test_name, test_desc) \
+		/* define scenario sub-class */ \
+		class test_name : public Scenario { \
+		public: \
+			test_name() : Scenario(test_desc) {} \
+			~test_name() {} \
+
+
+#define SETUP() 	void SetUp()
+#define TEARDOWN() 	void TearDown()
+#define TESTCASE() 	void TestCase()
+
+
+#define CONCURRIT_END_TEST(test_name) \
+		}; /* end class */ \
+		/* add to the suite */ \
+		StaticSuiteAdder<test_name> __static_suite_adder_##test_name##__(&__concurrit_suite__); \
 
 
 } // end namespace

@@ -1,11 +1,12 @@
 #include <stdio.h>
 
-#include "concurrit.h"
-using namespace concurrit;
-
 #include "increment.h"
 
 #define NUM_THREADS 2
+
+#include "concurrit.h"
+
+CONCURRIT_BEGIN_MAIN()
 
 void* increment_routine(void* arg)
 {
@@ -18,21 +19,16 @@ void* increment_routine(void* arg)
   return NULL;
 }
 
-class INCScenario : public Scenario {
-public:
+//============================================================//
+//============================================================//
 
-	INCScenario() : Scenario("NB-Increment scenario") {
-		counter = NULL;
-	}
-	~INCScenario() {
+CONCURRIT_BEGIN_TEST(INCScenario, "NB-Increment scenario")
 
-	}
-
-	void SetUp() {
+	SETUP() {
 		counter = new NBCounter();
 	}
 
-	void TearDown() {
+	TEARDOWN() {
 		if(counter != NULL)
 			delete counter;
 		counter = NULL;
@@ -41,7 +37,7 @@ public:
 	NBCounter* counter;
 	coroutine_t threads[NUM_THREADS];
 
-	void TestCase() {
+	TESTCASE() {
 
 		TEST_FORALL();
 
@@ -63,19 +59,9 @@ public:
 		}
 	}
 
-};
+CONCURRIT_END_TEST(INCScenario)
+//============================================================//
+//============================================================//
 
 
-int main(int argc, char ** argv)
-{
-	INIT_CONCURRIT(argc, argv);
-
-	Suite suite;
-
-	suite.AddScenario(new INCScenario());
-
-	suite.RunAll();
-
-  return 0;
-}
-
+CONCURRIT_END_MAIN()

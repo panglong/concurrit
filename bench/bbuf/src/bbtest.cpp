@@ -1,31 +1,28 @@
 #include <stdio.h>
 
-#include "concurrit.h"
-using namespace concurrit;
-
 #include "boundedBuffer.h"
 
 #define PRODUCER_SUM  1
 #define CONSUMER_SUM  1
 
-class BBScenario : public Scenario {
-public:
 
-	BBScenario() : Scenario("Bounded buffer scenario") {
-		buffer = NULL;
-	}
-	~BBScenario() {
+#include "concurrit.h"
 
-	}
+CONCURRIT_BEGIN_MAIN()
 
-	void SetUp() {
+
+//============================================================//
+//============================================================//
+CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
+
+	SETUP() {
 		buffer = (bounded_buf_t*) malloc(sizeof(bounded_buf_t));
 		safe_assert(buffer != NULL);
 		int status = bounded_buf_init(buffer, 3);
 		safe_assert(status == 0);
 	}
 
-	void TearDown() {
+	TEARDOWN() {
 		safe_assert(buffer != NULL);
 		int status = bounded_buf_destroy(buffer);
 		safe_assert(status == 0);
@@ -39,7 +36,7 @@ public:
 	coroutine_t co_producers[PRODUCER_SUM];
 	coroutine_t co_consumers[CONSUMER_SUM];
 
-	void TestCase() {
+	TESTCASE() {
 
 		TEST_FORALL();
 
@@ -90,49 +87,9 @@ public:
 		}
 	}
 
-};
+CONCURRIT_END_TEST(BBScenario)
+//============================================================//
+//============================================================//
 
 
-int main(int argc, char ** argv)
-{
-//  thread_t producers[PRODUCER_SUM];
-//  thread_t consumers[CONSUMER_SUM];
-//  int i;
-
-	INIT_CONCURRIT(argc, argv);
-
-	Suite suite;
-
-	suite.AddScenario(new BBScenario());
-
-	suite.RunAll();
-
-//  bounded_buf_t buffer;
-//  bounded_buf_init(&buffer, 3);
-//
-//  for (i = 0; i < PRODUCER_SUM; i++)
-//  {
-//    producers[i].id =  i;
-//    producers[i].bbuf = &buffer;
-//    pthread_create(&producers[i].pid, NULL, producer_routine,  (void*)&producers[i]);
-//  }
-//
-//  for (i = 0; i < CONSUMER_SUM; i++)
-//  {
-//    consumers[i].id =  i;
-//    consumers[i].bbuf = &buffer;
-//    pthread_create(&consumers[i].pid, NULL, consumer_routine,  (void*)&consumers[i]);
-//  }
-//
-//
-//  for (i = 0; i < PRODUCER_SUM; i++)
-//    pthread_join(producers[i].pid, NULL);
-//
-//  for (i = 0; i < CONSUMER_SUM; i++)
-//    pthread_join(consumers[i].pid, NULL);
-//
-//  bounded_buf_destroy(&buffer);
-
-  return 0;
-}
-
+CONCURRIT_END_MAIN()

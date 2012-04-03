@@ -107,9 +107,6 @@ UntilFirstCondition TransferCriteria::until_first_;
 UntilEndCondition TransferCriteria::until_end_;
 
 Scenario::Scenario(const char* name) {
-	// sanity checks for initialization
-	safe_assert(CoroutineGroup::main() != NULL);
-
 	schedule_ = NULL;
 
 	name_ = CHECK_NOTNULL(name);
@@ -596,6 +593,8 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 // although Start and Restart have the same code,
 // we do not directly call Restart, since subclasses may override Start and Restart differently
 void Scenario::Start() {
+	// sanity checks for initialization
+	safe_assert(CoroutineGroup::main() != NULL);
 	safe_assert(test_status_ == TEST_BEGIN || test_status_ == TEST_ENDED);
 
 	srand(time(NULL));

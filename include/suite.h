@@ -46,6 +46,8 @@ public:
 	virtual ~Suite(){}
 
 	void AddScenario(Scenario* scenario);
+	void RemoveScenario(Scenario* scenario);
+	void RemoveScenario(const std::string& name);
 
 	std::map<std::string, Result*> RunScenarios();
 	void RunAll();
@@ -55,6 +57,24 @@ private:
 	DECL_FIELD_REF(Coverage, coverage)
 };
 
+/********************************************************************************/
+
+class Suite;
+template<class T>
+class StaticSuiteAdder {
+public:
+	StaticSuiteAdder(Suite* suite) : suite_(suite) {
+		scenario_ = new T();
+		suite_->AddScenario(scenario_);
+	}
+	~StaticSuiteAdder() {
+		safe_assert(scenario_ != NULL);
+		suite_->RemoveScenario(scenario_);
+	}
+private:
+	DECL_FIELD(Suite*, suite)
+	DECL_FIELD(Scenario*, scenario)
+};
 
 } // end namespace
 
