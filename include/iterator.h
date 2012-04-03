@@ -37,6 +37,7 @@
 
 #include "common.h"
 
+namespace concurrit {
 
 template<typename T>
 class IteratorState {
@@ -90,6 +91,6 @@ private:
 	int current_;
 };
 
-
+} // end namespace
 
 #endif /* ITERATOR_H_ */

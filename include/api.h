@@ -232,7 +232,7 @@ public:
 
 #define CONCURRIT_BEGIN_MAIN() \
 		using namespace concurrit; \
-		Suite __concurrit_suite__; \
+		static Suite __concurrit_suite__; \
 
 
 #define CONCURRIT_END_MAIN() \
@@ -259,7 +259,7 @@ public:
 #define CONCURRIT_END_TEST(test_name) \
 		}; /* end class */ \
 		/* add to the suite */ \
-		StaticSuiteAdder<test_name> __static_suite_adder_##test_name##__(&__concurrit_suite__); \
+		static StaticSuiteAdder<test_name> __static_suite_adder_##test_name##__(&__concurrit_suite__); \
 
 
 } // end namespace

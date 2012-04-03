@@ -177,17 +177,27 @@ extern "C" void DisablePinTool();
 /********************************************************************************/
 
 #define UNRECOVERABLE_ERROR 5
+
+#ifdef SAFE_ASSERT
+#include <execinfo.h>
+extern void print_trace();
 #define safe_assert(cond) \
 		if (!(cond))  { \
-			printf("\nCounit: safe assert fail: safe_assert(%s):", #cond); \
-			printf(" \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
-			fflush(stdout); \
+			fprintf(stderr, "\nCounit: safe assert fail: safe_assert(%s):", #cond); \
+			fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
+			concurrit::print_trace(); \
+			fflush(stderr); \
 			_Exit(UNRECOVERABLE_ERROR); \
 		}
+#else
+#define safe_assert(cond) /* noop */
+#endif
 
 #define unimplemented() \
 		VLOG(2) << "Executing unimplemented code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
-		throw "Unimplemented operation!"
+		fprintf(stderr, "Unimplemented operation!"); \
+		fflush(stderr); \
+		_Exit(UNRECOVERABLE_ERROR); \
 
 /********************************************************************************/
 // #define NOTNULL(ptr)	(ptr)

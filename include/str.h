@@ -37,6 +37,8 @@
 
 #include "common.h"
 
+namespace concurrit {
+
 /*
  * Definitions for fixed-length strings
  */
@@ -67,6 +69,8 @@ static inline void str_copy(str_t to, std::string& from) {
 
 	strncpy(to, fromc, MAX_STR_LEN);
 }
+
+} // end namespace
 
 
 #endif /* STR_H_ */

@@ -98,6 +98,26 @@ ConcurritInitializer::~ConcurritInitializer() {
 
 /********************************************************************************/
 
+#ifdef SAFE_ASSERT
+void print_trace () {
+	void *array[10];
+	size_t size;
+	char **strings;
+	size_t i;
+
+	size = backtrace (array, 10);
+	strings = backtrace_symbols (array, size);
+
+	fprintf(stderr, "Stack trace (of %zd frames):\n", size);
+	for (i = 0; i < size; i++)
+		fprintf(stderr, "%s\n", strings[i]);
+
+	free(strings);
+}
+#endif
+
+/********************************************************************************/
+
 /*
  * Scenario
  */
