@@ -16,8 +16,8 @@ CONCURRIT_LIB_FLAG=-lconcurrit
 CONCURRIT_C_STD=-std=c++0x
 
 # flags to use when compiling concurrit
-CONCURRIT_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/glog/include -I$(CONCURRIT_TPDIR)/gflags/include -I$(BOOST_ROOT)
-CONCURRIT_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -L$(CONCURRIT_TPDIR)/glog/lib -L$(CONCURRIT_TPDIR)/gflags/lib -lpthread -lglog -lgflags
+CONCURRIT_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/glog/include -I$(CONCURRIT_TPDIR)/gflags/include -I$(BOOST_ROOT) -I$(CONCURRIT_TPDIR)/tbb/include
+CONCURRIT_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -L$(CONCURRIT_TPDIR)/glog/lib -L$(CONCURRIT_TPDIR)/gflags/lib -L$(CONCURRIT_TPDIR)/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21 -lpthread -lglog -lgflags -ltbb
 # -L/usr/lib/gcc/x86_64-linux-gnu/4.4
 
 # CONCURRIT_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/glog/include -I$(CONCURRIT_TPDIR)/gflags/include -I$(CONCURRIT_TPDIR)/pth/include -I$(BOOST_ROOT)
@@ -32,5 +32,5 @@ CONCURRIT_PROG_INC_FLAGS=-I$(CONCURRIT_INCDIR)
 CONCURRIT_PROG_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG)
 
 # flags to use when compiling the pin tool
-CONCURRIT_PINTOOL_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/tbb/include -fomit-frame-pointer
-CONCURRIT_PINTOOL_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_TPDIR)/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21 -ltbb 
+CONCURRIT_PINTOOL_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/tbb/include -fomit-frame-pointer 
+CONCURRIT_PINTOOL_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_TPDIR)/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21 -ltbb

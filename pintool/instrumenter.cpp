@@ -409,6 +409,15 @@ LOCALFUN void InitFilteredImages() {
 	FilteredImages.push_back("ld-linux.so");
 	FilteredImages.push_back("ld-linux-x86-64.so");
 
+	FilteredImages.push_back("libtbb.so");
+	FilteredImages.push_back("libtbb_debug.so");
+	FilteredImages.push_back("libtbbmalloc.so");
+	FilteredImages.push_back("libtbbmalloc_debug.so");
+	FilteredImages.push_back("libtbbmalloc_proxy.so");
+	FilteredImages.push_back("libtbbmalloc_proxy_debug.so");
+	FilteredImages.push_back("libtbb_preview.so");
+	FilteredImages.push_back("libtbb_preview_debug.so");
+
 	FilteredImages.push_back("libconcurrit.so");
 	FilteredImages.push_back("libgflags.so");
 	FilteredImages.push_back("libglog.so");

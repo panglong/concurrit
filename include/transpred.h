@@ -36,6 +36,7 @@
 
 #include "common.h"
 #include "transinfo.h"
+#include "tbb/concurrent_hash_map.h"
 
 namespace concurrit {
 
@@ -301,7 +302,7 @@ private:
 
 template<typename T, T undef_value_>
 class AuxVar0 : public AuxVar {
-	typedef std::map<THREADID, T> M;
+	typedef tbb::concurrent_hash_map<THREADID, T> M;
 public:
 	AuxVar0(const char* name = "") : AuxVar(name) {}
 	~AuxVar0(){}
@@ -320,15 +321,17 @@ public:
 
 	//================================================
 	virtual T get(THREADID t = -1) {
-		typename M::iterator itr = map_.find(t);
-		if(itr == map_.end()) {
+		typename M::const_accessor acc;
+		if(!map_.find(acc, t)) {
 			return undef_value_;
 		}
-		return itr->second;
+		return acc->second;
 	}
 
 	virtual void set(const T& value, THREADID t = -1) {
-		map_[t] = value;
+		typename M::accessor acc;
+		map_.insert(acc, t);
+		acc->second = value;
 	}
 
 private:
@@ -407,8 +410,8 @@ TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(AuxVar0<T, undef_value
 template<typename K, typename T, K undef_key_, T undef_value_>
 class AuxVar1 : public AuxVar {
 protected:
-	typedef std::map<K, T> MM;
-	typedef std::map<THREADID, MM> M;
+	typedef tbb::concurrent_hash_map<K, T> MM;
+	typedef tbb::concurrent_hash_map<THREADID, MM> M;
 	typedef AuxVar0<K,undef_key_> AuxKeyType;
 	typedef AuxVar0<T,undef_value_> AuxValueType;
 	typedef AuxConst0<K,undef_key_> AuxKeyConstType;
@@ -435,23 +438,26 @@ public:
 	//================================================
 
 	T get(const K& key, THREADID t = -1) {
-		typename M::iterator itr = map_.find(t);
-		if(itr == map_.end()) {
+		typename M::const_accessor acc;
+		if(!map_.find(acc, t)) {
 			return undef_value_;
 		}
-		typename MM::iterator itr2 = itr->second.find(key);
-		if(itr2 == itr->second.end()) {
+		typename MM::const_accessor acc2;
+		if(!acc->second.find(acc2, key)) {
 			return undef_key_;
 		}
-		return itr2->second;
+		return acc2->second;
 	}
 
 	void set(const K& key = undef_key_, const T& value = undef_value_, THREADID t = -1) {
-		typename M::iterator itr = map_.find(t);
-		if(itr == map_.end()) {
-			map_[t] = MM();
+		typename M::accessor acc;
+		if(!map_.find(acc, t)) {
+			map_.insert(acc, t);
+			acc->second = MM();
 		}
-		map_[t][key] = value;
+		typename MM::accessor acc2;
+		acc->second.insert(acc2, key);
+		acc2->second = value;
 	}
 
 	void set(const K& key = undef_key_, THREADID t = -1) {
@@ -459,23 +465,23 @@ public:
 	}
 
 	bool isset(const K& key = undef_key_, THREADID t = -1) {
-		typename M::iterator itr = map_.find(t);
-		if(itr == map_.end()) {
+		typename M::const_accessor acc;
+		if(!map_.find(acc, t)) {
 			return false;
 		}
 		if(key == undef_key_) {
-			return !itr->second.empty();
+			return !acc->second.empty();
 		}
-		typename MM::iterator itr2 = itr->second.find(key);
-		return (itr2 != itr->second.end());
+		typename MM::const_accessor acc2;
+		return acc->second.find(acc2, key);
 	}
 
 	bool isset(THREADID t = -1) {
-		typename M::iterator itr = map_.find(t);
-		if(itr == map_.end()) {
+		typename M::const_accessor acc;
+		if(!map_.find(acc, t)) {
 			return false;
 		}
-		return !itr->second.empty();
+		return !acc->second.empty();
 	}
 
 	void reset(THREADID t = -1) {
