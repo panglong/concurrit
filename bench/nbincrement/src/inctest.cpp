@@ -55,7 +55,7 @@ CONCURRIT_BEGIN_TEST(INCScenario, "NB-Increment scenario")
 //			DSLTransition(TransitionPredicate::True());
 
 			EXISTS(t);
-			DSLTransferUntil(t, TransitionPredicate::True());
+			DSLTransferUntil(t, ENDS());
 		}
 	}
 

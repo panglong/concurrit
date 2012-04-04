@@ -305,7 +305,7 @@ public:
 
 	TransitionPredicatePtr operator ()(const T& value, const ThreadVarPtr& tvar = ThreadVarPtr());
 
-	TransitionPredicatePtr operator ()(AuxVar0Ptr var, const ThreadVarPtr& tvar = ThreadVarPtr());
+	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var = AuxVar0Ptr(), const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	virtual void reset(THREADID t = -1) {
 		set(undef_value_, t);
@@ -387,7 +387,10 @@ public:
 
 		THREADID tid = tvar_ == NULL ? t->coid() : tvar_->thread()->coid();
 
-		safe_assert(var1_ != NULL && var2_ != NULL);
+		safe_assert(var1_ != NULL);
+		if(var2_ == NULL) {
+			return var1_->isset(tid);
+		}
 		return var1_->get(tid) == var2_->get(tid);
 	}
 
@@ -404,7 +407,7 @@ TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const T& value, cons
 }
 
 template<typename T, T undef_value_>
-TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(AuxVar0Ptr var, const ThreadVarPtr& tvar /*= NULL*/) {
+TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const AuxVar0Ptr& var /*= NULL*/, const ThreadVarPtr& tvar /*= NULL*/) {
 	return TransitionPredicatePtr(new AuxVar0Pre<T,undef_value_>(AuxVar0Ptr(this), var, tvar));
 }
 
@@ -594,13 +597,13 @@ public:
 
 /********************************************************************************/
 
-#define ENDS()			AuxState::Ends()
+#define ENDS()			AuxState::Ends->operator()()
 
-#define READS()			AuxState::Reads()
-#define WRITES()		AuxState::Writes()
+#define READS()			AuxState::Reads->operator()()
+#define WRITES()		AuxState::Writes->operator()()
 
-#define READS_FROM(x)	AuxState::Reads(x)
-#define WRITES_TO(x)	AuxState::Writes(x)
+#define READS_FROM(x)	AuxState::Reads->operator()(x)
+#define WRITES_TO(x)	AuxState::Writes->operator()(x)
 
 
 } // end namespace
