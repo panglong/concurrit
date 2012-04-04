@@ -240,7 +240,7 @@ void* Coroutine::Run() {
 				safe_assert(status_ == ENABLED);
 //				safe_assert(trinfolist_.empty());
 //				trinfolist_.push_back(EndingTransitionInfo()); // put predicate indicating ending state
-				scenario->aux_state()->Ends.set(true, coid_);
+				AuxState::Ends.set(true, coid_);
 				scenario->OnControlledTransition(this);
 			}
 
@@ -419,7 +419,7 @@ void Coroutine::FinishControlledTransition(bool holding_current_node) {
 //	trinfolist_.clear();
 
 	// remove auxiliary state
-	group_->scenario()->aux_state()->reset(coid_);
+	AuxState::Reset(coid_);
 
 	if(!holding_current_node) {
 		current_node_ = NULL;

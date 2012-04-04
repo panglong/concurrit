@@ -311,9 +311,9 @@ public:
 	AuxVar0(const char* name = "") : AuxVar(name) {}
 	~AuxVar0(){}
 
-	TransitionPredicate* operator ()(const T& value, ThreadVar* tvar = NULL);
+	TransitionPredicate* operator ()(const T& value, const ThreadVarPtr& tvar = ThreadVarPtr());
 
-	TransitionPredicate* operator ()(AuxVar0* var, ThreadVar* tvar = NULL);
+	TransitionPredicate* operator ()(AuxVar0* var, const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	virtual void reset(THREADID t = -1) {
 		set(undef_value_, t);
@@ -386,35 +386,35 @@ template<typename T, T undef_value_>
 class AuxVar0Pre : public PreStateTransitionPredicate {
 	typedef AuxVar0<T,undef_value_> AuxVarType;
 public:
-	AuxVar0Pre(AuxVarType* var1, AuxVarType* var2, ThreadVar* tvar = NULL) : PreStateTransitionPredicate(), var1_(var1), var2_(var2), tvar_(tvar) {}
-	~AuxVar0Pre(){}
+	AuxVar0Pre(AuxVarType* var1, AuxVarType* var2, const ThreadVarPtr& tvar = ThreadVarPtr()) : PreStateTransitionPredicate(), var1_(var1), var2_(var2), tvar_(tvar) {}
+	~AuxVar0Pre(){
+//		if(var1_ != NULL) delete var1_;
+//		if(var2_ != NULL) delete var2_;
+	}
 
 	bool EvalState(Coroutine* t = NULL) {
 		safe_assert(t != NULL);
-		safe_assert(tvar_ == NULL || tvar_->thread() != NULL);
+		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
 
-		THREADID tid = tvar_ == NULL ? -1 : tvar_->thread()->coid();
+		THREADID tid = tvar_ == NULL ? t->coid() : tvar_->thread()->coid();
 
-		if(t->coid() != tid) {
-			return false;
-		}
 		return var1_->get(tid) == var2_->get(tid);
 	}
 
 private:
 	DECL_FIELD(AuxVarType*, var1)
 	DECL_FIELD(AuxVarType*, var2)
-	DECL_FIELD(ThreadVar*, tvar)
+	DECL_FIELD(ThreadVarPtr, tvar)
 };
 
 
 template<typename T, T undef_value_>
-TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(const T& value, ThreadVar* tvar /*= NULL*/) {
+TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(const T& value, const ThreadVarPtr& tvar /*= NULL*/) {
 	return this->operator()(new AuxConst0<T,undef_value_>(value), tvar);
 }
 
 template<typename T, T undef_value_>
-TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(AuxVar0<T, undef_value_>* var, ThreadVar* tvar /*= NULL*/) {
+TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(AuxVar0<T, undef_value_>* var, const ThreadVarPtr& tvar /*= NULL*/) {
 	return new AuxVar0Pre<T,undef_value_>(this, var, tvar);
 }
 
@@ -434,19 +434,19 @@ public:
 	AuxVar1(const char* name = "") : AuxVar(name) {}
 	~AuxVar1(){}
 
-	TransitionPredicate* operator ()(const K& key, const T& value, ThreadVar* tvar = NULL) {
+	TransitionPredicate* operator ()(const K& key, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr()) {
 		return this->operator()(new AuxKeyConstType(key), new AuxValueConstType(value), tvar);
 	}
 
-	TransitionPredicate* operator ()(const K& key, ThreadVar* tvar = NULL) {
+	TransitionPredicate* operator ()(const K& key, const ThreadVarPtr& tvar = ThreadVarPtr()) {
 		return this->operator()(new AuxKeyConstType(key), NULL, tvar);
 	}
 
-	TransitionPredicate* operator ()(ThreadVar* tvar = NULL) {
+	TransitionPredicate* operator ()(const ThreadVarPtr& tvar = ThreadVarPtr()) {
 		return this->operator()(NULL, NULL, tvar);
 	}
 
-	TransitionPredicate* operator ()(AuxKeyType* key = NULL, AuxValueType* value = NULL, ThreadVar* tvar = NULL);
+	TransitionPredicate* operator ()(AuxKeyType* key = NULL, AuxValueType* value = NULL, const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	//================================================
 
@@ -516,19 +516,20 @@ class AuxVar1Pre : public PreStateTransitionPredicate {
 	typedef AuxVar0<K,undef_key_> AuxKeyType;
 	typedef AuxVar0<T,undef_value_> AuxValueType;
 public:
-	AuxVar1Pre(AuxVarType* var, AuxKeyType* key, AuxValueType* value, ThreadVar* tvar = NULL)
+	AuxVar1Pre(AuxVarType* var, AuxKeyType* key, AuxValueType* value, const ThreadVarPtr& tvar = ThreadVarPtr())
 	: PreStateTransitionPredicate(), var_(var), key_(key), value_(value), tvar_(tvar) {}
-	~AuxVar1Pre(){}
+	~AuxVar1Pre(){
+//		if(var_ != NULL) delete var_;
+//		if(key_ != NULL) delete key_;
+//		if(value_ != NULL) delete value_;
+	}
 
 	bool EvalState(Coroutine* t = NULL) {
 		safe_assert(t != NULL);
-		safe_assert(tvar_ == NULL || tvar_->thread() != NULL);
+		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
 
-		THREADID tid = tvar_ == NULL ? -1 : tvar_->thread()->coid();
+		THREADID tid = tvar_ == NULL ? t->coid() : tvar_->thread()->coid();
 
-		if(t->coid() != tid) {
-			return false;
-		}
 		safe_assert(var_ != NULL);
 		if(key_ == NULL) {
 			safe_assert(value_ == NULL);
@@ -544,24 +545,25 @@ private:
 	DECL_FIELD(AuxVarType*, var)
 	DECL_FIELD(AuxKeyType*, key)
 	DECL_FIELD(AuxValueType*, value)
-	DECL_FIELD(ThreadVar*, tvar)
+	DECL_FIELD(ThreadVarPtr, tvar)
 };
 
 /********************************************************************************/
 
 template<typename K, typename T, K undef_key_, T undef_value_>
-TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxKeyType* key /*= NULL*/, AuxValueType* value /*= NULL*/, ThreadVar* tvar /*= NULL*/) {
+TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxKeyType* key /*= NULL*/, AuxValueType* value /*= NULL*/, const ThreadVarPtr& tvar /*= NULL*/) {
 	return new AuxVar1Pre<K,T,undef_key_,undef_value_>(this, key, value, tvar);
 }
 
 /********************************************************************************/
 
 class AuxState {
-public:
+private:
 	AuxState(){}
 	~AuxState(){}
+public:
 
-	void reset(THREADID t = -1) {
+	static void Reset(THREADID t = -1) {
 		Ends.reset(t);
 		Reads.reset(t);
 		Writes.reset(t);
@@ -571,7 +573,7 @@ public:
 		Returns.reset(t);
 	}
 
-	void clear() {
+	static void Clear() {
 		Ends.clear();
 		Reads.clear();
 		Writes.clear();
@@ -582,19 +584,26 @@ public:
 	}
 
 	// auxiliary variables
-	AuxVar0<bool, false> Ends;
+	static AuxVar0<bool, false> Ends;
 
-	AuxVar1<ADDRINT, bool, -1, false> Reads;
-	AuxVar1<ADDRINT, bool, -1, false> Writes;
+	static AuxVar1<ADDRINT, bool, -1, false> Reads;
+	static AuxVar1<ADDRINT, bool, -1, false> Writes;
 
-	AuxVar1<ADDRINT, bool, -1, false> CallsFrom;
-	AuxVar1<ADDRINT, bool, -1, false> CallsTo;
-	AuxVar1<ADDRINT, bool, -1, false> Enters;
-	AuxVar1<ADDRINT, bool, -1, false> Returns;
+	static AuxVar1<ADDRINT, bool, -1, false> CallsFrom;
+	static AuxVar1<ADDRINT, bool, -1, false> CallsTo;
+	static AuxVar1<ADDRINT, bool, -1, false> Enters;
+	static AuxVar1<ADDRINT, bool, -1, false> Returns;
 };
 
+/********************************************************************************/
 
+#define ENDS()			AuxState::Ends()
 
+#define READS()			AuxState::Reads()
+#define WRITES()		AuxState::Writes()
+
+#define READS_FROM(x)	AuxState::Reads(x)
+#define WRITES_TO(x)	AuxState::Writes(x)
 
 
 } // end namespace

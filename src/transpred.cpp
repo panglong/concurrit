@@ -35,6 +35,16 @@
 
 namespace concurrit {
 
+AuxVar0<bool, false> AuxState::Ends("Ends");
+
+AuxVar1<ADDRINT, bool, -1, false> AuxState::Reads("Reads");
+AuxVar1<ADDRINT, bool, -1, false> AuxState::Writes("Writes");
+
+AuxVar1<ADDRINT, bool, -1, false> AuxState::CallsFrom("CallsFrom");
+AuxVar1<ADDRINT, bool, -1, false> AuxState::CallsTo("CallsTo");
+AuxVar1<ADDRINT, bool, -1, false> AuxState::Enters("Enters");
+AuxVar1<ADDRINT, bool, -1, false> AuxState::Returns("Returns");
+
 /*************************************************************************************/
 
 // extern'ed variables
@@ -68,27 +78,41 @@ TransitionPredicate* TransitionPredicate::operator || (const bool& b) {
 
 /********************************************************************************/
 
-#define for_each_transinfo(info, tinfos) \
-	TransitionInfoList* __list__ = tinfos; \
-	TransitionInfoList::iterator __itr__ = __list__->begin(); \
-	TransitionInfo* info = (__itr__ != __list__->end() ? &(*__itr__) : NULL); \
-	for (; __itr__ != __list__->end(); info = ((++__itr__) != __list__->end() ? &(*__itr__) : NULL))
+//#define for_each_transinfo(info, tinfos) \
+//	TransitionInfoList* __list__ = tinfos; \
+//	TransitionInfoList::iterator __itr__ = __list__->begin(); \
+//	TransitionInfo* info = (__itr__ != __list__->end() ? &(*__itr__) : NULL); \
+//	for (; __itr__ != __list__->end(); info = ((++__itr__) != __list__->end() ? &(*__itr__) : NULL))
 
 /********************************************************************************/
 
-//class TPBeforeEnds : public PreStateTransitionPredicate {
+//class TPEnds : public PreStateTransitionPredicate {
 //public:
-//	TPBeforeEnds(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
-//	~TPBeforeEnds() {}
+//	TPEnds(ThreadVarPtr var) : PreStateTransitionPredicate(), var_(var) {}
+//	~TPEnds() {}
 //
 //	bool EvalState(Coroutine* t = NULL) {
-//		for_each_transinfo(info, t->trinfolist()) {
-//			EndingTransitionInfo* einfo = ASINSTANCEOF(info, EndingTransitionInfo*);
-//			if(einfo != NULL) {
-//				return true;
-//			}
-//		}
-//		return false;
+//		safe_assert(t != NULL);
+//
+//		return AuxState::Ends.get(t->coid());
+//	}
+//
+//private:
+//	DECL_FIELD(ThreadVarPtr, var)
+//};
+//
+///********************************************************************************/
+//
+//class TPReads : public PreStateTransitionPredicate {
+//public:
+//	TPReads(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
+//	~TPReads() {}
+//
+//	bool EvalState(Coroutine* t = NULL) {
+//		safe_assert(t != NULL);
+//		return addr_ == NULL ?
+//				AuxState::Reads.get(t->coid()) :
+//				AuxState::Reads.get(t->coid(), PTR2ADDRINT(addr_));
 //	}
 //
 //private:
@@ -97,27 +121,22 @@ TransitionPredicate* TransitionPredicate::operator || (const bool& b) {
 //
 ///********************************************************************************/
 //
-//class TPBeforeReads : public PreStateTransitionPredicate {
+//class TPWrites: public PreStateTransitionPredicate {
 //public:
-//	TPBeforeReads(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
-//	~TPBeforeReads() {}
+//	TPWrites(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
+//	~TPWrites() {}
 //
 //	bool EvalState(Coroutine* t = NULL) {
-//		for_each_transinfo(info, t->trinfolist()) {
-//			MemAccessTransitionInfo* minfo = ASINSTANCEOF(info, MemAccessTransitionInfo*);
-//			if(minfo != NULL && minfo->type() == TRANS_MEM_READ && (addr_ == NULL || minfo->addr() == addr_)) {
-//				return true;
-//			}
-//		}
-//		return false;
-//
+//		safe_assert(t != NULL);
+//		return addr_ == NULL ?
+//				AuxState::Writes.get(t->coid()) :
+//				AuxState::Writes.get(t->coid(), PTR2ADDRINT(addr_));
 //	}
 //
 //private:
 //	DECL_FIELD(void*, addr)
 //};
 
-/********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
