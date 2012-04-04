@@ -497,7 +497,22 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 		}
 	}
 
-	// delete the (largest) covered subtree
+	//===========================
+	// after coverage computation:
+	// first remove alternate paths which become covered, since we will delete covered subtrees below
+	for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(), end = current_nodes_.end(); itr < end; ) {
+		ChildLoc loc = *itr;
+		if(loc.parent()->covered()) {
+			// delete it
+			itr = current_nodes_.erase(itr);
+		} else {
+			// skip it
+			++itr;
+		}
+	}
+
+	//===========================
+	// now delete the (largest) covered subtree
 	ExecutionTree* end_node = path[0].parent();
 	safe_assert(IS_ENDNODE(end_node));
 	if(BETWEEN(1, highest_covered_index, sz-2)) {
