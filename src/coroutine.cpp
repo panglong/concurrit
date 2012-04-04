@@ -240,7 +240,7 @@ void* Coroutine::Run() {
 				safe_assert(status_ == ENABLED);
 //				safe_assert(trinfolist_.empty());
 //				trinfolist_.push_back(EndingTransitionInfo()); // put predicate indicating ending state
-				AuxState::Ends.set(true, coid_);
+				AuxState::Ends->set(true, coid_);
 				scenario->OnControlledTransition(this);
 			}
 

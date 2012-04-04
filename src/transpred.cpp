@@ -35,15 +35,23 @@
 
 namespace concurrit {
 
-AuxVar0<bool, false> AuxState::Ends("Ends");
 
-AuxVar1<ADDRINT, bool, -1, false> AuxState::Reads("Reads");
-AuxVar1<ADDRINT, bool, -1, false> AuxState::Writes("Writes");
+boost::shared_ptr<AuxVar0<bool, false>> AuxState::Ends =
+			boost::shared_ptr<AuxVar0<bool, false>>(new AuxVar0<bool, false>("Ends"));
 
-AuxVar1<ADDRINT, bool, -1, false> AuxState::CallsFrom("CallsFrom");
-AuxVar1<ADDRINT, bool, -1, false> AuxState::CallsTo("CallsTo");
-AuxVar1<ADDRINT, bool, -1, false> AuxState::Enters("Enters");
-AuxVar1<ADDRINT, bool, -1, false> AuxState::Returns("Returns");
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Reads =
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Reads"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Writes =
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Writes"));
+
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom =
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo =
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters =
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Enters"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns =
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Returns"));
 
 /*************************************************************************************/
 
