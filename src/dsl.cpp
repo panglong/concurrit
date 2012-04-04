@@ -484,12 +484,33 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 
 	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
+	int highest_covered_index = 0;
 	for(int i = 1; i < sz; ++i) {
 		ChildLoc element = path[i];
 		safe_assert(!element.empty());
 		safe_assert(element.check(path[i-1].parent()));
 		ExecutionTree* node = element.parent();
 		node->ComputeCoverage(false); //  do not recurse, only use immediate children
+
+		if(node->covered()) {
+			highest_covered_index = i;
+		}
+	}
+
+	// delete the (largest) covered subtree
+	ExecutionTree* end_node = path[0].parent();
+	safe_assert(IS_ENDNODE(end_node));
+	if(BETWEEN(1, highest_covered_index, sz-2)) {
+		ChildLoc parent_loc = path[highest_covered_index+1];
+		ExecutionTree* subtree_root = parent_loc.get();
+		safe_assert(subtree_root == path[highest_covered_index].parent());
+		// TODO(elmas): collect exceptions in the subtree and contain them in end_node
+		parent_loc.set(end_node); // shortcut parent to end_node
+		safe_assert(path[1].parent() != end_node);
+		safe_assert(path[1].get() == end_node);
+		path[1].set(NULL); // remove link to the end node, to avoid deleting it
+		// we can now delete the subtree
+		delete subtree_root;
 	}
 
 //	fprintf(stderr, "Path length: %d\n", path->size());
