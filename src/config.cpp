@@ -68,6 +68,7 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 		case 'f':
 			Config::ExitOnFirstExecution = (optarg == NULL) ? 1 : atoi(optarg);
 			safe_assert(Config::ExitOnFirstExecution >= 1);
+			printf("Will terminate the search after %d executions.\n", Config::ExitOnFirstExecution);
 			break;
 		case 'd':
 			if(optarg != NULL) {
