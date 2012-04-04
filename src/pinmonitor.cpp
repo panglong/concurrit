@@ -36,26 +36,17 @@
 
 namespace concurrit {
 
-PinMonitor* PinMonitor::instance_ = NULL;
+Coroutine* PinMonitor::tid_to_coroutine_[MAX_THREADS];
+volatile bool PinMonitor::enabled_ = false;
 
 /********************************************************************************/
 
 
-PinMonitor* PinMonitor::GetInstance() {
-	return instance_;
-}
-
-void PinMonitor::InitInstance() {
-	safe_assert(instance_ == NULL);
-	instance_ = new PinMonitor();
-}
-
-PinMonitor::PinMonitor() : enabled_(false) {
+void PinMonitor::Init() {
 	// clean tid_to_coroutine
 	for(int i = 0; i < MAX_THREADS; ++i) {
 		tid_to_coroutine_[i] = NULL;
 	}
-
 	if(!Config::RunUncontrolled) {
 		Enable();
 	}
@@ -119,13 +110,13 @@ void PinMonitor::Disable() {
 
 // callbacks
 
-void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
+inline void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
 	safe_assert(loc != NULL);
 
 	scenario->BeforeControlledTransition(current);
 }
 
-void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
+inline void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
 	safe_assert(loc != NULL);
 
 	scenario->AfterControlledTransition(current);
@@ -133,7 +124,7 @@ void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLo
 
 /********************************************************************************/
 
-void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
+inline void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
 	safe_assert(loc != NULL);
 
 //	current->trinfolist()->push_back(MemAccessTransitionInfo(TRANS_MEM_WRITE, addr, size, loc));
@@ -142,7 +133,7 @@ void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* addr, ui
 	scenario->aux_state()->Writes.set(reinterpret_cast<ADDRINT>(addr), current->coid());
 }
 
-void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
+inline void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
 	safe_assert(loc != NULL);
 
 //	current->trinfolist()->push_back(MemAccessTransitionInfo(TRANS_MEM_READ, addr, size, loc));
@@ -153,7 +144,7 @@ void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uin
 
 /********************************************************************************/
 
-void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target) {
+inline void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target) {
 	safe_assert(loc_src != NULL && loc_target != NULL);
 
 //	current->trinfolist()->push_back(FuncCallTransitionInfo(addr_src, loc_src, loc_target, direct));
@@ -165,7 +156,7 @@ void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src
 	scenario->OnControlledTransition(current);
 }
 
-void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc) {
+inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc) {
 	safe_assert(loc != NULL);
 
 //	current->trinfolist()->push_back(FuncEnterTransitionInfo(addr, loc));
@@ -176,7 +167,7 @@ void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, S
 	scenario->OnControlledTransition(current);
 }
 
-void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval) {
+inline void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval) {
 	safe_assert(loc != NULL);
 
 //	current->trinfolist()->push_back(FuncReturnTransitionInfo(addr, loc, retval));
@@ -192,18 +183,11 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, 
 void CallPinMonitor(PinMonitorCallInfo* info) {
 	safe_assert(info != NULL);
 
-	PinMonitor* monitor = PinMonitor::GetInstance();
-	if(monitor == NULL || !monitor->enabled()) {
+	if(!PinMonitor::IsEnabled()) {
 		return;
 	}
 
-//	if(!monitor->enabled()) {
-//		// if aftercontrolledtransition has not been called, reset the transition state
-//		current->FinishControlledTransition(false);
-//		return;
-//	}
-
-	Coroutine* current = CHECK_NOTNULL(monitor->GetCoroutineByTid(info->threadid));
+	Coroutine* current = CHECK_NOTNULL(PinMonitor::GetCoroutineByTid(info->threadid));
 	if(current->IsMain()) {
 		return;
 	}
@@ -215,25 +199,25 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 
 	switch(info->type) {
 		case MemAccessBefore:
-			monitor->MemAccessBefore(current, scenario, info->loc_src);
+			PinMonitor::MemAccessBefore(current, scenario, info->loc_src);
 			break;
 		case MemAccessAfter:
-			monitor->MemAccessAfter(current, scenario, info->loc_src);
+			PinMonitor::MemAccessAfter(current, scenario, info->loc_src);
 			break;
 		case MemWrite:
-			monitor->MemWrite(current, scenario, info->addr, info->size, info->loc_src);
+			PinMonitor::MemWrite(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case MemRead:
-			monitor->MemRead(current, scenario, info->addr, info->size, info->loc_src);
+			PinMonitor::MemRead(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case FuncCall:
-			monitor->FuncCall(current, scenario, info->addr, info->addr_target, info->direct, info->loc_src, info->loc_target);
+			PinMonitor::FuncCall(current, scenario, info->addr, info->addr_target, info->direct, info->loc_src, info->loc_target);
 			break;
 		case FuncEnter:
-			monitor->FuncEnter(current, scenario, info->addr, info->loc_src);
+			PinMonitor::FuncEnter(current, scenario, info->addr, info->loc_src);
 			break;
 		case FuncReturn:
-			monitor->FuncReturn(current, scenario, info->addr, info->loc_src, info->retval);
+			PinMonitor::FuncReturn(current, scenario, info->addr, info->loc_src, info->retval);
 			break;
 		default:
 			printf("Call type: %d\n", info->type);

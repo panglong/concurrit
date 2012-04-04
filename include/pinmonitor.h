@@ -48,39 +48,39 @@ class Scenario;
 /// class to handle pin events
 class PinMonitor {
 private:
-	static PinMonitor* instance_;
 	PinMonitor();
-
-public:
 	~PinMonitor(){}
 
-	Coroutine* GetCoroutineByTid(THREADID tid);
+public:
 
-	static PinMonitor* GetInstance();
-	static void InitInstance();
+	static Coroutine* GetCoroutineByTid(THREADID tid);
 
-	MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
-	SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);
+	static void Init();
 
-	void Enable();
-	void Disable();
+	static MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
+	static SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);
+
+	static void Enable();
+	static void Disable();
+
+	static inline bool IsEnabled() { return enabled_; }
 
 	/******************************************************************************************/
 
 	// callbacks
-	void MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
-	void MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
+	static inline void MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
+	static inline void MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
 
-	void MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	void MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	static inline void MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	static inline void MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
 
-	void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
-	void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc);
-	void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
+	static inline void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
+	static inline void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc);
+	static inline void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
 
 private:
-	Coroutine* tid_to_coroutine_[MAX_THREADS];
-	DECL_FIELD(bool, enabled)
+	static Coroutine* tid_to_coroutine_[MAX_THREADS];
+	static volatile bool enabled_;
 };
 
 typedef uint32_t PinMonitorCallType;

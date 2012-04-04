@@ -164,7 +164,7 @@ extern "C" void DisablePinTool();
 		protected: \
 		volatile type name##_; \
 		public: \
-		inline type name() { do { return name##_; } while(false); } \
+		inline type name() volatile { do { return name##_; } while(false); } \
 		inline void set_##name(type value) { do { name##_ = value; } while(false); } \
 		private:	\
 

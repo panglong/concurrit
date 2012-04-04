@@ -65,7 +65,7 @@ void BeginCounit(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	CoroutineGroup::init_main();
 
-	PinMonitor::InitInstance();
+	PinMonitor::Init();
 
 	do { // need a fence here
 		IsInitialized = true;
@@ -396,7 +396,7 @@ void Scenario::RunUncontrolled() {
 	// set uncontrolled run flag
 	test_status_ = TEST_UNCONTROLLED;
 
-	PinMonitor::GetInstance()->Disable();
+	PinMonitor::Disable();
 
 	// clear aux state
 	aux_state_.clear();
@@ -445,7 +445,7 @@ void Scenario::RunTearDown() throw() {
 void Scenario::RunTestCase() throw() {
 	test_status_ = TEST_CONTROLLED;
 
-	PinMonitor::GetInstance()->Enable();
+	PinMonitor::Enable();
 
 	try {
 
