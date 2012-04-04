@@ -1416,7 +1416,8 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 //	safe_assert(!current->trinfolist()->empty());
 
 	// make thread blocked
-	safe_assert(current->status() == ENABLED);
+	if(current->status() != ENABLED) return;
+
 	current->set_status(BLOCKED);
 
 	VLOG(2) << "Before controlled transition by " << current->name();
@@ -1567,7 +1568,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 }
 
 void Scenario::AfterControlledTransition(Coroutine* current) {
-	safe_assert(current->status() == BLOCKED);
+	if(current->status() != BLOCKED) return;
 
 	VLOG(2) << "After controlled transition by " << current->name();
 
