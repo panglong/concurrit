@@ -155,12 +155,12 @@ public:
 	/******************************************************************/
 
 	bool DSLChoice();
-	void DSLTransition(TransitionPredicate* pred, Coroutine* thread);
-	void DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var = boost::shared_ptr<ThreadVar>());
+	void DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thread);
+	void DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = boost::shared_ptr<ThreadVar>());
 
 	void DSLSelectThread(const ThreadVarPtr& var);
-	void DSLTransferUntil(Coroutine* thread, TransitionPredicate* pred);
-	void DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pred);
+	void DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred);
+	void DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred);
 
 
 	TPVALUE EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
@@ -219,42 +219,6 @@ private:
 };
 
 /************************************************************************************/
-
-//class TransitionPredicateEvaluator : public TransitionPredicate {
-//public:
-//	TransitionPredicateEvaluator(Scenario* scenario, TransitionPredicate* pred) : scenario_(scenario), pred_(pred) {}
-//
-//	~TransitionPredicateEvaluator() {}
-//
-//	virtual TPVALUE EvalPreState() {
-//		TransitionPredicate* current = pred_;
-//		TPVALUE v = current->EvalPreState();
-//		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
-//		for(int i = constraints->size()-1; i >= 0 && v != TPFALSE; ++i) {
-//			// update current
-//			current = (*constraints)[i];
-//			// update v
-//			v = TPAND(v, current->EvalPreState());
-//		}
-//		return v;
-//	}
-//	virtual bool EvalPostState() {
-//		TransitionPredicate* current = pred_;
-//		bool v = current->EvalPostState();
-//		std::vector<TransitionConstraint*>* constraints = scenario_->trans_constraints();
-//		for(int i = constraints->size()-1; i >= 0 && v != false; ++i) {
-//			// update current
-//			current = (*constraints)[i];
-//			// update v
-//			v = (v && current->EvalPostState());
-//		}
-//		return v;
-//	}
-//
-//private:
-//	DECL_FIELD(Scenario*, scenario)
-//	DECL_FIELD(TransitionPredicate*, pred)
-//};
 
 } // end namespace
 

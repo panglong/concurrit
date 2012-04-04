@@ -356,12 +356,10 @@ private:
 
 class SingleTransitionNode : public TransitionNode {
 public:
-	SingleTransitionNode(TransitionPredicate* pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
+	SingleTransitionNode(const TransitionPredicatePtr& pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
 	: TransitionNode(parent, 1), pred_(pred), var_(var), thread_(NULL) {}
 
-	~SingleTransitionNode() {
-		if(IsSafeToDelete(pred_)) delete pred_;
-	}
+	~SingleTransitionNode() {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransitionNode.");
@@ -384,7 +382,7 @@ public:
 	}
 
 private:
-	DECL_FIELD(TransitionPredicate*, pred)
+	DECL_FIELD(TransitionPredicatePtr, pred)
 	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(Coroutine*, thread) // keep performing thread here
 };
@@ -406,12 +404,10 @@ public:
 
 class TransferUntilNode : public MultiTransitionNode {
 public:
-	TransferUntilNode(const ThreadVarPtr& var, TransitionPredicate* pred, ExecutionTree* parent = NULL)
+	TransferUntilNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, ExecutionTree* parent = NULL)
 	: MultiTransitionNode(parent, 1), var_(var), pred_(pred) {}
 
-	~TransferUntilNode() {
-		if(IsSafeToDelete(pred_)) delete pred_;
-	}
+	~TransferUntilNode() {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "TransferUntilNode.");
@@ -434,7 +430,7 @@ public:
 	}
 private:
 	DECL_FIELD(ThreadVarPtr, var)
-	DECL_FIELD(TransitionPredicate*, pred)
+	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
 /********************************************************************************/

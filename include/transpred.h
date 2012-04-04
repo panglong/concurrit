@@ -64,6 +64,8 @@ TPVALUE TPAND(TPVALUE v1, TPVALUE v2);
 TPVALUE TPOR(TPVALUE v1, TPVALUE v2);
 
 /********************************************************************************/
+class TransitionPredicate;
+typedef boost::shared_ptr<TransitionPredicate> TransitionPredicatePtr;
 
 class TransitionPredicate {
 public:
@@ -80,15 +82,15 @@ public:
 		return EvalPostState(var->thread());
 	}
 
-	static TransitionPredicate* True();
-	static TransitionPredicate* False();
+	static TransitionPredicatePtr True();
+	static TransitionPredicatePtr False();
 
-	TransitionPredicate* operator ! ();
-	TransitionPredicate* operator && (const TransitionPredicate& pred);
-	TransitionPredicate* operator || (const TransitionPredicate& pred);
+	TransitionPredicatePtr operator ! ();
+	TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred);
+	TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred);
 
-	TransitionPredicate* operator && (const bool& b);
-	TransitionPredicate* operator || (const bool& b);
+	TransitionPredicatePtr operator && (const bool& b);
+	TransitionPredicatePtr operator || (const bool& b);
 };
 
 /********************************************************************************/
@@ -108,15 +110,6 @@ public:
 	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPFALSE; }
 	bool EvalPostState(Coroutine* t = NULL) { return TPFALSE; }
 };
-
-/********************************************************************************/
-
-extern TrueTransitionPredicate __true_transition_predicate__;
-extern FalseTransitionPredicate __false_transition_predicate__;
-
-inline bool IsSafeToDelete(TransitionPredicate* pred) {
-	return pred != NULL && pred != TransitionPredicate::True() && pred != TransitionPredicate::False();
-}
 
 /********************************************************************************/
 
@@ -146,44 +139,41 @@ private:
 
 class NotTransitionPredicate : public TransitionPredicate {
 public:
-	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(pred) {}
-	~NotTransitionPredicate() { if(IsSafeToDelete(pred_)) delete pred_; }
+	NotTransitionPredicate(TransitionPredicatePtr pred) : TransitionPredicate(), pred_(pred) {}
+	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(TransitionPredicatePtr(pred)) {}
+	~NotTransitionPredicate() {}
 	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPNOT(pred_->EvalPreState(t)); }
 	bool EvalPostState(Coroutine* t = NULL) { return !(pred_->EvalPostState(t)); }
 private:
-	DECL_FIELD(TransitionPredicate*, pred)
+	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
 /********************************************************************************/
 
 enum NAryOp { NAryAND, NAryOR };
-class NAryTransitionPredicate : public TransitionPredicate, public std::vector<TransitionPredicate*> {
+class NAryTransitionPredicate : public TransitionPredicate, public std::vector<TransitionPredicatePtr> {
 public:
-	NAryTransitionPredicate(NAryOp op = NAryAND, std::vector<TransitionPredicate*>* preds = NULL)
-	: TransitionPredicate(), std::vector<TransitionPredicate*>(), op_(op) {
+	NAryTransitionPredicate(NAryOp op = NAryAND, std::vector<TransitionPredicatePtr>* preds = NULL)
+	: TransitionPredicate(), std::vector<TransitionPredicatePtr>(), op_(op) {
 		if(preds != NULL) {
 			for(iterator itr = preds->begin(), end = preds->end(); itr != end; ++itr) {
 				push_back(*itr);
 			}
 		}
 	}
-	NAryTransitionPredicate(NAryOp op, TransitionPredicate* pred1, TransitionPredicate* pred2)
-	: TransitionPredicate(), std::vector<TransitionPredicate*>(), op_(op) {
+	NAryTransitionPredicate(NAryOp op, TransitionPredicatePtr pred1, TransitionPredicatePtr pred2)
+	: TransitionPredicate(), std::vector<TransitionPredicatePtr>(), op_(op) {
 		push_back(pred1);
 		push_back(pred2);
 	}
-	~NAryTransitionPredicate() {
-		for(iterator itr = this->begin(), end = this->end(); itr != end; ++itr) {
-			if(IsSafeToDelete(*itr)) delete (*itr);
-		}
-	}
+	~NAryTransitionPredicate() {}
 
 	TPVALUE EvalPreState(Coroutine* t = NULL) {
 		safe_assert(!empty());
 		TPVALUE v = (op_ == NAryAND) ? TPTRUE : TPFALSE;
 		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
 			// update current
-			TransitionPredicate* current = (*itr);
+			TransitionPredicatePtr current = (*itr);
 			// update v
 			v = (op_ == NAryAND) ? TPAND(v, current->EvalPreState(t)) : TPOR(v, current->EvalPreState(t));
 			if((op_ == NAryAND && v == TPFALSE) || (op_ == NAryOR && v == TPTRUE)) {
@@ -198,7 +188,7 @@ public:
 		bool v = (op_ == NAryAND) ? true : false;
 		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
 			// update current
-			TransitionPredicate* current = (*itr);
+			TransitionPredicatePtr current = (*itr);
 			// update v
 			v = (op_ == NAryAND) ? (v && current->EvalPostState(t)) : (v || current->EvalPostState(t));
 			if((op_ == NAryAND && v == false) || (op_ == NAryOR && v == true)) {
@@ -233,10 +223,10 @@ private:
 
 class TransitionConstraintAll : public TransitionConstraint {
 public:
-	TransitionConstraintAll(Scenario* scenario, TransitionPredicate* pred)
+	TransitionConstraintAll(Scenario* scenario, TransitionPredicatePtr pred)
 	: TransitionConstraint(scenario), pred_(pred) {}
 
-	~TransitionConstraintAll() { if(pred_ != NULL) delete pred_; }
+	~TransitionConstraintAll() {}
 
 	virtual TPVALUE EvalPreState(Coroutine* t = NULL) {
 		return pred_->EvalPreState(t);
@@ -246,7 +236,7 @@ public:
 	}
 
 private:
-	DECL_FIELD(TransitionPredicate*, pred)
+	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
 
@@ -254,7 +244,7 @@ private:
 
 class TransitionConstraintFirst : public TransitionConstraintAll {
 public:
-	TransitionConstraintFirst(Scenario* scenario, TransitionPredicate* pred)
+	TransitionConstraintFirst(Scenario* scenario, TransitionPredicatePtr pred)
 	: TransitionConstraintAll(scenario, pred), done_(false) {}
 
 	~TransitionConstraintFirst() {}
@@ -311,9 +301,9 @@ public:
 	AuxVar0(const char* name = "") : AuxVar(name) {}
 	~AuxVar0(){}
 
-	TransitionPredicate* operator ()(const T& value, const ThreadVarPtr& tvar = ThreadVarPtr());
+	TransitionPredicatePtr operator ()(const T& value, const ThreadVarPtr& tvar = ThreadVarPtr());
 
-	TransitionPredicate* operator ()(AuxVar0* var, const ThreadVarPtr& tvar = ThreadVarPtr());
+	TransitionPredicatePtr operator ()(AuxVar0* var, const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	virtual void reset(THREADID t = -1) {
 		set(undef_value_, t);
@@ -409,13 +399,13 @@ private:
 
 
 template<typename T, T undef_value_>
-TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(const T& value, const ThreadVarPtr& tvar /*= NULL*/) {
+TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const T& value, const ThreadVarPtr& tvar /*= NULL*/) {
 	return this->operator()(new AuxConst0<T,undef_value_>(value), tvar);
 }
 
 template<typename T, T undef_value_>
-TransitionPredicate* AuxVar0<T,undef_value_>::operator ()(AuxVar0<T, undef_value_>* var, const ThreadVarPtr& tvar /*= NULL*/) {
-	return new AuxVar0Pre<T,undef_value_>(this, var, tvar);
+TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(AuxVar0<T, undef_value_>* var, const ThreadVarPtr& tvar /*= NULL*/) {
+	return TransitionPredicatePtr(new AuxVar0Pre<T,undef_value_>(this, var, tvar));
 }
 
 /********************************************************************************/
@@ -434,19 +424,19 @@ public:
 	AuxVar1(const char* name = "") : AuxVar(name) {}
 	~AuxVar1(){}
 
-	TransitionPredicate* operator ()(const K& key, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr()) {
+	TransitionPredicatePtr operator ()(const K& key, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr()) {
 		return this->operator()(new AuxKeyConstType(key), new AuxValueConstType(value), tvar);
 	}
 
-	TransitionPredicate* operator ()(const K& key, const ThreadVarPtr& tvar = ThreadVarPtr()) {
+	TransitionPredicatePtr operator ()(const K& key, const ThreadVarPtr& tvar = ThreadVarPtr()) {
 		return this->operator()(new AuxKeyConstType(key), NULL, tvar);
 	}
 
-	TransitionPredicate* operator ()(const ThreadVarPtr& tvar = ThreadVarPtr()) {
+	TransitionPredicatePtr operator ()(const ThreadVarPtr& tvar = ThreadVarPtr()) {
 		return this->operator()(NULL, NULL, tvar);
 	}
 
-	TransitionPredicate* operator ()(AuxKeyType* key = NULL, AuxValueType* value = NULL, const ThreadVarPtr& tvar = ThreadVarPtr());
+	TransitionPredicatePtr operator ()(AuxKeyType* key = NULL, AuxValueType* value = NULL, const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	//================================================
 
@@ -551,8 +541,8 @@ private:
 /********************************************************************************/
 
 template<typename K, typename T, K undef_key_, T undef_value_>
-TransitionPredicate* AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxKeyType* key /*= NULL*/, AuxValueType* value /*= NULL*/, const ThreadVarPtr& tvar /*= NULL*/) {
-	return new AuxVar1Pre<K,T,undef_key_,undef_value_>(this, key, value, tvar);
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::operator ()(AuxKeyType* key /*= NULL*/, AuxValueType* value /*= NULL*/, const ThreadVarPtr& tvar /*= NULL*/) {
+	return TransitionPredicatePtr(new AuxVar1Pre<K,T,undef_key_,undef_value_>(this, key, value, tvar));
 }
 
 /********************************************************************************/

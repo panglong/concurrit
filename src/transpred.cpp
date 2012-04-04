@@ -48,31 +48,31 @@ AuxVar1<ADDRINT, bool, -1, false> AuxState::Returns("Returns");
 /*************************************************************************************/
 
 // extern'ed variables
-TrueTransitionPredicate __true_transition_predicate__;
-FalseTransitionPredicate __false_transition_predicate__;
+static TransitionPredicatePtr __true_transition_predicate__ = TransitionPredicatePtr(new TrueTransitionPredicate());
+static TransitionPredicatePtr __false_transition_predicate__ = TransitionPredicatePtr(new FalseTransitionPredicate());
 
-TransitionPredicate* TransitionPredicate::True() { return &__true_transition_predicate__; }
-TransitionPredicate* TransitionPredicate::False() { return &__false_transition_predicate__; }
+TransitionPredicatePtr TransitionPredicate::True() { return __true_transition_predicate__; }
+TransitionPredicatePtr TransitionPredicate::False() { return __false_transition_predicate__; }
 
 /*************************************************************************************/
 
-TransitionPredicate* TransitionPredicate::operator!() {
-	return new NotTransitionPredicate(this);
+TransitionPredicatePtr TransitionPredicate::operator!() {
+	return TransitionPredicatePtr(new NotTransitionPredicate(this));
 }
 
-TransitionPredicate* TransitionPredicate::operator &&(const TransitionPredicate& pred) {
-	return new NAryTransitionPredicate(NAryAND, this, const_cast<TransitionPredicate*>(&pred));
+TransitionPredicatePtr TransitionPredicate::operator &&(const TransitionPredicatePtr& pred) {
+	return TransitionPredicatePtr(new NAryTransitionPredicate(NAryAND, TransitionPredicatePtr(this), pred));
 }
 
-TransitionPredicate* TransitionPredicate::operator ||(const TransitionPredicate& pred) {
-	return new NAryTransitionPredicate(NAryOR, this, const_cast<TransitionPredicate*>(&pred));
+TransitionPredicatePtr TransitionPredicate::operator ||(const TransitionPredicatePtr& pred) {
+	return TransitionPredicatePtr(new NAryTransitionPredicate(NAryOR, TransitionPredicatePtr(this), pred));
 }
 
-TransitionPredicate* TransitionPredicate::operator && (const bool& b) {
+TransitionPredicatePtr TransitionPredicate::operator && (const bool& b) {
 	return (this->operator&& (b ? TransitionPredicate::True() : TransitionPredicate::False()));
 }
 
-TransitionPredicate* TransitionPredicate::operator || (const bool& b) {
+TransitionPredicatePtr TransitionPredicate::operator || (const bool& b) {
 	return (this->operator|| (b ? TransitionPredicate::True() : TransitionPredicate::False()));
 }
 

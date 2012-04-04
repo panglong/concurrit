@@ -1292,7 +1292,7 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 		} else {
 			// this is the selected thread
 			// evaluate transition predicate
-			TransitionPredicate* pred = trans->pred();
+			TransitionPredicatePtr pred = trans->pred();
 			safe_assert(pred != NULL);
 
 			trans_constraints_.push_back(pred);
@@ -1322,7 +1322,7 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 			} else {
 				// this is the selected thread
 				// evaluate transition predicate
-				TransitionPredicate* pred = truntil->pred();
+				TransitionPredicatePtr pred = truntil->pred();
 				safe_assert(pred != NULL);
 
 				trans_constraints_.push_back(pred);
@@ -1362,7 +1362,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 	if(trans != NULL) {
 
 		// evaluate transition predicate
-		TransitionPredicate* pred = trans->pred();
+		TransitionPredicatePtr pred = trans->pred();
 		safe_assert(pred != NULL);
 
 		trans_constraints_.push_back(pred);
@@ -1381,7 +1381,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 		if(truntil != NULL) {
 
 			// evaluate transition predicate
-			TransitionPredicate* pred = truntil->pred();
+			TransitionPredicatePtr pred = truntil->pred();
 			safe_assert(pred != NULL);
 
 			trans_constraints_.push_back(pred);
@@ -1726,11 +1726,11 @@ bool Scenario::DSLChoice() {
 
 /********************************************************************************/
 
-void Scenario::DSLTransition(TransitionPredicate* pred, Coroutine* thread) {
+void Scenario::DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thread) {
 	DSLTransition(pred, ThreadVarPtr(new ThreadVar(thread)));
 }
 
-void Scenario::DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var /*= boost::shared_ptr()*/) {
+void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= boost::shared_ptr()*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	//=======================================================
@@ -1789,11 +1789,11 @@ void Scenario::DSLTransition(TransitionPredicate* pred, const ThreadVarPtr& var 
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUntil(Coroutine* thread, TransitionPredicate* pred) {
+void Scenario::DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred) {
 	DSLTransferUntil(ThreadVarPtr(new ThreadVar(thread)), pred);
 }
 
-void Scenario::DSLTransferUntil(const ThreadVarPtr& var, TransitionPredicate* pred) {
+void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred) {
 	VLOG(2) << "Adding DSLTransferUntil";
 
 	//=======================================================

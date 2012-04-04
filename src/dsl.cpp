@@ -687,11 +687,11 @@ void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason 
 
 TransitionConstraint::TransitionConstraint(Scenario* scenario)
 : scenario_(scenario) {
-	scenario_->trans_constraints()->push_back(this);
+	scenario_->trans_constraints()->push_back(TransitionPredicatePtr(this));
 }
 
 TransitionConstraint::~TransitionConstraint(){
-	safe_assert(scenario_->trans_constraints()->back() == this);
+	safe_assert(scenario_->trans_constraints()->back().get() == this);
 	scenario_->trans_constraints()->pop_back();
 }
 
