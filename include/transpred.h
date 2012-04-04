@@ -296,6 +296,7 @@ public:
 
 	virtual void reset(THREADID t = -1) = 0;
 	virtual bool isset(THREADID t = -1) = 0;
+	virtual void clear() = 0;
 
 private:
 	DECL_FIELD(std::string, name)
@@ -320,6 +321,10 @@ public:
 
 	virtual bool isset(THREADID t = -1) {
 		return get(t) != undef_value_;
+	}
+
+	virtual void clear() {
+		map_.clear();
 	}
 
 	//================================================
@@ -355,6 +360,11 @@ public:
 
 	bool isset(THREADID t = -1) {
 		return value_ != undef_value_;
+	}
+
+	void clear() {
+		AuxVar0<T, undef_value_>::clear();
+		value_ = undef_value_;
 	}
 
 	//================================================
@@ -491,6 +501,9 @@ public:
 		map_.erase(t); // delete map of t
 	}
 
+	void clear() {
+		map_.clear();
+	}
 private:
 	DECL_FIELD(M, map)
 };
@@ -556,6 +569,16 @@ public:
 		CallsTo.reset(t);
 		Enters.reset(t);
 		Returns.reset(t);
+	}
+
+	void clear() {
+		Ends.clear();
+		Reads.clear();
+		Writes.clear();
+		CallsFrom.clear();
+		CallsTo.clear();
+		Enters.clear();
+		Returns.clear();
 	}
 
 	// auxiliary variables

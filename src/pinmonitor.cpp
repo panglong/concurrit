@@ -187,18 +187,18 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	safe_assert(info != NULL);
 
 	PinMonitor* monitor = PinMonitor::GetInstance();
-	if(monitor == NULL) {
+	if(monitor == NULL || !monitor->enabled()) {
 		return;
 	}
+
+//	if(!monitor->enabled()) {
+//		// if aftercontrolledtransition has not been called, reset the transition state
+//		current->FinishControlledTransition(false);
+//		return;
+//	}
 
 	Coroutine* current = CHECK_NOTNULL(monitor->GetCoroutineByTid(info->threadid));
 	if(current->IsMain()) {
-		return;
-	}
-
-	if(!monitor->enabled()) {
-		// if aftercontrolledtransition has not been called, reset the transition state
-		current->FinishControlledTransition(false);
 		return;
 	}
 

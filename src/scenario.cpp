@@ -398,6 +398,9 @@ void Scenario::RunUncontrolled() {
 
 	PinMonitor::GetInstance()->Disable();
 
+	// clear aux state
+	aux_state_.clear();
+
 	Thread::Yield(true);
 
 	//---------------------------
@@ -624,6 +627,9 @@ void Scenario::Start() {
 
 	test_status_ = TEST_BEGIN;
 
+	// clear aux state
+	aux_state_.clear();
+
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
 	} else {
@@ -650,6 +656,9 @@ void Scenario::Finish(Result* result) {
 		delete schedule_;
 		schedule_ = NULL;
 	}
+
+	// clear aux state
+	aux_state_.clear();
 
 	group_.Finish();
 
