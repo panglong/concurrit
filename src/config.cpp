@@ -40,6 +40,7 @@ bool Config::OnlyShowHelp = false;
 bool Config::CanEnableDisablePinTool = false;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
 char* Config::SaveDotGraphToFile = NULL;
+bool Config::RunUncontrolled = false;
 
 /********************************************************************************/
 
@@ -56,7 +57,7 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "hef::d::")) != -1) {
+	while ((c = getopt(argc, argv, "hef::d::u")) != -1) {
 		switch(c) {
 		case 'h':
 			Config::OnlyShowHelp = true;
@@ -77,6 +78,9 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 				Config::SaveDotGraphToFile = "/tmp/graph.dot";
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
+			break;
+		case 'u':
+			Config::RunUncontrolled = true;
 			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");
