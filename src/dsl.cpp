@@ -388,6 +388,8 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 /*************************************************************************************/
 
 void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_index /*= -1*/) {
+	safe_assert(IS_LOCKNODE(GetRef()) || IS_ENDNODE(GetRef()));
+
 	if(child_index >= 0) {
 		safe_assert(node != NULL);
 
@@ -527,6 +529,9 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 		// we can now delete the subtree
 		delete subtree_root;
 	}
+
+	// current_node_ must be pointing to the end node
+	safe_assert(current_node_.parent() == end_node && current_node_.child_index() == 0);
 
 //	fprintf(stderr, "Path length: %d\n", path->size());
 //	fprintf(stderr, "Num execution tree nodes: %d\n", ExecutionTree::num_nodes());

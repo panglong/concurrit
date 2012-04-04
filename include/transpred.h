@@ -564,23 +564,23 @@ private:
 public:
 
 	static void Reset(THREADID t = -1) {
-		Ends->reset(t);
-		Reads->reset(t);
-		Writes->reset(t);
-		CallsFrom->reset(t);
-		CallsTo->reset(t);
-		Enters->reset(t);
-		Returns->reset(t);
+		CHECK_NOTNULL(Ends.get())->reset(t);
+		CHECK_NOTNULL(Reads.get())->reset(t);
+		CHECK_NOTNULL(Writes.get())->reset(t);
+		CHECK_NOTNULL(CallsFrom.get())->reset(t);
+		CHECK_NOTNULL(CallsTo.get())->reset(t);
+		CHECK_NOTNULL(Enters.get())->reset(t);
+		CHECK_NOTNULL(Returns.get())->reset(t);
 	}
 
 	static void Clear() {
-		Ends->clear();
-		Reads->clear();
-		Writes->clear();
-		CallsFrom->clear();
-		CallsTo->clear();
-		Enters->clear();
-		Returns->clear();
+		CHECK_NOTNULL(Ends.get())->clear();
+		CHECK_NOTNULL(Reads.get())->clear();
+		CHECK_NOTNULL(Writes.get())->clear();
+		CHECK_NOTNULL(CallsFrom.get())->clear();
+		CHECK_NOTNULL(CallsTo.get())->clear();
+		CHECK_NOTNULL(Enters.get())->clear();
+		CHECK_NOTNULL(Returns.get())->clear();
 	}
 
 	// auxiliary variables
@@ -597,13 +597,13 @@ public:
 
 /********************************************************************************/
 
-#define ENDS()			AuxState::Ends->operator()()
+#define ENDS()			CHECK_NOTNULL(AuxState::Ends.get())->operator()()
 
-#define READS()			AuxState::Reads->operator()()
-#define WRITES()		AuxState::Writes->operator()()
+#define READS()			CHECK_NOTNULL(AuxState::Reads.get())->operator()()
+#define WRITES()		CHECK_NOTNULL(AuxState::Writes.get())->operator()()
 
-#define READS_FROM(x)	AuxState::Reads->operator()(x)
-#define WRITES_TO(x)	AuxState::Writes->operator()(x)
+#define READS_FROM(x)	CHECK_NOTNULL(AuxState::Reads.get())->operator()(x)
+#define WRITES_TO(x)	CHECK_NOTNULL(AuxState::Writes.get())->operator()(x)
 
 
 } // end namespace

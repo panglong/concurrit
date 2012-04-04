@@ -478,6 +478,7 @@ void Scenario::RunTestCase() throw() {
 		} while(exec_tree_.EndWithSuccess(reason));
 
 	} catch(std::exception* e) {
+		VLOG(2) << "Ending with exception.";
 		//====================================
 		// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
 		// then change the backtrack type to THREADS_ALLENDED
