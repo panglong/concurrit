@@ -71,7 +71,7 @@ public:
 	virtual ~Thread() {}
 
 	virtual void Start(pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
-	void Join();
+	void Join(void ** value_ptr = NULL);
 	void Cancel();
 	virtual void* Run();
 	static void Yield(bool force = false);
@@ -96,6 +96,7 @@ private:
 	DECL_FIELD(void*, entry_arg)
 	DECL_FIELD(int, stack_size)
 	DECL_FIELD(pthread_t, pthread)
+	DECL_FIELD(void*, return_value)
 
 	DECL_STATIC_FIELD(pthread_key_t, tls_key)
 

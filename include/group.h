@@ -66,6 +66,7 @@ public:
 	bool HasMember(Coroutine* member);
 	bool HasMember(THREADID tid);
 	Coroutine* GetMember(THREADID tid);
+	Coroutine* GetMember(const pthread_t& pid);
 
 	/*
 	 * choose a next enabled thread (chosen randomly)

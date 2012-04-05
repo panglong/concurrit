@@ -146,6 +146,20 @@ Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, vo
 
 /********************************************************************************/
 
+void Scenario::JoinThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
+	safe_assert(co != NULL);
+	co->WaitForEnd();
+	safe_assert(co->is_ended());
+}
+
+/********************************************************************************/
+
+void Scenario::JoinAllThreads() {
+	group_.WaitForAllEnd();
+}
+
+/********************************************************************************/
+
 void Scenario::OnException(std::exception* e) {
 	throw e; // Explore() will catch and handle this
 }
@@ -328,7 +342,7 @@ void Scenario::RunUncontrolled() {
 	VLOG(2) << "Starting uncontrolled run";
 
 	// start waiting all to end
-	group_.WaitForAllEnd();
+	JoinAllThreads();
 
 	VLOG(2) << "Ending uncontrolled run";
 }

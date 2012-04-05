@@ -256,6 +256,14 @@ Coroutine* CoroutineGroup::GetMember(THREADID tid) {
 
 /********************************************************************************/
 
+Coroutine* CoroutineGroup::GetMember(const pthread_t& pid) {
+	for_each_member(co) {
+		if(co->pthread() == pid) {
+			return co;
+		}
+	}
+	return NULL;
+}
 
 /********************************************************************************/
 

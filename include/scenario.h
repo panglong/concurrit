@@ -109,6 +109,9 @@ public:
 	Coroutine* CreateThread(THREADID tid, ThreadEntryFunction function, void* arg, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 	Coroutine* CreateThread(ThreadEntryFunction function, void* arg, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 
+	void JoinThread(Coroutine* co, void ** value_ptr = NULL);
+	void JoinAllThreads();
+
 	/* returns the same scenario for concatenating calls */
 	Scenario* Until(UntilCondition* until);
 	Scenario* Until(const std::string& label);
