@@ -175,7 +175,7 @@ class AssertionViolationResult : public FailureResult {
 public:
 	explicit AssertionViolationResult(AssertionViolationException* cause, Schedule* schedule) {
 		cause_ = cause;
-		schedule_ = CHECK_NOTNULL(schedule);
+		schedule_ = safe_notnull(schedule);
 		coverage_ = *(schedule_->coverage());
 	}
 
@@ -215,7 +215,7 @@ class RuntimeExceptionResult : public FailureResult {
 public:
 	explicit RuntimeExceptionResult(std::exception* cause, Schedule* schedule) {
 		cause_ = cause;
-		schedule_ = CHECK_NOTNULL(schedule);
+		schedule_ = safe_notnull(schedule);
 		coverage_ = *(schedule_->coverage());
 	}
 
@@ -254,7 +254,7 @@ private:
 class NoFeasibleExecutionResult : public FailureResult {
 public:
 	explicit NoFeasibleExecutionResult(Schedule* schedule) {
-		schedule_ = CHECK_NOTNULL(schedule);
+		schedule_ = safe_notnull(schedule);
 		coverage_ = *(schedule_->coverage());
 	}
 

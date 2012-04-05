@@ -47,7 +47,7 @@ UntilEndCondition TransferCriteria::until_end_;
 Scenario::Scenario(const char* name) {
 	schedule_ = NULL;
 
-	name_ = CHECK_NOTNULL(name);
+	name_ = safe_notnull(name);
 
 	// schedule and group are initialized
 	group_.set_scenario(this);
@@ -102,12 +102,12 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 }
 
 /********************************************************************************/
-Coroutine* Scenario::CreateThread(ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
+Coroutine* Scenario::CreateThread(ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	return CreateThread(-1, function, arg, pid, attr);
 }
 
 // create a new thread or fetch the existing one, and start it.
-Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
+Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	CHECK(tid < 0 || tid > MAIN_TID) << "CreateThread is given invalid tid: " << tid;
 
 	Coroutine* co = group_.GetMember(tid);
@@ -1002,7 +1002,7 @@ void Scenario::UpdateBacktrackSets() {
 SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAccess* access /*=NULL*/, bool force /*=false*/) {
 
 	// give warning if access is null
-	if(access == NULL && strcmp(CHECK_NOTNULL(label), ENDING_LABEL) != 0) {
+	if(access == NULL && strcmp(safe_notnull(label), ENDING_LABEL) != 0) {
 		VLOG(2) << "YIELD without a shared variable access.";
 		if(loc != NULL) {
 			VLOG(2) << "Related location: " << loc->ToString();

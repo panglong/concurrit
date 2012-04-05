@@ -153,7 +153,7 @@ TransferPoint::TransferPoint(YieldPoint* point, std::string& target) {
 /********************************************************************************/
 
 void TransferPoint::Reset() {
-	rem_count_ = CHECK_NOTNULL(yield_)->count_;
+	rem_count_ = safe_notnull(yield_)->count_;
 	safe_assert(BETWEEN(1, rem_count_, yield_->count_));
 	next_ = NULL;
 	// NOTE: do not reset other fields, they need to be preserved across executions
@@ -225,9 +225,9 @@ SchedulePoint* TransferPoint::Clone() {
 
 void ChoicePoint::SetAndConsumeCurrent() {
 	if(ChoicePoint::GetCurrent(source_) == this) {
-		CHECK_NOTNULL(source_)->group()->scenario()->schedule()->ConsumeCurrent();
+		safe_notnull(source_)->group()->scenario()->schedule()->ConsumeCurrent();
 	} else {
-		CHECK_NOTNULL(source_)->group()->scenario()->schedule()->AddCurrent(this, true);
+		safe_notnull(source_)->group()->scenario()->schedule()->AddCurrent(this, true);
 	}
 }
 
@@ -237,8 +237,8 @@ ChoicePoint* ChoicePoint::GetCurrent(Coroutine* source /*=Coroutine::Current()*/
 	Scenario* scenario = source->group()->scenario();
 	SchedulePoint* current = scenario->schedule()->GetCurrent();
 	if(current != NULL && current->IsChoice()) {
-		safe_assert(CHECK_NOTNULL(current->AsChoice())->source() == source);
-		return CHECK_NOTNULL(current->AsChoice());
+		safe_assert(safe_notnull(current->AsChoice())->source() == source);
+		return safe_notnull(current->AsChoice());
 	} else {
 		return NULL;
 	}
@@ -419,7 +419,7 @@ void Schedule::ClearUntakenPoints() {
 			safe_assert(point != NULL);
 			if(point->IsTransfer()) {
 				VLOG(2) << __FUNCTION__ << " Resetting transfer point";
-				CHECK_NOTNULL(point->AsTransfer())->Reset();
+				safe_notnull(point->AsTransfer())->Reset();
 				++itr;
 			} else if(point->IsChoice()) {
 				VLOG(2) << __FUNCTION__ << " Skipping choice point";

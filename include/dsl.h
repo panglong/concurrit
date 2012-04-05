@@ -312,7 +312,7 @@ public:
 				cn = new DotNode("NULL");
 			}
 			g->AddNode(cn);
-			g->AddEdge(new DotEdge(node, cn, to_string(CHECK_NOTNULL(idxToThreadMap_[i])->tid())));
+			g->AddEdge(new DotEdge(node, cn, to_string(safe_notnull(idxToThreadMap_[i])->tid())));
 		}
 
 		return node;
@@ -425,7 +425,7 @@ public:
 			cn = new DotNode("NULL");
 		}
 		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, to_string(CHECK_NOTNULL(var_->thread())->tid())));
+		g->AddEdge(new DotEdge(node, cn, to_string(safe_notnull(var_->thread())->tid())));
 		return node;
 	}
 private:

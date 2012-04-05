@@ -140,7 +140,7 @@ void Coroutine::WaitForEnd() {
 
 /********************************************************************************/
 
-void Coroutine::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
+void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	safe_assert(yield_point_ == NULL);
 	safe_assert(BETWEEN(PASSIVE, status_, TERMINATED));
 
@@ -189,6 +189,8 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/
 		safe_assert(status_ == WAITING);
 		channel_.SendNoWait(MSG_TRANSFER);
 	}
+
+	__pthread_errno__ = PTH_SUCCESS;
 }
 
 /********************************************************************************/
@@ -205,9 +207,9 @@ void* Coroutine::Run() {
 
 			return_value = NULL;
 
-			CoroutineGroup* group = CHECK_NOTNULL(group_);
+			CoroutineGroup* group = safe_notnull(group_);
 
-			Scenario* scenario = CHECK_NOTNULL(group->scenario());
+			Scenario* scenario = safe_notnull(group->scenario());
 
 			// notify main about out startup
 			VLOG(2) << CO_TITLE << "Sending started message and waiting for a transfer.";

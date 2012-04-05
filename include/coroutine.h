@@ -64,7 +64,7 @@ public:
 	explicit Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
 	virtual ~Coroutine();
 
-	void Start(pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
+	void Start(pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 	virtual void* Run();
 
 	void Finish();

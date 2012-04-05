@@ -275,7 +275,7 @@ inline BacktrackException* GetBacktrackException(BacktrackReason reason = UNKNOW
 }
 
 //inline TerminateSearchException* GetTerminateSearchException() {
-//	return CHECK_NOTNULL(__terminate_search_exception__);
+//	return safe_notnull(__terminate_search_exception__);
 //}
 
 inline void TRIGGER_BACKTRACK(BacktrackReason reason = UNKNOWN, bool wrap = false) {

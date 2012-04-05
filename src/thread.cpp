@@ -35,6 +35,7 @@
 
 namespace concurrit {
 
+int __pthread_errno__ = PTH_SUCCESS;
 
 /********************************************************************************/
 
@@ -44,8 +45,8 @@ pthread_key_t Thread::tls_key_;
 
 void Thread::init_tls_key() {
 	pthread_key_t key;
-	int result = pthread_key_create(&key, NULL);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_key_create(&key, NULL);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 
 	tls_key_ = key;
 }
@@ -55,8 +56,8 @@ void Thread::init_tls_key() {
 void Thread::delete_tls_key() {
 	pthread_key_t key = tls_key_;
 
-	int result = pthread_key_delete(key);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_key_delete(key);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
@@ -101,11 +102,11 @@ void* ThreadEntry(void* arg) {
 
 	// set cancellable
 	int oldstate;
-	int result = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 
-	result = pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &oldstate);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &oldstate);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 
 	void* return_value = thread->Run();
 
@@ -125,8 +126,8 @@ void Thread::attach_pthread(pthread_t self) {
 	pthread_key_t key = Thread::tls_key();
 	safe_assert(NULL == pthread_getspecific(key));
 
-	int result = pthread_setspecific(key, this);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_setspecific(key, this);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
@@ -140,8 +141,8 @@ void Thread::detach_pthread(pthread_t self) {
 	pthread_key_t key = Thread::tls_key();
 	safe_assert(NULL != pthread_getspecific(key));
 
-	int result = pthread_setspecific(key, NULL);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_setspecific(key, NULL);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
@@ -164,15 +165,18 @@ Thread* Thread::Current() {
 
 /********************************************************************************/
 
-void Thread::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
-	pthread_attr_t* attr_ptr = attr;
+void Thread::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+	const pthread_attr_t* attr_ptr = attr;
 	pthread_attr_t attr_local;
 	if(attr_ptr == NULL && stack_size_ > 0) {
 		pthread_attr_init(&attr_local);
 		pthread_attr_setstacksize(&attr_local, static_cast<size_t>(stack_size_));
 		attr_ptr = &attr_local;
 	}
-	Originals::pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
+	__pthread_errno__ = Originals::pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
+	if(__pthread_errno__ != PTH_SUCCESS) {
+		printf("Create error: %s\n", PTHResultToString(__pthread_errno__));
+	}
 	safe_assert(pthread_ != PTH_INVALID_THREAD);
 	if(pid != NULL) *pid = pthread_;
 }
@@ -180,18 +184,18 @@ void Thread::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
 /********************************************************************************/
 
 void Thread::Join() {
-	int result = Originals::pthread_join(pthread_, NULL);
-	if(result != PTH_SUCCESS && result != ESRCH) {
-		printf("Join error: %s\n", PTHResultToString(result));
+	__pthread_errno__ = Originals::pthread_join(pthread_, NULL);
+	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
+		printf("Join error: %s\n", PTHResultToString(__pthread_errno__));
 	}
 }
 
 /********************************************************************************/
 
 void Thread::Cancel() {
-	int result = pthread_cancel(pthread_);
-	if(result != PTH_SUCCESS && result != ESRCH) {
-		printf("Cancel error: %s\n", PTHResultToString(result));
+	__pthread_errno__ = pthread_cancel(pthread_);
+	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
+		printf("Cancel error: %s\n", PTHResultToString(__pthread_errno__));
 	}
 }
 
@@ -209,12 +213,12 @@ void Thread::Yield(bool force /*false*/) {
 
 Mutex::Mutex() {
 	pthread_mutexattr_t attrs;
-	int result = pthread_mutexattr_init(&attrs);
-	safe_assert(result == PTH_SUCCESS);
-	result = pthread_mutexattr_settype(&attrs, PTHREAD_MUTEX_NORMAL);
-	safe_assert(result == PTH_SUCCESS);
-	result = pthread_mutex_init(&mutex_, &attrs);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_mutexattr_init(&attrs);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	__pthread_errno__ = pthread_mutexattr_settype(&attrs, PTHREAD_MUTEX_NORMAL);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	__pthread_errno__ = pthread_mutex_init(&mutex_, &attrs);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 
 	owner_ = PTH_INVALID_THREAD;
 	count_ = 0;
@@ -232,8 +236,8 @@ Mutex::Mutex(pthread_mutex_t m) {
 /********************************************************************************/
 
 Mutex::~Mutex() {
-	int result = pthread_mutex_destroy(&mutex_);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_mutex_destroy(&mutex_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
@@ -246,8 +250,8 @@ int Mutex::Lock() {
 		safe_assert(count_ >= 1);
 		count_++;
 	} else {
-		int result = pthread_mutex_lock(&mutex_);
-		safe_assert(result == PTH_SUCCESS);  // Verify no other errors.
+		__pthread_errno__ = pthread_mutex_lock(&mutex_);
+		safe_assert(__pthread_errno__ == PTH_SUCCESS);  // Verify no other errors.
 
 		safe_assert(owner_ == PTH_INVALID_THREAD);
 		owner_ = self;
@@ -272,8 +276,8 @@ int Mutex::Unlock() {
 	if(count_ == 0) {
 		owner_ = PTH_INVALID_THREAD;
 
-		int result = pthread_mutex_unlock(&mutex_);
-		safe_assert(result == PTH_SUCCESS);  // Verify no other errors.
+		__pthread_errno__ = pthread_mutex_unlock(&mutex_);
+		safe_assert(__pthread_errno__ == PTH_SUCCESS);  // Verify no other errors.
 	}
 
 	return PTH_SUCCESS;
@@ -316,12 +320,12 @@ void Mutex::FullLockAux(pthread_t* p_self, int* p_times) {
 /********************************************************************************/
 
 bool Mutex::TryLock() {
-	int result = pthread_mutex_trylock(&mutex_);
+	__pthread_errno__ = pthread_mutex_trylock(&mutex_);
 	// Return false if the lock is busy and locking failed.
-	if (result == EBUSY) {
+	if (__pthread_errno__ == EBUSY) {
 		return false; // already locked
 	}
-	safe_assert(result == PTH_SUCCESS);  // Verify no other errors.
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);  // Verify no other errors.
 
 	safe_assert(false);
 
@@ -337,8 +341,8 @@ bool Mutex::IsLocked() {
 /********************************************************************************/
 
 ConditionVar::ConditionVar() {
-	int result = pthread_cond_init (&cv_, NULL);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_cond_init (&cv_, NULL);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
@@ -350,16 +354,16 @@ ConditionVar::ConditionVar(pthread_cond_t v) {
 /********************************************************************************/
 
 ConditionVar::~ConditionVar() {
-	int result = pthread_cond_destroy(&cv_);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_cond_destroy(&cv_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
 
 int ConditionVar::Signal() {
-	int result = pthread_cond_signal(&cv_);
-	safe_assert(result == PTH_SUCCESS);
-	return result;
+	__pthread_errno__ = pthread_cond_signal(&cv_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	return __pthread_errno__;
 }
 
 /********************************************************************************/
@@ -372,34 +376,34 @@ int ConditionVar::Wait(Mutex* mutex) {
 
 	mutex->FullUnlockAux(&self, &count);
 
-	int result = pthread_cond_wait(&cv_, &mutex->mutex_);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = pthread_cond_wait(&cv_, &mutex->mutex_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 
 	mutex->FullLockAux(&self, &count);
 
-	return result;
+	return __pthread_errno__;
 }
 
 /********************************************************************************/
 
 int ConditionVar::Broadcast() {
-	int result = pthread_cond_broadcast(&cv_);
-	safe_assert(result == PTH_SUCCESS);
-	return result;
+	__pthread_errno__ = pthread_cond_broadcast(&cv_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	return __pthread_errno__;
 }
 
 /********************************************************************************/
 
 Semaphore::Semaphore() {
-	int result = sem_init(&sem_, 0, 0);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = sem_init(&sem_, 0, 0);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
 
 Semaphore::Semaphore(int count) {
-	int result = sem_init(&sem_, 0, count);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = sem_init(&sem_, 0, count);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
@@ -411,24 +415,24 @@ Semaphore::Semaphore(sem_t* s) {
 /********************************************************************************/
 
 Semaphore::~Semaphore() {
-	int result = sem_destroy(&sem_);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = sem_destroy(&sem_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
 
 void Semaphore::Signal() {
-	int result = sem_post(&sem_);
-	safe_assert(result == PTH_SUCCESS);
+	__pthread_errno__ = sem_post(&sem_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }
 
 /********************************************************************************/
 
 void Semaphore::Wait() {
 	while (true) {
-		int result = sem_wait(&sem_);
-		if (result == PTH_SUCCESS) return;  // Successfully got semaphore.
-		safe_assert(result == -1 && errno == EINTR);  // Signal caused spurious wakeup.
+		__pthread_errno__ = sem_wait(&sem_);
+		if (__pthread_errno__ == PTH_SUCCESS) return;  // Successfully got semaphore.
+		safe_assert(__pthread_errno__ == -1 && errno == EINTR);  // Signal caused spurious wakeup.
 	}
 }
 
@@ -467,15 +471,15 @@ int Semaphore::WaitTimed(long timeout) {
 	TIMEVAL_TO_TIMESPEC(&end_time, &ts);
 	// Wait for semaphore signalled or timeout.
 	while (true) {
-		int result = sem_timedwait(&sem_, &ts);
-		if (result == PTH_SUCCESS) return 0;  // Successfully got semaphore.
-		if (result > 0) {
+		__pthread_errno__ = sem_timedwait(&sem_, &ts);
+		if (__pthread_errno__ == PTH_SUCCESS) return 0;  // Successfully got semaphore.
+		if (__pthread_errno__ > 0) {
 			// For glibc prior to 2.3.4 sem_timedwait returns the error instead of -1.
-			errno = result;
-			result = -1;
+			errno = __pthread_errno__;
+			__pthread_errno__ = -1;
 		}
-		if (result == -1 && errno == ETIMEDOUT) return errno;  // Timeout.
-		safe_assert(result == -1 && errno == EINTR);  // Signal caused spurious wakeup.
+		if (__pthread_errno__ == -1 && errno == ETIMEDOUT) return errno;  // Timeout.
+		safe_assert(__pthread_errno__ == -1 && errno == EINTR);  // Signal caused spurious wakeup.
 	}
 }
 #endif // LINUX

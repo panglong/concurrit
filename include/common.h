@@ -216,6 +216,7 @@ extern "C" void DisablePinTool();
 #ifdef SAFE_ASSERT
 #include <execinfo.h>
 extern void print_trace();
+#define safe_notnull(o) 	CHECK_NOTNULL(o)
 #define safe_assert(cond) \
 		if (!(cond))  { \
 			fprintf(stderr, "\nCounit: safe assert fail: safe_assert(%s):", #cond); \
@@ -225,6 +226,7 @@ extern void print_trace();
 			_Exit(UNRECOVERABLE_ERROR); \
 		}
 #else
+#define safe_notnull(o) 	(o)
 #define safe_assert(cond) /* noop */
 #endif
 

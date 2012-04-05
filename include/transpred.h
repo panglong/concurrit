@@ -574,23 +574,23 @@ private:
 public:
 
 	static void Reset(THREADID t = -1) {
-		CHECK_NOTNULL(Ends.get())->reset(t);
-		CHECK_NOTNULL(Reads.get())->reset(t);
-		CHECK_NOTNULL(Writes.get())->reset(t);
-		CHECK_NOTNULL(CallsFrom.get())->reset(t);
-		CHECK_NOTNULL(CallsTo.get())->reset(t);
-		CHECK_NOTNULL(Enters.get())->reset(t);
-		CHECK_NOTNULL(Returns.get())->reset(t);
+		safe_notnull(Ends.get())->reset(t);
+		safe_notnull(Reads.get())->reset(t);
+		safe_notnull(Writes.get())->reset(t);
+		safe_notnull(CallsFrom.get())->reset(t);
+		safe_notnull(CallsTo.get())->reset(t);
+		safe_notnull(Enters.get())->reset(t);
+		safe_notnull(Returns.get())->reset(t);
 	}
 
 	static void Clear() {
-		CHECK_NOTNULL(Ends.get())->clear();
-		CHECK_NOTNULL(Reads.get())->clear();
-		CHECK_NOTNULL(Writes.get())->clear();
-		CHECK_NOTNULL(CallsFrom.get())->clear();
-		CHECK_NOTNULL(CallsTo.get())->clear();
-		CHECK_NOTNULL(Enters.get())->clear();
-		CHECK_NOTNULL(Returns.get())->clear();
+		safe_notnull(Ends.get())->clear();
+		safe_notnull(Reads.get())->clear();
+		safe_notnull(Writes.get())->clear();
+		safe_notnull(CallsFrom.get())->clear();
+		safe_notnull(CallsTo.get())->clear();
+		safe_notnull(Enters.get())->clear();
+		safe_notnull(Returns.get())->clear();
 	}
 
 	// auxiliary variables
@@ -607,13 +607,13 @@ public:
 
 /********************************************************************************/
 
-#define ENDS()			CHECK_NOTNULL(AuxState::Ends.get())->operator()(AuxState::Ends)
+#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends)
 
-#define READS()			CHECK_NOTNULL(AuxState::Reads.get())->operator()(AuxState::Reads)
-#define WRITES()		CHECK_NOTNULL(AuxState::Writes.get())->operator()(AuxState::Writes)
+#define READS()			safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads)
+#define WRITES()		safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes)
 
-#define READS_FROM(x)	CHECK_NOTNULL(AuxState::Reads.get())->operator()(AuxState::Reads, x)
-#define WRITES_TO(x)	CHECK_NOTNULL(AuxState::Writes.get())->operator()(AuxState::Writes, x)
+#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x)
+#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
 
 
 } // end namespace

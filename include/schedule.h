@@ -155,7 +155,7 @@ public:
 
 	virtual std::string ToString();
 
-	virtual YieldPoint* AsYield() { return CHECK_NOTNULL(yield_); }
+	virtual YieldPoint* AsYield() { return safe_notnull(yield_); }
 	virtual TransferPoint* AsTransfer() { return this; }
 
 	virtual SchedulePoint* Clone();

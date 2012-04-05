@@ -187,15 +187,15 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 		return;
 	}
 
-	Coroutine* current = CHECK_NOTNULL(PinMonitor::GetCoroutineByTid(info->threadid));
+	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(info->threadid));
 	if(current->IsMain()) {
 		return;
 	}
 
 	VLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
 
-	CoroutineGroup* group = CHECK_NOTNULL(current->group());
-	Scenario* scenario = CHECK_NOTNULL(group->scenario());
+	CoroutineGroup* group = safe_notnull(current->group());
+	Scenario* scenario = safe_notnull(group->scenario());
 
 	switch(info->type) {
 		case MemAccessBefore:

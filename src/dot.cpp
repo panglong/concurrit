@@ -71,13 +71,13 @@ DotNode* DotGraph::GetNode(int id) {
 DotGraph::~DotGraph() {
 	for(DotNodeMap::iterator itr = nodes_.begin(); itr != nodes_.end(); ++itr) {
 		DotNode* node = itr->second;
-		delete CHECK_NOTNULL(node);
+		delete safe_notnull(node);
 	}
 	nodes_.clear();
 
 	for(DotEdgeList::iterator itr = edges_.begin(); itr < edges_.end(); ++itr) {
 		DotEdge* edge = *itr;
-		delete CHECK_NOTNULL(edge);
+		delete safe_notnull(edge);
 	}
 	edges_.clear();
 }

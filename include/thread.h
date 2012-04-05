@@ -43,6 +43,8 @@ namespace concurrit {
 // pthread_t value indicating an invalid thread identifier
 #define PTH_INVALID_THREAD 0
 
+extern int __pthread_errno__;
+
 static const char* PTHResultToString(int result) {
 #define CASE_RESULT(R)	case R: return #R;
 	switch(result) {
@@ -68,7 +70,7 @@ public:
 	Thread(THREADID tid, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
 	virtual ~Thread() {}
 
-	virtual void Start(pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
+	virtual void Start(pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 	void Join();
 	void Cancel();
 	virtual void* Run();

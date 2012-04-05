@@ -109,10 +109,16 @@ int pthread_join(pthread_t thread, void ** value_ptr) {
 int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
 
+	Coroutine* co = safe_notnull(Scenario::Current())->CreateThread(start_routine, arg, thread, attr);
+	safe_assert(co != NULL);
+
+	return __pthread_errno__;
 }
 
 int concurrit_pthread_join(pthread_t thread, void ** value_ptr) {
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
+
+	return __pthread_errno__;
 
 }
 
