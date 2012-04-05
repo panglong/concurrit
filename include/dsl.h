@@ -296,7 +296,7 @@ public:
 	virtual void ComputeCoverage(bool recurse);
 
 	virtual void ToStream(FILE* file) {
-		fprintf(file, "SelectThreadNode. Selected %s.", ((var_ != NULL && var_->thread() != NULL) ? var_->thread()->name().c_str() : "no thread"));
+		fprintf(file, "SelectThreadNode. Selected %s.", ((var_ != NULL && var_->thread() != NULL) ? to_string(var_->thread()->tid()).c_str() : "no thread"));
 		ExecutionTree::ToStream(file);
 	}
 
@@ -312,7 +312,7 @@ public:
 				cn = new DotNode("NULL");
 			}
 			g->AddNode(cn);
-			g->AddEdge(new DotEdge(node, cn, CHECK_NOTNULL(idxToThreadMap_[i])->name()));
+			g->AddEdge(new DotEdge(node, cn, to_string(CHECK_NOTNULL(idxToThreadMap_[i])->tid())));
 		}
 
 		return node;
@@ -322,7 +322,7 @@ private:
 
 	// returns the index of the new child
 	int add_or_get_thread(Coroutine* co) {
-		THREADID tid = co->coid();
+		THREADID tid = co->tid();
 		int child_index = child_index_by_tid(tid);
 		if(child_index < 0) {
 			const size_t sz = children_.size();
@@ -377,7 +377,7 @@ public:
 			cn = new DotNode("NULL");
 		}
 		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, thread_ == NULL ? "?" : thread_->name()));
+		g->AddEdge(new DotEdge(node, cn, thread_ == NULL ? "?" : to_string(thread_->tid())));
 		return node;
 	}
 
@@ -425,7 +425,7 @@ public:
 			cn = new DotNode("NULL");
 		}
 		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, CHECK_NOTNULL(var_->thread())->name()));
+		g->AddEdge(new DotEdge(node, cn, to_string(CHECK_NOTNULL(var_->thread())->tid())));
 		return node;
 	}
 private:

@@ -93,7 +93,7 @@ std::string YieldPoint::ToString() {
 		s << "AT " << loc_->ToString() << "\n";
 	}
 	if(is_resolved_) {
-		s << "(" << (source_ != NULL ? source_->name() : "NULL") << ", " << label_ << ", " << count_ << ", " << (access_ != NULL ? access_->ToString() : "<no access>") << ")";
+		s << "(" << (source_ != NULL ? to_string(source_->tid()) : "NULL") << ", " << label_ << ", " << count_ << ", " << (access_ != NULL ? access_->ToString() : "<no access>") << ")";
 	} else {
 		s << "(" << (source_ != NULL ? reinterpret_cast<std::string*>(source_)->c_str() : "NULL") << ", " << label_ << ", " << count_ << ", " << (access_ != NULL ? access_->ToString() : "<no access>") << ")";
 	}
@@ -110,7 +110,7 @@ SchedulePoint* YieldPoint::Clone() {
 
 point_t YieldPoint::Coverage() {
 	safe_assert(IsResolved());
-	point_t p(source_->coid(), label_, count_);
+	point_t p(source_->tid(), label_, count_);
 	return p;
 }
 
@@ -192,8 +192,8 @@ void TransferPoint::Load(Serializer* serializer) {
 void TransferPoint::Store(Serializer* serializer) {
 	VLOG(2) << "Storing point to file...";
 	safe_assert(IsResolved());
-	serializer->Store<std::string>(yield_->source_->name());
-	serializer->Store<std::string>(target_->name());
+	serializer->Store<ADDRINT>(yield_->source_->tid());
+	serializer->Store<ADDRINT>(target_->tid());
 	serializer->Store<std::string>(yield_->label_);
 	serializer->Store<int>(yield_->count_);
 	VLOG(2) << "Stored point to file...";
@@ -204,7 +204,7 @@ void TransferPoint::Store(Serializer* serializer) {
 std::string TransferPoint::ToString() {
 	std::stringstream s;
 	if(is_resolved_) {
-		s << yield_->ToString() << " --> " << "(" << (target_ != NULL ? target_->name() : "NULL") << ", " << rem_count_ << ")";
+		s << yield_->ToString() << " --> " << "(" << (target_ != NULL ? to_string(target_->tid()) : "NULL") << ", " << rem_count_ << ")";
 	} else {
 		s << yield_->ToString() << " --> " << "(" << (target_ != NULL ? reinterpret_cast<std::string*>(target_)->c_str() : "NULL") << ", " << rem_count_ << ")";
 	}

@@ -195,7 +195,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 /********************************************************************************/
 
 // this is used for the pin instrumentation
-extern void BeginStrand(const char* name);
+//extern void BeginStrand(const char* name);
 
 /********************************************************************************/
 

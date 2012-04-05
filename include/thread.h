@@ -65,7 +65,7 @@ extern void* ThreadEntry(void* arg);
 class Thread {
 public:
 
-	Thread(const char* name, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
+	Thread(THREADID tid, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
 	virtual ~Thread() {}
 
 	virtual void Start(pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
@@ -81,11 +81,6 @@ protected:
 
 	void* call_function();
 
-	inline void set_name(const char* name) {
-		safe_assert(strlen(name) < MAX_THREAD_NAME_LENGTH);
-		name_ = std::string(name);
-	}
-
 	void attach_pthread(pthread_t self);
 	void detach_pthread(pthread_t self);
 
@@ -94,7 +89,7 @@ protected:
 
 private:
 
-	DECL_FIELD_GET(std::string, name)
+	DECL_FIELD(THREADID, tid)
 	DECL_FIELD(ThreadEntryFunction, entry_function)
 	DECL_FIELD(void*, entry_arg)
 	DECL_FIELD(int, stack_size)

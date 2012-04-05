@@ -61,13 +61,12 @@ void Thread::delete_tls_key() {
 
 /********************************************************************************/
 
-Thread::Thread(const char* name, ThreadEntryFunction entry_function, void* entry_arg, int stack_size)
+Thread::Thread(THREADID tid, ThreadEntryFunction entry_function, void* entry_arg, int stack_size)
 : entry_function_(entry_function),
   entry_arg_(entry_arg),
   stack_size_(stack_size) {
 	safe_assert(stack_size_ >= 0);
-	safe_assert(name != NULL);
-	set_name(name);
+	set_tid(tid);
 	set_pthread(PTH_INVALID_THREAD);
 }
 

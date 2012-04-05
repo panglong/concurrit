@@ -389,7 +389,7 @@ public:
 		safe_assert(t != NULL);
 		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
 
-		THREADID tid = tvar_ == NULL ? t->coid() : tvar_->thread()->coid();
+		THREADID tid = tvar_ == NULL ? t->tid() : tvar_->thread()->tid();
 
 		safe_assert(var1_ != NULL);
 		if(var2_ == NULL) {
@@ -538,7 +538,7 @@ public:
 		safe_assert(t != NULL);
 		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
 
-		THREADID tid = tvar_ == NULL ? t->coid() : tvar_->thread()->coid();
+		THREADID tid = tvar_ == NULL ? t->tid() : tvar_->thread()->tid();
 
 		safe_assert(var_ != NULL);
 		if(key_ == NULL) {

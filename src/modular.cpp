@@ -175,7 +175,7 @@ void ThreadModularScenario::TestCase() {
 	DISABLE_DPOR(); // disable dynamic partial order reduction
 
 	// add environment thread to the group
-	Coroutine* env_co = CREATE_THREAD("ENV", env_thread_function, &env_trace_);
+	Coroutine* env_co = CREATE_THREAD(env_thread_function, &env_trace_);
 
 	// add a choice point for choosing which member to run (or reuse it if already exists)
 	MemberChoicePoint* member_choice = NULL;
@@ -205,8 +205,7 @@ void ThreadModularScenario::TestCase() {
 	member_choice->SetAndConsumeCurrent();
 
 	// run one member at a time concurrently with env_thread
-	VLOG(2) << SC_TITLE << "Modular check with coroutine " << co->name();
-	printf("Modular check with coroutine %s\n", co->name().c_str());
+	VLOG(2) << SC_TITLE << "Modular check with coroutine " << co->tid();
 
 	{ WITH(env_co, co);
 		UNTIL_ALL_END {

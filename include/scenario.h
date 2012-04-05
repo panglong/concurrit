@@ -106,8 +106,8 @@ public:
 	/*
 	 * Methods to be used in testcases to control the test scenario
 	 */
-	Coroutine* CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool transfer_on_start = false, pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
-	Coroutine* CreateThread(int id, ThreadEntryFunction function, void* arg, bool transfer_on_start = false, pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
+	Coroutine* CreateThread(THREADID tid, ThreadEntryFunction function, void* arg, pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
+	Coroutine* CreateThread(ThreadEntryFunction function, void* arg, pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
 
 	/* returns the same scenario for concatenating calls */
 	Scenario* Until(UntilCondition* until);
@@ -118,7 +118,7 @@ public:
 	Scenario* UntilFirst();
 
 	Scenario* Except(Coroutine* t);
-	Scenario* Except(const char* name);
+	Scenario* Except(THREADID tid);
 
 	bool AllEnded();
 

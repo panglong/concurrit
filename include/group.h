@@ -40,7 +40,7 @@ namespace concurrit {
 
 class Scenario;
 
-typedef std::map<std::string, Coroutine*> MembersMap;
+typedef std::map<THREADID, Coroutine*> MembersMap;
 
 /*
  * represents a set of coroutines
@@ -64,11 +64,8 @@ public:
 	void WaitForAllEnd();
 
 	bool HasMember(Coroutine* member);
-	bool HasMember(const char* name);
-	bool HasMember(std::string& name);
-
-	Coroutine* GetMember(const char* name);
-	Coroutine* GetMember(std::string& name);
+	bool HasMember(THREADID tid);
+	Coroutine* GetMember(THREADID tid);
 
 	/*
 	 * choose a next enabled thread (chosen randomly)
@@ -99,7 +96,7 @@ private:
 	//DECL_FIELD(Coroutine*, current)
 	DECL_STATIC_FIELD(Coroutine*, main)
 //	DECL_FIELD(std::exception*, exception)
-	DECL_FIELD(THREADID, next_coid)
+	DECL_FIELD(THREADID, next_tid)
 
 	DECL_FIELD_REF(MembersMap, members)
 	CoroutinePtrSet* member_set();

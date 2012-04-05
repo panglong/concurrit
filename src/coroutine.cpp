@@ -36,13 +36,12 @@
 namespace concurrit {
 
 
-Coroutine::Coroutine(const char* name, ThreadEntryFunction entry_function, void* entry_arg, int stack_size)
-: Thread(name, entry_function, entry_arg, stack_size)
+Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* entry_arg, int stack_size)
+: Thread(tid, entry_function, entry_arg, stack_size)
 {
 	status_ = PASSIVE;
 	group_ = NULL;
 	yield_point_ = NULL;
-	coid_ = -1;
 	vc_clear(vc_);
 	exception_ = NULL;
 	transfer_on_start_ = false;
@@ -59,9 +58,9 @@ Coroutine::~Coroutine() {
 /********************************************************************************/
 
 void Coroutine::StartMain() {
-	safe_assert(name_ == MAIN_NAME);
+	safe_assert(tid_ == MAIN_TID);
 	status_ = ENABLED;
-	set_coid(0);
+	set_tid(MAIN_TID);
 	pthread_t pth_self = pthread_self();
 	safe_assert(pth_self != PTH_INVALID_THREAD);
 	// for non-main coroutines, this is called in ThreadEntry
@@ -70,9 +69,9 @@ void Coroutine::StartMain() {
 }
 
 void Coroutine::FinishMain() {
-	safe_assert(name_ == MAIN_NAME);
+	safe_assert(tid_ == MAIN_TID);
 	status_ = TERMINATED;
-	set_coid(-1);
+	set_tid(-1);
 	pthread_t pth_self = pthread_self();
 	safe_assert(pth_self != PTH_INVALID_THREAD);
 	// for non-main coroutines, this is called in ThreadEntry
@@ -80,7 +79,7 @@ void Coroutine::FinishMain() {
 }
 
 bool Coroutine::IsMain() {
-	if(name() == MAIN_NAME) {
+	if(tid_ == MAIN_TID) {
 		safe_assert(group_ == NULL || group_->main() == this);
 		return true;
 	}
@@ -128,11 +127,11 @@ void Coroutine::Finish() {
 
 void Coroutine::WaitForEnd() {
 	safe_assert(BETWEEN(ENABLED, status_, ENDED));
- 	VLOG(2) << "Waiting for coroutine " << name_ << " to end.";
+ 	VLOG(2) << "Waiting for coroutine " << tid_ << " to end.";
  	// wait for the semaphore twice
 	sem_end_.Wait();
 	sem_end_.Wait(); // Wait(1000000); // wait for 1 sec
-	VLOG(2) << "Detected coroutine " << name_ << " has ended.";
+	VLOG(2) << "Detected coroutine " << tid_ << " has ended.";
 	safe_assert(status_ == ENDED);
 //	while(status_ != WAITING && status_ != ENDED) {
 //		Thread::Yield(true);
@@ -176,7 +175,7 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/
 	// wait for started message
 	VLOG(2) << CO_TITLE << "Waiting the thread to start";
 	MessageType msg = channel_.WaitReceive();
-	CHECK(msg == MSG_STARTED) << "Expected a started message from " << this->name();
+	CHECK(msg == MSG_STARTED) << "Expected a started message from " << this->tid();
 	VLOG(2) << CO_TITLE << "Got start signal from the thread";
 
 	// first signal
@@ -240,7 +239,7 @@ void* Coroutine::Run() {
 				safe_assert(status_ == ENABLED);
 //				safe_assert(trinfolist_.empty());
 //				trinfolist_.push_back(EndingTransitionInfo()); // put predicate indicating ending state
-				AuxState::Ends->set(true, coid_);
+				AuxState::Ends->set(true, tid_);
 				scenario->OnControlledTransition(this);
 			}
 
@@ -289,7 +288,7 @@ void* Coroutine::Run() {
 void Coroutine::Transfer(Coroutine* target, MessageType msg /*=MSG_TRANSFER*/) {
 	safe_assert(target != NULL && target != this);
 
-	VLOG(2) << CO_TITLE << "Transferring to " << target->name();
+	VLOG(2) << CO_TITLE << "Transferring to " << target->tid();
 
 	// note: this may be main
 	// check current coroutine
@@ -330,7 +329,7 @@ void Coroutine::HandleMessage(MessageType msg) {
 	VLOG(2) << CO_TITLE << "Handling message:" << msg;
 
 	if(msg == MSG_TRANSFER) {
-		BeginStrand(name_.c_str()); // this is to notify the PIN tool
+//		BeginStrand(name_.c_str()); // this is to notify the PIN tool
 	} else if(msg == MSG_RESTART || msg == MSG_TERMINATE) {
 		throw msg; // let the Run() method catch it.
 	} else if(msg == MSG_EXCEPTION) {
@@ -419,7 +418,7 @@ void Coroutine::FinishControlledTransition(bool holding_current_node) {
 //	trinfolist_.clear();
 
 	// remove auxiliary state
-	AuxState::Reset(coid_);
+	AuxState::Reset(tid_);
 
 	if(!holding_current_node) {
 		current_node_ = NULL;

@@ -102,16 +102,15 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 }
 
 /********************************************************************************/
-Coroutine* Scenario::CreateThread(int id, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
-	char buff[MAX_THREAD_NAME_LENGTH];
-	sprintf(buff, "THR-%d", id);
-	return CreateThread(buff, function, arg, transfer_on_start, pid, attr);
+Coroutine* Scenario::CreateThread(ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
+	return CreateThread(-1, function, arg, pid, attr);
 }
 
 // create a new thread or fetch the existing one, and start it.
-Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function, void* arg, bool transfer_on_start /*= false*/, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
-	std::string strname = std::string(name);
-	Coroutine* co = group_.GetMember(strname);
+Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
+	CHECK(tid < 0 || tid > MAIN_TID) << "CreateThread is given invalid tid: " << tid;
+
+	Coroutine* co = group_.GetMember(tid);
 
 	// if replaying, do nothing, but return the thread pointer
 	if(!exec_tree_.replay_path()->empty()) {
@@ -119,16 +118,18 @@ Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function
 		return co;
 	}
 
+	bool transfer_on_start = (ConcurritExecutionMode == PREEMPTIVE);
+
 	if(co == NULL) {
 		// create a new thread
-		VLOG(2) << SC_TITLE << "Creating new coroutine " << name;
-		co = new Coroutine(name, function, arg);
+		VLOG(2) << SC_TITLE << "Creating new coroutine " << tid;
+		co = new Coroutine(tid, function, arg);
 		co->set_transfer_on_start(transfer_on_start);
-		group_.AddMember(co);
+		group_.AddMember(co); // also sets the tid
 	} else {
-		VLOG(2) << SC_TITLE << "Re-creating and restarting coroutine " << name;
+		VLOG(2) << SC_TITLE << "Re-creating and restarting coroutine " << tid;
 		if(co->status() <= PASSIVE) {
-			printf("Cannot create new thread with the same name!");
+			printf("Cannot create new thread with the tid!");
 			_Exit(UNRECOVERABLE_ERROR);
 		}
 		// update the function and arguments
@@ -136,6 +137,7 @@ Coroutine* Scenario::CreateThread(const char* name, ThreadEntryFunction function
 		co->set_entry_arg(arg);
 		co->set_transfer_on_start(transfer_on_start);
 	}
+	safe_assert(co->tid() > MAIN_TID);
 	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
 	co->Start(pid, attr);
 
@@ -421,7 +423,7 @@ void Scenario::ResolvePoint(SchedulePoint* point) {
 		if(!ypoint->IsResolved()) {
 			std::string* strsource = reinterpret_cast<std::string*>(ypoint->source());
 			safe_assert(strsource != NULL);
-			Coroutine* source = group_.GetMember(*strsource);
+			Coroutine* source = group_.GetMember(atoi(strsource->c_str()));
 			safe_assert(source != NULL);
 			ypoint->set_source(source);
 			ypoint->set_is_resolved(true);
@@ -432,7 +434,7 @@ void Scenario::ResolvePoint(SchedulePoint* point) {
 			if(!transfer->IsResolved()) {
 				std::string* strtarget = reinterpret_cast<std::string*>(transfer->target());
 				safe_assert(strtarget != NULL);
-				Coroutine* target = group_.GetMember(*strtarget);
+				Coroutine* target = group_.GetMember(atoi(strtarget->c_str()));
 				safe_assert(target != NULL);
 				transfer->set_target(target);
 				transfer->set_is_resolved(true);
@@ -505,7 +507,7 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 
 			Coroutine* target = NULL;
 			if(!point->AsYield()->free_target()) {
-				safe_assert(point->AsYield()->label() != MAIN_NAME && !point->AsYield()->source()->IsMain());
+				safe_assert(point->AsYield()->label() != "MAIN" && !point->AsYield()->source()->IsMain());
 				target = group_.main();
 			}
 
@@ -866,7 +868,7 @@ SchedulePoint* Scenario::TransferStar(SourceLocation* loc) {
 // when this begins, we have a particular target to transfer
 // all nondeterminism about transfer is resolved in transfer star
 SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
-	VLOG(2) << SC_TITLE << "Transfer request to " << ((target != NULL) ? target->name() : "star");
+	VLOG(2) << SC_TITLE << "Transfer request to " << ((target != NULL) ? to_string(target->tid()) : "star");
 
 	CoroutineGroup group = group_;
 
@@ -876,7 +878,7 @@ SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
 	safe_assert(current != NULL);
 
 	if(target != NULL) {
-		safe_assert(group.GetMember(target->name()) == target);
+		safe_assert(group.GetMember(target->tid()) == target);
 
 		// backtrack if target is not enabled
 		if(target->status() != ENABLED) {
@@ -961,14 +963,9 @@ Scenario* Scenario::Except(Coroutine* t) {
 
 /********************************************************************************/
 
-Scenario* Scenario::Except(const char* name) {
-	Coroutine* t = NULL;
-
-	if(name != NULL) {
-		t = group_.GetMember(name);
-		safe_assert(t != NULL);
-	}
-
+Scenario* Scenario::Except(THREADID tid) {
+	Coroutine* t = group_.GetMember(tid);
+	safe_assert(t != NULL);
 	return Except(t);
 }
 
@@ -978,7 +975,7 @@ void Scenario::OnAccess(Coroutine* current, SharedAccess* access) {
 	safe_assert(access != NULL);
 	safe_assert(access == current->yield_point()->AsYield()->access()); // access must be the last access of current
 
-	VLOG(2) << SC_TITLE << "Access by " << current->name() << ": " << access->ToString();
+	VLOG(2) << SC_TITLE << "Access by " << current->tid() << ": " << access->ToString();
 
 	// notify vc tracker
 	vcTracker_.OnAccess(current->yield_point(), schedule_->coverage());
@@ -1091,10 +1088,10 @@ void Scenario::RunSavedSchedule(const char* filename) {
 
 /********************************************************************************/
 
-void BeginStrand(const char* name) {
-	safe_assert(name != NULL);
-	// printf("Resuming thread %s...\n", name);
-}
+//void BeginStrand(const char* name) {
+//	safe_assert(name != NULL);
+//	// printf("Resuming thread %s...\n", name);
+//}
 
 /********************************************************************************/
 
@@ -1109,7 +1106,7 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 	safe_assert(scenario == group->scenario());
 	safe_assert(group == scenario->group());
 
-	VLOG(2) << "Yield request from " << current->name();
+	VLOG(2) << "Yield request from " << current->tid();
 
 	// update backtrack set before taking the transition
 	this->UpdateBacktrackSets();
@@ -1339,7 +1336,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 	current->set_status(BLOCKED);
 
-	VLOG(2) << "Before controlled transition by " << current->name();
+	VLOG(2) << "Before controlled transition by " << current->tid();
 
 	// to continue waiting or exit?
 	bool done = true;
@@ -1424,7 +1421,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 						safe_assert(!select->covered());
 
 						// check if this thread has been covered
-						THREADID tid = current->coid();
+						THREADID tid = current->tid();
 						safe_assert(tid >= 0);
 						ExecutionTree* child = select->child_by_tid(tid);
 						if(child == NULL || !child->covered()) {
@@ -1489,7 +1486,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 void Scenario::AfterControlledTransition(Coroutine* current) {
 	if(current->status() != BLOCKED) return;
 
-	VLOG(2) << "After controlled transition by " << current->name();
+	VLOG(2) << "After controlled transition by " << current->tid();
 
 	// value determining what to with the transition
 	// TPTRUE: continue as normal

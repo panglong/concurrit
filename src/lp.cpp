@@ -70,7 +70,7 @@ void VCTracker::UpdateBacktrackSets(SchedulePoint* currentPoint) {
 
 	Coroutine* currentSource = currentPoint->AsYield()->source();
 	safe_assert(currentSource != NULL);
-	THREADID tid = currentSource->coid();
+	THREADID tid = currentSource->tid();
 	safe_assert(tid > 0);
 
 	// find immediate races
@@ -106,7 +106,7 @@ void VCTracker::UpdateBacktrackSets(SchedulePoint* currentPoint) {
 			safe_assert(BETWEEN(1, access->time(), currentTime_-1));
 
 			// check immediate race
-			THREADID lastTid = point->AsYield()->source()->coid();
+			THREADID lastTid = point->AsYield()->source()->tid();
 			safe_assert(lastTid > 0);
 			if(lastTid != tid) {
 				if(!(access->time() <= vc_get(vcTid, lastTid))) {
@@ -153,7 +153,7 @@ void VCTracker::OnAccess(SchedulePoint* currentPoint, Coverage* coverage) {
 
 	Coroutine* currentSource = currentPoint->AsYield()->source();
 	safe_assert(currentSource != NULL);
-	THREADID tid = currentSource->coid();
+	THREADID tid = currentSource->tid();
 	safe_assert(tid > 0);
 
 	// find immediate races
@@ -190,7 +190,7 @@ void VCTracker::OnAccess(SchedulePoint* currentPoint, Coverage* coverage) {
 			safe_assert(BETWEEN(1, access->time(), currentTime_-1));
 
 			// check immediate race
-			THREADID lastTid = point->AsYield()->source()->coid();
+			THREADID lastTid = point->AsYield()->source()->tid();
 			safe_assert(lastTid > 0);
 			if(lastTid != tid) {
 				if(!(access->time() <= vc_get(vcTid, lastTid))) {

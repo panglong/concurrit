@@ -43,7 +43,7 @@ Coroutine* CoroutineGroup::main_ = NULL;
 
 void CoroutineGroup::init_main() {
 	safe_assert(main_ == NULL);
-	main_ = new Coroutine(MAIN_NAME, NULL, NULL, 0);
+	main_ = new Coroutine(MAIN_TID, NULL, NULL, 0);
 	main_->StartMain();
 }
 
@@ -64,7 +64,7 @@ void CoroutineGroup::delete_main() {
 
 CoroutineGroup:: CoroutineGroup() {
 	scenario_ = NULL;
-	next_coid_ = 1;
+	next_tid_ = 1;
 }
 
 /********************************************************************************/
@@ -72,20 +72,23 @@ CoroutineGroup:: CoroutineGroup() {
 void CoroutineGroup::AddMember(Coroutine* member) {
 	// check if not our member
 	CHECK(!HasMember(member));
-	safe_assert(member->name().length() > 0);
 	safe_assert(!member->IsMain()); // cannot add main in here
-	members_[member->name()] = member;
+	members_[member->tid()] = member;
 	member->set_group(this);
-	member->set_coid(next_coid_);
-	++next_coid_;
+
+	THREADID tid = member->tid();
+	if(tid < 0) {
+		tid = next_tid_;
+		member->set_tid(tid);
+	}
+	next_tid_ = tid + 1;
 }
 
 void CoroutineGroup::TakeOutMember(Coroutine* member) {
 	// check if already our member
 	CHECK(HasMember(member));
-	safe_assert(member->name().length() > 0);
 	safe_assert(!member->IsMain()); // cannot add main in here
-	MembersMap::iterator itr = members_.find(member->name());
+	MembersMap::iterator itr = members_.find(member->tid());
 	safe_assert(itr != members_.end());
 	members_.erase(itr);
 }
@@ -93,9 +96,8 @@ void CoroutineGroup::TakeOutMember(Coroutine* member) {
 void CoroutineGroup::PutBackMember(Coroutine* member) {
 	// check if not our member
 	CHECK(!HasMember(member));
-	safe_assert(member->name().length() > 0);
 	safe_assert(!member->IsMain()); // cannot add main in here
-	members_[member->name()] = member;
+	members_[member->tid()] = member;
 }
 
 /********************************************************************************/
@@ -221,16 +223,12 @@ bool CoroutineGroup::IsAllEnded() {
 
 /********************************************************************************/
 
-bool CoroutineGroup::HasMember(const char* name) {
-	return NULL != GetMember(name);
-}
-
-bool CoroutineGroup::HasMember(std::string& name) {
-	return NULL != GetMember(name);
+bool CoroutineGroup::HasMember(THREADID tid) {
+	return NULL != GetMember(tid);
 }
 
 bool CoroutineGroup::HasMember(Coroutine* member) {
-	Coroutine* co = GetMember(member->name());
+	Coroutine* co = GetMember(member->tid());
 	if(co == NULL) {
 		return false;
 	}
@@ -240,17 +238,12 @@ bool CoroutineGroup::HasMember(Coroutine* member) {
 
 /********************************************************************************/
 
-Coroutine* CoroutineGroup::GetMember(const char* name) {
-	std::string s(name);
-	return GetMember(s);
-}
-
-Coroutine* CoroutineGroup::GetMember(std::string& name) {
-	if(name == MAIN_NAME) {
+Coroutine* CoroutineGroup::GetMember(THREADID tid) {
+	if(tid == MAIN_TID) {
 		safe_assert(main_ != NULL);
 		return main_;
 	}
-	std::map<std::string, Coroutine*>::iterator itr = members_.find(name);
+	MembersMap::iterator itr = members_.find(tid);
 	if(itr == members_.end()) {
 		return NULL;
 	} else {

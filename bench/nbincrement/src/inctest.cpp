@@ -43,7 +43,7 @@ CONCURRIT_BEGIN_TEST(INCScenario, "NB-Increment scenario")
 
 		for (int i = 0; i < NUM_THREADS; i++)
 		{
-			threads[i] = CREATE_THREAD(i, increment_routine, (void*)counter, true);
+			threads[i] = CREATE_THREAD(i+1, increment_routine, (void*)counter);
 		}
 
 

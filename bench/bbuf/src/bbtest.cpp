@@ -47,7 +47,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 			producers[i].id =  i;
 			producers[i].bbuf = buffer;
 //			pthread_create(&producers[i].pid, NULL, producer_routine,  (void*)&producers[i]);
-			co_producers[i] = CREATE_THREAD(i, producer_routine, (void*)&producers[i], true);
+			co_producers[i] = CREATE_THREAD(i+1, producer_routine, (void*)&producers[i]);
 		}
 
 //		printf("Created producer threads\n");
@@ -57,7 +57,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 			consumers[i].id =  i;
 			consumers[i].bbuf = buffer;
 //			pthread_create(&consumers[i].pid, NULL, consumer_routine,  (void*)&consumers[i]);
-			co_consumers[i] = CREATE_THREAD(PRODUCER_SUM+i, consumer_routine, (void*)&consumers[i], true);
+			co_consumers[i] = CREATE_THREAD(PRODUCER_SUM+i+1, consumer_routine, (void*)&consumers[i]);
 		}
 
 //		printf("Created consumer threads\n");

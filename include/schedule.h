@@ -228,7 +228,7 @@ public:
 	// do not write choose for now
 	std::string ToString() {
 		std::stringstream s;
-		s << "Choice point by" << (source_ != NULL ? source_->name() : "NULL") ;
+		s << "Choice point by" << (source_ != NULL ? source_->tid() : -1) ;
 		return s.str();
 	}
 

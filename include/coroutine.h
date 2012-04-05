@@ -45,7 +45,7 @@ class CoroutineGroup;
 class SchedulePoint;
 class ExecutionTree;
 
-#define MAIN_NAME 	"main"
+#define MAIN_TID 	0
 
 enum MessageType {MSG_STARTED = 1, MSG_TRANSFER = 2, MSG_RESTART = 3, MSG_TERMINATE = 4, MSG_EXCEPTION = 5};
 
@@ -54,14 +54,14 @@ typedef int StatusType;
 const int ABSENT = 0, PASSIVE = 1, ENABLED = 2, WAITING = 3/*for message*/, BLOCKED = 4, ENDED = 5, TERMINATED = 6;
 
 // for log messages
-#define CO_TITLE	"[[" << name_ << "]] "
+#define CO_TITLE	"[[" << tid_ << "]] "
 
 // coroutine is simulated by a thread
 class Coroutine : public Thread
 {
 public:
 
-	explicit Coroutine(const char* name, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
+	explicit Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* entry_arg = NULL, int stack_size = 0);
 	virtual ~Coroutine();
 
 	void Start(pthread_t* pid = NULL, pthread_attr_t* attr = NULL);
@@ -109,7 +109,6 @@ public:
 
 private:
 
-	DECL_FIELD(THREADID, coid)
 	DECL_VOL_FIELD(StatusType, status)
 	DECL_FIELD(CoroutineGroup*, group)
 	DECL_FIELD_REF(Channel<MessageType>, channel)

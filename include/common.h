@@ -68,6 +68,15 @@ namespace concurrit {
 
 /********************************************************************************/
 
+template<typename T>
+std::string to_string(T i) {
+	std::stringstream out;
+	out << i;
+	return out.str();
+}
+
+/********************************************************************************/
+
 enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
 
 const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
