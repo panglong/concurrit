@@ -31,55 +31,35 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef COUNIT_H_
-#define COUNIT_H_
-
 #include "common.h"
 
+#include <cstdatomic>
+
 namespace concurrit {
-	extern const char* CONCURRIT_HOME;
-}
-#define InWorkDir(f)	((std::string(CHECK_NOTNULL(CONCURRIT_HOME)) + "/work/" + f).c_str())
 
-// google libraries
-#include <glog/logging.h>
+class Originals {
+public:
 
-// boost libraries
-#include <boost/shared_ptr.hpp>
+	static void initialize();
 
-// GNU portable threads library
-// #include "pth.h"
+	static inline volatile bool is_initialized() { return _initialized; }
 
-// pthreads library
-#include <pthread.h>
+	static int pthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
+	static int pthread_join(pthread_t, void **);
 
-#include "str.h"
-#include "iterator.h"
-#include "statistics.h"
-#include "serialize.h"
-#include "sharedaccess.h"
-#include "schedule.h"
-#include "api.h"
-#include "yieldapi.h"
-#include "thread.h"
-#include "channel.h"
-#include "coroutine.h"
-#include "group.h"
-#include "exception.h"
-#include "result.h"
-#include "until.h"
-#include "timer.h"
-#include "lp.h"
-#include "scenario.h"
-#include "vc.h"
-#include "suite.h"
-#include "yield.h"
-#include "dot.h"
-#include "pinmonitor.h"
-#include "predicate.h"
-#include "modular.h"
-#include "dsl.h"
-#include "transpred.h"
-#include "interpos.h"
+	static int (* volatile _pthread_create) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
+	static int (* volatile _pthread_join) (pthread_t, void **);
 
-#endif /* COUNIT_H_ */
+private:
+	static volatile bool _initialized;
+};
+
+/********************************************************************************/
+
+int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+int concurrit_pthread_join(pthread_t thread, void ** value_ptr);
+
+} // end namespace
+
+
+

@@ -199,19 +199,6 @@ extern void BeginStrand(const char* name);
 
 /********************************************************************************/
 
-extern void BeginCounit(int argc = -1, char **argv = NULL);
-extern void EndCounit();
-
-/********************************************************************************/
-
-class ConcurritInitializer {
-public:
-	ConcurritInitializer(int argc = -1, char **argv = NULL);
-	~ConcurritInitializer();
-};
-
-/********************************************************************************/
-
 // DSL for the preemptive mode
 #define STAR	DSLChoice()
 

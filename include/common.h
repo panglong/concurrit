@@ -66,10 +66,36 @@
 
 namespace concurrit {
 
+/********************************************************************************/
+
 enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
 
 const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
-extern volatile bool IsInitialized;
+
+/********************************************************************************/
+
+class Concurrit {
+public:
+	static void Init(int argc = -1, char **argv = NULL);
+	static void Destroy();
+	static volatile bool IsInitialized();
+private:
+	static volatile bool initialized_;
+};
+
+/********************************************************************************/
+
+class ConcurritInitializer {
+public:
+	ConcurritInitializer(int argc = -1, char **argv = NULL) {
+		Concurrit::Init(argc, argv);
+	}
+	~ConcurritInitializer() {
+		Concurrit::Destroy();
+	}
+};
+
+/********************************************************************************/
 
 extern "C" void EnablePinTool();
 extern "C" void DisablePinTool();

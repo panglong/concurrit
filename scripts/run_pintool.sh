@@ -8,6 +8,6 @@ PINTOOL_ARGS="-skip_int3"
 # -filter_no_shared_libs
 
 #setarch x86_64 
-$CONCURRIT_TPDIR/pin/pin $PIN_ARGS -t $CONCURRIT_HOME/lib/instrumenter.so $PINTOOL_ARGS -- $@
+LD_PRELOAD=$CONCURRIT_HOME/lib/libconcurrit.so $CONCURRIT_TPDIR/pin/pin $PIN_ARGS -t $CONCURRIT_HOME/lib/instrumenter.so $PINTOOL_ARGS -- $@
 
 cd $PWD

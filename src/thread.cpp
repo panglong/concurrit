@@ -173,7 +173,7 @@ void Thread::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
 		pthread_attr_setstacksize(&attr_local, static_cast<size_t>(stack_size_));
 		attr_ptr = &attr_local;
 	}
-	pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
+	Originals::pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
 	safe_assert(pthread_ != PTH_INVALID_THREAD);
 	if(pid != NULL) *pid = pthread_;
 }
@@ -181,7 +181,7 @@ void Thread::Start(pthread_t* pid /*= NULL*/, pthread_attr_t* attr /*= NULL*/) {
 /********************************************************************************/
 
 void Thread::Join() {
-	int result = pthread_join(pthread_, NULL);
+	int result = Originals::pthread_join(pthread_, NULL);
 	if(result != PTH_SUCCESS && result != ESRCH) {
 		printf("Join error: %s\n", PTHResultToString(result));
 	}
