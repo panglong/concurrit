@@ -36,28 +36,21 @@
 namespace concurrit {
 
 
-boost::shared_ptr<AuxVar0<bool, false>> AuxState::Ends =
-			boost::shared_ptr<AuxVar0<bool, false>>(new AuxVar0<bool, false>("Ends"));
+boost::shared_ptr<AuxVar0<bool, false>> AuxState::Ends(new AuxVar0<bool, false>("Ends"));
 
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Reads =
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Reads"));
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Writes =
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Writes"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Reads(new AuxVar1<ADDRINT, bool, -1, false>("Reads"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Writes(new AuxVar1<ADDRINT, bool, -1, false>("Writes"));
 
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom =
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo =
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters =
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Enters"));
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns =
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>>(new AuxVar1<ADDRINT, bool, -1, false>("Returns"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters(new AuxVar1<ADDRINT, bool, -1, false>("Enters"));
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns(new AuxVar1<ADDRINT, bool, -1, false>("Returns"));
 
 /*************************************************************************************/
 
 // extern'ed variables
-static TransitionPredicatePtr __true_transition_predicate__ = TransitionPredicatePtr(new TrueTransitionPredicate());
-static TransitionPredicatePtr __false_transition_predicate__ = TransitionPredicatePtr(new FalseTransitionPredicate());
+static TransitionPredicatePtr __true_transition_predicate__(new TrueTransitionPredicate());
+static TransitionPredicatePtr __false_transition_predicate__(new FalseTransitionPredicate());
 
 TransitionPredicatePtr TransitionPredicate::True() { return __true_transition_predicate__; }
 TransitionPredicatePtr TransitionPredicate::False() { return __false_transition_predicate__; }

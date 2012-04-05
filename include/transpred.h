@@ -303,9 +303,9 @@ public:
 	AuxVar0(const char* name = "") : AuxVar(name) {}
 	~AuxVar0(){}
 
-	TransitionPredicatePtr operator ()(const T& value, const ThreadVarPtr& tvar = ThreadVarPtr());
+	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr());
 
-	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var = AuxVar0Ptr(), const ThreadVarPtr& tvar = ThreadVarPtr());
+	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2 = AuxVar0Ptr(), const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	virtual void reset(THREADID t = -1) {
 		set(undef_value_, t);
@@ -381,6 +381,10 @@ public:
 	AuxVar0Pre(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar = ThreadVarPtr()) : PreStateTransitionPredicate(), var1_(var1), var2_(var2), tvar_(tvar) {}
 	~AuxVar0Pre(){}
 
+	static TransitionPredicatePtr create (const AuxVar0Ptr& var1 = AuxVar0Ptr(), const AuxVar0Ptr& var2 = AuxVar0Ptr(), const ThreadVarPtr& tvar = ThreadVarPtr()) {
+		return TransitionPredicatePtr(new AuxVar0Pre<T,undef_value_>(var1, var2, tvar));
+	}
+
 	bool EvalState(Coroutine* t = NULL) {
 		safe_assert(t != NULL);
 		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
@@ -402,13 +406,13 @@ private:
 
 
 template<typename T, T undef_value_>
-TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const T& value, const ThreadVarPtr& tvar /*= NULL*/) {
-	return this->operator()(AuxVar0Ptr(new AuxConst0<T,undef_value_>(value)), tvar);
+TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar /*= ThreadVarPtr()*/) {
+	return this->operator()(var1, AuxVar0Ptr(new AuxConst0<T,undef_value_>(value)), tvar);
 }
 
 template<typename T, T undef_value_>
-TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const AuxVar0Ptr& var /*= NULL*/, const ThreadVarPtr& tvar /*= NULL*/) {
-	return TransitionPredicatePtr(new AuxVar0Pre<T,undef_value_>(AuxVar0Ptr(this), var, tvar));
+TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2 /*= AuxVar0Ptr()*/, const ThreadVarPtr& tvar /*= ThreadVarPtr()*/) {
+	return AuxVar0Pre<T,undef_value_>::create(var1, var2, tvar);
 }
 
 /********************************************************************************/
@@ -418,6 +422,8 @@ class AuxVar1 : public AuxVar {
 protected:
 	typedef tbb::concurrent_hash_map<K, T> MM;
 	typedef tbb::concurrent_hash_map<THREADID, MM> M;
+	typedef AuxVar1<K,T,undef_key_,undef_value_> AuxVarType;
+	typedef boost::shared_ptr<AuxVarType> AuxVarPtr;
 	typedef AuxVar0<K,undef_key_> AuxKeyType;
 	typedef boost::shared_ptr<AuxKeyType> AuxKeyPtr;
 	typedef AuxVar0<T,undef_value_> AuxValueType;
@@ -431,19 +437,19 @@ public:
 	AuxVar1(const char* name = "") : AuxVar(name) {}
 	~AuxVar1(){}
 
-	TransitionPredicatePtr operator ()(const K& key, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		return this->operator()(AuxKeyConstPtr(new AuxKeyConstType(key)), AuxValueConstPtr(new AuxValueConstType(value)), tvar);
+	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const K& key, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr()) {
+		return this->operator()(var, AuxKeyConstPtr(new AuxKeyConstType(key)), AuxValueConstPtr(new AuxValueConstType(value)), tvar);
 	}
 
-	TransitionPredicatePtr operator ()(const K& key, const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		return this->operator()(AuxKeyConstPtr(new AuxKeyConstType(key)), AuxValueConstPtr(), tvar);
+	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const K& key, const ThreadVarPtr& tvar = ThreadVarPtr()) {
+		return this->operator()(var, AuxKeyConstPtr(new AuxKeyConstType(key)), AuxValueConstPtr(), tvar);
 	}
 
-	TransitionPredicatePtr operator ()(const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		return this->operator()(AuxKeyConstPtr(), AuxValueConstPtr(), tvar);
+	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const ThreadVarPtr& tvar = ThreadVarPtr()) {
+		return this->operator()(var, AuxKeyConstPtr(), AuxValueConstPtr(), tvar);
 	}
 
-	TransitionPredicatePtr operator ()(const AuxKeyPtr& key = AuxKeyPtr(), const AuxValuePtr& value = AuxValuePtr(), const ThreadVarPtr& tvar = ThreadVarPtr());
+	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const AuxKeyPtr& key = AuxKeyPtr(), const AuxValuePtr& value = AuxValuePtr(), const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	//================================================
 
@@ -524,6 +530,10 @@ public:
 	: PreStateTransitionPredicate(), var_(var), key_(key), value_(value), tvar_(tvar) {}
 	~AuxVar1Pre(){}
 
+	static TransitionPredicatePtr create (const AuxVarPtr& var, const AuxKeyPtr& key = AuxKeyPtr(), const AuxValuePtr& value = AuxValuePtr(), const ThreadVarPtr& tvar = ThreadVarPtr()) {
+		return TransitionPredicatePtr(new AuxVar1Pre<K,T,undef_key_,undef_value_>(var, key, value, tvar));
+	}
+
 	bool EvalState(Coroutine* t = NULL) {
 		safe_assert(t != NULL);
 		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
@@ -551,8 +561,8 @@ private:
 /********************************************************************************/
 
 template<typename K, typename T, K undef_key_, T undef_value_>
-TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::operator ()(const AuxKeyPtr& key /*= NULL*/, const AuxValuePtr& value /*= NULL*/, const ThreadVarPtr& tvar /*= NULL*/) {
-	return TransitionPredicatePtr(new AuxVar1Pre<K,T,undef_key_,undef_value_>(AuxVarPtr(this), key, value, tvar));
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::operator ()(const AuxVarPtr& var, const AuxKeyPtr& key /*= NULL*/, const AuxValuePtr& value /*= NULL*/, const ThreadVarPtr& tvar /*= NULL*/) {
+	return AuxVar1Pre<K,T,undef_key_,undef_value_>::create(var, key, value, tvar);
 }
 
 /********************************************************************************/
@@ -597,13 +607,13 @@ public:
 
 /********************************************************************************/
 
-#define ENDS()			CHECK_NOTNULL(AuxState::Ends.get())->operator()()
+#define ENDS()			CHECK_NOTNULL(AuxState::Ends.get())->operator()(AuxState::Ends)
 
-#define READS()			CHECK_NOTNULL(AuxState::Reads.get())->operator()()
-#define WRITES()		CHECK_NOTNULL(AuxState::Writes.get())->operator()()
+#define READS()			CHECK_NOTNULL(AuxState::Reads.get())->operator()(AuxState::Reads)
+#define WRITES()		CHECK_NOTNULL(AuxState::Writes.get())->operator()(AuxState::Writes)
 
-#define READS_FROM(x)	CHECK_NOTNULL(AuxState::Reads.get())->operator()(x)
-#define WRITES_TO(x)	CHECK_NOTNULL(AuxState::Writes.get())->operator()(x)
+#define READS_FROM(x)	CHECK_NOTNULL(AuxState::Reads.get())->operator()(AuxState::Reads, x)
+#define WRITES_TO(x)	CHECK_NOTNULL(AuxState::Writes.get())->operator()(AuxState::Writes, x)
 
 
 } // end namespace
