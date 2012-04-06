@@ -74,8 +74,8 @@ public:
 	static inline void MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
 	static inline void MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
 
-	static inline void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target);
-	static inline void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc);
+	static inline void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
+	static inline void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1);
 	static inline void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
 
 private:
@@ -102,6 +102,8 @@ struct PinMonitorCallInfo {
 	bool direct;
 	SourceLocation* loc_src;
 	SourceLocation* loc_target;
+	ADDRINT arg0;
+	ADDRINT arg1;
 	ADDRINT retval;
 };
 

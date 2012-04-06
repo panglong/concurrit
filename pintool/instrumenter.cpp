@@ -367,6 +367,8 @@ FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation
 	info.direct = direct;
 	info.loc_src = loc_src;
 	info.loc_target = loc_target;
+	info.arg0 = arg0;
+	info.arg1 = arg1;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
 	// monitor->FuncCall(threadid, loc_target->pointer(), direct, loc_src, loc_target);
@@ -391,6 +393,8 @@ FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 	info.threadid = threadid;
 	info.addr = loc->pointer();
 	info.loc_src = loc;
+	info.arg0 = arg0;
+	info.arg1 = arg1;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
 	// monitor->FuncEnter(threadid, loc->pointer(), loc);

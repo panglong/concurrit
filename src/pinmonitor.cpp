@@ -143,7 +143,7 @@ inline void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* ad
 
 /********************************************************************************/
 
-inline void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target) {
+inline void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1) {
 	safe_assert(loc_src != NULL && loc_target != NULL);
 
 //	current->trinfolist()->push_back(FuncCallTransitionInfo(addr_src, loc_src, loc_target, direct));
@@ -155,7 +155,7 @@ inline void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* a
 	scenario->OnControlledTransition(current);
 }
 
-inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc) {
+inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1) {
 	safe_assert(loc != NULL);
 
 //	current->trinfolist()->push_back(FuncEnterTransitionInfo(addr, loc));
@@ -208,10 +208,10 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 			PinMonitor::MemRead(current, scenario, info->addr, info->size, info->loc_src);
 			break;
 		case FuncCall:
-			PinMonitor::FuncCall(current, scenario, info->addr, info->addr_target, info->direct, info->loc_src, info->loc_target);
+			PinMonitor::FuncCall(current, scenario, info->addr, info->addr_target, info->direct, info->loc_src, info->loc_target, info->arg0, info->arg1);
 			break;
 		case FuncEnter:
-			PinMonitor::FuncEnter(current, scenario, info->addr, info->loc_src);
+			PinMonitor::FuncEnter(current, scenario, info->addr, info->loc_src, info->arg0, info->arg1);
 			break;
 		case FuncReturn:
 			PinMonitor::FuncReturn(current, scenario, info->addr, info->loc_src, info->retval);
