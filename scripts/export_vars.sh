@@ -27,5 +27,5 @@ export LD_LIBRARY_PATH=$CONCURRIT_TPDIR/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.
 export DYLD_LIBRARY_PATH=$CONCURRIT_TPDIR/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21/:$DYLD_LIBRARY_PATH
 
 # boost
-export BOOST_ROOT=$CONCURRIT_TPDIR/boost
+export BOOST_ROOT=$HOME/boost
 export BOOST_PATH=$BOOST_ROOT
