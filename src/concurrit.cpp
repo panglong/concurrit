@@ -57,7 +57,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 		int i = 0;
 		// 1
 		for(; i < argc; ++i) {
-			if(strncmp(argv[i], "--", 2)) break;
+			if(strncmp(argv[i], "--", 2) == 0) break;
 			args.push_back(argv[i]);
 		}
 
@@ -71,7 +71,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 		// 2
 		if(i < argc-1) {
 			args.clear();
-			safe_assert(strncmp(argv[i], "--", 2));
+			safe_assert(strncmp(argv[i], "--", 2) == 0);
 			++i;
 			for(; i < argc; ++i) {
 				args.push_back(argv[i]);
