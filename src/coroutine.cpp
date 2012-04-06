@@ -418,16 +418,14 @@ void Coroutine::OnAccess(SharedAccess* access) {
 
 /********************************************************************************/
 
-void Coroutine::FinishControlledTransition(bool holding_current_node) {
+void Coroutine::FinishControlledTransition() {
 	// remove all transition info records
 //	trinfolist_.clear();
 
 	// remove auxiliary state
 	AuxState::Reset(tid_);
 
-	if(!holding_current_node) {
-		current_node_ = NULL;
-	}
+	current_node_ = NULL;
 
 	// make it enabled
 	status_ = ENABLED;

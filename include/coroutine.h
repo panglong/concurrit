@@ -105,7 +105,7 @@ public:
 		return (status_ >= ENDED);
 	}
 
-	void FinishControlledTransition(bool holding_current_node);
+	void FinishControlledTransition();
 
 private:
 

@@ -7,8 +7,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-#define PRODUCER_SUM  1
-#define CONSUMER_SUM  1
+#define PRODUCER_SUM  3
+#define CONSUMER_SUM  3
 
 typedef struct bounded_buf_tag
 {

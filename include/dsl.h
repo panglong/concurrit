@@ -218,6 +218,27 @@ private:
 
 /********************************************************************************/
 
+class LockNode : public ExecutionTree {
+public:
+	LockNode() : ExecutionTree(NULL, 0), owner_(NULL) {}
+	~LockNode(){}
+
+	void OnLock() {
+		safe_assert(owner_ == NULL);
+		owner_ = Coroutine::Current();
+	}
+
+	void OnUnlock() {
+		safe_assert(owner_ == Coroutine::Current());
+		owner_ = NULL;
+	}
+
+private:
+	DECL_FIELD(Coroutine*, owner)
+};
+
+/********************************************************************************/
+
 class ChoiceNode : public SelectionNode {
 public:
 	ChoiceNode(ExecutionTree* parent = NULL) : SelectionNode(parent, 2) {}
@@ -484,13 +505,22 @@ static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, Selec
 	void SaveDotGraph(const char* filename);
 
 private:
-	ExecutionTree* GetRef();
-	ExecutionTree* ExchangeRef(ExecutionTree* node);
-	void SetRef(ExecutionTree* node);
+	ExecutionTree* GetRef(std::memory_order mo = memory_order_seq_cst) {
+		return static_cast<ExecutionTree*>(atomic_ref_.load(mo));
+	}
+
+	ExecutionTree* ExchangeRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
+		return static_cast<ExecutionTree*>(atomic_ref_.exchange(node, mo));
+	}
+
+	// normally end node cannot be overwritten, unless overwrite_end flag is set
+	void SetRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
+		atomic_ref_.store(node, mo);
+	}
 
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
-	DECL_FIELD_REF(ExecutionTree, lock_node)
+	DECL_FIELD_REF(LockNode, lock_node)
 	DECL_FIELD_REF(ChildLoc, current_node)
 	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
 	DECL_FIELD(unsigned, num_paths)

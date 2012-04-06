@@ -263,6 +263,9 @@ void ExecutionTreeManager::Restart() {
 
 	replay_path_.clear();
 
+	// reset semaphore value to 0
+	sem_ref_.Set(0);
+
 	// sets root as the current parent, and adds it to the path
 	current_node_ = {&root_node_, 0};
 	root_node_.PopulateLocations(current_node_, &current_nodes_);
@@ -332,11 +335,13 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 		}
 		else
 		if(mode == EXIT_ON_LOCK) {
+			lock_node_.OnLock();
 			return node; //  can be null, but cannot be lock or end node
 		}
 		else {
 			if(IS_EMPTY(node)) {
 				if(mode == EXIT_ON_EMPTY) {
+					lock_node_.OnLock();
 					// will process this
 					return NULL;
 				} else {
@@ -345,6 +350,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			}
 			else // FULL
 			if(mode == EXIT_ON_FULL) {
+				lock_node_.OnLock();
 				// will process this
 				safe_assert(node != NULL);
 				return node;
@@ -388,7 +394,8 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 /*************************************************************************************/
 
 void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_index /*= -1*/) {
-	safe_assert(IS_LOCKNODE(GetRef()) || IS_ENDNODE(GetRef()));
+	safe_assert(IS_LOCKNODE(GetRef(memory_order_relaxed)));
+	lock_node_.OnUnlock();
 
 	if(child_index >= 0) {
 		safe_assert(node != NULL);
@@ -554,21 +561,6 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 
 ExecutionTreePath* ExecutionTreeManager::ComputeCurrentPath(ExecutionTreePath* path /*= NULL*/) {
 	return ComputePath(current_node_, path);
-}
-
-/*************************************************************************************/
-
-ExecutionTree* ExecutionTreeManager::GetRef() {
-	return static_cast<ExecutionTree*>(atomic_ref_.load());
-}
-
-ExecutionTree* ExecutionTreeManager::ExchangeRef(ExecutionTree* node) {
-	return static_cast<ExecutionTree*>(atomic_ref_.exchange(node));
-}
-
-// normally end node cannot be overwritten, unless overwrite_end flag is set
-void ExecutionTreeManager::SetRef(ExecutionTree* node) {
-	atomic_ref_.store(node);
 }
 
 /*************************************************************************************/

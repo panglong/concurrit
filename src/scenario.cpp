@@ -453,7 +453,7 @@ void Scenario::RunTestCase() throw() {
 				TestCase();
 
 			} catch(std::exception* e) {
-				// EndWithSuccess may ignore some
+				// EndWithSuccess may ignore some backtracks and choose to replay
 				BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 				if(be == NULL) {
 					throw e;
@@ -1265,6 +1265,11 @@ void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
 TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode) {
 	safe_assert(current != NULL && node != NULL);
 
+	// value determining what to with the transition
+	// TPTRUE: cannot occur, we leave the decision to after the transition (TPTRUE result is interpreted as TPUNKNOWN)
+	// TPFALSE: release the node back
+	// TPUNKNOWN: keep the node and decide after the transition
+	// TPINVALID: cannot occur
 	TPVALUE tval = TPTRUE;
 
 	SingleTransitionNode* trans = ASINSTANCEOF(node, SingleTransitionNode*);
@@ -1348,6 +1353,12 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 /********************************************************************************/
 
 TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildLoc* newnode) {
+
+	// value determining what to with the transition
+	// TPTRUE: consume the transition and continue as normal
+	// TPFALSE: trigger backtrack, as the node is not satisfied by the current transition
+	// TPUNKNOWN: will keep the node, but we put it back to atomic_ref to take it later
+	// TPINVALID: cannot occur
 	TPVALUE tval = TPTRUE;
 
 	SingleTransitionNode* trans = ASINSTANCEOF(node, SingleTransitionNode*);
@@ -1427,9 +1438,9 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		ChildLoc newnode = {NULL, -1};
 
 		// value determining what to with the transition
-		// TPTRUE: consume the transition
-		// TPFALSE: release the transition
-		// TPUNKNOWN: take the transition and decide after the transition
+		// TPTRUE: cannot occur, we leave the decision to after the transition (TPTRUE result is interpreted as TPUNKNOWN)
+		// TPFALSE: release the node back
+		// TPUNKNOWN: keep the node and decide after the transition
 		// TPINVALID: cannot occur
 		TPVALUE tval =  TPTRUE;
 
@@ -1439,24 +1450,21 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			done = false;
 		}
 
+		// we always start with NULL current node
+		safe_assert(current->current_node() == NULL);
+
 		//=================================================================
 		VLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
 		// get the node
-		ExecutionTree* node = current->current_node();
-		if(node != NULL){
-			// only multi-transition nodes can live across transitions, otherwise current_node must be NULL
-			safe_assert(exec_tree_.IS_MULTITRANSNODE(node));
-		} else {
-			node = exec_tree_.AcquireRef(EXIT_ON_FULL);
+		ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_FULL);
 
-			// if end_node, exit immediatelly
-			if(exec_tree_.IS_ENDNODE(node)) {
-				VLOG(2) << "Detected end node, exiting handling code";
-				// uncontrolled mode, but the mode is set by main, so just ignore the rest
-				// no need to release node, because AcquireRef does not overwrite end nodes.
-				current->set_current_node(node); // this is to inform AfterControlledTransition for the ending
-				return;
-			}
+		// if end_node, exit immediatelly
+		if(exec_tree_.IS_ENDNODE(node)) {
+			VLOG(2) << "Detected end node, exiting handling code";
+			// uncontrolled mode, but the mode is set by main, so just ignore the rest
+			// no need to release node, because AcquireRef does not overwrite end nodes.
+			current->set_current_node(node); // this is to inform AfterControlledTransition for the ending
+			return;
 		}
 
 		safe_assert(node != NULL);
@@ -1565,9 +1573,10 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	VLOG(2) << "After controlled transition by " << current->tid();
 
 	// value determining what to with the transition
-	// TPTRUE: continue as normal
-	// TPFALSE: trigger backtrack
-	// TPUNKNOWN: continue holding the transition node (can occur only for multip-step transitions)
+	// TPTRUE: consume the transition and continue as normal
+	// TPFALSE: trigger backtrack, as the node is not satisfied by the current transition
+	// TPUNKNOWN: will keep the node, but we put it back to atomic_ref to take it later
+	// TPINVALID: cannot occur
 	TPVALUE tval =  TPTRUE;
 
 	//=================================================================
@@ -1578,7 +1587,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		// if end_node, exit immediatelly
 		if(exec_tree_.IS_ENDNODE(node)) {
 			VLOG(2) << "Detected end node, exiting handling code";
-			current->FinishControlledTransition(false);
+			current->FinishControlledTransition();
 			return;
 		}
 
@@ -1629,10 +1638,12 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 			break;
 
 		case TPUNKNOWN: // continue holding the transition node
-			VLOG(2) << "Unknown, continuing holding the transition";
+			VLOG(2) << "Unknown, with the same transition";
 			safe_assert(exec_tree_.IS_MULTITRANSNODE(node));
 			safe_assert(current->current_node() == node);
 			UpdateAlternateLocations(current, false);
+			// we release the node back (will take it later)
+			exec_tree_.ReleaseRef(node);
 			break;
 
 		default:
@@ -1645,7 +1656,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 	} // end if(node != NULL)
 
 	//=================================================================
-	current->FinishControlledTransition(tval == TPUNKNOWN); // hold current node if unknown
+	current->FinishControlledTransition();
 }
 
 /********************************************************************************/
