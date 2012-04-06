@@ -108,34 +108,31 @@ Coroutine* Scenario::CreateThread(ThreadEntryFunction function, void* arg, pthre
 
 // create a new thread or fetch the existing one, and start it.
 Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+	ScopeMutex smutex(group_.create_mutex());
+
 	CHECK(tid < 0 || tid > MAIN_TID) << "CreateThread is given invalid tid: " << tid;
 
-	Coroutine* co = group_.GetMember(tid);
+	// checks if the thread is expected next (!NULL), or if this is a new thread (NULL)
+	Coroutine* co = group_.GetNextCreatedMember(tid);
 
 	// if replaying, do nothing, but return the thread pointer
-	if(!exec_tree_.replay_path()->empty()) {
+	if(is_replaying()) {
 		safe_assert(co != NULL);
 		return co;
 	}
 
-	bool transfer_on_start = (ConcurritExecutionMode == PREEMPTIVE);
-
 	if(co == NULL) {
 		// create a new thread
 		VLOG(2) << SC_TITLE << "Creating new coroutine " << tid;
+		// create and add new thread
 		co = new Coroutine(tid, function, arg);
-		co->set_transfer_on_start(transfer_on_start);
 		group_.AddMember(co); // also sets the tid
 	} else {
 		VLOG(2) << SC_TITLE << "Re-creating and restarting coroutine " << tid;
-		if(co->status() <= PASSIVE) {
-			printf("Cannot create new thread with the tid!");
-			_Exit(UNRECOVERABLE_ERROR);
-		}
+		safe_assert(co->status() > PASSIVE);
 		// update the function and arguments
 		co->set_entry_function(function);
 		co->set_entry_arg(arg);
-		co->set_transfer_on_start(transfer_on_start);
 	}
 	safe_assert(co->tid() > MAIN_TID);
 	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
@@ -382,10 +379,13 @@ void Scenario::RunTestCase() throw() {
 	PinMonitor::Enable();
 
 	try {
-
 		BacktrackReason reason = SUCCESS;
 		do {
 			reason = SUCCESS;
+			// reset group's creation order index to 0
+			group_.set_next_idx(0);
+			CondScopeMutex(group_.create_mutex(), is_replaying());
+
 			try {
 
 				TestCase();
@@ -1601,7 +1601,7 @@ bool Scenario::DSLChoice() {
 
 	//=======================================================
 
-	if(!exec_tree_.replay_path()->empty()) {
+	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
@@ -1665,7 +1665,7 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 
 	//=======================================================
 
-	if(!exec_tree_.replay_path()->empty()) {
+	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		SingleTransitionNode* trans = ASINSTANCEOF(reploc.parent(), SingleTransitionNode*);
@@ -1728,7 +1728,7 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredica
 
 	//=======================================================
 
-	if(!exec_tree_.replay_path()->empty()) {
+	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		TransferUntilNode* truntil = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
@@ -1788,7 +1788,7 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 
 	//=======================================================
 
-	if(!exec_tree_.replay_path()->empty()) {
+	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(reploc.parent() != NULL);
 		SelectThreadNode* select = ASINSTANCEOF(reploc.parent(), SelectThreadNode*);

@@ -65,6 +65,8 @@ void CoroutineGroup::delete_main() {
 CoroutineGroup:: CoroutineGroup() {
 	scenario_ = NULL;
 	next_tid_ = 1;
+	member_tidseq_.clear();
+	next_idx_ = 0;
 }
 
 /********************************************************************************/
@@ -76,13 +78,41 @@ void CoroutineGroup::AddMember(Coroutine* member) {
 	members_[member->tid()] = member;
 	member->set_group(this);
 
+	// set thread id if not set yet
 	THREADID tid = member->tid();
 	if(tid < 0) {
 		tid = next_tid_;
 		member->set_tid(tid);
 	}
 	next_tid_ = tid + 1;
+
+	// put in the creation order
+	safe_assert(next_idx_ == member_tidseq_.size());
+	member_tidseq_.push_back(tid);
+	++next_idx_;
 }
+
+/********************************************************************************/
+
+Coroutine* CoroutineGroup::GetNextCreatedMember(THREADID tid) {
+	Coroutine* member = NULL;
+	safe_assert(BETWEEN(0, next_idx_, member_tidseq_.size()));
+	if(next_idx_ < member_tidseq_.size()) {
+		// expecting recreation
+		THREADID exp_tid = member_tidseq_[next_idx_];
+		CHECK(tid == -1 || tid == exp_tid) << "Given tid does not match the expected one!";
+		if(tid == -1) {
+			tid = exp_tid;
+		}
+		member = GetMember(tid);
+		CHECK(member != NULL && member->tid() == tid && member->status() > PASSIVE) << "Given member does not match the expected one!";
+		++next_idx_;
+	}
+	safe_assert(member == NULL || !member->IsMain()); // cannot add main in here
+	return member;
+}
+
+/********************************************************************************/
 
 void CoroutineGroup::TakeOutMember(Coroutine* member) {
 	// check if already our member
@@ -141,6 +171,8 @@ void CoroutineGroup::Restart() {
 	// restart main
 	main_->set_yield_point(NULL);
 	main_->set_group(this);
+
+	next_idx_ = 0;
 }
 
 /********************************************************************************/
@@ -149,7 +181,7 @@ Coroutine* CoroutineGroup::GetNextEnabled(CoroutinePtrSet* except_targets /*= NU
 	safe_assert(scenario_ != NULL);
 	safe_assert(NULL_OR_NONEMPTY(except_targets));
 	safe_assert(NULL_OR_NONEMPTY(only_targets));
-	CoroutinePtrSet* targets = only_targets != NULL ? only_targets : member_set();
+	CoroutinePtrSet* targets = only_targets != NULL ? only_targets : GetMemberSet();
 	for (CoroutinePtrSet::iterator itr = targets->begin() ; itr != targets->end(); ++itr) {
 		Coroutine* co = *itr;
 		StatusType status = co->status();
@@ -183,18 +215,8 @@ int CoroutineGroup::GetNumMembers() {
 
 /********************************************************************************/
 
-CoroutinePtrSet CoroutineGroup::GetMemberSet() {
-	CoroutinePtrSet members;
-	for_each_member(co) {
-		members.insert(co);
-	}
-	return members;
-}
-
-/********************************************************************************/
-
-CoroutinePtrSet* CoroutineGroup::member_set() {
-	CoroutinePtrSet* m = new CoroutinePtrSet();
+CoroutinePtrSet* CoroutineGroup::GetMemberSet(CoroutinePtrSet* set /*= NULL*/) {
+	CoroutinePtrSet* m = (set != NULL) ? set : new CoroutinePtrSet();
 	for_each_member(co) {
 		m->insert(co);
 	}
@@ -232,7 +254,7 @@ bool CoroutineGroup::HasMember(Coroutine* member) {
 	if(co == NULL) {
 		return false;
 	}
-	CHECK(co->group() == this);
+	CHECK(co->group() == this) << "The member " << co->tid() << "'s group is not this group!";
 	return true;
 }
 

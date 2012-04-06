@@ -44,7 +44,6 @@ Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* ent
 	yield_point_ = NULL;
 	vc_clear(vc_);
 	exception_ = NULL;
-	transfer_on_start_ = false;
 	current_node_ = NULL;
 //	trinfolist_.clear();
 }
@@ -185,7 +184,7 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 	//---------------
 
 	// if conc == true, then send a non-waiting transfer message to run the new coroutine concurrently
-	if(transfer_on_start_) {
+	if(ConcurritExecutionMode == PREEMPTIVE) {
 		safe_assert(status_ == WAITING);
 		channel_.SendNoWait(MSG_TRANSFER);
 	}
@@ -338,7 +337,7 @@ void Coroutine::HandleMessage(MessageType msg) {
 		safe_assert(this->IsMain());
 		std::exception* e = NULL;
 		// notify scenario about exception
-		CoroutinePtrSet* members = group_->member_set();
+		CoroutinePtrSet* members = group_->GetMemberSet();
 		for(CoroutinePtrSet::iterator itr = members->begin(); itr != members->end(); ++itr) {
 			Coroutine* co = *itr;
 			e = co->exception_;

@@ -132,6 +132,28 @@ private:
 
 	friend class ConditionVar;
 };
+
+/********************************************************************************/
+
+class ScopeMutex {
+public:
+	ScopeMutex(Mutex* mutex) : mutex_(mutex) { mutex_->Lock(); }
+	~ScopeMutex() { mutex_->Unlock(); }
+private:
+	DECL_FIELD(Mutex*, mutex)
+};
+
+/********************************************************************************/
+
+class CondScopeMutex {
+public:
+	CondScopeMutex(Mutex* mutex, const bool& cond) : mutex_(mutex), cond_(cond) { if(cond_) mutex_->Lock(); }
+	~CondScopeMutex() { if(cond_) mutex_->Unlock(); }
+private:
+	DECL_FIELD(Mutex*, mutex)
+	DECL_FIELD(bool, cond)
+};
+
 /********************************************************************************/
 
 class ConditionVar {

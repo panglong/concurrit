@@ -54,6 +54,7 @@ public:
 	~CoroutineGroup() {}
 
 	void AddMember(Coroutine* member);
+	Coroutine* GetNextCreatedMember(THREADID tid);
 
 	// these are for already added members
 	void TakeOutMember(Coroutine* member);
@@ -77,7 +78,7 @@ public:
 	Coroutine* GetNextEnabled(CoroutinePtrSet* except_targets = NULL, CoroutinePtrSet* only_targets = NULL);
 
 	CoroutinePtrSet GetEnabledSet();
-	CoroutinePtrSet GetMemberSet();
+	CoroutinePtrSet* GetMemberSet(CoroutinePtrSet* set = NULL);
 
 	int GetNumMembers();
 
@@ -100,7 +101,11 @@ private:
 	DECL_FIELD(THREADID, next_tid)
 
 	DECL_FIELD_REF(MembersMap, members)
-	CoroutinePtrSet* member_set();
+
+	DECL_FIELD_REF(std::vector<THREADID>, member_tidseq)
+	DECL_FIELD(int, next_idx)
+
+	DECL_FIELD_REF(Mutex, create_mutex)
 
 	friend class Concurrit;
 	friend class Scenario;
@@ -143,7 +148,8 @@ private:
 class WithGroup {
 public:
 	WithGroup(CoroutineGroup* group, CoroutinePtrSet set) {
-		CoroutinePtrSet others = group->GetMemberSet();
+		CoroutinePtrSet others;
+		group->GetMemberSet(&others);
 		for_each_coroutine(set, co) {
 			CoroutinePtrSet::iterator iter = others.find(co);
 			if(iter != others.end()) {

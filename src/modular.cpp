@@ -187,7 +187,8 @@ void ThreadModularScenario::TestCase() {
 	} else {
 		VLOG(2) << SC_TITLE << "Creating new member choice point";
 
-		CoroutinePtrSet members = group_.GetMemberSet();
+		CoroutinePtrSet members;
+		group_.GetMemberSet(&members);
 		// remove env thread
 		members.erase(members.find(env_co));
 		member_choice = new MemberChoicePoint(members);

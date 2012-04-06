@@ -200,6 +200,8 @@ protected:
 	virtual void Start();
 	virtual void Finish(Result* result);
 
+	inline bool is_replaying() { return !exec_tree_.replay_path()->empty(); }
+
 private:
 
 	DECL_FIELD(const char*, name)
