@@ -57,14 +57,11 @@ using namespace INSTLIB;
 /* Commandline Switches */
 /* ===================================================================== */
 
-KNOB<BOOL> KnobEarlyOut(KNOB_MODE_WRITEONCE, "pintool", "early_out", "0",
-		"Exit after tracing the first region.");
-
 KNOB<string> KnobLogFile(KNOB_MODE_WRITEONCE, "pintool", "log_file",
-		"/home/elmas/concurrit/pinlogfile.txt", "Specify log file path");
+		"~/concurrit/work/pinlogfile.txt", "Specify log file path");
 
 KNOB<string> KnobFinFile(KNOB_MODE_WRITEONCE, "pintool", "finfile",
-		"/home/elmas/concurrit/finfile.txt", "Specify names of functions to instrument");
+		"~/concurrit/work/finfile.txt", "Specify names of functions to instrument");
 
 /* ===================================================================== */
 

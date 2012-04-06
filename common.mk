@@ -24,9 +24,6 @@ CONCURRIT_INC_FLAGS=$(CONCURRIT_DEBUG_FLAGS) -I$(CONCURRIT_INCDIR) -I$(CONCURRIT
 CONCURRIT_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -L$(CONCURRIT_TPDIR)/glog/lib -L$(CONCURRIT_TPDIR)/gflags/lib -L$(CONCURRIT_TPDIR)/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21 -lpthread -lglog -lgflags -ltbb
 # -L/usr/lib/gcc/x86_64-linux-gnu/4.4
 
-# CONCURRIT_INC_FLAGS=-I$(CONCURRIT_INCDIR) -I$(CONCURRIT_TPDIR)/glog/include -I$(CONCURRIT_TPDIR)/gflags/include -I$(CONCURRIT_TPDIR)/pth/include -I$(BOOST_ROOT)
-# CONCURRIT_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) -L$(CONCURRIT_TPDIR)/glog/lib -L$(CONCURRIT_TPDIR)/gflags/lib -L$(CONCURRIT_TPDIR)/pth/lib -lpth -lpthread -lglog -lgflags 
-
 # flags to use when compiling tests with concurrit
 CONCURRIT_TEST_INC_FLAGS=$(CONCURRIT_INC_FLAGS)
 CONCURRIT_TEST_LIB_FLAGS=-L$(CONCURRIT_LIBDIR) $(CONCURRIT_LIB_FLAG) 
