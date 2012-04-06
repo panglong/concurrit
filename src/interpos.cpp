@@ -87,6 +87,7 @@ static int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *att
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
 
 	VLOG(2) << "Creating new thread via interpositioned pthread_create.";
+
 	Coroutine* co = safe_notnull(Scenario::Current())->CreatePThread(start_routine, arg, thread, attr);
 	safe_assert(co != NULL);
 
@@ -97,12 +98,10 @@ static int concurrit_pthread_join(pthread_t thread, void ** value_ptr) {
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
 
 	VLOG(2) << "Joining thread via interpositioned pthread_join.";
+
 	Coroutine* co = safe_notnull(safe_notnull(Scenario::Current())->group())->GetMember(thread);
 	safe_assert(co != NULL);
-	Scenario::Current()->JoinThread(co, value_ptr);
-	if(__pthread_errno__ == PTH_SUCCESS && value_ptr != NULL) {
-		*value_ptr = co->return_value();
-	}
+	Scenario::Current()->JoinPThread(co, value_ptr);
 
 	return __pthread_errno__;
 }

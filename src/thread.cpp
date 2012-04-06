@@ -402,15 +402,13 @@ int ConditionVar::Broadcast() {
 /********************************************************************************/
 
 Semaphore::Semaphore() {
-	__pthread_errno__ = sem_init(&sem_, 0, 0);
-	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	Init(0);
 }
 
 /********************************************************************************/
 
 Semaphore::Semaphore(int count) {
-	__pthread_errno__ = sem_init(&sem_, 0, count);
-	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	Init(count);
 }
 
 /********************************************************************************/
@@ -422,6 +420,38 @@ Semaphore::Semaphore(sem_t* s) {
 /********************************************************************************/
 
 Semaphore::~Semaphore() {
+	Destroy();
+}
+
+/********************************************************************************/
+
+int Semaphore::Get() {
+	int count;
+	int result = sem_getvalue(&sem_, &count);
+	safe_assert(result == PTH_SUCCESS);
+	return count;
+}
+
+/********************************************************************************/
+
+void Semaphore::Set(int count) {
+	if(Get() != count) {
+		Destroy();
+		Init(count);
+	}
+}
+
+/********************************************************************************/
+
+void Semaphore::Init(int count) {
+	__pthread_errno__ = sem_init(&sem_, 0, count);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+}
+
+
+/********************************************************************************/
+
+void Semaphore::Destroy() {
 	__pthread_errno__ = sem_destroy(&sem_);
 	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 }

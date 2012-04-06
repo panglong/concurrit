@@ -114,6 +114,7 @@ public:
 	Coroutine* CreatePThread(ThreadEntryFunction function, void* arg = NULL, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 
 	void JoinThread(Coroutine* co, void ** value_ptr = NULL);
+	void JoinPThread(Coroutine* co, void ** value_ptr = NULL);
 	void JoinAllThreads();
 
 	/* returns the same scenario for concatenating calls */

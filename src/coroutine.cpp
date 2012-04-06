@@ -126,10 +126,14 @@ void Coroutine::Finish() {
 
 void Coroutine::WaitForEnd() {
 	safe_assert(BETWEEN(ENABLED, status_, ENDED));
- 	VLOG(2) << "Waiting for coroutine " << tid_ << " to end.";
- 	// wait for the semaphore twice
-	sem_end_.Wait();
-	sem_end_.Wait(); // Wait(1000000); // wait for 1 sec
+	VLOG(2) << "Waiting for coroutine " << tid_ << " to end.";
+
+	// wait for the semaphore twice
+	sem_end_.Wait(2);
+
+	// then give back both signals
+ 	sem_end_.Signal(2);
+
 	VLOG(2) << "Detected coroutine " << tid_ << " has ended.";
 	safe_assert(status_ == ENDED);
 //	while(status_ != WAITING && status_ != ENDED) {
@@ -175,6 +179,7 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 	VLOG(2) << CO_TITLE << "Got start signal from the thread";
 
 	// first signal
+	sem_end_.Set(0);
 	sem_end_.Signal();
 
 	CHANNEL_END_ATOMIC();
@@ -243,11 +248,11 @@ void* Coroutine::Run() {
 				scenario->OnControlledTransition(this);
 			}
 
-			VLOG(2) << CO_TITLE << " is ending...";
-			status_ = ENDED;
-
 			//---------------
 			CHANNEL_BEGIN_ATOMIC();
+
+			VLOG(2) << CO_TITLE << " is ending...";
+			status_ = ENDED;
 
 			// second signal
 			sem_end_.Signal();

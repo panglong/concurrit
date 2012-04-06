@@ -190,8 +190,29 @@ Coroutine* Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*= N
 
 void Scenario::JoinThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 	safe_assert(co != NULL);
+	if(is_replaying()) {
+		__pthread_errno__ = PTH_SUCCESS;
+
+		if(value_ptr != NULL) {
+			*value_ptr = co->return_value();
+		}
+		return;
+	}
+	// call this only when not replaying
+	JoinPThread(co, value_ptr);
+}
+
+
+void Scenario::JoinPThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
+	safe_assert(co != NULL);
 	co->WaitForEnd();
 	safe_assert(co->is_ended());
+
+	__pthread_errno__ = PTH_SUCCESS;
+
+	if(value_ptr != NULL) {
+		*value_ptr = co->return_value();
+	}
 }
 
 /********************************************************************************/

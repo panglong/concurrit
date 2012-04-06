@@ -179,9 +179,18 @@ public:
 	explicit Semaphore(sem_t* s);
 	virtual ~Semaphore();
 
+	virtual int Get();
+	virtual void Set(int count);
+
+	void Init(int count);
+	void Destroy();
+
 	virtual void Wait();
+	virtual void Wait(int c) { for(; 0 < c; --c) Wait(); }
 	virtual void Down() { this->Wait(); }
+	virtual void Down(int c) { this->Wait(c); }
 	virtual void P() { this->Wait(); }
+	virtual void P(int c) { this->Wait(c); }
 
 #ifdef LINUX
 	virtual int WaitTimed(long timeout);
@@ -190,8 +199,11 @@ public:
 #endif
 
 	virtual void Signal();
+	virtual void Signal(int c) { for(; 0 < c; --c) Signal(); }
 	virtual void Up() { this->Signal(); }
+	virtual void Up(int c) { this->Signal(c); }
 	virtual void V() { this->Signal(); }
+	virtual void V(int c) { this->Signal(c); }
 
 private:
 	DECL_FIELD(sem_t, sem)
