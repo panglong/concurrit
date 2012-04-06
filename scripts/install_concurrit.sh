@@ -19,6 +19,9 @@ $CONCURRIT_HOME/scripts/install_pth.sh
 # install tbb
 $CONCURRIT_HOME/scripts/install_tbb.sh
 
+# install boost
+$CONCURRIT_HOME/scripts/install_boost.sh
+
 # compile core library
 cd $CONCURRIT_HOME
 make clean

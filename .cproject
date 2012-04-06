@@ -46,20 +46,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.so.debug.627090235" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.so.debug">
 								<option id="gnu.cpp.compiler.macosx.so.debug.option.optimization.level.1290727034" name="Optimization Level" superClass="gnu.cpp.compiler.macosx.so.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.macosx.so.debug.option.debugging.level.1695392692" name="Debug Level" superClass="gnu.cpp.compiler.macosx.so.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.include.paths.1881971147" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/concurrit/glog/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/concurrit/gflags/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/concurrit/pth/include}&quot;"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/ParLab/Benchmarks/C-CPP/CDS/cds-1.0.0"/>
-									<listOptionValue builtIn="false" value="/Users/telmas/Repository/Research/ParLab/Boost/boost_1_48_0"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/source/include"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/tbb40_20120201oss/include"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/source/tools/InstLib"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/source/include/gen"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/third_party/pin-2.10-45467-gcc.3.4.6-ia32_intel64-linux/source/tools/threadlib"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/ParLab/Boost/boost_1_48_0"/>
-									<listOptionValue builtIn="false" value="/Users/elmas/Repository/Research/ParLab/Boost/boost_1_48_0/boost/smart_ptr"/>
-								</option>
+								<option id="gnu.cpp.compiler.option.include.paths.1881971147" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1220291851" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.so.debug.1015801546" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.so.debug">
@@ -148,4 +135,8 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
+	<storageModule moduleId="refreshScope" versionNumber="1">
+		<resource resourceType="PROJECT" workspacePath="/concurrit"/>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
