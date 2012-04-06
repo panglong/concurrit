@@ -216,6 +216,8 @@ void* Coroutine::Run() {
 
 			VLOG(2) << CO_TITLE << "First transfer";
 
+			ThreadRestart(); // notifies pintool about the restart
+
 			try {
 				// run the actual function
 				return_value = call_function();

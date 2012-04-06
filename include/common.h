@@ -108,6 +108,7 @@ public:
 
 extern "C" void EnablePinTool();
 extern "C" void DisablePinTool();
+extern "C" void ThreadRestart();
 
 /********************************************************************************/
 
@@ -296,10 +297,10 @@ const long MaxWaitTimeUSecs = 999999L;
 class Config {
 public:
 	static bool OnlyShowHelp;
-	static bool CanEnableDisablePinTool;
+//	static bool CanEnableDisablePinTool;
 	static int ExitOnFirstExecution;
 	static char* SaveDotGraphToFile;
-	static bool RunUncontrolled;
+//	static bool RunUncontrolled;
 	static void ParseCommandLine(int argc = -1, char **argv = NULL);
 };
 

@@ -47,9 +47,9 @@ void PinMonitor::Init() {
 	for(int i = 0; i < MAX_THREADS; ++i) {
 		tid_to_coroutine_[i] = NULL;
 	}
-	if(!Config::RunUncontrolled) {
+//	if(!Config::RunUncontrolled) {
 		Enable();
-	}
+//	}
 }
 
 Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
@@ -88,22 +88,22 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 /******************************************************************************************/
 
 void PinMonitor::Enable() {
-	if(!Config::RunUncontrolled) {
-		if(Config::CanEnableDisablePinTool) {
-			printf(">>> Enabling Pin instrumentation\n");
+//	if(!Config::RunUncontrolled) {
+//		if(Config::CanEnableDisablePinTool) {
+			VLOG(2) << ">>> Enabling Pin instrumentation.";
 			EnablePinTool();
-		}
+//		}
 		enabled_ = true;
-	}
+//	}
 }
 void PinMonitor::Disable() {
-	if(!Config::RunUncontrolled) {
-		if(Config::CanEnableDisablePinTool) {
-			printf(">>> Disabling Pin instrumentation\n");
+//	if(!Config::RunUncontrolled) {
+//		if(Config::CanEnableDisablePinTool) {
+			VLOG(2) << ">>> Disabling Pin instrumentation.";
 			DisablePinTool();
-		}
+//		}
 		enabled_ = false;
-	}
+//	}
 }
 
 /******************************************************************************************/
@@ -231,6 +231,7 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 
 void EnablePinTool() { VLOG(2) << "Enabling pin instrumentation"; }
 void DisablePinTool() { VLOG(2) << "Disabling pin instrumentation"; }
+void ThreadRestart() { VLOG(2) << "Restarting thread."; }
 
 /********************************************************************************/
 

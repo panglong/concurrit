@@ -34,6 +34,8 @@
 #include "pin.H"
 #include "instlib.H"
 #include "portability.H"
+#include <cstdlib>
+#include <cstdio>
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -57,6 +59,12 @@ using namespace INSTLIB;
 
 KNOB<BOOL> KnobEarlyOut(KNOB_MODE_WRITEONCE, "pintool", "early_out", "0",
 		"Exit after tracing the first region.");
+
+KNOB<string> KnobLogFile(KNOB_MODE_WRITEONCE, "pintool", "log_file",
+		"/home/elmas/concurrit/pinlogfile.txt", "Specify log file path");
+
+KNOB<string> KnobFinFile(KNOB_MODE_WRITEONCE, "pintool", "finfile",
+		"/home/elmas/concurrit/finfile.txt", "Specify names of functions to instrument");
 
 /* ===================================================================== */
 
@@ -87,6 +95,169 @@ LOCALVAR PIN_LOCK lock;
 #define GLB_LOCK_INIT()		InitLock(&lock)
 #define GLB_LOCK()			GetLock(&lock, 1)
 #define GLB_UNLOCK()		ReleaseLock(&lock)
+
+/* ===================================================================== */
+
+static const char* NativePinEnableFunName = "EnablePinTool";
+static const char* NativePinDisableFunName = "DisablePinTool";
+static const char* NativeThreadRestartFunName = "ThreadRestart";
+
+const UINT32 ENABLED  = 1;
+const UINT32 DISABLED = 0;
+
+VOID PIN_FAST_ANALYSIS_CALL
+PinEnableDisable(UINT32 command);
+
+/* ===================================================================== */
+
+static ADDRINT rtn_plt_addr = 0;
+
+/* ===================================================================== */
+
+class ThreadLocalState {
+public:
+	ThreadLocalState(THREADID tid) {
+		log_file << "Creating thread local state for tid " << tid_ << endl;
+
+		safe_assert(PIN_IsApplicationThread());
+		safe_assert(tid != INVALID_THREADID);
+		safe_assert(tid == PIN_ThreadId());
+
+		tid_ = tid;
+	}
+
+	~ThreadLocalState() {
+		log_file << "Deleting thread local state for tid " << tid_ << endl;
+	}
+
+private:
+	DECL_FIELD(THREADID, tid)
+	DECL_FIELD_REF(std::vector<ADDRINT>, call_stack)
+};
+
+/* ===================================================================== */
+
+LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
+
+class InstParams {
+private:
+	InstParams() {}
+	~InstParams() {}
+public:
+	static void ParseFile(const char* filename) {
+		safe_assert(filename != NULL);
+		FILE* fin = fopen(filename, "r");
+		if (fin != NULL) {
+			char buff[256];
+			while(!feof(fin)) {
+				if(fgets(buff, 256, fin) == NULL) {
+					break;
+				} else {
+					size_t sz = strnlen(buff, 256);
+					if(buff[sz-1] == '\n') {
+						buff[sz-1] = '\0';
+					}
+					log_file << "Adding routine to instrument: " << buff << std::endl;
+					RTNNamesToInstrument.insert(buff);
+				}
+			}
+			fclose(fin);
+		} else {
+			log_file << "Could not open the file " << filename << ", so no instrumentation!" << std::endl;
+			PinEnableDisable(DISABLED);
+		}
+	}
+
+	static inline void CheckAndRecordRoutine(const RTN& rtn) {
+		const std::string& name = RTN_Name(rtn);
+		if(RTNNamesToInstrument.find(name) != RTNNamesToInstrument.end()) {
+			// found
+			ADDRINT addr = RTN_Address(rtn);
+			RTNIdsToInstrument.insert(addr);
+			log_file << "Detected routine to instrument: " << name << std::endl;
+		}
+	}
+
+	static inline bool OnFuncEnter(const THREADID& threadid, const ADDRINT& rtn_addr) {
+		if(pin_status != ENABLED) return false;
+
+		safe_assert(rtn_addr != rtn_plt_addr);
+
+		// check callstack of current thread
+		ThreadLocalState* tls = GetThreadLocalState(threadid);
+		safe_assert(tls != NULL && tls->tid() == threadid);
+		std::vector<ADDRINT>* call_stack = tls->call_stack();
+		if(!call_stack->empty()
+				|| (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end())) {
+			call_stack->push_back(rtn_addr);
+			return true;
+		}
+		return false;
+	}
+
+	static inline bool OnFuncReturn(const THREADID& threadid, const ADDRINT& rtn_addr) {
+		if(pin_status != ENABLED) return false;
+
+		safe_assert(rtn_plt_addr != 0);
+		if(rtn_addr == rtn_plt_addr) return false;
+
+		// check callstack of current thread
+		ThreadLocalState* tls = GetThreadLocalState(threadid);
+		safe_assert(tls != NULL && tls->tid() == threadid);
+		std::vector<ADDRINT>* call_stack = tls->call_stack();
+		if(!call_stack->empty()) {
+			ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
+			safe_assert(rtn_addr == last_addr);
+			return true;
+		}
+		safe_assert(RTNIdsToInstrument.empty() || RTNIdsToInstrument.find(rtn_addr) == RTNIdsToInstrument.end());
+		return false;
+	}
+
+	static inline bool OnInstruction(const THREADID& threadid) {
+		if(pin_status != ENABLED) return false;
+
+		// check callstack of current thread
+		ThreadLocalState* tls = GetThreadLocalState(threadid);
+		safe_assert(tls != NULL && tls->tid() == threadid);
+		return (!tls->call_stack()->empty());
+	}
+
+	static inline void OnThreadRestart(const THREADID& threadid) {
+		// check callstack of current thread
+		ThreadLocalState* tls = GetThreadLocalState(threadid);
+		safe_assert(tls != NULL && tls->tid() == threadid);
+		tls->call_stack()->clear();
+	}
+
+	static std::set< std::string > 	RTNNamesToInstrument;
+	static std::set< ADDRINT > 		RTNIdsToInstrument;
+	static volatile UINT32 			pin_status;
+};
+
+std::set< std::string > InstParams::RTNNamesToInstrument;
+std::set< ADDRINT > 	InstParams::RTNIdsToInstrument;
+volatile UINT32 		InstParams::pin_status = ENABLED;
+
+/* ===================================================================== */
+
+VOID PIN_FAST_ANALYSIS_CALL
+PinEnableDisable(UINT32 command) {
+	if(InstParams::pin_status == command) {
+		return;
+	}
+
+	do {
+		InstParams::pin_status = command;
+	} while(FALSE);
+
+//	PIN_RemoveInstrumentation();
+}
+
+VOID PIN_FAST_ANALYSIS_CALL
+ThreadRestart(THREADID threadid) {
+	InstParams::OnThreadRestart(threadid);
+}
 
 /* ===================================================================== */
 
@@ -133,13 +304,13 @@ public:
 		AddrToLocMap::accessor acc;
 		if(addrToLoc_.find(acc, address)) {
 			loc = acc->second;
-			ASSERTX(loc != NULL);
+			safe_assert(loc != NULL);
 		} else {
 			loc = new PinSourceLocation(rtn, address);
 			addrToLoc_.insert(acc, address);
 			acc->second = loc;
 		}
-		ASSERTX(loc != NULL);
+		safe_assert(loc != NULL);
 		return loc;
 	}
 
@@ -181,6 +352,11 @@ VOID // PIN_FAST_ANALYSIS_CALL
 FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		ADDRINT target, ADDRINT arg0, ADDRINT arg1) {
 
+	if(!InstParams::OnInstruction(threadid)) {
+		return;
+	}
+	//===============================================================
+
 	PinSourceLocation* loc_target = PinSourceLocation::get(target);
 
 	concurrit::PinMonitorCallInfo info;
@@ -202,6 +378,14 @@ VOID // PIN_FAST_ANALYSIS_CALL
 FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 		ADDRINT arg0, ADDRINT arg1) {
 
+	log_file << threadid << " entering " << loc->funcname() << std::endl;
+
+	if(!InstParams::OnFuncEnter(threadid, PTR2ADDRINT(loc->pointer()))) {
+		return;
+	}
+
+	//=======================================
+
 	concurrit::PinMonitorCallInfo info;
 	info.type = concurrit::FuncEnter;
 	info.threadid = threadid;
@@ -213,7 +397,15 @@ FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 }
 
 VOID // PIN_FAST_ANALYSIS_CALL
-FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDRINT ret0) {
+FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDRINT ret0, ADDRINT rtn_addr) {
+
+	log_file << threadid << " returning " << loc->funcname() << std::endl;
+
+	if(!InstParams::OnFuncReturn(threadid, rtn_addr)) {
+		return;
+	}
+
+	//=======================================
 
 	concurrit::PinMonitorCallInfo info;
 	info.type = concurrit::FuncReturn;
@@ -245,6 +437,11 @@ INLINE VOID CaptureAddrSize(THREADID threadid, VOID * addr, UINT32 size) {
 VOID // PIN_FAST_ANALYSIS_CALL
 MemAccessBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 
+	if(!InstParams::OnInstruction(threadid)) {
+		return;
+	}
+	//===============================================================
+
 //	CaptureAddrSize(threadid, addr, size);
 
 	concurrit::PinMonitorCallInfo info;
@@ -259,6 +456,11 @@ MemAccessBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc)
 
 VOID // PIN_FAST_ANALYSIS_CALL
 MemAccessAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
+
+	if(!InstParams::OnInstruction(threadid)) {
+		return;
+	}
+	//===============================================================
 
 //	VOID * addr = AddrSizePairs[threadid].addr;
 //	UINT32 size = AddrSizePairs[threadid].size;
@@ -277,6 +479,11 @@ MemAccessAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) 
 VOID // PIN_FAST_ANALYSIS_CALL
 MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSourceLocation* loc) {
 
+	if(!InstParams::OnInstruction(threadid)) {
+		return;
+	}
+	//===============================================================
+
 	CaptureAddrSize(threadid, addr, size);
 
 	concurrit::PinMonitorCallInfo info;
@@ -293,6 +500,11 @@ MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinS
 VOID // PIN_FAST_ANALYSIS_CALL
 MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSourceLocation* loc) {
 
+	if(!InstParams::OnInstruction(threadid)) {
+		return;
+	}
+	//===============================================================
+
 	CaptureAddrSize(threadid, addr, size);
 
 	concurrit::PinMonitorCallInfo info;
@@ -304,28 +516,6 @@ MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSo
 
 	CallNativePinMonitor(ctxt, threadid, &info);
 	// monitor->MemReadBefore(threadid, addr, size, loc);
-}
-
-/* ===================================================================== */
-static const char* NativePinEnableFunName = "EnablePinTool";
-static const char* NativePinDisableFunName = "DisablePinTool";
-
-const UINT32 ENABLED  = 1;
-const UINT32 DISABLED = 0;
-
-LOCALVAR volatile UINT32 pin_status = ENABLED;
-
-VOID PIN_FAST_ANALYSIS_CALL
-PinEnableDisable(const CONTEXT * ctxt, UINT32 command) {
-	if(pin_status == command) {
-		return;
-	}
-
-	do {
-		pin_status = command;
-	} while(FALSE);
-
-	PIN_RemoveInstrumentation();
 }
 
 /* ===================================================================== */
@@ -369,7 +559,7 @@ LOCALFUN void InitFilteredImages() {
 LOCALVAR volatile bool is_concurrit_loaded = false;
 
 LOCALFUN VOID OnLoadConcurrit(IMG img) {
-	ASSERTX(!is_concurrit_loaded);
+	safe_assert(!is_concurrit_loaded);
 
 	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
 	{
@@ -385,7 +575,6 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_Open(rtn);
 
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), IARG_FAST_ANALYSIS_CALL,
-						   IARG_CONTEXT,
 						   IARG_UINT32, ENABLED, IARG_END);
 
 				RTN_Close(rtn);
@@ -395,16 +584,25 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_Open(rtn);
 
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), IARG_FAST_ANALYSIS_CALL,
-						   IARG_CONTEXT,
 						   IARG_UINT32, DISABLED, IARG_END);
 
 				RTN_Close(rtn);
 
 				log_file << "Detected callback " << NativePinDisableFunName << endl;
+
+			} else if(RTN_Name(rtn) == NativeThreadRestartFunName) {
+				RTN_Open(rtn);
+
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(ThreadRestart), IARG_FAST_ANALYSIS_CALL,
+						IARG_THREAD_ID, IARG_END);
+
+				RTN_Close(rtn);
+
+				log_file << "Detected callback " << NativeThreadRestartFunName << endl;
 			}
 		}
 	}
-	ASSERTX(NativePinMonitorFunPtr != NULL);
+	safe_assert(NativePinMonitorFunPtr != NULL);
 
 	is_concurrit_loaded = true;
 }
@@ -466,7 +664,7 @@ INLINE LOCALFUN BOOL IsTraceFiltered(TRACE trace) {
 
 VOID Routine(RTN rtn, VOID *v)
 {
-	if(pin_status == DISABLED) return;
+//	if(pin_status == DISABLED) return;
 
 	// filter out standard libraries
 	// we treat this while loading, since Routine can be called before ImageLoad is called
@@ -475,6 +673,15 @@ VOID Routine(RTN rtn, VOID *v)
 	}
 
 	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
+
+	// check plt routine
+	if(RTN_Name(rtn) == ".plt") {
+		rtn_plt_addr = RTN_Address(rtn);
+		return;
+	}
+
+	// if this is a routine to forward to concurrit, then record its address
+	InstParams::CheckAndRecordRoutine(rtn);
 
 	RTN_Open(rtn);
 
@@ -569,7 +776,7 @@ VOID CallTrace(TRACE trace, INS ins) {
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), // IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
-				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
+				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_ADDRINT, RTN_Address(rtn), IARG_END);
 	}
 }
 
@@ -634,7 +841,8 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 /* ===================================================================== */
 
 VOID Trace(TRACE trace, VOID *v) {
-	if(pin_status == DISABLED) return;
+
+//	if(pin_status == DISABLED) return;
 
 	if (!filter.SelectTrace(trace))
 		return;
@@ -709,40 +917,18 @@ LOCALFUN void OnSig(THREADID threadIndex, CONTEXT_CHANGE_REASON reason,
 
 /* ===================================================================== */
 
-class ThreadLocalState {
-public:
-	ThreadLocalState(THREADID tid) {
-		log_file << "Creating thread local state for tid " << tid_ << endl;
-
-		ASSERTX(PIN_IsApplicationThread());
-		ASSERTX(tid != INVALID_THREADID);
-		ASSERTX(tid == PIN_ThreadId());
-
-		tid_ = tid;
-	}
-
-	~ThreadLocalState() {
-		log_file << "Deleting thread local state for tid " << tid_ << endl;
-	}
-
-private:
-	DECL_FIELD(THREADID, tid)
-};
-
-/* ===================================================================== */
-
 LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid) {
-	ASSERTX(tid == PIN_ThreadId());
+	safe_assert(tid == PIN_ThreadId());
 	VOID* ptr = PIN_GetThreadData(tls_key, tid);
-	ASSERTX(ptr != NULL);
+	safe_assert(ptr != NULL);
 	ThreadLocalState* tls = static_cast<ThreadLocalState*>(ptr);
-	ASSERTX(tls->tid() == tid);
+	safe_assert(tls->tid() == tid);
 	return tls;
 }
 
 LOCALFUN VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags,
 		VOID *v) {
-	ASSERTX(threadid == PIN_ThreadId());
+	safe_assert(threadid == PIN_ThreadId());
 	log_file << "Thread "<< threadid << " starting..." << endl;
 
 	GLB_LOCK();
@@ -753,7 +939,7 @@ LOCALFUN VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags,
 // This routine is executed every time a thread is destroyed.
 LOCALFUN VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code,
 		VOID *v) {
-	ASSERTX(threadid == PIN_ThreadId());
+	safe_assert(threadid == PIN_ThreadId());
 
 	log_file << "Thread "<< threadid << " ending..." << endl;
 }
@@ -767,6 +953,19 @@ LOCALFUN VOID ThreadLocalDestruct(VOID* ptr) {
 
 /* ===================================================================== */
 
+std::vector<std::string> TokenizeStringToVector(char* str, const char* tokens) {
+	std::vector<std::string> strlist;
+	char * pch;
+	pch = strtok (str, tokens);
+	while (pch != NULL)
+	{
+		strlist.push_back(std::string(pch));
+		pch = strtok (NULL, tokens);
+	}
+	return strlist;
+}
+
+
 int main(int argc, CHAR *argv[]) {
 	PIN_InitSymbols();
 
@@ -774,10 +973,13 @@ int main(int argc, CHAR *argv[]) {
 		return Usage();
 	}
 
+	// read function names to instrument
+	InstParams::ParseFile(KnobFinFile.Value().c_str());
+
 //	control.CheckKnobs(Handler, 0);
 	skipper.CheckKnobs(0);
 
-	log_file.open("instrumenter.log");
+	log_file.open(KnobLogFile.Value().c_str());
 
 	InitFilteredImages();
 

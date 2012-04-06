@@ -37,10 +37,10 @@ namespace concurrit {
 
 // set to default values
 bool Config::OnlyShowHelp = false;
-bool Config::CanEnableDisablePinTool = false;
+//bool Config::CanEnableDisablePinTool = true;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
 char* Config::SaveDotGraphToFile = NULL;
-bool Config::RunUncontrolled = false;
+//bool Config::RunUncontrolled = false;
 
 /********************************************************************************/
 
@@ -57,15 +57,15 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "hef::d::u")) != -1) {
+	while ((c = getopt(argc, argv, "hf::d::")) != -1) {
 		switch(c) {
 		case 'h':
 			Config::OnlyShowHelp = true;
 			usage();
 			break;
-		case 'e':
-			Config::CanEnableDisablePinTool = true;
-			break;
+//		case 'e':
+//			Config::CanEnableDisablePinTool = true;
+//			break;
 		case 'f':
 			Config::ExitOnFirstExecution = (optarg == NULL) ? 1 : atoi(optarg);
 			safe_assert(Config::ExitOnFirstExecution >= 1);
@@ -79,9 +79,9 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
 			break;
-		case 'u':
-			Config::RunUncontrolled = true;
-			break;
+//		case 'u':
+//			Config::RunUncontrolled = true;
+//			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");
 			break;

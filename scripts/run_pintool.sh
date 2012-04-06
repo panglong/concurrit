@@ -3,7 +3,7 @@
 PWD=`pwd`
 
 PIN_ARGS=" -mt 1 -inline -slow_asserts -follow_execv -separate_memory"
-PINTOOL_ARGS="-skip_int3"
+PINTOOL_ARGS="-skip_int3 -finfile $CONCURRIT_HOME/finfile.txt -log_file $CONCURRIT_HOME/pinlogfile.txt"
 # -filter_rtn <name>
 # -filter_no_shared_libs
 
