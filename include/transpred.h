@@ -329,7 +329,7 @@ public:
 	}
 
 	virtual void set(const T& value, THREADID t = -1) {
-		typename M::accessor acc;
+		typename M::const_accessor acc;
 		map_.insert(acc, t);
 		acc->second = value;
 	}
@@ -471,7 +471,7 @@ public:
 			map_.insert(acc, t);
 			acc->second = MM();
 		}
-		typename MM::accessor acc2;
+		typename MM::const_accessor acc2;
 		acc->second.insert(acc2, key);
 		acc2->second = value;
 	}
@@ -480,13 +480,10 @@ public:
 		set(key, undef_value_, t);
 	}
 
-	bool isset(const K& key = undef_key_, THREADID t = -1) {
+	bool isset(const K& key, THREADID t = -1) {
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
 			return false;
-		}
-		if(key == undef_key_) {
-			return !acc->second.empty();
 		}
 		typename MM::const_accessor acc2;
 		return acc->second.find(acc2, key);
@@ -501,7 +498,10 @@ public:
 	}
 
 	void reset(THREADID t = -1) {
-		map_.erase(t); // delete map of t
+		typename M::const_accessor acc;
+		if(map_.find(acc, t)) {
+			acc->second.clear();
+		}
 	}
 
 	void clear() {
