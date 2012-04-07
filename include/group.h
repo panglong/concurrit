@@ -54,7 +54,8 @@ public:
 	~CoroutineGroup() {}
 
 	void AddMember(Coroutine* member);
-	Coroutine* GetNextCreatedMember(THREADID tid);
+	Coroutine* GetNextCreatedMember(THREADID tid = -1);
+	Coroutine* GetNthCreatedMember(int i, THREADID tid = -1);
 
 	// these are for already added members
 	void TakeOutMember(Coroutine* member);

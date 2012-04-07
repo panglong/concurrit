@@ -7,6 +7,9 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+#define PRODUCER_SUM  1
+#define CONSUMER_SUM  1
+
 typedef struct bounded_buf_tag
 {
   int valid;
@@ -62,3 +65,4 @@ void * producer_routine(void *arg);
 
 void * consumer_routine(void * arg);
 
+extern "C" int __main__(int argc, char ** argv);

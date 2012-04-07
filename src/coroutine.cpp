@@ -168,9 +168,6 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 		Thread::Start(pid, attr);
 	}
 
-	// check if this is the main (for now only main can start coroutines)
-	safe_assert(Coroutine::Current() == group_->main());
-
 	// wait for started message
 	VLOG(2) << CO_TITLE << "Waiting the thread to start";
 	MessageType msg = channel_.WaitReceive();

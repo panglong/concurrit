@@ -288,3 +288,36 @@ void * consumer_routine(void * arg)
   return NULL;
 }
 
+int __main__(int argc, char ** argv)
+{
+  thread_t producers[PRODUCER_SUM];
+  thread_t consumers[CONSUMER_SUM];
+  int i;
+
+  bounded_buf_t buffer;
+  bounded_buf_init(&buffer, 3);
+
+  for (i = 0; i < PRODUCER_SUM; i++)
+  {
+    producers[i].id =  i;
+    producers[i].bbuf = &buffer;
+    pthread_create(&producers[i].pid, NULL, producer_routine,  (void*)&producers[i]);
+  }
+
+  for (i = 0; i < CONSUMER_SUM; i++)
+  {
+    consumers[i].id =  i;
+    consumers[i].bbuf = &buffer;
+    pthread_create(&consumers[i].pid, NULL, consumer_routine,  (void*)&consumers[i]);
+  }
+
+
+  for (i = 0; i < PRODUCER_SUM; i++)
+    pthread_join(producers[i].pid, NULL);
+
+  for (i = 0; i < CONSUMER_SUM; i++)
+    pthread_join(consumers[i].pid, NULL);
+
+  bounded_buf_destroy(&buffer);
+  return 0;
+}

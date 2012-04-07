@@ -75,8 +75,6 @@ void CoroutineGroup::AddMember(Coroutine* member) {
 	// check if not our member
 	CHECK(!HasMember(member));
 	safe_assert(!member->IsMain()); // cannot add main in here
-	members_[member->tid()] = member;
-	member->set_group(this);
 
 	// set thread id if not set yet
 	THREADID tid = member->tid();
@@ -86,6 +84,10 @@ void CoroutineGroup::AddMember(Coroutine* member) {
 	}
 	next_tid_ = tid + 1;
 
+	// once determined the tid, then insert it as new member
+	members_[tid] = member;
+	member->set_group(this);
+
 	// put in the creation order
 	safe_assert(next_idx_ == member_tidseq_.size());
 	member_tidseq_.push_back(tid);
@@ -94,21 +96,35 @@ void CoroutineGroup::AddMember(Coroutine* member) {
 
 /********************************************************************************/
 
-Coroutine* CoroutineGroup::GetNextCreatedMember(THREADID tid) {
+Coroutine* CoroutineGroup::GetNextCreatedMember(THREADID tid /*= -1*/) {
 	Coroutine* member = NULL;
 	safe_assert(BETWEEN(0, next_idx_, member_tidseq_.size()));
 	if(next_idx_ < member_tidseq_.size()) {
 		// expecting recreation
-		THREADID exp_tid = member_tidseq_[next_idx_];
-		CHECK(tid == -1 || tid == exp_tid) << "Given tid does not match the expected one!";
-		if(tid == -1) {
-			tid = exp_tid;
-		}
-		member = GetMember(tid);
-		CHECK(member != NULL && member->tid() == tid && member->status() > PASSIVE) << "Given member does not match the expected one!";
+		member = GetNthCreatedMember(next_idx_);
 		++next_idx_;
+	} else {
+		safe_assert(next_idx_ == member_tidseq_.size());
 	}
 	safe_assert(member == NULL || !member->IsMain()); // cannot add main in here
+	return member;
+}
+
+/********************************************************************************/
+
+Coroutine* CoroutineGroup::GetNthCreatedMember(int i, THREADID tid /*= -1*/) {
+	// this does not change next_idx_
+	safe_assert(BETWEEN2(0, i, next_idx_, member_tidseq_.size()));
+	if(i >= member_tidseq_.size()) {
+		return NULL;
+	}
+	THREADID exp_tid = member_tidseq_[i];
+	CHECK(tid == -1 || tid == exp_tid) << "Given tid does not match the expected one!";
+	if(tid == -1) {
+		tid = exp_tid;
+	}
+	Coroutine* member = GetMember(tid);
+	CHECK(member != NULL && member->tid() == tid && member->status() > PASSIVE) << "Given member does not match the expected one!";
 	return member;
 }
 

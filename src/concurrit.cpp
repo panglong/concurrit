@@ -40,16 +40,57 @@ namespace concurrit {
 const char* CONCURRIT_HOME = NULL;
 
 volatile bool Concurrit::initialized_ = false;
+main_args Concurrit::driver_args_;
+MainFuncType Concurrit::driver_main_;
 
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
 
 	printf("Initializing Concurrit\n");
 
-	Config::ParseCommandLine(argc, argv);
-	if(Config::OnlyShowHelp) {
-		_Exit(EXIT_SUCCESS);
+	//==========================================
+	// separate arguments into two: 1 -- 2
+
+	Concurrit::driver_args_ = {0, NULL};
+	if(argc > 0) {
+		std::vector<char*> args;
+		int i = 0;
+		// 1
+		for(; i < argc; ++i) {
+			if(strncmp(argv[i], "--", 2)) break;
+			args.push_back(argv[i]);
+		}
+
+		main_args m = ArgVectorToMainArgs(args);
+
+		Config::ParseCommandLine(m.argc_, m.argv_);
+		if(Config::OnlyShowHelp) {
+			_Exit(EXIT_SUCCESS);
+		}
+
+		// 2
+		if(i < argc-1) {
+			args.clear();
+			safe_assert(strncmp(argv[i], "--", 2));
+			++i;
+			for(; i < argc; ++i) {
+				args.push_back(argv[i]);
+			}
+			Concurrit::driver_args_ = ArgVectorToMainArgs(args);
+		}
 	}
+
+	//==========================================
+
+	// find the driver main function
+	Concurrit::driver_main_ = (MainFuncType) dlsym(RTLD_NEXT, "__main__");
+	if(Concurrit::driver_main_ == NULL) { \
+		fprintf(stderr, "Concurrit: RTLD_NEXT init of __main__ failed, using the RTLD_DEFAULT init.\n");
+		Concurrit::driver_main_ = (MainFuncType) dlsym(RTLD_DEFAULT, "__main__");
+	}
+	CHECK(Concurrit::driver_main_ != NULL) << "Concurrit: __main__ init failed!";
+
+	//==========================================
 
 // init pth
 //	int pth_init_result = pth_init();
@@ -99,24 +140,16 @@ volatile bool Concurrit::IsInitialized() {
 
 /********************************************************************************/
 
-#ifdef SAFE_ASSERT
-void print_trace () {
-	void *array[10];
-	size_t size;
-	char **strings;
-	size_t i;
-
-	size = backtrace (array, 10);
-	strings = backtrace_symbols (array, size);
-
-	fprintf(stderr, "Stack trace (of %zd frames):\n", size);
-	for (i = 0; i < size; i++)
-		fprintf(stderr, "%s\n", strings[i]);
-
-	free(strings);
+// default, empty implementation of test driver
+int __main__ (int, char**) {
+	VLOG(2) << "Running default test-driver main function.";
 }
-#endif
 
-/********************************************************************************/
+void* Concurrit::CallDriverMain(void*) {
+	MainFuncType main_func = Concurrit::driver_main();
+	safe_assert(main_func != NULL);
+	// call the driver
+	main_func(driver_args_.argc_, driver_args_.argv_);
+}
 
 } // end namespace

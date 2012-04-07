@@ -102,24 +102,38 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 }
 
 /********************************************************************************/
-Coroutine* Scenario::CreateThread(ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+
+Coroutine* Scenario::RunTestDriver() {
+	// create a new thread to run the test driver
+	VLOG(2) << "Calling driver's main function.";
+	Coroutine* co = CreateThread(Concurrit::CallDriverMain, NULL);
+	safe_assert(co != NULL);
+	return co;
+}
+
+/********************************************************************************/
+Coroutine* Scenario::CreateThread(ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	return CreateThread(-1, function, arg, pid, attr);
 }
 
 // create a new thread or fetch the existing one, and start it.
-Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	ScopeMutex smutex(group_.create_mutex());
 
 	CHECK(tid < 0 || tid > MAIN_TID) << "CreateThread is given invalid tid: " << tid;
 
 	// checks if the thread is expected next (!NULL), or if this is a new thread (NULL)
-	Coroutine* co = group_.GetNextCreatedMember(tid);
-
-	// if replaying, do nothing, but return the thread pointer
+	Coroutine* co = NULL;
 	if(is_replaying()) {
+		// TODO(elmas): now this can be called only once from Main!!!
+		co = group_.GetNthCreatedMember(0, tid);
 		safe_assert(co != NULL);
 		return co;
 	}
+
+	//================================================
+
+	co = group_.GetNextCreatedMember(tid);
 
 	if(co == NULL) {
 		// create a new thread
@@ -137,6 +151,37 @@ Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, vo
 	safe_assert(co->tid() > MAIN_TID);
 	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
 	co->Start(pid, attr);
+
+	return co;
+}
+
+/********************************************************************************/
+
+// create a new thread or fetch the existing one, and start it.
+Coroutine* Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+	ScopeMutex smutex(group_.create_mutex());
+
+	// checks if the thread is expected next (!NULL), or if this is a new thread (NULL)
+	Coroutine* co = group_.GetNextCreatedMember();
+
+	if(co == NULL) {
+		// create a new thread
+		VLOG(2) << SC_TITLE << "Creating new pthread coroutine.";
+		// create and add new thread
+		co = new Coroutine(-1, function, arg);
+		group_.AddMember(co); // also sets the tid
+	} else {
+		VLOG(2) << SC_TITLE << "Re-creating and restarting pthread coroutine " << co->tid();
+		safe_assert(co->status() > PASSIVE);
+		// update the function and arguments
+		co->set_entry_function(function);
+		co->set_entry_arg(arg);
+	}
+	safe_assert(co != NULL && co->tid() > MAIN_TID);
+	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
+	co->Start(pid, attr);
+
+	VLOG(2) << SC_TITLE << "Created new pthread coroutine " << co->tid();
 
 	return co;
 }
@@ -382,10 +427,6 @@ void Scenario::RunTestCase() throw() {
 		BacktrackReason reason = SUCCESS;
 		do {
 			reason = SUCCESS;
-			// reset group's creation order index to 0
-			group_.set_next_idx(0);
-			CondScopeMutex(group_.create_mutex(), is_replaying());
-
 			try {
 
 				TestCase();

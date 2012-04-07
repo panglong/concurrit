@@ -57,9 +57,8 @@ Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
 	Coroutine* co = tid_to_coroutine_[tid];
 	if(co == NULL) {
 		co = Coroutine::Current();
-		tid_to_coroutine_[tid] = co;
+		tid_to_coroutine_[tid] = safe_notnull(co);
 	}
-	safe_assert(co != NULL);
 	return co;
 }
 
@@ -187,12 +186,10 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 		return;
 	}
 
-	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(info->threadid));
-	if(current->IsMain()) {
-		return;
-	}
-
 	VLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
+
+	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(info->threadid));
+	safe_assert(!current->IsMain());
 
 	CoroutineGroup* group = safe_notnull(current->group());
 	Scenario* scenario = safe_notnull(group->scenario());

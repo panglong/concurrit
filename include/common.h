@@ -68,50 +68,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-template<typename T>
-std::string to_string(T i) {
-	std::stringstream out;
-	out << i;
-	return out.str();
-}
-
-/********************************************************************************/
-
-enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
-
-const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
-
-/********************************************************************************/
-
-class Concurrit {
-public:
-	static void Init(int argc = -1, char **argv = NULL);
-	static void Destroy();
-	static volatile bool IsInitialized();
-private:
-	static volatile bool initialized_;
-};
-
-/********************************************************************************/
-
-class ConcurritInitializer {
-public:
-	ConcurritInitializer(int argc = -1, char **argv = NULL) {
-		Concurrit::Init(argc, argv);
-	}
-	~ConcurritInitializer() {
-		Concurrit::Destroy();
-	}
-};
-
-/********************************************************************************/
-
-extern "C" void EnablePinTool();
-extern "C" void DisablePinTool();
-extern "C" void ThreadRestart();
-
-/********************************************************************************/
-
 #ifndef RESTRICT
 #define RESTRICT
 //__restrict__
@@ -137,7 +93,8 @@ extern "C" void ThreadRestart();
 
 /********************************************************************************/
 
-#define BETWEEN(x,y,z)	(((x) <= (y)) && ((y) <= (z)))
+#define BETWEEN(x,y,z)		(((x) <= (y)) && ((y) <= (z)))
+#define BETWEEN2(x,y1,y2,z)	(((x) <= (y1)) && (y1 <= y2) && ((y2) <= (z)))
 
 #define NULL_OR_NONEMPTY(x)	((x) == NULL || !((x)->empty()))
 
@@ -216,13 +173,13 @@ extern "C" void ThreadRestart();
 
 #ifdef SAFE_ASSERT
 #include <execinfo.h>
-extern void print_trace();
+extern void print_stack_trace();
 #define safe_notnull(o) 	CHECK_NOTNULL(o)
 #define safe_assert(cond) \
 		if (!(cond))  { \
 			fprintf(stderr, "\nCounit: safe assert fail: safe_assert(%s):", #cond); \
 			fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
-			concurrit::print_trace(); \
+			concurrit::print_stack_trace(); \
 			fflush(stderr); \
 			_Exit(UNRECOVERABLE_ERROR); \
 		}
@@ -230,6 +187,8 @@ extern void print_trace();
 #define safe_notnull(o) 	(o)
 #define safe_assert(cond) /* noop */
 #endif
+
+#define safe_delete(o) 		delete (safe_notnull(o))
 
 #define unimplemented() \
 		VLOG(2) << "Executing unimplemented code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
@@ -266,30 +225,6 @@ typedef unsigned int vctime_t;
 
 /********************************************************************************/
 
-inline void short_sleep(long nanoseconds, bool continue_on_signal) {
-	safe_assert(0 <= nanoseconds && nanoseconds < 1000000000L);
-	struct timespec tv;
-	tv.tv_sec = (time_t) 0;
-	tv.tv_nsec = nanoseconds;
-
-	int rval = 0;
-	do {
-		rval = nanosleep(&tv, &tv);
-		if(rval == EINVAL) {
-			fprintf(stderr, "Invalid time value: %lu\n", nanoseconds);
-			_Exit(UNRECOVERABLE_ERROR);
-		}
-		if(rval == EFAULT) {
-			fprintf(stderr, "Problem with copying from user space: %lu\n", nanoseconds);
-			_Exit(UNRECOVERABLE_ERROR);
-		}
-		safe_assert (rval == 0 || rval == EINTR);
-
-	} while(rval == EINTR && continue_on_signal);
-}
-
-/********************************************************************************/
-
 const long MaxWaitTimeUSecs = 999999L;
 
 /********************************************************************************/
@@ -303,6 +238,89 @@ public:
 //	static bool RunUncontrolled;
 	static void ParseCommandLine(int argc = -1, char **argv = NULL);
 };
+
+/********************************************************************************/
+
+enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
+
+const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
+
+/********************************************************************************/
+
+typedef int (*MainFuncType) (int, char**);
+extern "C" int __main__ (int, char**);
+
+struct main_args {
+	int argc_;
+	char** argv_;
+	main_args(int argc = 0, char** argv = NULL) : argc_(argc), argv_(argv) {}
+	~main_args() { if(argv_ != NULL) delete argv_; }
+};
+
+/********************************************************************************/
+
+class Concurrit {
+public:
+	static void Init(int argc = -1, char **argv = NULL);
+	static void Destroy();
+	static volatile bool IsInitialized();
+	static void* CallDriverMain(void*);
+private:
+	static volatile bool initialized_;
+	DECL_STATIC_FIELD_REF(main_args, driver_args)
+	DECL_STATIC_FIELD(MainFuncType, driver_main)
+};
+
+/********************************************************************************/
+
+class ConcurritInitializer {
+public:
+	ConcurritInitializer(int argc = -1, char **argv = NULL) {
+		Concurrit::Init(argc, argv);
+	}
+	~ConcurritInitializer() {
+		Concurrit::Destroy();
+	}
+};
+
+/********************************************************************************/
+
+extern "C" void EnablePinTool();
+extern "C" void DisablePinTool();
+extern "C" void ThreadRestart();
+
+/********************************************************************************/
+
+// common utility functions
+// for non-template ones, see common.cpp for the implementations
+
+/********************************************************************************/
+
+template<typename T>
+std::string to_string(T i) {
+	std::stringstream out;
+	out << i;
+	return out.str();
+}
+
+template<typename T>
+std::string vector_to_string(const std::vector<T>& v) {
+	std::stringstream s;
+	s << "[";
+	const char* comma = "";
+	for(int i = 0; i < v.size(); ++i) {
+		s << comma << v[i];
+		comma = ", ";
+	}
+	s << "]";
+	return s.str();
+}
+
+/********************************************************************************/
+
+main_args ArgVectorToMainArgs(const std::vector<char*>& args);
+
+void short_sleep(long nanoseconds, bool continue_on_signal);
 
 /********************************************************************************/
 

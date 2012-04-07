@@ -38,9 +38,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
-int pthread_join(pthread_t thread, void ** value_ptr);
-
 #define init_original(f, type) \
 	{ \
     	_##f = (type) dlsym(RTLD_NEXT, #f); \
@@ -86,6 +83,32 @@ int Originals::pthread_join(pthread_t param0, void ** param1) {
 
 /********************************************************************************/
 
+static int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
+	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
+
+	VLOG(2) << "Creating new thread via interpositioned pthread_create.";
+	Coroutine* co = safe_notnull(Scenario::Current())->CreatePThread(start_routine, arg, thread, attr);
+	safe_assert(co != NULL);
+
+	return __pthread_errno__;
+}
+
+static int concurrit_pthread_join(pthread_t thread, void ** value_ptr) {
+	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
+
+	VLOG(2) << "Joining thread via interpositioned pthread_join.";
+	Coroutine* co = safe_notnull(safe_notnull(Scenario::Current())->group())->GetMember(thread);
+	safe_assert(co != NULL);
+	Scenario::Current()->JoinThread(co, value_ptr);
+	if(__pthread_errno__ == PTH_SUCCESS && value_ptr != NULL) {
+		*value_ptr = co->return_value();
+	}
+
+	return __pthread_errno__;
+}
+
+/********************************************************************************/
+
 int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
 	if(Concurrit::IsInitialized()) {
 		return concurrit_pthread_create(thread, attr, start_routine, arg);
@@ -105,29 +128,6 @@ int pthread_join(pthread_t thread, void ** value_ptr) {
 }
 
 /********************************************************************************/
-
-int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
-	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
-
-	Coroutine* co = safe_notnull(Scenario::Current())->CreateThread(start_routine, arg, thread, attr);
-	safe_assert(co != NULL);
-
-	return __pthread_errno__;
-}
-
-int concurrit_pthread_join(pthread_t thread, void ** value_ptr) {
-	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
-
-	Coroutine* co = safe_notnull(safe_notnull(Scenario::Current())->group())->GetMember(thread);
-	safe_assert(co != NULL);
-	Scenario::Current()->JoinThread(co, value_ptr);
-	if(__pthread_errno__ == PTH_SUCCESS && value_ptr != NULL) {
-		*value_ptr = co->return_value();
-	}
-
-	return __pthread_errno__;
-
-}
 
 
 } // end namespace

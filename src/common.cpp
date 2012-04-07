@@ -33,33 +33,66 @@
 
 #include "common.h"
 
-#include <cstdatomic>
-
 namespace concurrit {
-
-class Originals {
-public:
-
-	static void initialize();
-
-	static inline volatile bool is_initialized() { return _initialized; }
-
-	static int pthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
-	static int pthread_join(pthread_t, void **);
-
-	static int (* volatile _pthread_create) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
-	static int (* volatile _pthread_join) (pthread_t, void **);
-
-private:
-	static volatile bool _initialized;
-};
 
 /********************************************************************************/
 
-extern "C" int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
-extern "C" int pthread_join(pthread_t thread, void ** value_ptr);
+main_args ArgVectorToMainArgs(const std::vector<char*>& args) {
+	const size_t c = args.size();
+	main_args m(c, NULL);
+
+	if(c > 0) {
+		m.argv_ = new char*[c];
+		for(int i = 0; i < c; ++i) m.argv_[i] = args[i];
+	}
+
+	return m;
+}
+
+/********************************************************************************/
+
+void short_sleep(long nanoseconds, bool continue_on_signal) {
+	safe_assert(0 <= nanoseconds && nanoseconds < 1000000000L);
+	struct timespec tv;
+	tv.tv_sec = (time_t) 0;
+	tv.tv_nsec = nanoseconds;
+
+	int rval = 0;
+	do {
+		rval = nanosleep(&tv, &tv);
+		if(rval == EINVAL) {
+			fprintf(stderr, "Invalid time value: %lu\n", nanoseconds);
+			_Exit(UNRECOVERABLE_ERROR);
+		}
+		if(rval == EFAULT) {
+			fprintf(stderr, "Problem with copying from user space: %lu\n", nanoseconds);
+			_Exit(UNRECOVERABLE_ERROR);
+		}
+		safe_assert (rval == 0 || rval == EINTR);
+
+	} while(rval == EINTR && continue_on_signal);
+}
+
+/********************************************************************************/
+
+void print_stack_trace() {
+	void *array[10];
+	size_t size;
+	char **strings;
+	size_t i;
+
+	size = backtrace (array, 10);
+	strings = backtrace_symbols (array, size);
+
+	fprintf(stderr, "Stack trace (of %zd frames):\n", size);
+	for (i = 0; i < size; i++)
+		fprintf(stderr, "%s\n", strings[i]);
+
+	free(strings);
+}
+
+/********************************************************************************/
 
 } // end namespace
-
 
 
