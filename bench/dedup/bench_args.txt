@@ -1,0 +1,1 @@
+-c -p -f -t 3 -i inputs/nick.dat -o /dev/null
