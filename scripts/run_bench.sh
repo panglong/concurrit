@@ -22,7 +22,7 @@ then
 	BENCHARGS=`cat $BENCHDIR/bench_args.txt`
 fi
 
-make -C $BENCHDIR clean
+make -C $BENCHDIR clean-test
 make -C $BENCHDIR shared
 make -C $BENCHDIR all
-make ARGS="${ARGS[*]} -- $BENCHARGS" -C $BENCHDIR pin
+make BENCH="$BENCH" BENCHDIR="$BENCHDIR" ARGS="${ARGS[*]} -- $BENCHARGS" -C $BENCHDIR pin

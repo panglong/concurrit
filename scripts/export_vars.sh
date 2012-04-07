@@ -29,3 +29,7 @@ export DYLD_LIBRARY_PATH=$CONCURRIT_TPDIR/tbb/lib/intel64/cc4.1.0_libc2.4_kernel
 # boost
 export BOOST_ROOT=$HOME/boost
 export BOOST_PATH=$BOOST_ROOT
+
+# for glog
+export GLOG_logtostderr=1
+export GLOG_v=0

@@ -8,4 +8,4 @@ PROGRAM_ARGS="$@"
 # -filter_no_shared_libs
 
 #setarch x86_64 
-LD_PRELOAD=$CONCURRIT_HOME/lib/libconcurrit.so $CONCURRIT_TPDIR/pin/pin $PIN_ARGS -t $CONCURRIT_HOME/lib/instrumenter.so $PINTOOL_ARGS -- $PROGRAM_ARGS
+$CONCURRIT_TPDIR/pin/pin $PIN_ARGS -t $CONCURRIT_HOME/lib/instrumenter.so $PINTOOL_ARGS -- $PROGRAM_ARGS
