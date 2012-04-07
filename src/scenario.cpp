@@ -125,8 +125,14 @@ Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, vo
 	// checks if the thread is expected next (!NULL), or if this is a new thread (NULL)
 	Coroutine* co = NULL;
 	if(is_replaying()) {
-		// TODO(elmas): now this can be called only once from Main!!!
-		co = group_.GetNthCreatedMember(0, tid);
+		if(tid > MAIN_TID) {
+			// use tid to return coroutine
+			safe_assert(group_.HasMember(tid));
+			co = group_.GetMember(tid);
+		} else {
+			// this is only for the first created thread (driver-thread)!
+			co = group_.GetNthCreatedMember(0, tid);
+		}
 		safe_assert(co != NULL);
 		return co;
 	}
@@ -202,6 +208,7 @@ void Scenario::JoinThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 	JoinPThread(co, value_ptr);
 }
 
+/********************************************************************************/
 
 void Scenario::JoinPThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 	safe_assert(co != NULL);
