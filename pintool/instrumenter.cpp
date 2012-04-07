@@ -227,7 +227,7 @@ public:
 		tls->call_stack()->clear();
 	}
 
-	static inline void OnPinControl(const bool& enable) {
+	static inline void OnPinControl(const UINT32& command) {
 		if(InstParams::pin_status != command)
 			InstParams::pin_status = command;
 		//	PIN_RemoveInstrumentation();
@@ -296,7 +296,7 @@ public:
 
 	static PinSourceLocation* get(RTN rtn, ADDRINT address) {
 		PinSourceLocation* loc = NULL;
-		AddrToLocMap::const_accessor acc;
+		AddrToLocMap::accessor acc;
 		if(addrToLoc_.find(acc, address)) {
 			loc = acc->second;
 			safe_assert(loc != NULL);
@@ -631,7 +631,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 		if(img_name.find(*itr) != string::npos) {
 
 			log_file << "--- IMG --- " << IMG_Name(img) << endl;
-			FilteredImageIdsType::const_accessor acc;
+			FilteredImageIdsType::accessor acc;
 			FilteredImageIds.insert(acc, img_id);
 			acc->second = TRUE;
 			acc.release();
@@ -647,7 +647,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 	}
 
 	log_file << "+++ IMG +++ " << IMG_Name(img) << endl;
-	FilteredImageIdsType::const_accessor acc;
+	FilteredImageIdsType::accessor acc;
 	FilteredImageIds.insert(acc, img_id);
 	acc->second = FALSE;
 	return FALSE;

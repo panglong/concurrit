@@ -329,7 +329,7 @@ public:
 	}
 
 	virtual void set(const T& value, THREADID t = -1) {
-		typename M::const_accessor acc;
+		typename M::accessor acc;
 		map_.insert(acc, t);
 		acc->second = value;
 	}
@@ -471,7 +471,7 @@ public:
 			map_.insert(acc, t);
 			acc->second = MM();
 		}
-		typename MM::const_accessor acc2;
+		typename MM::accessor acc2;
 		acc->second.insert(acc2, key);
 		acc2->second = value;
 	}
@@ -498,7 +498,7 @@ public:
 	}
 
 	void reset(THREADID t = -1) {
-		typename M::const_accessor acc;
+		typename M::accessor acc;
 		if(map_.find(acc, t)) {
 			acc->second.clear();
 		}
