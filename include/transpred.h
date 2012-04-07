@@ -596,8 +596,8 @@ public:
 	// auxiliary variables
 	static boost::shared_ptr<AuxVar0<bool, false>> Ends;
 
-	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Reads;
-	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Writes;
+	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> Reads;
+	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> Writes;
 
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsFrom;
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsTo;
@@ -614,7 +614,6 @@ public:
 
 #define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x)
 #define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
-
 
 } // end namespace
 

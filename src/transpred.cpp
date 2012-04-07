@@ -38,8 +38,8 @@ namespace concurrit {
 
 boost::shared_ptr<AuxVar0<bool, false>> AuxState::Ends(new AuxVar0<bool, false>("Ends"));
 
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Reads(new AuxVar1<ADDRINT, bool, -1, false>("Reads"));
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Writes(new AuxVar1<ADDRINT, bool, -1, false>("Writes"));
+boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> AuxState::Reads(new AuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
+boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> AuxState::Writes(new AuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
 
 boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
 boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));

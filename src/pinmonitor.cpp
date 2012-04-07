@@ -129,7 +129,7 @@ inline void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* a
 //	current->trinfolist()->push_back(MemAccessTransitionInfo(TRANS_MEM_WRITE, addr, size, loc));
 
 	// update auxstate
-	AuxState::Writes->set(PTR2ADDRINT(addr), current->tid());
+	AuxState::Writes->set(PTR2ADDRINT(addr), size, current->tid());
 }
 
 inline void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
@@ -138,7 +138,7 @@ inline void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* ad
 //	current->trinfolist()->push_back(MemAccessTransitionInfo(TRANS_MEM_READ, addr, size, loc));
 
 	// update auxstate
-	AuxState::Reads->set(PTR2ADDRINT(addr), current->tid());
+	AuxState::Reads->set(PTR2ADDRINT(addr), size, current->tid());
 }
 
 /********************************************************************************/
