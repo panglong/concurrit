@@ -75,7 +75,7 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			if(optarg != NULL) {
 				Config::SaveDotGraphToFile = strdup(optarg);
 			} else {
-				Config::SaveDotGraphToFile = "/tmp/graph.dot";
+				Config::SaveDotGraphToFile = InWorkDir("exec_tree.dot");
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
 			break;

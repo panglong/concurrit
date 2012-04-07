@@ -1,0 +1,1 @@
+-f -k -p3 -o ../input/smallinput

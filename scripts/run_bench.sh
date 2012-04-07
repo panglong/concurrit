@@ -16,6 +16,13 @@ then
     cp -f $BENCHDIR/finfile.txt $CONCURRIT_HOME/work/finfile.txt
 fi
 
+BENCHARGS=
+if [ -f "$BENCHDIR/bench_args.txt" ];
+then
+	BENCHARGS=`cat $BENCHDIR/bench_args.txt`
+fi
+
 make -C $BENCHDIR clean
-make -C $BENCHDIR 
-make ARGS="${ARGS[*]}" -C $BENCHDIR pin
+make -C $BENCHDIR shared
+make -C $BENCHDIR all
+make ARGS="${ARGS[*]} -- $BENCHARGS" -C $BENCHDIR pin

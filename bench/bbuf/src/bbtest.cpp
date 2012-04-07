@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-#include "boundedBuffer.h"
-
 #include "concurrit.h"
 
 CONCURRIT_BEGIN_MAIN()
