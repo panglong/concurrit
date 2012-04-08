@@ -250,6 +250,8 @@ const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
 typedef int (*MainFuncType) (int, char**);
 extern "C" int __main__ (int, char**);
 
+/********************************************************************************/
+
 struct main_args {
 	int argc_;
 	char** argv_;
@@ -285,9 +287,15 @@ public:
 
 /********************************************************************************/
 
+// functions that are tracked by pin tool
+
 extern "C" void EnablePinTool();
 extern "C" void DisablePinTool();
+
 extern "C" void ThreadRestart();
+
+extern "C" void StartInstrument();
+extern "C" void EndInstrument();
 
 /********************************************************************************/
 

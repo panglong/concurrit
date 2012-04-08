@@ -328,7 +328,8 @@ void * consumer_routine(void * arg)
 }
 
 
-static int main(int argc, char ** argv)
+static
+int main(int argc, char ** argv)
 {
   thread_t producers[PRODUCER_SUM];
   thread_t consumers[CONSUMER_SUM];    

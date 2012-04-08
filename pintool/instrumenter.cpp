@@ -98,9 +98,8 @@ LOCALVAR PIN_LOCK lock;
 static const char* NativePinEnableFunName = "EnablePinTool";
 static const char* NativePinDisableFunName = "DisablePinTool";
 static const char* NativeThreadRestartFunName = "ThreadRestart";
-
-const UINT32 ENABLED  = 1;
-const UINT32 DISABLED = 0;
+static const char* NativeStartInstrumentFunName = "StartInstrument";
+static const char* NativeEndInstrumentFunName = "EndInstrument";
 
 VOID PIN_FAST_ANALYSIS_CALL
 PinEnableDisable(UINT32 command);
@@ -113,14 +112,12 @@ static ADDRINT rtn_plt_addr = 0;
 
 class ThreadLocalState {
 public:
-	ThreadLocalState(THREADID tid) {
+	ThreadLocalState(THREADID tid, bool inst_enabled = false) : tid_(tid), inst_enabled_(inst_enabled) {
 		log_file << "Creating thread local state for tid " << tid_ << endl;
 
 		safe_assert(PIN_IsApplicationThread());
 		safe_assert(tid != INVALID_THREADID);
 		safe_assert(tid == PIN_ThreadId());
-
-		tid_ = tid;
 	}
 
 	~ThreadLocalState() {
@@ -130,6 +127,7 @@ public:
 private:
 	DECL_FIELD(THREADID, tid)
 	DECL_FIELD_REF(std::vector<ADDRINT>, call_stack)
+	DECL_FIELD(bool, inst_enabled)
 };
 
 /* ===================================================================== */
@@ -144,6 +142,13 @@ public:
 	static void ParseFile(const char* filename) {
 		safe_assert(filename != NULL);
 		FILE* fin = fopen(filename, "r");
+
+		RTNIdsToInstrument.clear();
+		RTNIdsToInstrument.insert(ADDRINT(0)); // dummy id
+
+		RTNNamesToInstrument.clear();
+		RTNNamesToInstrument.insert("StartEndInstrument"); // dummy name
+
 		if (fin != NULL) {
 			char buff[256];
 			while(!feof(fin)) {
@@ -159,9 +164,6 @@ public:
 				}
 			}
 			fclose(fin);
-		} else {
-			cerr << "Could not open file " << filename << ", disabling pin instrumentation!" << std::endl;
-			PinEnableDisable(DISABLED);
 		}
 	}
 
@@ -176,24 +178,25 @@ public:
 	}
 
 	static inline bool OnFuncEnter(const THREADID& threadid, const ADDRINT& rtn_addr) {
-		if(pin_status != ENABLED) return false;
+		if(!pin_enabled) return false;
 
 		safe_assert(rtn_addr != rtn_plt_addr);
 
 		// check callstack of current thread
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
-		std::vector<ADDRINT>* call_stack = tls->call_stack();
-		if(!call_stack->empty()
+		if(tls->inst_enabled()
 				|| (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end())) {
+			std::vector<ADDRINT>* call_stack = tls->call_stack();
 			call_stack->push_back(rtn_addr);
+			tls->set_inst_enabled(true);
 			return true;
 		}
 		return false;
 	}
 
 	static inline bool OnFuncReturn(const THREADID& threadid, const ADDRINT& rtn_addr) {
-		if(pin_status != ENABLED) return false;
+		if(!pin_enabled) return false;
 
 		safe_assert(rtn_plt_addr != 0);
 		if(rtn_addr == rtn_plt_addr) return false;
@@ -201,10 +204,11 @@ public:
 		// check callstack of current thread
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
-		std::vector<ADDRINT>* call_stack = tls->call_stack();
-		if(!call_stack->empty()) {
+		if(tls->inst_enabled()) {
+			std::vector<ADDRINT>* call_stack = tls->call_stack();
 			ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
 			safe_assert(rtn_addr == last_addr);
+			tls->set_inst_enabled(!call_stack->empty());
 			return true;
 		}
 		safe_assert(RTNIdsToInstrument.empty() || RTNIdsToInstrument.find(rtn_addr) == RTNIdsToInstrument.end());
@@ -212,12 +216,12 @@ public:
 	}
 
 	static inline bool OnInstruction(const THREADID& threadid) {
-		if(pin_status != ENABLED) return false;
+		if(!pin_enabled) return false;
 
 		// check callstack of current thread
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
-		return (!tls->call_stack()->empty());
+		return (tls->inst_enabled());
 	}
 
 	static inline void OnThreadRestart(const THREADID& threadid) {
@@ -225,33 +229,43 @@ public:
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
 		tls->call_stack()->clear();
-	}
-
-	static inline void OnPinControl(const UINT32& command) {
-		if(InstParams::pin_status != command)
-			InstParams::pin_status = command;
-		//	PIN_RemoveInstrumentation();
+		tls->set_inst_enabled(false);
 	}
 
 	static std::set< std::string > 	RTNNamesToInstrument;
 	static std::set< ADDRINT > 		RTNIdsToInstrument;
-	static volatile UINT32 			pin_status;
+	static volatile bool			pin_enabled;
 };
 
 std::set< std::string > InstParams::RTNNamesToInstrument;
 std::set< ADDRINT > 	InstParams::RTNIdsToInstrument;
-volatile UINT32			InstParams::pin_status = ENABLED;
+volatile bool			InstParams::pin_enabled = true;
 
 /* ===================================================================== */
 
 VOID PIN_FAST_ANALYSIS_CALL
-PinEnableDisable(UINT32 command) {
-	InstParams::OnPinControl(command);
+PinEnable() {
+	InstParams::pin_enabled = true;
+}
+
+VOID PIN_FAST_ANALYSIS_CALL
+PinDisable() {
+	InstParams::pin_enabled = false;
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
 ThreadRestart(THREADID threadid) {
 	InstParams::OnThreadRestart(threadid);
+}
+
+VOID PIN_FAST_ANALYSIS_CALL
+StartInstrument(THREADID threadid) {
+	InstParams::OnFuncEnter(threadid, ADDRINT(0));
+}
+
+VOID PIN_FAST_ANALYSIS_CALL
+EndInstrument(THREADID threadid) {
+	InstParams::OnFuncReturn(threadid, ADDRINT(0));
 }
 
 /* ===================================================================== */
@@ -573,8 +587,8 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 			} else if(RTN_Name(rtn) == NativePinEnableFunName) {
 				RTN_Open(rtn);
 
-				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), IARG_FAST_ANALYSIS_CALL,
-						   IARG_UINT32, ENABLED, IARG_END);
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnable), IARG_FAST_ANALYSIS_CALL,
+						IARG_END);
 
 				RTN_Close(rtn);
 				log_file << "Detected callback to concurrit: " << NativePinEnableFunName << endl;
@@ -582,8 +596,8 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 			}  else if(RTN_Name(rtn) == NativePinDisableFunName) {
 				RTN_Open(rtn);
 
-				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnableDisable), IARG_FAST_ANALYSIS_CALL,
-						   IARG_UINT32, DISABLED, IARG_END);
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinDisable), IARG_FAST_ANALYSIS_CALL,
+						IARG_END);
 
 				RTN_Close(rtn);
 
@@ -598,13 +612,33 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_Close(rtn);
 
 				log_file << "Detected callback to concurrit: " << NativeThreadRestartFunName << endl;
+
+			} else if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
+				RTN_Open(rtn);
+
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(StartInstrument), IARG_FAST_ANALYSIS_CALL,
+						IARG_THREAD_ID, IARG_END);
+
+				RTN_Close(rtn);
+
+				log_file << "Detected callback to concurrit: " << NativeStartInstrumentFunName << endl;
+
+			} else if(RTN_Name(rtn) == NativeEndInstrumentFunName) {
+				RTN_Open(rtn);
+
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(EndInstrument), IARG_FAST_ANALYSIS_CALL,
+						IARG_THREAD_ID, IARG_END);
+
+				RTN_Close(rtn);
+
+				log_file << "Detected callback to concurrit: " << NativeEndInstrumentFunName << endl;
 			}
 		}
 	}
-	if(NativePinMonitorFunPtr == NULL) { fprintf(stderr, "Could not find callback to concurrit: %s\n", NativePinMonitorFunName); _Exit(UNRECOVERABLE_ERROR); }
-	if(NativePinEnableFunName == NULL) { fprintf(stderr, "Could not find callback to concurrit: %s\n", NativePinEnableFunName); _Exit(UNRECOVERABLE_ERROR); }
-	if(NativePinDisableFunName == NULL) { fprintf(stderr, "Could not find callback to concurrit: %s\n", NativePinDisableFunName); _Exit(UNRECOVERABLE_ERROR); }
-	if(NativeThreadRestartFunName == NULL) { fprintf(stderr, "Could not find callback to concurrit: %s\n", NativeThreadRestartFunName); _Exit(UNRECOVERABLE_ERROR); }
+	if(NativePinMonitorFunPtr == NULL) {
+		fprintf(stderr, "Could not find callback to concurrit: %s\n", NativePinMonitorFunName);
+		_Exit(UNRECOVERABLE_ERROR);
+	}
 
 	is_concurrit_loaded = true;
 }
@@ -668,7 +702,7 @@ INLINE LOCALFUN BOOL IsTraceFiltered(TRACE trace) {
 
 VOID Routine(RTN rtn, VOID *v)
 {
-//	if(pin_status == DISABLED) return;
+//	if(!pin_enabled) return;
 
 	// filter out standard libraries
 	// we treat this while loading, since Routine can be called before ImageLoad is called
@@ -691,12 +725,23 @@ VOID Routine(RTN rtn, VOID *v)
 
 	PinSourceLocation* loc = PinSourceLocation::get(rtn);
 
-	RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
+	// check if start/end instrument
+	if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
+		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(StartInstrument), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
+
+	} else if(RTN_Name(rtn) == NativeEndInstrumentFunName) {
+		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(EndInstrument), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
+	} else {
+		// standard instrumentation
+		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
 			   IARG_CONTEXT,
 			   IARG_THREAD_ID, IARG_PTR, loc,
 			   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 			   IARG_END);
+	}
 
 	RTN_Close(rtn);
 }
@@ -846,7 +891,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 VOID Trace(TRACE trace, VOID *v) {
 
-//	if(pin_status == DISABLED) return;
+//	if(!pin_enabled) return;
 
 	if (!filter.SelectTrace(trace))
 		return;

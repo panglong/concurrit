@@ -1,2 +1,2 @@
-_Z15bounded_buf_getP15bounded_buf_tagPPv
-_Z15bounded_buf_putP15bounded_buf_tagPv
+bounded_buf_get
+bounded_buf_put

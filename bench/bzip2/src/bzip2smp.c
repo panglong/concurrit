@@ -274,6 +274,7 @@ static char helpText[] =
 #endif
 ;
 
+static
 int main( int argc, char *argv[] )
 {
   int hyperthreading = -1;
@@ -622,3 +623,15 @@ int main( int argc, char *argv[] )
 
   return 0;
 }
+
+//============================================
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+int __main__(int argc, char* argv[]) {
+	return main(argc, argv);
+}
+#ifdef __cplusplus
+} // extern "C"
+#endif

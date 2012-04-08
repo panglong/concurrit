@@ -228,7 +228,11 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 
 void EnablePinTool() { VLOG(2) << "Enabling pin instrumentation"; }
 void DisablePinTool() { VLOG(2) << "Disabling pin instrumentation"; }
+
 void ThreadRestart() { VLOG(2) << "Restarting thread."; }
+
+void StartInstrument() { VLOG(2) << "Starting instrumentation."; }
+void EndInstrument() { VLOG(2) << "Ending instrumentation."; }
 
 /********************************************************************************/
 

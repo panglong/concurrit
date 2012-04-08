@@ -511,7 +511,7 @@ Command line options:\n", out);
 }
     
 
-
+static
 int
 main(int argc,
      char *argv[])
@@ -664,8 +664,12 @@ main(int argc,
 
 //============================================
 
-extern "C" __main__(int argc, char* argv[]);
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 int __main__(int argc, char* argv[]) {
 	return main(argc, argv);
 }
+#ifdef __cplusplus
+} // extern "C"
+#endif

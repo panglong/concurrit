@@ -46,8 +46,6 @@ MainFuncType Concurrit::driver_main_;
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
 
-	printf("Initializing Concurrit\n");
-
 	//==========================================
 	// separate arguments into two: 1 -- 2
 
@@ -113,12 +111,12 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	do { // need a fence here
 		initialized_ = true;
 	} while(false);
+
+	VLOG(2) << "Initialized Concurrit.";
 }
 
 void Concurrit::Destroy() {
 	safe_assert(IsInitialized());
-
-	printf("Finalizing Concurrit\n");
 
 	CoroutineGroup::delete_main();
 
@@ -130,6 +128,8 @@ void Concurrit::Destroy() {
 	do { // need a fence here
 		initialized_ = false;
 	} while(false);
+
+	VLOG(2) << "Finalized Concurrit.";
 }
 
 /********************************************************************************/
@@ -139,6 +139,24 @@ volatile bool Concurrit::IsInitialized() {
 }
 
 /********************************************************************************/
+
+//============================================
+
+// code to add to benchmarks
+/*
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+int __main__(int argc, char* argv[]) {
+	return main(argc, argv);
+}
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+*/
+//============================================
 
 // default, empty implementation of test driver
 int __main__ (int, char**) {
