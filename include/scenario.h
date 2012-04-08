@@ -176,6 +176,15 @@ public:
 	void UpdateAlternateLocations(Coroutine* current, bool pre_state);
 
 	/******************************************************************/
+	// shortcuts to statistics
+	Timer& timer(const std::string& name) {
+		return safe_notnull(statistics_.get())->timer(name);
+	}
+
+	Counter& counter(const std::string& name) {
+		return safe_notnull(statistics_.get())->counter(name);
+	}
+
 
 protected:
 

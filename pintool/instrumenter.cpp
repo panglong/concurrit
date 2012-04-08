@@ -48,7 +48,7 @@
 using namespace INSTLIB;
 
 #include "common.h"
-#include "timer.h"
+#include "statistics.h"
 #include "sharedaccess.h"
 #include "pinmonitor.h"
 #include "tbb/concurrent_hash_map.h"

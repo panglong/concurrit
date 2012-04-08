@@ -35,9 +35,43 @@
 #define STATISTICS_H_
 
 #include "common.h"
-#include "timer.h"
 
 namespace concurrit {
+
+class Timer
+{
+public:
+    Timer(std::string name = "");
+    ~Timer();
+
+    void   start();
+    void   stop();
+    timeval getElapsedTime();
+    double getElapsedTimeInSec();
+    double getElapsedTimeInMilliSec();
+    double getElapsedTimeInMicroSec();
+    double getElapsedTimeInMin();
+    double getElapsedTimeInHours();
+    double getElapsedTimeInDays();
+    std::string StartTimeToString();
+    std::string EndTimeToString();
+    std::string ElapsedTimeToString();
+    std::string ToString();
+
+protected:
+    static void gettimeofday_(timeval* t);
+    static int timeval_subtract_(struct timeval *result, struct timeval *_x, struct timeval *_y);
+    static std::string timeval_to_string_(timeval* tv);
+
+private:
+    bool    stopped;
+    timeval startTime;
+    timeval endTime;
+    timeval elapsedTime;
+    std::string name;
+};
+
+/********************************************************************************/
 
 class Counter {
 public:
@@ -78,7 +112,8 @@ public:
 	~Statistics() {}
 
 	void Reset() {
-
+		timers_.clear();
+		counters_.clear();
 	}
 
 	std::string ToString() {
@@ -95,7 +130,7 @@ public:
 		return s.str();
 	}
 
-	Timer& timer(std::string name) {
+	Timer& timer(const std::string& name) {
 		TimerMap::iterator itr = timers_.find(name);
 		if(itr == timers_.end()) {
 			timers_[name] = Timer(name);
@@ -103,7 +138,7 @@ public:
 		return timers_[name];
 	}
 
-	Counter& counter(std::string name) {
+	Counter& counter(const std::string& name) {
 		CounterMap::iterator itr = counters_.find(name);
 		if(itr == counters_.end()) {
 			counters_[name] = Counter(name);
