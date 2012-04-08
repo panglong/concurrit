@@ -1965,7 +1965,7 @@ void streamCluster( PStream* stream,
 }
 
 static
-int main(int argc, char **argv)
+int main0(int argc, char **argv)
 {
   char *outfilename = new char[MAXNAMESIZE];
   char *infilename = new char[MAXNAMESIZE];
@@ -2056,7 +2056,7 @@ int main(int argc, char **argv)
 extern "C" {
 #endif
 int __main__(int argc, char* argv[]) {
-	return main(argc, argv);
+	return main0(argc, argv);
 }
 #ifdef __cplusplus
 } // extern "C"

@@ -1360,7 +1360,7 @@ void usage(char* progname)
  *********************************************************
  */
 static
-int main(int argc, char* argv[])
+int main0(int argc, char* argv[])
 {
 	queue *fifo;
 	pthread_t con, output;
@@ -1956,7 +1956,7 @@ int main(int argc, char* argv[])
 extern "C" {
 #endif
 int __main__(int argc, char* argv[]) {
-	return main(argc, argv);
+	return main0(argc, argv);
 }
 #ifdef __cplusplus
 } // extern "C"
