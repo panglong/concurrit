@@ -189,7 +189,7 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 		safe_assert(BETWEEN(-1, child_index, sz-1));
 
 		// if select thread and child_index is -1, then add this with index -1
-		if(INSTANCEOF(this, SelectThreadNode*)) {
+		if(INSTANCEOF(this, ForallThreadNode*)) {
 			current_nodes->push_back({this, -1});
 		}
 
@@ -709,7 +709,7 @@ TransitionConstraint::~TransitionConstraint(){
 
 /*************************************************************************************/
 
-void SelectThreadNode::ComputeCoverage(bool recurse) {
+void ForallThreadNode::ComputeCoverage(bool recurse) {
 	Scenario* scenario = Scenario::Current();
 	safe_assert(scenario != NULL);
 	// this check is important, because we should not compute coverage at all if already covered

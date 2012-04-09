@@ -279,11 +279,84 @@ public:
 class SelectThreadNode : public SelectionNode {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
-	SelectThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL)
-	: SelectionNode(parent, 0), var_(var) {
+	SelectThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL, int num_children = 0)
+	: SelectionNode(parent, num_children), var_(var) {
 		safe_assert(var_->thread() == NULL);
 	}
 	~SelectThreadNode() {}
+
+	virtual bool is_exists() = 0;
+	bool is_forall() { return !is_exists(); }
+
+	void ToStream(FILE* file) {
+		fprintf(file, "%sThreadNode. Selected %s.",
+				(is_exists() ? "Exists" : "Forall"),
+				((var_ != NULL && var_->thread() != NULL) ? to_string(var_->thread()->tid()).c_str() : "no thread"));
+		ExecutionTree::ToStream(file);
+	}
+
+private:
+	DECL_FIELD(ThreadVarPtr, var)
+};
+
+/********************************************************************************/
+
+class ExistsThreadNode : public SelectThreadNode {
+public:
+	ExistsThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL)
+	: SelectThreadNode(var, parent, 1), thread_(NULL) {}
+
+	~ExistsThreadNode() {}
+
+	bool is_exists() { return true; }
+
+	ChildLoc set_selected_thread() {
+		safe_assert(thread_ != NULL);
+		return set_selected_thread(thread_);
+	}
+
+	ChildLoc set_selected_thread(Coroutine* thread) {
+		ChildLoc newnode = {this, 0};
+		// set thread of the variable
+		safe_assert(var_->thread() == NULL);
+		thread_ = thread;
+		var_->set_thread(thread);
+		return newnode;
+	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("ExistsThreadNode");
+		g->AddNode(node);
+		ExecutionTree* c = child(0);
+		DotNode* cn = NULL;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, thread_ == NULL ? "-1" : to_string(thread_->tid())));
+
+		return node;
+	}
+
+private:
+	DECL_FIELD(Coroutine*, thread)
+};
+
+/********************************************************************************/
+
+class ForallThreadNode : public SelectThreadNode {
+public:
+	ForallThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL)
+	: SelectThreadNode(var, parent, 0) {}
+
+	~ForallThreadNode() {}
+
+	bool is_exists() { return false; }
+
+	// override
+	void ComputeCoverage(bool recurse);
 
 	ChildLoc set_selected_thread(Coroutine* co) {
 		int child_index = add_or_get_thread(co);
@@ -313,16 +386,8 @@ public:
 		return index < 0 ? NULL : child(index);
 	}
 
-	// override
-	virtual void ComputeCoverage(bool recurse);
-
-	virtual void ToStream(FILE* file) {
-		fprintf(file, "SelectThreadNode. Selected %s.", ((var_ != NULL && var_->thread() != NULL) ? to_string(var_->thread()->tid()).c_str() : "no thread"));
-		ExecutionTree::ToStream(file);
-	}
-
 	DotNode* UpdateDotGraph(DotGraph* g) {
-		DotNode* node = new DotNode("SelectThreadNode");
+		DotNode* node = new DotNode("ForallThreadNode");
 		g->AddNode(node);
 		for(int i = 0; i < children_.size(); ++i) {
 			ExecutionTree* c = child(i);
@@ -367,10 +432,8 @@ private:
 	}
 
 private:
-	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD_REF(TidToIdxMap, tidToIdxMap)
 	DECL_FIELD_REF(std::vector<Coroutine*>, idxToThreadMap)
-
 };
 
 /********************************************************************************/

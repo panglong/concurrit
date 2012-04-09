@@ -1505,31 +1505,52 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 					done = (tval == TPUNKNOWN);
 
 				} else { //=======================================================
-					VLOG(2) << "Evaluating select-thread node";
-					SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
-					if(select != NULL) {
+					ForallThreadNode* forall = ASINSTANCEOF(node, ForallThreadNode*);
+					if(forall != NULL) {
+						VLOG(2) << "Evaluating forall-thread node";
+
 						// if select is covered, we should not be reaching this
-						safe_assert(!select->covered());
+						safe_assert(!forall->covered());
 
 						// check if this thread has been covered
 						THREADID tid = current->tid();
 						safe_assert(tid >= 0);
-						ExecutionTree* child = select->child_by_tid(tid);
+						ExecutionTree* child = forall->child_by_tid(tid);
 						if(child == NULL || !child->covered()) {
 							// set the selected thread to current
-							newnode = select->set_selected_thread(current);
+							newnode = forall->set_selected_thread(current);
 							// we are consuming this node, but we are not done, yet
 							tval = TPTRUE;
 						} else { // already covered, skip this
 							// covered
 							tval = TPFALSE; // we are not consuming this node
 						}
+
 						// we are not done yet, so leave done as false
 						safe_assert(!done);
 
 					} else { //=======================================================
-						// TODO(elmas): others are not supported yet
-						safe_assert(false);
+						ExistsThreadNode* exists = ASINSTANCEOF(node, ExistsThreadNode*);
+						if(exists != NULL) {
+							VLOG(2) << "Evaluating exists-thread node";
+
+							// if select is covered, we should not be reaching this
+							safe_assert(!exists->covered());
+
+							// check if this thread has been covered
+							THREADID tid = current->tid();
+							safe_assert(tid >= 0);
+							newnode = exists->set_selected_thread(current);
+							// we are consuming this node, but we are not done, yet
+							tval = TPTRUE;
+
+							// we are not done yet, so leave done as false
+							safe_assert(!done);
+
+						} else { //=======================================================
+							// TODO(elmas): others are not supported yet
+							safe_assert(false);
+						}
 					}
 				}
 			}
@@ -1863,15 +1884,15 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredica
 
 /********************************************************************************/
 
-void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
-	VLOG(2) << "Adding DSLSelectThread";
+void Scenario::DSLForallThread(const ThreadVarPtr& var) {
+	VLOG(2) << "Adding DSLForallThread";
 
 	//=======================================================
 
 	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(reploc.parent() != NULL);
-		SelectThreadNode* select = ASINSTANCEOF(reploc.parent(), SelectThreadNode*);
+		ForallThreadNode* select = ASINSTANCEOF(reploc.parent(), ForallThreadNode*);
 		safe_assert(select != NULL);
 
 		int child_index = reploc.child_index();
@@ -1884,7 +1905,7 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 			// update current node
 			exec_tree_.set_current_node(reploc);
 
-			VLOG(2) << "Replaying path with select thread node.";
+			VLOG(2) << "Replaying path with forall thread node.";
 			return;
 		}
 		safe_assert(exec_tree_.replay_path()->empty());
@@ -1899,11 +1920,11 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
-	SelectThreadNode* select = NULL;
+	ForallThreadNode* select = NULL;
 	node = exec_tree_.GetLastInPath();
 	if(node != NULL) {
 		safe_assert(exec_tree_.GetLastInPath().check(node));
-		select = ASINSTANCEOF(node, SelectThreadNode*);
+		select = ASINSTANCEOF(node, ForallThreadNode*);
 		if(select == NULL || select->covered()) {
 			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
 			// release lock
@@ -1913,7 +1934,7 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 		}
 		select->set_var(var);
 	} else {
-		select = new SelectThreadNode(var);
+		select = new ForallThreadNode(var);
 	}
 	safe_assert(!select->covered());
 
@@ -1922,9 +1943,66 @@ void Scenario::DSLSelectThread(const ThreadVarPtr& var) {
 	// set atomic_ref to point to select
 	exec_tree_.ReleaseRef(select);
 
-	VLOG(2) << "Added DSLSelectThread.";
+	VLOG(2) << "Added DSLForallThread.";
 }
 
 /********************************************************************************/
 
+void Scenario::DSLExistsThread(const ThreadVarPtr& var) {
+	VLOG(2) << "Adding DSLExistsThread";
+
+	//=======================================================
+
+	if(is_replaying()) {
+		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
+		safe_assert(!reploc.empty());
+		ExistsThreadNode* select = ASINSTANCEOF(reploc.parent(), ExistsThreadNode*);
+		safe_assert(select != NULL);
+		// re-select the thread to update the associated thread variable
+		select->set_var(var); // first select var before setting the thread
+		select->set_selected_thread();
+
+		// update current node
+		exec_tree_.set_current_node(reploc);
+
+		VLOG(2) << "Replaying path with exists thread node.";
+		return;
+	}
+
+	//=======================================================
+
+	if(group_.IsAllEnded()) {
+		TRIGGER_BACKTRACK(THREADS_ALLENDED);
+	}
+
+	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+
+	ExistsThreadNode* select = NULL;
+	node = exec_tree_.GetLastInPath();
+	if(node != NULL) {
+		safe_assert(exec_tree_.GetLastInPath().check(node));
+		select = ASINSTANCEOF(node, ExistsThreadNode*);
+		if(select == NULL || select->covered()) {
+			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
+			// release lock
+			exec_tree_.ReleaseRef(NULL);
+			// backtrack
+			TRIGGER_BACKTRACK(TREENODE_COVERED);
+		}
+		select->set_var(var);
+	} else {
+		select = new ExistsThreadNode(var);
+	}
+	safe_assert(!select->covered());
+
+	// not covered yet
+
+	// set atomic_ref to point to select
+	exec_tree_.ReleaseRef(select);
+
+	VLOG(2) << "Added DSLExistsThread.";
+}
+
+/********************************************************************************/
 } // end namespace
