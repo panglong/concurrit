@@ -46,16 +46,15 @@ public:
 
 	virtual bool IsSuccess() = 0;
 	virtual std::string ToString() {
-		safe_assert(statistics_.get() != NULL);
 		std::stringstream s;
 		s << "************* Statistics *************\n";
-		s << statistics_->ToString() << "\n";
+		s << statistics_.ToString() << "\n";
 		return s.str();
 	}
 
 private:
 	DECL_FIELD_REF(Coverage, coverage)
-	DECL_FIELD_REF(boost::shared_ptr<Statistics>, statistics)
+	DECL_FIELD(Statistics, statistics)
 };
 
 /********************************************************************************/

@@ -179,11 +179,11 @@ public:
 	/******************************************************************/
 	// shortcuts to statistics
 	Timer& timer(const std::string& name) {
-		return safe_notnull(statistics_.get())->timer(name);
+		return statistics_.timer(name);
 	}
 
 	Counter& counter(const std::string& name) {
-		return safe_notnull(statistics_.get())->counter(name);
+		return statistics_.counter(name);
 	}
 
 
@@ -233,7 +233,7 @@ private:
 
 	DECL_FIELD_REF(NAryTransitionPredicate, trans_constraints)
 
-	DECL_FIELD(boost::shared_ptr<Statistics>, statistics)
+	DECL_FIELD(Statistics, statistics)
 
 	DECL_FIELD_GET_REF(ExecutionTreeManager, exec_tree)
 };

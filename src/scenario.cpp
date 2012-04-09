@@ -60,9 +60,6 @@ Scenario::Scenario(const char* name) {
 
 	dpor_enabled_ = true;
 
-	boost::shared_ptr<Statistics> stt(new Statistics());
-	statistics_ = stt;
-
 	test_status_ = TEST_BEGIN;
 }
 
@@ -266,7 +263,7 @@ Result* Scenario::Explore() {
 
 				Start();
 
-				VLOG(2) << SC_TITLE << "Starting path " << statistics_->counter("Num paths explored");
+				VLOG(2) << SC_TITLE << "Starting path " << counter("Num paths explored");
 
 				ConcurritException* exc = RunOnce();
 
@@ -276,7 +273,7 @@ Result* Scenario::Explore() {
 					throw exc;
 				}
 
-				statistics_->counter("Num paths explored").increment();
+				counter("Num paths explored").increment();
 
 				if(explore_type_ == EXISTS) {
 					result = new ExistsResult(schedule_->Clone());
@@ -325,7 +322,7 @@ Result* Scenario::Explore() {
 						goto LOOP_DONE; // break the outermost loop
 					}
 
-					statistics_->counter("Num backtracks").increment();
+					counter("Num backtracks").increment();
 					if(Backtrack(be->reason())) {
 						continue;
 					} else {
@@ -624,8 +621,8 @@ void Scenario::Start() {
 	if(test_status_ == TEST_BEGIN) {
 		// first start
 		// reset statistics
-		statistics_->Reset();
-		statistics_->timer("Search time").start();
+		statistics_.Reset();
+		timer("Search time").start();
 	} else {
 		// restart
 		exec_tree_.Restart();
@@ -668,13 +665,13 @@ void Scenario::Finish(Result* result) {
 
 	group_.Finish();
 
-	statistics_->counter("Num execution-tree nodes").set_value(ExecutionTree::num_nodes());
+	counter("Num execution-tree nodes").set_value(ExecutionTree::num_nodes());
 
 	// finish timer
-	statistics_->timer("Search time").stop();
+	timer("Search time").stop();
 	// print statistics
 	std::cerr << "********** Statistics **********" << std::endl;
-	std::cerr << statistics_->ToString() << std::endl;
+	std::cerr << statistics_.ToString() << std::endl;
 
 	safe_assert(Config::ExitOnFirstExecution >= 0 || result != NULL);
 	if(result != NULL) {
