@@ -283,7 +283,11 @@ private:
 class AuxVar {
 public:
 	AuxVar(const std::string& name) : name_(name) {}
-	virtual ~AuxVar(){}
+	virtual ~AuxVar(){
+		if(name_ != "const") {
+			fprintf(stderr, "Deleting non-constant auxiliary variable: %s!\n", name_.c_str());
+		}
+	}
 
 	virtual void reset(THREADID t = -1) = 0;
 	virtual bool isset(THREADID t = -1) = 0;
@@ -301,7 +305,7 @@ class AuxVar0 : public AuxVar {
 	typedef boost::shared_ptr<AuxVar0<T,undef_value_>> AuxVar0Ptr;
 public:
 	AuxVar0(const char* name = "") : AuxVar(name) {}
-	~AuxVar0(){}
+	virtual ~AuxVar0(){}
 
 	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr());
 
@@ -498,10 +502,11 @@ public:
 	}
 
 	void reset(THREADID t = -1) {
-		typename M::accessor acc;
-		if(map_.find(acc, t)) {
-			acc->second.clear();
-		}
+//		typename M::accessor acc;
+//		if(map_.find(acc, t)) {
+//			acc->second.clear();
+//		}
+		map_.erase(t);
 	}
 
 	void clear() {
@@ -572,6 +577,29 @@ private:
 	AuxState(){}
 	~AuxState(){}
 public:
+
+	static void Init() {
+		boost::shared_ptr<AuxVar0<bool, false>> _ends(new AuxVar0<bool, false>("Ends"));
+		AuxState::Ends = _ends;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> _reads(new AuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
+		AuxState::Reads = _reads;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> _writes(new AuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
+		AuxState::Writes = _writes;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
+		AuxState::CallsFrom = _callsfrom;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
+		AuxState::CallsTo = _callsto;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _enters(new AuxVar1<ADDRINT, bool, -1, false>("Enters"));
+		AuxState::Enters = _enters;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _returns(new AuxVar1<ADDRINT, bool, -1, false>("Returns"));
+		AuxState::Returns = _returns;
+	}
 
 	static void Reset(THREADID t = -1) {
 		safe_notnull(Ends.get())->reset(t);

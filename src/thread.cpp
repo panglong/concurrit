@@ -116,6 +116,7 @@ void* ThreadEntry(void* arg) {
 	thread->detach_pthread(self);
 
 	// no need to call pthread_exit
+	Originals::pthread_exit(return_value);
 	return return_value;
 }
 

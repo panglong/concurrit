@@ -123,6 +123,8 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	// init logging
 	google::InitGoogleLogging("concurrit");
 
+	AuxState::Init();
+
 	Originals::initialize();
 
 	Thread::init_tls_key();
