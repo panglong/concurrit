@@ -616,8 +616,10 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason reason /*= SUCCESS*/) 
 		safe_assert(IS_ENDNODE(current_node_.get()));
 		// notify threads about the end of the controlled run
 		ReleaseRef(end_node); // this does not add the node to the path, it is already added
-		TRIGGER_BACKTRACK(SEARCH_ENDS);
-		safe_assert(false); return false; // not executed
+		if(reason != SUCCESS) {
+			TRIGGER_BACKTRACK(reason);
+		}
+		return false;
 	}
 
 	//================================================

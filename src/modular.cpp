@@ -213,7 +213,7 @@ void ThreadModularScenario::TestCase() {
 			UNTIL_STAR()->TRANSFER_STAR();
 		}
 		if(env_graph_.size() >= 10) {
-			TERMINATE_SEARCH();
+			TRIGGER_TERMINATE_SEARCH();
 		}
 	}
 }

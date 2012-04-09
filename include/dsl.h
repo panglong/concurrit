@@ -283,7 +283,7 @@ public:
 	: SelectionNode(parent, num_children), var_(var) {
 		safe_assert(safe_notnull(var_.get())->thread() == NULL);
 	}
-	~SelectThreadNode() {}
+	virtual ~SelectThreadNode() {}
 
 	virtual bool is_exists() = 0;
 	bool is_forall() { return !is_exists(); }
