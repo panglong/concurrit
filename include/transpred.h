@@ -386,7 +386,8 @@ public:
 	~AuxVar0Pre(){}
 
 	static TransitionPredicatePtr create (const AuxVar0Ptr& var1 = AuxVar0Ptr(), const AuxVar0Ptr& var2 = AuxVar0Ptr(), const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		return TransitionPredicatePtr(new AuxVar0Pre<T,undef_value_>(var1, var2, tvar));
+		TransitionPredicatePtr p(new AuxVar0Pre<T,undef_value_>(var1, var2, tvar));
+		return p;
 	}
 
 	bool EvalState(Coroutine* t = NULL) {
@@ -411,7 +412,8 @@ private:
 
 template<typename T, T undef_value_>
 TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar /*= ThreadVarPtr()*/) {
-	return this->operator()(var1, AuxVar0Ptr(new AuxConst0<T,undef_value_>(value)), tvar);
+	AuxVar0Ptr p(new AuxConst0<T,undef_value_>(value));
+	return this->operator()(var1, p, tvar);
 }
 
 template<typename T, T undef_value_>
@@ -442,11 +444,14 @@ public:
 	~AuxVar1(){}
 
 	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const K& key, const T& value, const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		return this->operator()(var, AuxKeyConstPtr(new AuxKeyConstType(key)), AuxValueConstPtr(new AuxValueConstType(value)), tvar);
+		AuxKeyConstPtr p(new AuxKeyConstType(key));
+		AuxValueConstPtr q(new AuxValueConstType(value));
+		return this->operator()(var, p, q, tvar);
 	}
 
 	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const K& key, const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		return this->operator()(var, AuxKeyConstPtr(new AuxKeyConstType(key)), AuxValueConstPtr(), tvar);
+		AuxKeyConstPtr p(new AuxKeyConstType(key));
+		return this->operator()(var, p, AuxValueConstPtr(), tvar);
 	}
 
 	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const ThreadVarPtr& tvar = ThreadVarPtr()) {
@@ -502,11 +507,11 @@ public:
 	}
 
 	void reset(THREADID t = -1) {
-//		typename M::accessor acc;
-//		if(map_.find(acc, t)) {
-//			acc->second.clear();
-//		}
-		map_.erase(t);
+		typename M::accessor acc;
+		if(map_.find(acc, t)) {
+			acc->second.clear();
+		}
+//		map_.erase(t);
 	}
 
 	void clear() {
@@ -536,7 +541,8 @@ public:
 	~AuxVar1Pre(){}
 
 	static TransitionPredicatePtr create (const AuxVarPtr& var, const AuxKeyPtr& key = AuxKeyPtr(), const AuxValuePtr& value = AuxValuePtr(), const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		return TransitionPredicatePtr(new AuxVar1Pre<K,T,undef_key_,undef_value_>(var, key, value, tvar));
+		TransitionPredicatePtr p(new AuxVar1Pre<K,T,undef_key_,undef_value_>(var, key, value, tvar));
+		return p;
 	}
 
 	bool EvalState(Coroutine* t = NULL) {
