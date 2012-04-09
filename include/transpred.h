@@ -608,23 +608,23 @@ public:
 	}
 
 	static void Reset(THREADID t = -1) {
-		safe_notnull(Ends.get())->reset(t);
-		safe_notnull(Reads.get())->reset(t);
-		safe_notnull(Writes.get())->reset(t);
-		safe_notnull(CallsFrom.get())->reset(t);
-		safe_notnull(CallsTo.get())->reset(t);
-		safe_notnull(Enters.get())->reset(t);
-		safe_notnull(Returns.get())->reset(t);
+		Ends->reset(t);
+		Reads->reset(t);
+		Writes->reset(t);
+		CallsFrom->reset(t);
+		CallsTo->reset(t);
+		Enters->reset(t);
+		Returns->reset(t);
 	}
 
 	static void Clear() {
-		safe_notnull(Ends.get())->clear();
-		safe_notnull(Reads.get())->clear();
-		safe_notnull(Writes.get())->clear();
-		safe_notnull(CallsFrom.get())->clear();
-		safe_notnull(CallsTo.get())->clear();
-		safe_notnull(Enters.get())->clear();
-		safe_notnull(Returns.get())->clear();
+		Ends->clear();
+		Reads->clear();
+		Writes->clear();
+		CallsFrom->clear();
+		CallsTo->clear();
+		Enters->clear();
+		Returns->clear();
 	}
 
 	// auxiliary variables
