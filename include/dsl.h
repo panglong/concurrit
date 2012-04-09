@@ -281,7 +281,7 @@ public:
 	typedef std::map<THREADID, int> TidToIdxMap;
 	SelectThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL, int num_children = 0)
 	: SelectionNode(parent, num_children), var_(var) {
-		safe_assert(var_->thread() == NULL);
+		safe_assert(safe_notnull(var_.get())->thread() == NULL);
 	}
 	~SelectThreadNode() {}
 
@@ -318,6 +318,7 @@ public:
 	ChildLoc set_selected_thread(Coroutine* thread) {
 		ChildLoc newnode = {this, 0};
 		// set thread of the variable
+		safe_assert(var_ != NULL);
 		safe_assert(var_->thread() == NULL);
 		thread_ = thread;
 		var_->set_thread(thread);
@@ -364,6 +365,7 @@ public:
 		ChildLoc newnode = {this, child_index};
 		safe_assert(!newnode.empty());
 		// set thread of the variable
+		safe_assert(var_ != NULL);
 		safe_assert(var_->thread() == NULL);
 		var_->set_thread(co);
 		return newnode;
@@ -376,6 +378,7 @@ public:
 		ChildLoc newnode = {this, child_index};
 		safe_assert(!newnode.empty());
 		// set thread of the variable
+		safe_assert(var_ != NULL);
 		safe_assert(var_->thread() == NULL);
 		var_->set_thread(co);
 		return newnode;

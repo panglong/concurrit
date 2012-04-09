@@ -362,7 +362,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			//=========================================
 			// yield and wait
 			if(timeout_usec > 0) {
-				VLOG(2) << "Timed wait in AcquireRef";
+//				VLOG(2) << "Timed wait in AcquireRef";
 				int result = sem_ref_.WaitTimed(timeout_usec);
 				if(result == ETIMEDOUT) {
 					// fire timeout (backtrack)
@@ -370,7 +370,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				}
 				safe_assert(result == PTH_SUCCESS);
 			} else {
-				VLOG(2) << "Untimed wait in AcquireRef";
+//				VLOG(2) << "Untimed wait in AcquireRef";
 				sem_ref_.Wait();
 			}
 			sem_ref_.Signal();
