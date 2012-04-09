@@ -171,9 +171,10 @@ namespace concurrit {
 
 #define UNRECOVERABLE_ERROR 5
 
+void print_stack_trace();
+
 #ifdef SAFE_ASSERT
 #include <execinfo.h>
-extern void print_stack_trace();
 #define safe_notnull(o) 	CHECK_NOTNULL(o)
 #define safe_assert(cond) \
 		if (!(cond))  { \
@@ -279,6 +280,7 @@ public:
 	static void Destroy();
 	static volatile bool IsInitialized();
 	static void* CallDriverMain(void*);
+	static void SignalHandler(int sig_num, siginfo_t * info, void * ucontext);
 private:
 	static volatile bool initialized_;
 	DECL_STATIC_FIELD_REF(main_args, driver_args)

@@ -47,6 +47,23 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
 
 	//==========================================
+
+	// first set the signal handler
+	struct sigaction sigact;
+
+	 sigact.sa_sigaction = Concurrit::SignalHandler;
+	 sigact.sa_flags = SA_RESTART | SA_SIGINFO;
+
+	 if (sigaction(SIGSEGV, &sigact, (struct sigaction *)NULL) != 0)
+	 {
+	  fprintf(stderr, "error setting signal handler for %d (%s)\n",
+	    SIGSEGV, strsignal(SIGSEGV));
+
+	  exit(EXIT_FAILURE);
+	 }
+
+
+	//==========================================
 	// separate arguments into two: 1 -- 2
 
 	fprintf(stderr, "Test arguments: %s\n", main_args(argc, argv).ToString().c_str());
@@ -174,6 +191,15 @@ void* Concurrit::CallDriverMain(void*) {
 	safe_assert(main_func != NULL);
 	// call the driver
 	main_func(driver_args_.argc_, driver_args_.argv_);
+}
+
+/********************************************************************************/
+
+void Concurrit::SignalHandler(int sig_num, siginfo_t * info, void * ucontext) {
+	fprintf(stderr, "Got signal %s!\n", strsignal(sig_num));
+	print_stack_trace();
+	fflush(stderr);
+	_Exit(UNRECOVERABLE_ERROR);
 }
 
 } // end namespace

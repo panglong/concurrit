@@ -1044,7 +1044,7 @@ int main(int argc, CHAR *argv[]) {
 	RTN_AddInstrumentFunction(Routine, 0);
 
 	TRACE_AddInstrumentFunction(Trace, 0);
-	PIN_AddContextChangeFunction(OnSig, 0);
+//	PIN_AddContextChangeFunction(OnSig, 0);
 
 	filter.Activate();
 
