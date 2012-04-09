@@ -256,7 +256,19 @@ struct main_args {
 	int argc_;
 	char** argv_;
 	main_args(int argc = 0, char** argv = NULL) : argc_(argc), argv_(argv) {}
-	~main_args() { if(argv_ != NULL) delete argv_; }
+	~main_args() {} // { if(argv_ != NULL) delete argv_; }
+
+	std::string ToString() {
+		std::stringstream s;
+		s << "[";
+		const char* comma = "";
+		for(int i = 0; i < argc_; ++i) {
+			s << comma << (argv_[i] == NULL ? "NULL" : argv_[i]);
+			comma = ", ";
+		}
+		s << "]";
+		return s.str();
+	}
 };
 
 /********************************************************************************/
