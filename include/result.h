@@ -46,6 +46,7 @@ public:
 
 	virtual bool IsSuccess() = 0;
 	virtual std::string ToString() {
+		safe_assert(statistics_.get() != NULL);
 		std::stringstream s;
 		s << "************* Statistics *************\n";
 		s << statistics_->ToString() << "\n";

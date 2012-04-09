@@ -2136,6 +2136,9 @@ void _SWARM_MULTICORE_spin_barrier_wait(_SWARM_MULTICORE_spin_barrier_t sbarrier
 #define MIN_TIME       0.000001
 
 
+void StartInstrument() {}
+void EndInstrument() {}
+
 
 static void test_radixsort_swarm(long N1, THREADED) 
 {
@@ -2144,6 +2147,7 @@ static void test_radixsort_swarm(long N1, THREADED)
 #if TIMING
   double secs, tsec;
 #endif
+
 
   inArr  = (int *)SWARM_malloc_l(N1 * sizeof(int), TH);
   outArr = (int *)SWARM_malloc_l(N1 * sizeof(int), TH);
@@ -2173,6 +2177,8 @@ static void test_radixsort_swarm(long N1, THREADED)
 
   SWARM_free(outArr, TH);
   SWARM_free(inArr, TH);
+
+
 }
 
 
@@ -2188,6 +2194,8 @@ static void *swarmtest(THREADED)
 /* #endif */
   
 
+  StartInstrument();
+
   SWARM_Barrier();
   
   //  for (i = ((long)1<<12) ; i<=ARR_SIZE_SORT ; i = TEST_INC)
@@ -2201,6 +2209,8 @@ static void *swarmtest(THREADED)
   /*******************************/
   
   SWARM_done(TH);
+
+  EndInstrument();
 }
 
 static

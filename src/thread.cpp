@@ -200,7 +200,7 @@ void Thread::Join(void ** value_ptr /*= NULL*/) {
 /********************************************************************************/
 
 void Thread::Cancel() {
-	__pthread_errno__ = pthread_cancel(pthread_);
+	__pthread_errno__ = Originals::pthread_cancel(pthread_);
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
 		printf("Cancel error: %s\n", PTHResultToString(__pthread_errno__));
 	}

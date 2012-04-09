@@ -60,7 +60,8 @@ Scenario::Scenario(const char* name) {
 
 	dpor_enabled_ = true;
 
-	statistics_ = boost::shared_ptr<Statistics>(new Statistics());
+	boost::shared_ptr<Statistics> stt(new Statistics());
+	statistics_ = stt;
 
 	test_status_ = TEST_BEGIN;
 }
@@ -328,12 +329,12 @@ Result* Scenario::Explore() {
 					if(Backtrack(be->reason())) {
 						continue;
 					} else {
-						VLOG(2) << SC_TITLE << "No feasible execution!!!";
-
 						if(result == NULL) {
+							VLOG(2) << SC_TITLE << "No feasible execution!!!";
 							result = new NoFeasibleExecutionResult(schedule_->Clone());
 						} else {
-							safe_assert(INSTANCEOF(result, ForallResult*));
+							VLOG(2) << SC_TITLE << "No more feasible execution!!!";
+							safe_assert(result != NULL && INSTANCEOF(result, ForallResult*));
 						}
 						goto LOOP_DONE; // break the outermost loop
 					}
@@ -529,6 +530,7 @@ void Scenario::ResolvePoint(SchedulePoint* point) {
 /********************************************************************************/
 
 bool Scenario::Backtrack(BacktrackReason reason) {
+	VLOG(2) << "Trying to backtrack...";
 	if(ConcurritExecutionMode == COOPERATIVE) {
 		return DoBacktrackCooperative(reason);
 	} else {
@@ -671,8 +673,8 @@ void Scenario::Finish(Result* result) {
 	// finish timer
 	statistics_->timer("Search time").stop();
 	// print statistics
-	std::cout << "********** Statistics **********" << std::endl;
-	std::cout << statistics_->ToString() << std::endl;
+	std::cerr << "********** Statistics **********" << std::endl;
+	std::cerr << statistics_->ToString() << std::endl;
 
 	safe_assert(Config::ExitOnFirstExecution >= 0 || result != NULL);
 	if(result != NULL) {
@@ -681,7 +683,7 @@ void Scenario::Finish(Result* result) {
 	}
 
 	if(Config::SaveDotGraphToFile != NULL) {
-		std::cout << "Saving dot file of the execution graph to: " << Config::SaveDotGraphToFile << std::endl;
+		std::cerr << "Saving dot file of the execution graph to: " << Config::SaveDotGraphToFile << std::endl;
 		exec_tree_.SaveDotGraph(Config::SaveDotGraphToFile);
 	}
 }

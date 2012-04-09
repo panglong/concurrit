@@ -225,15 +225,23 @@ void* Coroutine::Run() {
 				return_value = call_function();
 
 			} catch(std::exception* e) {
-				VLOG(2) << CO_TITLE << " threw an exception...";
-				// record the exception in scenario
-				exception_ = e;
-				if(ConcurritExecutionMode == COOPERATIVE) {
-					// send main exception message
-					this->Transfer(group->main(), MSG_EXCEPTION);
-				} else {
-					// (immediatelly) notify all others that there is an exception
-					scenario->exec_tree()->EndWithException(this, exception_);
+				// first check if this is due to pthread_exit
+				BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
+				if(be != NULL && be->reason() == PTH_EXIT) {
+					VLOG(2) << CO_TITLE << "Simulating exit due to pthread_exit.";
+					return_value = return_value_;
+				} else { //==================================================
+					// other kinds of errors
+					VLOG(2) << CO_TITLE << " threw an exception...";
+					// record the exception in scenario
+					exception_ = e;
+					if(ConcurritExecutionMode == COOPERATIVE) {
+						// send main exception message
+						this->Transfer(group->main(), MSG_EXCEPTION);
+					} else {
+						// (immediatelly) notify all others that there is an exception
+						scenario->exec_tree()->EndWithException(this, exception_);
+					}
 				}
 			}
 

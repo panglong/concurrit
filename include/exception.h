@@ -53,7 +53,8 @@ enum BacktrackReason { SEARCH_ENDS = 1,
 					   ASSUME_FAILS = 6,
 					   TIMEOUT = 7,
 					   EXCEPTION = 8,
-					   UNKNOWN = 9};
+					   PTH_EXIT = 9,
+					   UNKNOWN = -1};
 
 class BacktrackException : public std::exception {
 public:
@@ -79,6 +80,7 @@ public:
 			print_enum(ASSUME_FAILS)
 			print_enum(TIMEOUT)
 			print_enum(EXCEPTION)
+			print_enum(PTH_EXIT)
 			print_enum(UNKNOWN)
 		default:
 			bool UnknownBacktrackReason = false;

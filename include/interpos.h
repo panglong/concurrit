@@ -46,9 +46,13 @@ public:
 
 	static int pthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
 	static int pthread_join(pthread_t, void **);
+	static void pthread_exit(void *);
+	static int pthread_cancel(pthread_t);
 
 	static int (* volatile _pthread_create) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
 	static int (* volatile _pthread_join) (pthread_t, void **);
+	static void (* volatile _pthread_exit) (void *);
+	static int (* volatile _pthread_cancel) (pthread_t);
 
 private:
 	static volatile bool _initialized;
@@ -58,6 +62,8 @@ private:
 
 extern "C" int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
 extern "C" int pthread_join(pthread_t thread, void ** value_ptr);
+extern "C" void pthread_exit(void * value_ptr);
+extern "C" int pthread_cancel(pthread_t thread);
 
 } // end namespace
 
