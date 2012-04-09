@@ -111,11 +111,12 @@ void Coroutine::Finish() {
 			this->Join();
 			VLOG(2) << CO_TITLE << "Joined the thread";
 		} else {
-			// kill the thread
-			VLOG(2) << CO_TITLE << "Cancelling the thread";
-			this->Cancel();
-			VLOG(2) << CO_TITLE << "Waiting for the thread";
-			this->Join();
+			unreachable();
+//			// kill the thread
+//			VLOG(2) << CO_TITLE << "Cancelling the thread";
+//			this->Cancel();
+//			VLOG(2) << CO_TITLE << "Waiting for the thread";
+//			this->Join();
 		}
 	}
 
@@ -159,17 +160,19 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 
 	if(status_ == PASSIVE || status_ == TERMINATED) {
 		VLOG(2) << CO_TITLE << "Starting new thread";
-		Thread::Start(pid);
+		Thread::Start(pid, attr);
 	} else if(status_ == WAITING || status_ == ENDED) {
+		return_value_ = NULL;
 		if(pid != NULL) *pid = pthread_;
 		// send the restart message
 		VLOG(2) << CO_TITLE << "Sending restart message";
 		channel_.SendNoWait(MSG_RESTART);
 	} else {
 		// kill the thread and restart
-		VLOG(2) << CO_TITLE << "Cancelling and restarting the thread";
-		this->Finish();
-		Thread::Start(pid, attr);
+		unreachable();
+//		VLOG(2) << CO_TITLE << "Cancelling and restarting the thread";
+//		this->Finish();
+//		Thread::Start(pid, attr);
 	}
 
 	// wait for started message

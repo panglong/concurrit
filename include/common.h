@@ -197,6 +197,12 @@ void print_stack_trace();
 		fflush(stderr); \
 		_Exit(UNRECOVERABLE_ERROR); \
 
+#define unreachable() \
+		VLOG(2) << "Executing unreachable code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
+		fprintf(stderr, "Unreachable code!"); \
+		fflush(stderr); \
+		_Exit(UNRECOVERABLE_ERROR); \
+
 /********************************************************************************/
 // #define NOTNULL(ptr)	(ptr)
 
