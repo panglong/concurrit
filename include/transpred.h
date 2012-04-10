@@ -35,6 +35,7 @@
 #define TRANSPRED_H_
 
 #include "common.h"
+#include "thread.h"
 #include "tbb/concurrent_hash_map.h"
 #include <boost/shared_ptr.hpp>
 
@@ -295,7 +296,10 @@ public:
 
 private:
 	DECL_FIELD(std::string, name)
+	DECL_FIELD(Mutex, mutex)
 };
+
+#define LOCK() ScopeMutex __sm__(&mutex_)
 
 /********************************************************************************/
 
@@ -312,19 +316,27 @@ public:
 	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2 = AuxVar0Ptr(), const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	virtual void reset(THREADID t = -1) {
+		LOCK();
+
 		set(undef_value_, t);
 	}
 
 	virtual bool isset(THREADID t = -1) {
+		LOCK();
+
 		return get(t) != undef_value_;
 	}
 
 	virtual void clear() {
+		LOCK();
+
 		map_.clear();
 	}
 
 	//================================================
 	virtual T get(THREADID t = -1) {
+		LOCK();
+
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
 			return undef_value_;
@@ -333,6 +345,8 @@ public:
 	}
 
 	virtual void set(const T& value, THREADID t = -1) {
+		LOCK();
+
 		typename M::accessor acc;
 		map_.insert(acc, t);
 		acc->second = value;
@@ -463,6 +477,8 @@ public:
 	//================================================
 
 	T get(const K& key, THREADID t = -1) {
+		LOCK();
+
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
 			return undef_value_;
@@ -475,6 +491,8 @@ public:
 	}
 
 	void set(const K& key = undef_key_, const T& value = undef_value_, THREADID t = -1) {
+		LOCK();
+
 		typename M::accessor acc;
 		if(!map_.find(acc, t)) {
 			map_.insert(acc, t);
@@ -486,10 +504,14 @@ public:
 	}
 
 	void set(const K& key = undef_key_, THREADID t = -1) {
+		LOCK();
+
 		set(key, undef_value_, t);
 	}
 
 	bool isset(const K& key, THREADID t = -1) {
+		LOCK();
+
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
 			return false;
@@ -499,6 +521,8 @@ public:
 	}
 
 	bool isset(THREADID t = -1) {
+		LOCK();
+
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
 			return false;
@@ -507,6 +531,8 @@ public:
 	}
 
 	void reset(THREADID t = -1) {
+		LOCK();
+
 		typename M::accessor acc;
 		if(map_.find(acc, t)) {
 			acc->second.clear();
@@ -515,6 +541,8 @@ public:
 	}
 
 	void clear() {
+		LOCK();
+
 		map_.clear();
 	}
 private:
