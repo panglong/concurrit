@@ -69,36 +69,32 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	fprintf(stderr, "Test arguments: %s\n", main_args(argc, argv).ToString().c_str());
 
 	safe_assert(argc > 0);
-	Concurrit::driver_args_ = {0, NULL};
-	if(argc > 1) {
-		std::vector<char*> args;
-		int i = 1;
-		// 1
-		for(; i < argc; ++i) {
-			if(strncmp(argv[i], "--", 2) == 0) break;
-			args.push_back(argv[i]);
-		}
-
-		main_args m = ArgVectorToMainArgs(args);
-		fprintf(stderr, "Concurrit arguments: %s\n", m.ToString().c_str());
-
-		Config::ParseCommandLine(m.argc_, m.argv_);
-		if(Config::OnlyShowHelp) {
-			_Exit(EXIT_SUCCESS);
-		}
-
-		// 2
-		if(strncmp(argv[i], "--", 2) == 0) {
-			++i;
-		}
-		if(i < argc) {
-			args.clear();
-			for(; i < argc; ++i) {
-				args.push_back(argv[i]);
-			}
-			Concurrit::driver_args_ = ArgVectorToMainArgs(args);
-		}
+	std::vector<char*> args;
+	int i = 0;
+	// 1
+	for(; i < argc; ++i) {
+		if(strncmp(safe_notnull(argv[i]), "--", 2) == 0) break;
+		args.push_back(argv[i]);
 	}
+
+	main_args m = ArgVectorToMainArgs(args);
+	fprintf(stderr, "Concurrit arguments: %s\n", m.ToString().c_str());
+
+	Config::ParseCommandLine(m.argc_, m.argv_);
+	if(Config::OnlyShowHelp) {
+		_Exit(EXIT_SUCCESS);
+	}
+
+	// 2
+	if(strncmp(argv[i], "--", 2) == 0) {
+		++i;
+	}
+	args.clear();
+	args.push_back("<bench-name>");
+	for(; i < argc; ++i) {
+		args.push_back(argv[i]);
+	}
+	Concurrit::driver_args_ = ArgVectorToMainArgs(args);
 	fprintf(stderr, "Driver arguments: %s\n", Concurrit::driver_args_ .ToString().c_str());
 
 	//==========================================

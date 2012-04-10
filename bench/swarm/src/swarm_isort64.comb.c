@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#include "dummy.h" // concurrit
+
 #ifdef ERR1
 void thrilleAssertC(int);
 #endif
@@ -477,6 +479,7 @@ void radixsort_check(long q,
 #ifdef ERR1
       thrilleAssertC(0);
 #endif
+      concurritAssert(0);
     }
 }
 
@@ -2136,10 +2139,6 @@ void _SWARM_MULTICORE_spin_barrier_wait(_SWARM_MULTICORE_spin_barrier_t sbarrier
 #define MIN_TIME       0.000001
 
 
-void StartInstrument() {}
-void EndInstrument() {}
-
-
 static void test_radixsort_swarm(long N1, THREADED) 
 {
   int *inArr, *outArr;
@@ -2148,6 +2147,7 @@ static void test_radixsort_swarm(long N1, THREADED)
   double secs, tsec;
 #endif
 
+  StartInstrument();
 
   inArr  = (int *)SWARM_malloc_l(N1 * sizeof(int), TH);
   outArr = (int *)SWARM_malloc_l(N1 * sizeof(int), TH);
@@ -2178,6 +2178,7 @@ static void test_radixsort_swarm(long N1, THREADED)
   SWARM_free(outArr, TH);
   SWARM_free(inArr, TH);
 
+  EndInstrument();
 
 }
 
@@ -2194,8 +2195,6 @@ static void *swarmtest(THREADED)
 /* #endif */
   
 
-  StartInstrument();
-
   SWARM_Barrier();
   
   //  for (i = ((long)1<<12) ; i<=ARR_SIZE_SORT ; i = TEST_INC)
@@ -2209,8 +2208,6 @@ static void *swarmtest(THREADED)
   /*******************************/
   
   SWARM_done(TH);
-
-  EndInstrument();
 }
 
 static

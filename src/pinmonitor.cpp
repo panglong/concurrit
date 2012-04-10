@@ -243,6 +243,8 @@ void DisablePinTool() { VLOG(2) << "Disabling pin instrumentation"; }
 
 void ThreadRestart() { VLOG(2) << "Restarting thread."; }
 
+/********************************************************************************/
+
 void StartInstrument() { VLOG(2) << "Starting instrumentation."; }
 void EndInstrument() {
 	VLOG(2) << "Ending instrumentation.";
@@ -257,6 +259,12 @@ void AtPc(int pc) {
 	Coroutine* co = safe_notnull(Coroutine::Current());
 	AuxState::Pc->set(pc, co->tid());
 	safe_notnull(safe_notnull(co->group())->scenario())->OnControlledTransition(co);
+}
+
+void concurritAssert(int b) {
+	if(!b) {
+		ASSERT(false);
+	}
 }
 
 /********************************************************************************/

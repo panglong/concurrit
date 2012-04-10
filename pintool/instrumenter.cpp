@@ -568,6 +568,12 @@ LOCALFUN void InitFilteredImages() {
 	FilteredImages.push_back("libconcurrit.so");
 	FilteredImages.push_back("libgflags.so");
 	FilteredImages.push_back("libglog.so");
+
+	FilteredImages.push_back("libbz2.so");
+	FilteredImages.push_back("libnsl.so");
+	FilteredImages.push_back("libssl.so");
+	FilteredImages.push_back("libz.so");
+	FilteredImages.push_back("libm.so");
 }
 
 /* ===================================================================== */

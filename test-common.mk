@@ -41,7 +41,7 @@ pin: lib/$(TARGETLIB) bin/$(TARGET)
 		$(CONCURRIT_HOME)/scripts/run_pintool.sh bin/$(TARGET) $(ARGS)
 
 shared: lib/lib$(TARGET).so
-LIBFLAGS+=-lpthread
+LIBFLAGS+=-ldummy -lpthread -I$(CONCURRIT_INCDIR) -L$(CONCURRIT_LIBDIR)
 lib/lib$(TARGET).so: makedirs $(LIBSRCS) $(LIBHEADERS)
 	$(CC) -I. -Isrc -g -gdwarf-2 -O1 -w -fPIC $(LIBFLAGS) -shared -o $@ $(LIBSRCS)
 

@@ -15,7 +15,7 @@ FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions \
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux
 
-all: makedirs $(CONCURRIT_LIBDIR)/$(TARGET).so
+all: makedirs dummy $(CONCURRIT_LIBDIR)/$(TARGET).so
 
 $(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
 	$(CC) $(CONCURRIT_LIB_FLAGS) $(DEFINES) $(FLAGS) -shared -o $@ $^
@@ -25,6 +25,11 @@ $(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
 $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
 	$(CC) $(CONCURRIT_INC_FLAGS) $(DEFINES) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
 	
+dummy: makedirs $(CONCURRIT_LIBDIR)/libdummy.so
+
+$(CONCURRIT_LIBDIR)/libdummy.so: $(CONCURRIT_HOME)/dummy/dummy.cpp $(CONCURRIT_INCDIR)/dummy.h
+	$(CC) -I$(CONCURRIT_INCDIR) -g -gdwarf-2 -O1 -w -fPIC -shared -o $@ $(CONCURRIT_HOME)/dummy/dummy.cpp
+
 makedirs:
 	mkdir -p $(CONCURRIT_BINDIR)
 	mkdir -p $(CONCURRIT_LIBDIR)

@@ -315,10 +315,9 @@ extern "C" void DisablePinTool();
 
 extern "C" void ThreadRestart();
 
-extern "C" void StartInstrument();
-extern "C" void EndInstrument();
+/********************************************************************************/
 
-extern "C" void AtPc(int pc);
+#include "dummy.h"
 
 /********************************************************************************/
 
