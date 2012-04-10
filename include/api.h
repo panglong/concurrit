@@ -224,6 +224,16 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
+#define FUNC(v, f)	static FuncVar v(reinterpret_cast<void*>(f))
+
+/********************************************************************************/
+
+#define RUN_UNTIL(t, p)		DSLTransferUntil((t), (p))
+#define RUN_ONCE(t, p)		DSLTransition((p), (t))
+#define TRANSITION(p)		DSLTransition((p))
+
+/********************************************************************************/
+
 #define CONCURRIT_BEGIN_MAIN() \
 		using namespace concurrit; \
 		static Suite __concurrit_suite__; \

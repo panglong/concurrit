@@ -45,6 +45,20 @@ class Coroutine;
 
 /********************************************************************************/
 
+class FuncVar {
+public:
+	FuncVar(void* addr)	: addr_(PTR2ADDRINT(addr)) {}
+	~FuncVar() {}
+
+	operator ADDRINT() { return addr_; }
+	operator void*() { return ADDRINT2PTR(addr_); }
+
+private:
+	DECL_FIELD(ADDRINT, addr)
+};
+
+/********************************************************************************/
+
 class ThreadVar {
 public:
 	ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
@@ -86,14 +100,14 @@ public:
 
 	static TransitionPredicatePtr True();
 	static TransitionPredicatePtr False();
-
-	TransitionPredicatePtr operator ! ();
-	TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred);
-	TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred);
-
-	TransitionPredicatePtr operator && (const bool& b);
-	TransitionPredicatePtr operator || (const bool& b);
 };
+
+TransitionPredicatePtr operator ! (const TransitionPredicatePtr& pred);
+TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2);
+TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2);
+
+TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b);
+TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b);
 
 /********************************************************************************/
 
@@ -700,9 +714,12 @@ public:
 #define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x)
 #define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
 
-#define IN_FUNC(addr)	TPInFunc::create(safe_notnull(addr))
-#define TIMES_IN_FUNC(addr, k) \
-						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, addr, k)
+#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f)
+#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f)
+
+#define IN_FUNC(f)		TPInFunc::create(safe_notnull(f))
+#define TIMES_IN_FUNC(f, k) \
+						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, f	, k)
 
 #define THR_EQ(t1, t2)	TPThreadVarsEqual::create((t1), (t2))
 #define THR_NEQ(t1, t2)	THR_EQ(t1, t2)->operator!()

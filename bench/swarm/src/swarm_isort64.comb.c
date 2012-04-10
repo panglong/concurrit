@@ -189,6 +189,7 @@ extern uthread_info_t *uthread_info;
 #define SWARM_Barrier() SWARM_Barrier_tree(TH)
 #endif
   
+void 	test_radixsort_swarm(long N1, THREADED);
 void   	 SWARM_Barrier_tree(THREADED);
 void   	 SWARM_Barrier_sync(THREADED);
 void  	 *SWARM_malloc(int bytes, THREADED);
@@ -2138,16 +2139,13 @@ void _SWARM_MULTICORE_spin_barrier_wait(_SWARM_MULTICORE_spin_barrier_t sbarrier
 #endif
 #define MIN_TIME       0.000001
 
-
-static void test_radixsort_swarm(long N1, THREADED) 
+void test_radixsort_swarm(long N1, THREADED)
 {
   int *inArr, *outArr;
 
 #if TIMING
   double secs, tsec;
 #endif
-
-  StartInstrument();
 
   inArr  = (int *)SWARM_malloc_l(N1 * sizeof(int), TH);
   outArr = (int *)SWARM_malloc_l(N1 * sizeof(int), TH);
@@ -2177,8 +2175,6 @@ static void test_radixsort_swarm(long N1, THREADED)
 
   SWARM_free(outArr, TH);
   SWARM_free(inArr, TH);
-
-  EndInstrument();
 
 }
 

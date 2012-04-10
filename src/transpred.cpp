@@ -63,24 +63,29 @@ TransitionPredicatePtr TransitionPredicate::False() { return __false_transition_
 
 /*************************************************************************************/
 
-TransitionPredicatePtr TransitionPredicate::operator!() {
-	return TransitionPredicatePtr(new NotTransitionPredicate(this));
+TransitionPredicatePtr operator!(const TransitionPredicatePtr& pred) {
+	TransitionPredicatePtr p(new NotTransitionPredicate(pred));
+	return p;
 }
 
-TransitionPredicatePtr TransitionPredicate::operator &&(const TransitionPredicatePtr& pred) {
-	return TransitionPredicatePtr(new NAryTransitionPredicate(NAryAND, TransitionPredicatePtr(this), pred));
+TransitionPredicatePtr operator &&(const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2) {
+	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryAND, pred1, pred2));
+	return p;
 }
 
-TransitionPredicatePtr TransitionPredicate::operator ||(const TransitionPredicatePtr& pred) {
-	return TransitionPredicatePtr(new NAryTransitionPredicate(NAryOR, TransitionPredicatePtr(this), pred));
+TransitionPredicatePtr operator ||(const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2) {
+	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryOR, pred1, pred2));
+	return p;
 }
 
-TransitionPredicatePtr TransitionPredicate::operator && (const bool& b) {
-	return (this->operator&& (b ? TransitionPredicate::True() : TransitionPredicate::False()));
+TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b) {
+	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryAND, pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
+	return p;
 }
 
-TransitionPredicatePtr TransitionPredicate::operator || (const bool& b) {
-	return (this->operator|| (b ? TransitionPredicate::True() : TransitionPredicate::False()));
+TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b) {
+	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryOR, pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
+	return p;
 }
 
 /********************************************************************************/
