@@ -72,7 +72,7 @@ public:
 		return s.str().c_str();
 	}
 
-	static const char* ReasonToString(BacktrackReason reason) {
+	static std::string ReasonToString(BacktrackReason reason) {
 		std::stringstream s;
 #define print_enum(e) case e: s << #e; break;
 		switch(reason) {
@@ -92,7 +92,7 @@ public:
 			break;
 		}
 #undef print_enum
-		return s.str().c_str();
+		return s.str();
 	}
 private:
 	DECL_FIELD(BacktrackReason, reason)

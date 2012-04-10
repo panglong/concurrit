@@ -159,8 +159,10 @@ public:
 					if(buff[sz-1] == '\n') {
 						buff[sz-1] = '\0';
 					}
-					log_file << "Adding routine to instrument: " << buff << std::endl;
-					RTNNamesToInstrument.insert(buff);
+					if(buff[0] != '#') {
+						log_file << "Adding routine to instrument: " << buff << std::endl;
+						RTNNamesToInstrument.insert(buff);
+					}
 				}
 			}
 			fclose(fin);
@@ -558,6 +560,7 @@ LOCALFUN void InitFilteredImages() {
 	FilteredImages.push_back("libtbb_preview_debug.so");
 
 	FilteredImages.push_back("libconcurrit.so");
+	FilteredImages.push_back("libdummy.so");
 	FilteredImages.push_back("libgflags.so");
 	FilteredImages.push_back("libglog.so");
 
