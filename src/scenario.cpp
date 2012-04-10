@@ -481,6 +481,7 @@ void Scenario::RunTestCase() throw() {
 					throw e;
 				}
 			}
+			VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
 
 		} while(exec_tree_.EndWithSuccess(reason));
 
@@ -490,8 +491,11 @@ void Scenario::RunTestCase() throw() {
 		// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
 		// then change the backtrack type to THREADS_ALLENDED
 		BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
-		if(be != NULL && be->reason() == TIMEOUT && group_.IsAllEnded()) {
-			be->set_reason(THREADS_ALLENDED);
+		if(be != NULL) {
+			VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(be->reason());
+			if(be->reason() == TIMEOUT && group_.IsAllEnded()) {
+				be->set_reason(THREADS_ALLENDED);
+			}
 		}
 		//====================================
 		// mark the end of the path with end node and the corresponding exception

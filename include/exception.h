@@ -66,12 +66,16 @@ public:
 
 	}
 
-	virtual const char* what() const throw()
-	{
+	virtual const char* what() const throw() {
 		std::stringstream s;
-		s << "Backtrack due to ";
+		s << "Backtrack due to " << ReasonToString(reason_);
+		return s.str().c_str();
+	}
+
+	static const char* ReasonToString(BacktrackReason reason) {
+		std::stringstream s;
 #define print_enum(e) case e: s << #e; break;
-		switch(reason_) {
+		switch(reason) {
 			print_enum(SEARCH_ENDS)
 			print_enum(SUCCESS)
 			print_enum(SPEC_UNSATISFIED)
