@@ -574,7 +574,7 @@ int RWLock::WUnlock() {
 /********************************************************************************/
 
 int RWLock::Unlock() {
-	__pthread_errno__ = pthread_rwlock_wrlock(&rwlock_);
+	__pthread_errno__ = pthread_rwlock_unlock(&rwlock_);
 	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 	return __pthread_errno__;
 }

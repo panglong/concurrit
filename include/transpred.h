@@ -296,10 +296,11 @@ public:
 
 private:
 	DECL_FIELD(std::string, name)
-	DECL_FIELD(Mutex, mutex)
+	DECL_FIELD(RWLock, rwlock)
 };
 
-#define LOCK() ScopeMutex __sm__(&mutex_)
+#define RLOCK() ScopeRLock __sm__(&rwlock_)
+#define WLOCK() ScopeWLock __sm__(&rwlock_)
 
 /********************************************************************************/
 
@@ -316,26 +317,22 @@ public:
 	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2 = AuxVar0Ptr(), const ThreadVarPtr& tvar = ThreadVarPtr());
 
 	virtual void reset(THREADID t = -1) {
-		LOCK();
-
 		set(undef_value_, t);
 	}
 
 	virtual bool isset(THREADID t = -1) {
-		LOCK();
-
 		return get(t) != undef_value_;
 	}
 
 	virtual void clear() {
-		LOCK();
+		WLOCK();
 
 		map_.clear();
 	}
 
 	//================================================
 	virtual T get(THREADID t = -1) {
-		LOCK();
+		RLOCK();
 
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
@@ -345,7 +342,7 @@ public:
 	}
 
 	virtual void set(const T& value, THREADID t = -1) {
-		LOCK();
+		WLOCK();
 
 		typename M::accessor acc;
 		map_.insert(acc, t);
@@ -477,7 +474,7 @@ public:
 	//================================================
 
 	T get(const K& key, THREADID t = -1) {
-		LOCK();
+		RLOCK();
 
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
@@ -491,7 +488,7 @@ public:
 	}
 
 	void set(const K& key = undef_key_, const T& value = undef_value_, THREADID t = -1) {
-		LOCK();
+		WLOCK();
 
 		typename M::accessor acc;
 		if(!map_.find(acc, t)) {
@@ -504,13 +501,11 @@ public:
 	}
 
 	void set(const K& key = undef_key_, THREADID t = -1) {
-		LOCK();
-
 		set(key, undef_value_, t);
 	}
 
 	bool isset(const K& key, THREADID t = -1) {
-		LOCK();
+		RLOCK();
 
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
@@ -521,7 +516,7 @@ public:
 	}
 
 	bool isset(THREADID t = -1) {
-		LOCK();
+		RLOCK();
 
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
@@ -531,7 +526,7 @@ public:
 	}
 
 	void reset(THREADID t = -1) {
-		LOCK();
+		WLOCK();
 
 		typename M::accessor acc;
 		if(map_.find(acc, t)) {
@@ -541,7 +536,7 @@ public:
 	}
 
 	void clear() {
-		LOCK();
+		WLOCK();
 
 		map_.clear();
 	}

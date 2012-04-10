@@ -157,8 +157,8 @@ private:
 
 class ScopeMutex {
 public:
-	ScopeMutex(Mutex* mutex) : mutex_(mutex) { mutex_->Lock(); }
-	~ScopeMutex() { mutex_->Unlock(); }
+	ScopeMutex(Mutex* mutex) : mutex_(mutex) { CHECK(PTH_SUCCESS == mutex_->Lock()); }
+	~ScopeMutex() { CHECK(PTH_SUCCESS == mutex_->Unlock()); }
 private:
 	DECL_FIELD(Mutex*, mutex)
 };
@@ -167,8 +167,8 @@ private:
 
 class ScopeRLock {
 public:
-	ScopeRLock(RWLock* rwlock) : rwlock_(rwlock) { rwlock_->RLock(); }
-	~ScopeRLock() { rwlock_->Unlock(); }
+	ScopeRLock(RWLock* rwlock) : rwlock_(rwlock) { CHECK(PTH_SUCCESS == rwlock_->RLock()); }
+	~ScopeRLock() { CHECK(PTH_SUCCESS == rwlock_->Unlock()); }
 private:
 	DECL_FIELD(RWLock*, rwlock)
 };
@@ -177,8 +177,8 @@ private:
 
 class ScopeWLock {
 public:
-	ScopeWLock(RWLock* rwlock) : rwlock_(rwlock) { rwlock_->WLock(); }
-	~ScopeWLock() { rwlock_->Unlock(); }
+	ScopeWLock(RWLock* rwlock) : rwlock_(rwlock) { CHECK(PTH_SUCCESS == rwlock_->WLock()); }
+	~ScopeWLock() { CHECK(PTH_SUCCESS == rwlock_->Unlock()); }
 private:
 	DECL_FIELD(RWLock*, rwlock)
 };
@@ -187,8 +187,8 @@ private:
 
 class CondScopeMutex {
 public:
-	CondScopeMutex(Mutex* mutex, const bool& cond) : mutex_(mutex), cond_(cond) { if(cond_) mutex_->Lock(); }
-	~CondScopeMutex() { if(cond_) mutex_->Unlock(); }
+	CondScopeMutex(Mutex* mutex, const bool& cond) : mutex_(mutex), cond_(cond) { if(cond_) CHECK(PTH_SUCCESS == mutex_->Lock()); }
+	~CondScopeMutex() { if(cond_) CHECK(PTH_SUCCESS == mutex_->Unlock()); }
 private:
 	DECL_FIELD(Mutex*, mutex)
 	DECL_FIELD(bool, cond)
