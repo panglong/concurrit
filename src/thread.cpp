@@ -220,13 +220,15 @@ void Thread::Yield(bool force /*false*/) {
 /********************************************************************************/
 
 Mutex::Mutex() {
-	pthread_mutexattr_t attrs;
-	__pthread_errno__ = pthread_mutexattr_init(&attrs);
-	safe_assert(__pthread_errno__ == PTH_SUCCESS);
-	__pthread_errno__ = pthread_mutexattr_settype(&attrs, PTHREAD_MUTEX_NORMAL);
-	safe_assert(__pthread_errno__ == PTH_SUCCESS);
-	__pthread_errno__ = pthread_mutex_init(&mutex_, &attrs);
-	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+//	pthread_mutexattr_t attrs;
+//	__pthread_errno__ = pthread_mutexattr_init(&attrs);
+//	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+//	__pthread_errno__ = pthread_mutexattr_settype(&attrs, PTHREAD_MUTEX_NORMAL);
+//	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+//	__pthread_errno__ = pthread_mutex_init(&mutex_, &attrs);
+//	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+
+	mutex_ = PTHREAD_MUTEX_INITIALIZER;
 
 	owner_ = PTH_INVALID_THREAD;
 	count_ = 0;
@@ -521,5 +523,92 @@ int Semaphore::WaitTimed(long timeout) {
 	}
 }
 #endif // LINUX
+
+/********************************************************************************/
+
+RWLock::RWLock() {
+	rwlock_ = PTHREAD_RWLOCK_INITIALIZER;
+}
+
+/********************************************************************************/
+
+RWLock::RWLock(pthread_rwlock_t m) {
+	rwlock_ = PTHREAD_RWLOCK_INITIALIZER;
+}
+
+/********************************************************************************/
+
+RWLock::~RWLock() {
+	__pthread_errno__ = pthread_rwlock_destroy(&rwlock_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+}
+
+/********************************************************************************/
+
+int RWLock::RLock() {
+	__pthread_errno__ = pthread_rwlock_rdlock(&rwlock_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	return __pthread_errno__;
+}
+
+/********************************************************************************/
+
+int RWLock::RUnlock() {
+	return Unlock();
+}
+
+/********************************************************************************/
+
+int RWLock::WLock() {
+	__pthread_errno__ = pthread_rwlock_wrlock(&rwlock_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	return __pthread_errno__;
+}
+
+/********************************************************************************/
+
+int RWLock::WUnlock() {
+	return Unlock();
+}
+
+/********************************************************************************/
+
+int RWLock::Unlock() {
+	__pthread_errno__ = pthread_rwlock_wrlock(&rwlock_);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	return __pthread_errno__;
+}
+
+/********************************************************************************/
+
+bool RWLock::TryRLock() {
+	__pthread_errno__ = pthread_rwlock_tryrdlock(&rwlock_);
+	// Return false if the lock is busy and locking failed.
+	if (__pthread_errno__ == EBUSY) {
+		return false; // already locked
+	}
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);  // Verify no other errors.
+
+	safe_assert(false);
+
+	return true;
+}
+
+/********************************************************************************/
+
+bool RWLock::TryWLock() {
+	__pthread_errno__ = pthread_rwlock_trywrlock(&rwlock_);
+	// Return false if the lock is busy and locking failed.
+	if (__pthread_errno__ == EBUSY) {
+		return false; // already locked
+	}
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);  // Verify no other errors.
+
+	safe_assert(false);
+
+	return true;
+}
+
+/********************************************************************************/
 
 } // end namespace

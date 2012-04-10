@@ -46,6 +46,8 @@ boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo;
 boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters;
 boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns;
 
+boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::InFunc;
+
 /*************************************************************************************/
 
 // extern'ed variables

@@ -135,12 +135,52 @@ private:
 
 /********************************************************************************/
 
+class RWLock {
+public:
+	RWLock();
+	explicit RWLock(pthread_rwlock_t m);
+	virtual ~RWLock();
+
+	virtual int Unlock();
+	virtual int RLock();
+	virtual bool TryRLock();
+	virtual int RUnlock();
+	virtual int WLock();
+	virtual bool TryWLock();
+	virtual int WUnlock();
+
+private:
+	DECL_FIELD(pthread_rwlock_t, rwlock)
+};
+
+/********************************************************************************/
+
 class ScopeMutex {
 public:
 	ScopeMutex(Mutex* mutex) : mutex_(mutex) { mutex_->Lock(); }
 	~ScopeMutex() { mutex_->Unlock(); }
 private:
 	DECL_FIELD(Mutex*, mutex)
+};
+
+/********************************************************************************/
+
+class ScopeRLock {
+public:
+	ScopeRLock(RWLock* rwlock) : rwlock_(rwlock) { rwlock_->RLock(); }
+	~ScopeRLock() { rwlock_->Unlock(); }
+private:
+	DECL_FIELD(RWLock*, rwlock)
+};
+
+/********************************************************************************/
+
+class ScopeWLock {
+public:
+	ScopeWLock(RWLock* rwlock) : rwlock_(rwlock) { rwlock_->WLock(); }
+	~ScopeWLock() { rwlock_->Unlock(); }
+private:
+	DECL_FIELD(RWLock*, rwlock)
 };
 
 /********************************************************************************/

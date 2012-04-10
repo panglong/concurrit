@@ -47,9 +47,6 @@ void PinMonitor::Init() {
 	for(int i = 0; i < MAX_THREADS; ++i) {
 		tid_to_coroutine_[i] = NULL;
 	}
-//	if(!Config::RunUncontrolled) {
-		Enable();
-//	}
 }
 
 Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
@@ -163,6 +160,10 @@ inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* 
 	// update auxstate
 	AuxState::Enters->set(PTR2ADDRINT(addr), current->tid());
 
+	int c = AuxState::InFunc->get(PTR2ADDRINT(addr), current->tid());
+	safe_assert(c >= 0);
+	AuxState::InFunc->set(PTR2ADDRINT(addr), c+1, current->tid());
+
 	scenario->OnControlledTransition(current);
 }
 
@@ -174,7 +175,13 @@ inline void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void*
 	// update auxstate
 	AuxState::Returns->set(PTR2ADDRINT(addr), current->tid());
 
-	scenario->OnControlledTransition(current);
+	scenario->BeforeControlledTransition(current);
+
+	int c = AuxState::InFunc->get(PTR2ADDRINT(addr), current->tid());
+	safe_assert(c > 0);
+	AuxState::InFunc->set(PTR2ADDRINT(addr), c-1, current->tid());
+
+	scenario->AfterControlledTransition(current);
 }
 
 /********************************************************************************/
@@ -185,6 +192,7 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	if(!PinMonitor::IsEnabled()) {
 		return;
 	}
+	safe_assert(Concurrit::IsInitialized());
 
 	VLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
 
@@ -232,7 +240,12 @@ void DisablePinTool() { VLOG(2) << "Disabling pin instrumentation"; }
 void ThreadRestart() { VLOG(2) << "Restarting thread."; }
 
 void StartInstrument() { VLOG(2) << "Starting instrumentation."; }
-void EndInstrument() { VLOG(2) << "Ending instrumentation."; }
+void EndInstrument() {
+	VLOG(2) << "Ending instrumentation.";
+	// reset aux variables of current thread
+	Coroutine* co = safe_notnull(Coroutine::Current());
+	AuxState::Reset(co->tid());
+}
 
 /********************************************************************************/
 

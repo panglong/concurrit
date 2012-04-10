@@ -223,6 +223,7 @@ typedef uintptr_t ADDRINT;
 #endif
 
 #define PTR2ADDRINT(p)	(reinterpret_cast<ADDRINT>(p))
+#define ADDRINT2PTR(p)	(reinterpret_cast<void*>(p))
 
 /********************************************************************************/
 

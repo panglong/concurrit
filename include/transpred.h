@@ -485,7 +485,7 @@ public:
 		}
 		typename MM::const_accessor acc2;
 		if(!acc->second.find(acc2, key)) {
-			return undef_key_;
+			return undef_value_;
 		}
 		return acc2->second;
 	}
@@ -633,6 +633,9 @@ public:
 
 		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _returns(new AuxVar1<ADDRINT, bool, -1, false>("Returns"));
 		AuxState::Returns = _returns;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _infunc(new AuxVar1<ADDRINT, int, -1, 0>("InFunc"));
+		AuxState::InFunc = _infunc;
 	}
 
 	static void Reset(THREADID t = -1) {
@@ -653,6 +656,8 @@ public:
 		CallsTo->clear();
 		Enters->clear();
 		Returns->clear();
+
+		InFunc->clear();
 	}
 
 	// auxiliary variables
@@ -665,6 +670,8 @@ public:
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsTo;
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Enters;
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Returns;
+
+	static boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> InFunc;
 };
 
 /********************************************************************************/
@@ -676,6 +683,36 @@ public:
 
 #define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x)
 #define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
+
+#define IN_FUNC(addr)	TPInFunc::create(safe_notnull(addr))
+
+/********************************************************************************/
+
+class TPInFunc : public PreStateTransitionPredicate {
+public:
+	TPInFunc(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr()) : PreStateTransitionPredicate(), tvar_(tvar), addr_(addr) {}
+	~TPInFunc() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		safe_assert(t != NULL);
+		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
+
+		THREADID tid = tvar_ == NULL ? t->tid() : tvar_->thread()->tid();
+
+		return AuxState::InFunc->get(addr_, tid) > 0;
+	}
+
+	static TransitionPredicatePtr create(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr()) {
+		TransitionPredicatePtr p(new TPInFunc(addr, tvar));
+		return p;
+	}
+
+private:
+	DECL_FIELD(ThreadVarPtr, tvar)
+	DECL_FIELD(ADDRINT, addr)
+};
+
+/********************************************************************************/
 
 } // end namespace
 

@@ -167,11 +167,10 @@ public:
 		}
 	}
 
-	static inline void CheckAndRecordRoutine(const RTN& rtn) {
+	static inline void CheckAndRecordRoutine(const RTN& rtn, const ADDRINT& addr) {
 		const std::string& name = RTN_Name(rtn);
 		if(RTNNamesToInstrument.find(name) != RTNNamesToInstrument.end()) {
 			// found
-			ADDRINT addr = RTN_Address(rtn);
 			RTNIdsToInstrument.insert(addr);
 			log_file << "Detected routine to instrument: " << name << std::endl;
 		}
@@ -186,6 +185,7 @@ public:
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
 		if(tls->inst_enabled()
+				|| (rtn_addr == 0) // StartInstrument
 				|| (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end())) {
 			std::vector<ADDRINT>* call_stack = tls->call_stack();
 			call_stack->push_back(rtn_addr);
@@ -208,7 +208,10 @@ public:
 			std::vector<ADDRINT>* call_stack = tls->call_stack();
 			ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
 			safe_assert(rtn_addr == last_addr);
+
+			safe_assert(rtn_addr != 0 || tls->inst_enabled());
 			tls->set_inst_enabled(!call_stack->empty());
+			safe_assert(rtn_addr != 0 || !tls->inst_enabled());
 			return true;
 		}
 		safe_assert(RTNIdsToInstrument.empty() || RTNIdsToInstrument.find(rtn_addr) == RTNIdsToInstrument.end());
@@ -423,7 +426,7 @@ FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDR
 	concurrit::PinMonitorCallInfo info;
 	info.type = concurrit::FuncReturn;
 	info.threadid = threadid;
-	info.addr = loc->pointer();
+	info.addr = ADDRINT2PTR(rtn_addr);
 	info.loc_src = loc;
 	info.retval = ret0;
 
@@ -718,12 +721,13 @@ VOID Routine(RTN rtn, VOID *v)
 		return;
 	}
 
-	// if this is a routine to forward to concurrit, then record its address
-	InstParams::CheckAndRecordRoutine(rtn);
-
 	RTN_Open(rtn);
 
 	PinSourceLocation* loc = PinSourceLocation::get(rtn);
+
+	// if this is a routine to forward to concurrit, then record its address
+	safe_assert(PTR2ADDRINT(loc->pointer()) == RTN_Address(rtn));
+	InstParams::CheckAndRecordRoutine(rtn, PTR2ADDRINT(loc->pointer()));
 
 	// check if start/end instrument
 	if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
