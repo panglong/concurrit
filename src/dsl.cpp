@@ -631,7 +631,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 					BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 					safe_assert(be != NULL);
 					reason = be->reason();
-					safe_assert(reason != NULL);
+					safe_assert(reason != TIMEOUT);
 				}
 			}
 		}
