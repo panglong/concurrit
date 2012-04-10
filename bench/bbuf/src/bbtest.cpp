@@ -11,8 +11,6 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 	TESTCASE() {
 
-		TEST_FORALL();
-
 		WHILE_STAR
 		{
 //			EXISTS(t);

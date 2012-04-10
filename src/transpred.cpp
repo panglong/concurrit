@@ -68,6 +68,8 @@ TransitionPredicatePtr operator!(const TransitionPredicatePtr& pred) {
 	return p;
 }
 
+/********************************************************************************/
+
 TransitionPredicatePtr operator &&(const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2) {
 	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryAND, pred1, pred2));
 	return p;
@@ -78,6 +80,8 @@ TransitionPredicatePtr operator ||(const TransitionPredicatePtr& pred1, const Tr
 	return p;
 }
 
+/********************************************************************************/
+
 TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b) {
 	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryAND, pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
 	return p;
@@ -86,6 +90,39 @@ TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bo
 TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b) {
 	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryOR, pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
 	return p;
+}
+
+/********************************************************************************/
+
+class TPThreadVarsEqual : public PreStateTransitionPredicate {
+public:
+	TPThreadVarsEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : PreStateTransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
+	~TPThreadVarsEqual() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		Coroutine* co1 = safe_notnull(tvar1_->thread());
+		Coroutine* co2 = safe_notnull(tvar2_->thread());
+		return co1->tid() == co2->tid();
+	}
+
+	static TransitionPredicatePtr create(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) {
+		TransitionPredicatePtr p(new TPThreadVarsEqual(tvar1, tvar2));
+		return p;
+	}
+
+private:
+	DECL_FIELD(ThreadVarPtr, tvar1)
+	DECL_FIELD(ThreadVarPtr, tvar2)
+};
+
+/********************************************************************************/
+
+TransitionPredicatePtr operator == (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
+	return TPThreadVarsEqual::create(t1, t2);
+}
+
+TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
+	return !(t1 == t2);
 }
 
 /********************************************************************************/

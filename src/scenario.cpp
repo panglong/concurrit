@@ -51,7 +51,7 @@ Scenario::Scenario(const char* name) {
 
 	// schedule and group are initialized
 	group_.set_scenario(this);
-	explore_type_ = EXISTS;
+	explore_type_ = FORALL;
 
 	transfer_criteria_.Reset();
 

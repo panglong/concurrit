@@ -754,28 +754,9 @@ private:
 
 /********************************************************************************/
 
-class TPThreadVarsEqual : public PreStateTransitionPredicate {
-public:
-	TPThreadVarsEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : PreStateTransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
-	~TPThreadVarsEqual() {}
+TransitionPredicatePtr operator == (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
+TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
 
-	bool EvalState(Coroutine* t = NULL) {
-		Coroutine* co1 = safe_notnull(tvar1_->thread());
-		Coroutine* co2 = safe_notnull(tvar2_->thread());
-		return co1->tid() == co2->tid();
-	}
-
-	static TransitionPredicatePtr create(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) {
-		TransitionPredicatePtr p(new TPThreadVarsEqual(tvar1, tvar2));
-		return p;
-	}
-
-private:
-	DECL_FIELD(ThreadVarPtr, tvar1)
-	DECL_FIELD(ThreadVarPtr, tvar2)
-};
-
-/********************************************************************************/
 
 } // end namespace
 
