@@ -200,7 +200,11 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 /********************************************************************************/
 
 // DSL for the preemptive mode
-#define STAR	DSLChoice()
+//#define STAR	DSLChoice(__LINE__)
+#define STAR(stmt, line) static StaticChoiceInfo __choice_info_##line(line); stmt(DSLChoice(&__choice_info_##line))
+#define WHILE_STAR	STAR(while, __LINE__)
+#define IF_STAR		STAR(if, __LINE__)
+#define ELSE		else
 
 #define CONSTRAIN_ALL(pred) \
 	TransitionConstraintAll(this, (pred))

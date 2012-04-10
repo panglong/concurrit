@@ -78,9 +78,10 @@ public:
 	void set_child(ExecutionTree* node, int i = 0);
 	ExecutionTree* get_child(int i);
 
-	bool child_covered(int i = 0);
+	virtual bool child_covered(int i = 0);
+	virtual bool is_covered() { return covered_; }
 
-	virtual void ComputeCoverage(bool recurse);
+	virtual bool ComputeCoverage(bool recurse, bool call_parent = false);
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
@@ -239,9 +240,32 @@ private:
 
 /********************************************************************************/
 
+class StaticChoiceInfo {
+public:
+	StaticChoiceInfo(int line){
+		line_ = line;
+		covered_[0] = false;
+		covered_[1] = false;
+	}
+	~StaticChoiceInfo(){}
+
+	bool is_covered(int i) {
+		safe_assert(i == 0 || i == 1);
+		return covered_[i];
+	}
+	void set_covered(int i, bool covered) {
+		safe_assert(i == 0 || i == 1);
+		covered_[i] = covered;
+	}
+private:
+	int line_;
+	bool covered_[2];
+};
+
 class ChoiceNode : public SelectionNode {
 public:
-	ChoiceNode(ExecutionTree* parent = NULL) : SelectionNode(parent, 2) {}
+	ChoiceNode(StaticChoiceInfo* info, ExecutionTree* parent = NULL) : SelectionNode(parent, 2), info_(info) {}
+	~ChoiceNode() {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "ChoiceNode.");
@@ -272,6 +296,27 @@ public:
 
 		return node;
 	}
+
+	// override
+	bool child_covered(int i = 0) {
+		safe_assert(i == 0 || i == 1);
+		return ExecutionTree::child_covered(i) || safe_notnull(info_)->is_covered(i);
+	}
+
+	// override
+	bool ComputeCoverage(bool recurse, bool call_parent = false) {
+		if(!covered_) {
+			safe_assert(!recurse);
+			covered_ = child_covered(0) && child_covered(1);
+		}
+		if(covered_ && call_parent && parent_ != NULL) {
+			parent_->ComputeCoverage(recurse, true);
+		}
+		return covered_;
+	}
+
+private:
+	DECL_FIELD(StaticChoiceInfo*, info)
 };
 
 /********************************************************************************/
@@ -357,7 +402,7 @@ public:
 	bool is_exists() { return false; }
 
 	// override
-	void ComputeCoverage(bool recurse);
+	bool ComputeCoverage(bool recurse, bool call_parent = false);
 
 	ChildLoc set_selected_thread(Coroutine* co) {
 		int child_index = add_or_get_thread(co);

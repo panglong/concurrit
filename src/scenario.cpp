@@ -263,6 +263,8 @@ Result* Scenario::Explore() {
 
 				Start();
 
+				VLOG(1) << "Exploring new execution...";
+
 				VLOG(2) << SC_TITLE << "Starting path " << counter("Num paths explored");
 
 				ConcurritException* exc = RunOnce();
@@ -454,6 +456,10 @@ void Scenario::RunTestCase() throw() {
 		do {
 			reason = SUCCESS;
 			try {
+
+				VLOG(1) << "(Re)Running test case...";
+
+				RunTestDriver();
 
 				TestCase();
 
@@ -1696,7 +1702,7 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 
 /********************************************************************************/
 
-bool Scenario::DSLChoice() {
+bool Scenario::DSLChoice(StaticChoiceInfo* info) {
 	VLOG(2) << "Adding DSLChoice";
 
 	//=======================================================
@@ -1706,6 +1712,7 @@ bool Scenario::DSLChoice() {
 		safe_assert(!reploc.empty());
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
 		safe_assert(choice != NULL);
+		safe_assert(choice->info() == info);
 		// update current node
 		exec_tree_.set_current_node(reploc);
 
@@ -1731,7 +1738,7 @@ bool Scenario::DSLChoice() {
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 	} else {
-		choice = new ChoiceNode();
+		choice = new ChoiceNode(info);
 	}
 
 	safe_assert(!choice->covered());
@@ -1740,12 +1747,20 @@ bool Scenario::DSLChoice() {
 	int ret = -1;
 	bool cov_0 = choice->child_covered(0);
 	bool cov_1 = choice->child_covered(1);
-	if(!cov_0 && !cov_1) {
-		// select randomly
-		ret = rand() % 2;
+
+	if(!cov_1) {
+		ret = 1;
 	} else {
-		ret = !cov_0 ? 0 : 1;
+		safe_assert(!cov_0);
+		ret = 0;
 	}
+
+//	if(!cov_0 && !cov_1) {
+//		// select randomly
+//		ret = rand() % 2;
+//	} else {
+//		ret = !cov_0 ? 0 : 1;
+//	}
 
 	exec_tree_.ReleaseRef(choice, ret);
 

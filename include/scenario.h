@@ -162,7 +162,7 @@ public:
 
 	/******************************************************************/
 
-	bool DSLChoice();
+	bool DSLChoice(StaticChoiceInfo* info);
 	void DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thread);
 	void DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = boost::shared_ptr<ThreadVar>());
 

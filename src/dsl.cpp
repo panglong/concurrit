@@ -158,7 +158,7 @@ ExecutionTree* ExecutionTree::get_child(int i) {
 
 /*************************************************************************************/
 
-void ExecutionTree::ComputeCoverage(bool recurse) {
+bool ExecutionTree::ComputeCoverage(bool recurse, bool call_parent /*= false*/) {
 	if(!covered_) {
 		bool cov = true;
 		for_each_child(child) {
@@ -177,6 +177,10 @@ void ExecutionTree::ComputeCoverage(bool recurse) {
 		}
 		covered_ = cov;
 	}
+	if(covered_ && call_parent && parent_ != NULL) {
+		parent_->ComputeCoverage(recurse, true);
+	}
+	return covered_;
 }
 
 /*************************************************************************************/
@@ -492,6 +496,19 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 	}
 
 	//===========================
+	// if last one is choice and one of the branches goes to the end of the script
+	// then we make all of the instances created at the same line as covered
+	if(reason == SUCCESS) {
+		ChildLoc last = path[1]; // not the end node but the previous node
+		ChoiceNode* choice = ASINSTANCEOF(last.parent(), ChoiceNode*);
+		if(choice != NULL) {
+			// idx goes to the end of the script
+			int idx = last.child_index();
+			choice->info()->set_covered(idx, true);
+		}
+	}
+
+	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
 	int highest_covered_index = 0;
 	for(int i = 1; i < sz; ++i) {
@@ -711,15 +728,16 @@ TransitionConstraint::~TransitionConstraint(){
 
 /*************************************************************************************/
 
-void ForallThreadNode::ComputeCoverage(bool recurse) {
+bool ForallThreadNode::ComputeCoverage(bool recurse, bool call_parent /*= false*/) {
 	Scenario* scenario = Scenario::Current();
 	safe_assert(scenario != NULL);
 	// this check is important, because we should not compute coverage at all if already covered
 	// since the computation below may turn already covered not covered
 	if(!covered_) {
-		ExecutionTree::ComputeCoverage(recurse);
-		covered_ = covered_ && (children_.size() == scenario->group()->GetNumMembers());
+		covered_ = (children_.size() == scenario->group()->GetNumMembers())
+					&& ExecutionTree::ComputeCoverage(recurse, call_parent);
 	}
+	return covered_;
 }
 
 /*************************************************************************************/

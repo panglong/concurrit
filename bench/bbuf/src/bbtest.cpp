@@ -13,20 +13,18 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		TEST_FORALL();
 
-		RunTestDriver();
-
-
-		while(STAR)
+		WHILE_STAR
 		{
 //			EXISTS(t);
 //			DSLTransition(TransitionPredicate::True(), t);
 
 //			DSLTransition(TransitionPredicate::False());
+			DSLTransition(TransitionPredicate::True());
 
 //			FORALL(t);
-			EXISTS(t);
+//			EXISTS(t);
 //			DSLTransferUntil(t, ENDS());
-			DSLTransferUntil(t, TransitionPredicate::True());
+//			DSLTransferUntil(t, TransitionPredicate::True());
 		}
 	}
 
