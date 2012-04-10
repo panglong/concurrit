@@ -207,10 +207,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define ELSE		else
 
 #define CONSTRAIN_ALL(pred) \
-	TransitionConstraintAll(this, (pred))
+	TransitionConstraintAll(this, (pred));
 
 #define CONSTRAIN_FIRST(pred) \
-	TransitionConstraintFirst(this, (pred))
+	TransitionConstraintFirst(this, (pred));
 
 /********************************************************************************/
 
@@ -232,13 +232,18 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define FUNC(v, f)	static FuncVar v(reinterpret_cast<void*>(f))
+#define PTRUE		TransitionPredicate::True()
+#define PFALSE		TransitionPredicate::False()
 
 /********************************************************************************/
 
-#define RUN_UNTIL(t, p)		DSLTransferUntil((t), (p))
-#define RUN_ONCE(t, p)		DSLTransition((p), (t))
-#define TRANSITION(p)		DSLTransition((p))
+#define FUNC(v, f)	static FuncVar v(reinterpret_cast<void*>(f));
+
+/********************************************************************************/
+
+#define RUN_UNTIL(t, p)		DSLTransferUntil((t), (p));
+#define RUN_ONCE(t, p)		DSLTransition((p), (t));
+#define TRANSITION(p)		DSLTransition((p));
 
 /********************************************************************************/
 
