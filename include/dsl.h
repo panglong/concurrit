@@ -579,6 +579,7 @@ public:
 	void Restart();
 
 static inline bool IS_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
+inline bool IS_FULL(ExecutionTree* n) { return !IS_EMPTY(n) && !IS_LOCKNODE(n); }
 inline bool IS_LOCKNODE(ExecutionTree* n) { return ((n) == (&lock_node_)); }
 static inline bool IS_ENDNODE(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
@@ -605,7 +606,7 @@ static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, Selec
 	ExecutionTreePath* ComputeCurrentPath(ExecutionTreePath* path = NULL);
 	bool DoBacktrack(ChildLoc& loc, BacktrackReason reason = SUCCESS);
 
-	bool EndWithSuccess(BacktrackReason reason = SUCCESS);
+	bool EndWithSuccess(BacktrackReason& reason);
 	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
 	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where);
 

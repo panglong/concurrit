@@ -451,59 +451,61 @@ void Scenario::RunTestCase() throw() {
 
 	PinMonitor::Enable();
 
-	try {
-		BacktrackReason reason = SUCCESS;
-		do {
-			reason = SUCCESS;
-			try {
+	BacktrackReason reason = SUCCESS;
+	BacktrackException* be = NULL;
+	do {
+		reason = SUCCESS;
+		try {
 
-				VLOG(1) << "(Re)Running test case...";
+			VLOG(1) << "(Re)Running test case...";
 
-				RunTestDriver();
+			RunTestDriver();
 
-				TestCase();
+			TestCase();
 
-			} catch(std::exception* e) {
-				// EndWithSuccess may ignore some backtracks and choose to replay
-				BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
-				if(be == NULL) {
-					throw e;
-				}
-
-				reason = be->reason();
-				safe_assert(reason != SUCCESS);
-				if(reason == TIMEOUT ||
-					reason == TREENODE_COVERED ||
-					reason == ASSUME_FAILS ||
-					reason == THREADS_ALLENDED) { // TODO(elmas): we can find without restarting which ones win here
-					// retry...
-				} else {
-					throw e;
-				}
+		} catch(std::exception* e) {
+			// EndWithSuccess may ignore some backtracks and choose to replay
+			be = ASINSTANCEOF(e, BacktrackException*);
+			if(be == NULL) {
+				// mark the end of the path with end node and the corresponding exception
+				exec_tree_.EndWithException(group_.main(), e);
 			}
-			VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
 
-		} while(exec_tree_.EndWithSuccess(reason));
-
-	} catch(std::exception* e) {
-		VLOG(2) << "Ending with exception.";
-		//====================================
-		// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
-		// then change the backtrack type to THREADS_ALLENDED
-		BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
-		if(be != NULL) {
-			VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(be->reason());
-			if(be->reason() == TIMEOUT && group_.IsAllEnded()) {
-				be->set_reason(THREADS_ALLENDED);
+			reason = be->reason();
+			safe_assert(reason != SUCCESS);
+			// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
+			// then change the backtrack type to THREADS_ALLENDED
+			if(reason == TIMEOUT && group_.IsAllEnded()) {
+				reason = THREADS_ALLENDED;
 			}
+			if(reason == TIMEOUT ||
+				reason == TREENODE_COVERED ||
+				reason == ASSUME_FAILS ||
+				reason == THREADS_ALLENDED) { // TODO(elmas): we can find without restarting which ones win here
+				// retry...
+			} else {
+				throw e;
+			}
+		} catch(...) {
+			fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
+			_Exit(UNRECOVERABLE_ERROR);
 		}
-		//====================================
-		// mark the end of the path with end node and the corresponding exception
-		exec_tree_.EndWithException(group_.main(), e);
 
-	} catch(...) {
-		fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
-		_Exit(UNRECOVERABLE_ERROR);
+		VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
+
+	} while(exec_tree_.EndWithSuccess(reason));
+
+	//====================================
+	// after trying all alternate paths
+	safe_assert(exec_tree_.current_nodes()->empty() || exec_tree_.root_node()->covered());
+
+	if(reason != SUCCESS) {
+		VLOG(1) << "Test script ended with exception: " << BacktrackException::ReasonToString(be->reason());
+
+		safe_assert(be != NULL);
+		be->set_reason(reason);
+		// mark the end of the path with end node and the corresponding exception
+		exec_tree_.EndWithException(group_.main(), be);
 	}
 }
 
@@ -1253,8 +1255,8 @@ void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
 			TPVALUE tval = pre_state ?
 							EvalPreState(current, trans, &newloc) :
 							EvalPostState(current, trans, &newloc);
-			// tval is false or unknown
-			safe_assert(!pre_state || tval == TPTRUE || tval == TPUNKNOWN);
+			// if pre-state, then tval is false or unknown
+			safe_assert(!pre_state || tval == TPFALSE || tval == TPUNKNOWN);
 			if(tval == TPTRUE) {
 				// update iterator and continue
 				safe_assert(newloc.parent() != NULL);

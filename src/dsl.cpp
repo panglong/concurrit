@@ -604,13 +604,29 @@ bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc& 
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::EndWithSuccess(BacktrackReason reason /*= SUCCESS*/) {
+bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 	VLOG(2) << "Ending with success " << reason;
 	// wait until the last node is consumed (or an end node is inserted)
 	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
-	ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
-	safe_assert(node == NULL);
+	if(reason == THREADS_ALLENDED) {
+		// no other threads, do not wait on empty, just force-lock it
+		SetRef(&lock_node_);
+		lock_node_.OnLock();
+	} else {
+		// try to first wait for empty, if we timeout, we remove it by waiting for full
+		try {
+			ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
+			safe_assert(IS_EMPTY(node));
+		} catch(std::exception* e) {
+			BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
+			safe_assert(be != NULL && be->reason() == TIMEOUT);
+			// this should not timeout
+			ExecutionTree* node = AcquireRefEx(EXIT_ON_FULL);
+			safe_assert(IS_FULL(node));
+			reason = TIMEOUT;
+		}
+	}
 
 	// locked, create a new end node and set it
 	// also adds to the path and set to ref
@@ -633,9 +649,6 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason reason /*= SUCCESS*/) 
 		safe_assert(IS_ENDNODE(current_node_.get()));
 		// notify threads about the end of the controlled run
 		ReleaseRef(end_node); // this does not add the node to the path, it is already added
-		if(reason != SUCCESS) {
-			TRIGGER_BACKTRACK(reason);
-		}
 		return false;
 	}
 
@@ -646,9 +659,6 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason reason /*= SUCCESS*/) 
 		// notify threads about the end of the controlled run
 		ReleaseRef(end_node); // this does not add the node to the path, it is already added
 		safe_assert(IS_ENDNODE(current_node_.get()));
-		if(reason != SUCCESS) {
-			TRIGGER_BACKTRACK(reason);
-		}
 		return false;
 	}
 
