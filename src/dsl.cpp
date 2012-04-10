@@ -620,11 +620,20 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 			safe_assert(IS_EMPTY(node));
 		} catch(std::exception* e) {
 			BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
-			safe_assert(be != NULL && be->reason() == TIMEOUT);
-			// this should not timeout
-			ExecutionTree* node = AcquireRefEx(EXIT_ON_FULL);
-			safe_assert(IS_FULL(node));
-			reason = TIMEOUT;
+			safe_assert(be != NULL);
+			reason = be->reason();
+			if(reason == TIMEOUT) {
+				// this should not timeout
+				try {
+					ExecutionTree* node = AcquireRefEx(EXIT_ON_FULL);
+					safe_assert(IS_FULL(node));
+				} catch(std::exception* e) {
+					BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
+					safe_assert(be != NULL);
+					reason = be->reason();
+					safe_assert(reason != NULL);
+				}
+			}
 		}
 	}
 
