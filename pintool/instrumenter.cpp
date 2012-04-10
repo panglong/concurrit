@@ -360,31 +360,30 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
-VOID PIN_FAST_ANALYSIS_CALL
-FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
-		ADDRINT target, ADDRINT arg0, ADDRINT arg1) {
-
-	if(!InstParams::OnInstruction(threadid)) {
-		return;
-	}
-	//===============================================================
-
-	PinSourceLocation* loc_target = PinSourceLocation::get(target);
-
-	concurrit::PinMonitorCallInfo info;
-	info.type = concurrit::FuncCall;
-	info.threadid = threadid;
-	info.addr = loc_src->pointer();
-	info.addr_target = loc_target->pointer();
-	info.direct = direct;
-	info.loc_src = loc_src;
-	info.loc_target = loc_target;
-	info.arg0 = arg0;
-	info.arg1 = arg1;
-
-	CallNativePinMonitor(ctxt, threadid, &info);
-	// monitor->FuncCall(threadid, loc_target->pointer(), direct, loc_src, loc_target);
-}
+//VOID PIN_FAST_ANALYSIS_CALL
+//FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
+//		ADDRINT target, ADDRINT arg0, ADDRINT arg1) {
+//
+//	if(!InstParams::OnInstruction(threadid)) {
+//		return;
+//	}
+//	//===============================================================
+//
+//	PinSourceLocation* loc_target = PinSourceLocation::get(target);
+//
+//	concurrit::PinMonitorCallInfo info;
+//	info.type = concurrit::FuncCall;
+//	info.threadid = threadid;
+//	info.addr = loc_src->pointer();
+//	info.addr_target = loc_target->pointer();
+//	info.direct = direct;
+//	info.loc_src = loc_src;
+//	info.loc_target = loc_target;
+//	info.arg0 = arg0;
+//	info.arg1 = arg1;
+//
+//	CallNativePinMonitor(ctxt, threadid, &info);
+//}
 
 /* ===================================================================== */
 
@@ -409,7 +408,6 @@ FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 	info.arg1 = arg1;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
-	// monitor->FuncEnter(threadid, loc->pointer(), loc);
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
@@ -431,7 +429,6 @@ FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDR
 	info.retval = ret0;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
-	// monitor->FuncReturn(threadid, loc->pointer(), loc, ret0);
 }
 
 /* ===================================================================== */
@@ -466,8 +463,6 @@ MemAccessBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc)
 	info.loc_src = loc;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
-	// monitor->MemWriteBefore(threadid, addr, size, loc);
-
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
@@ -487,7 +482,6 @@ MemAccessAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) 
 	info.loc_src = loc;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
-	// monitor->MemWriteAfter(threadid, addr, size, loc);
 }
 
 /* ===================================================================== */
@@ -510,7 +504,6 @@ MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinS
 	info.loc_src = loc;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
-	// monitor->MemReadBefore(threadid, addr, size, loc);
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
@@ -531,7 +524,6 @@ MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSo
 	info.loc_src = loc;
 
 	CallNativePinMonitor(ctxt, threadid, &info);
-	// monitor->MemReadBefore(threadid, addr, size, loc);
 }
 
 /* ===================================================================== */

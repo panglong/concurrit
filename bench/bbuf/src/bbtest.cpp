@@ -23,8 +23,9 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 //			FORALL(t);
 			EXISTS(t);
-//			DSLTransferUntil(t, ENDS());
-			DSLTransferUntil(t, TransitionPredicate::False());
+			DSLTransferUntil(t, ENDS());
+//			DSLTransition(TransitionPredicate::False(), t);
+//			DSLTransferUntil(t, TransitionPredicate::False());
 		}
 	}
 

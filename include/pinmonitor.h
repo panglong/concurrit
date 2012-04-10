@@ -74,9 +74,10 @@ public:
 	static inline void MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
 	static inline void MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
 
-	static inline void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
 	static inline void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1);
 	static inline void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
+
+//	static inline void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
 
 private:
 	static Coroutine* tid_to_coroutine_[MAX_THREADS];
@@ -89,7 +90,7 @@ const PinMonitorCallType
 	MemAccessAfter = 2,
 	MemWrite = 3,
 	MemRead = 4,
-	FuncCall = 5,
+//	FuncCall = 5,
 	FuncEnter = 6,
 	FuncReturn = 7;
 

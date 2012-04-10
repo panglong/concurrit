@@ -41,8 +41,9 @@ boost::shared_ptr<AuxVar0<bool, false>> AuxState::Ends;
 boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> AuxState::Reads;
 boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> AuxState::Writes;
 
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom;
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo;
+//boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom;
+//boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo;
+
 boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters;
 boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns;
 
