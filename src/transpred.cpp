@@ -47,6 +47,9 @@ boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters;
 boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns;
 
 boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::InFunc;
+boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::NumInFunc;
+
+boost::shared_ptr<AuxVar0<int, -1>> AuxState::Pc;
 
 /*************************************************************************************/
 

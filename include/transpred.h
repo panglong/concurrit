@@ -636,6 +636,12 @@ public:
 
 		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _infunc(new AuxVar1<ADDRINT, int, -1, 0>("InFunc"));
 		AuxState::InFunc = _infunc;
+
+		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _numinfunc(new AuxVar1<ADDRINT, int, -1, 0>("NumInFunc"));
+		AuxState::NumInFunc = _numinfunc;
+
+		boost::shared_ptr<AuxVar0<int, -1>> _pc(new AuxVar0<int, -1>("Pc"));
+		AuxState::Pc = _pc;
 	}
 
 	static void Reset(THREADID t = -1) {
@@ -646,6 +652,7 @@ public:
 		CallsTo->reset(t);
 		Enters->reset(t);
 		Returns->reset(t);
+		Pc->reset(t);
 	}
 
 	static void Clear() {
@@ -658,6 +665,8 @@ public:
 		Returns->clear();
 
 		InFunc->clear();
+		NumInFunc->clear();
+		Pc->clear();
 	}
 
 	// auxiliary variables
@@ -672,6 +681,9 @@ public:
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Returns;
 
 	static boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> InFunc;
+	static boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> NumInFunc;
+
+	static boost::shared_ptr<AuxVar0<int, -1>> Pc;
 };
 
 /********************************************************************************/
@@ -685,6 +697,13 @@ public:
 #define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
 
 #define IN_FUNC(addr)	TPInFunc::create(safe_notnull(addr))
+#define TIMES_IN_FUNC(addr, k) \
+						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, addr, k)
+
+#define THR_EQ(t1, t2)	TPThreadVarsEqual::create((t1), (t2))
+#define THR_NEQ(t1, t2)	THR_EQ(t1, t2)->operator!()
+
+#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->operator()(AuxState::Pc, pc)
 
 /********************************************************************************/
 
@@ -710,6 +729,29 @@ public:
 private:
 	DECL_FIELD(ThreadVarPtr, tvar)
 	DECL_FIELD(ADDRINT, addr)
+};
+
+/********************************************************************************/
+
+class TPThreadVarsEqual : public PreStateTransitionPredicate {
+public:
+	TPThreadVarsEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : PreStateTransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
+	~TPThreadVarsEqual() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		Coroutine* co1 = safe_notnull(tvar1_->thread());
+		Coroutine* co2 = safe_notnull(tvar2_->thread());
+		return co1->tid() == co2->tid();
+	}
+
+	static TransitionPredicatePtr create(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) {
+		TransitionPredicatePtr p(new TPThreadVarsEqual(tvar1, tvar2));
+		return p;
+	}
+
+private:
+	DECL_FIELD(ThreadVarPtr, tvar1)
+	DECL_FIELD(ThreadVarPtr, tvar2)
 };
 
 /********************************************************************************/

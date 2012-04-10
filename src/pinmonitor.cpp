@@ -164,6 +164,10 @@ inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* 
 	safe_assert(c >= 0);
 	AuxState::InFunc->set(PTR2ADDRINT(addr), c+1, current->tid());
 
+	c = AuxState::NumInFunc->get(PTR2ADDRINT(addr), current->tid());
+	safe_assert(c >= 0);
+	AuxState::NumInFunc->set(PTR2ADDRINT(addr), c+1, current->tid());
+
 	scenario->OnControlledTransition(current);
 }
 
@@ -244,7 +248,15 @@ void EndInstrument() {
 	VLOG(2) << "Ending instrumentation.";
 	// reset aux variables of current thread
 	Coroutine* co = safe_notnull(Coroutine::Current());
-	AuxState::Reset(co->tid());
+	co->FinishControlledTransition();
+}
+
+void AtPc(int pc) {
+	VLOG(2) << "Thread at pc " << pc;
+	// controlled transition
+	Coroutine* co = safe_notnull(Coroutine::Current());
+	AuxState::Pc->set(pc, co->tid());
+	safe_notnull(safe_notnull(co->group())->scenario())->OnControlledTransition(co);
 }
 
 /********************************************************************************/
