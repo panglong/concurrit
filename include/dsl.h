@@ -348,8 +348,8 @@ private:
 
 class ExistsThreadNode : public SelectThreadNode {
 public:
-	ExistsThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL)
-	: SelectThreadNode(var, parent, 1), thread_(NULL) {}
+	ExistsThreadNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), ExecutionTree* parent = NULL)
+	: SelectThreadNode(var, parent, 1), thread_(NULL), pred_(pred) {}
 
 	~ExistsThreadNode() {}
 
@@ -370,6 +370,12 @@ public:
 		return newnode;
 	}
 
+	ChildLoc clear_selected_thread() {
+		thread_ = NULL;
+		var_->set_thread(NULL);
+		return ChildLoc::EMPTY();
+	}
+
 	DotNode* UpdateDotGraph(DotGraph* g) {
 		DotNode* node = new DotNode("ExistsThreadNode");
 		g->AddNode(node);
@@ -388,6 +394,7 @@ public:
 
 private:
 	DECL_FIELD(Coroutine*, thread)
+	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
 /********************************************************************************/

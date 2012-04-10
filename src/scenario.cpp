@@ -1553,7 +1553,25 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 							// check if this thread has been covered
 							THREADID tid = current->tid();
 							safe_assert(tid >= 0);
+
 							newnode = exists->set_selected_thread(current);
+
+							// check condition
+							TransitionPredicatePtr pred = exists->pred();
+							if(pred != NULL) {
+								if(pred->EvalPreState(current) != TPTRUE) {
+									tval = TPFALSE; // we are not consuming this node
+
+									// we are not done yet, so leave done as false
+									safe_assert(!done);
+
+									// clear selected thread
+									newnode = exists->clear_selected_thread();
+
+									goto SWITCH;
+								}
+							}
+
 							// we are consuming this node, but we are not done, yet
 							tval = TPTRUE;
 
@@ -1568,6 +1586,8 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 				}
 			}
 		}
+
+SWITCH:
 
 		//=================================================================
 		VLOG(2) << "Switching on three-valued variable";
@@ -1970,7 +1990,7 @@ void Scenario::DSLForallThread(const ThreadVarPtr& var) {
 
 /********************************************************************************/
 
-void Scenario::DSLExistsThread(const ThreadVarPtr& var) {
+void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/) {
 	VLOG(2) << "Adding DSLExistsThread";
 
 	//=======================================================
@@ -1982,6 +2002,7 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var) {
 		safe_assert(select != NULL);
 		// re-select the thread to update the associated thread variable
 		select->set_var(var); // first select var before setting the thread
+		select->set_pred(pred);
 		select->set_selected_thread();
 
 		// update current node
@@ -2013,8 +2034,9 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var) {
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 		select->set_var(var);
+		select->set_pred(pred);
 	} else {
-		select = new ExistsThreadNode(var);
+		select = new ExistsThreadNode(var, pred);
 	}
 	safe_assert(!select->covered());
 

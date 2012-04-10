@@ -219,6 +219,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define EXISTS(t)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
 					DSLExistsThread(t);
 
+#define EXISTS_ST(t, p) \
+					ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
+					DSLExistsThread(t, p);
+
 #define FORALL(t)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
 					DSLForallThread(t);
 
