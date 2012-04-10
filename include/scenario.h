@@ -167,7 +167,7 @@ public:
 	void DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = boost::shared_ptr<ThreadVar>());
 
 	void DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr());
-	void DSLForallThread(const ThreadVarPtr& var);
+	void DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr());
 	void DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred);
 	void DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred);
 

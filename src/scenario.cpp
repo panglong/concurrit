@@ -1528,17 +1528,26 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 						// check if this thread has been covered
 						THREADID tid = current->tid();
 						safe_assert(tid >= 0);
+
+						// let's assume not consuming
+						tval = TPFALSE;
+
 						ExecutionTree* child = forall->child_by_tid(tid);
 						if(child == NULL || !child->covered()) {
 							// set the selected thread to current
 							newnode = forall->set_selected_thread(current);
-							// we are consuming this node, but we are not done, yet
-							tval = TPTRUE;
-						} else { // already covered, skip this
-							// covered
-							tval = TPFALSE; // we are not consuming this node
-						}
 
+							// check condition
+							TransitionPredicatePtr pred = forall->pred();
+							if(pred == NULL || pred->EvalPreState(current) == TPTRUE) {
+								// we are consuming this node, but we are not done, yet
+								tval = TPTRUE;
+							} else {
+								// clear selected thread
+								newnode = forall->clear_selected_thread();
+							}
+
+						}
 						// we are not done yet, so leave done as false
 						safe_assert(!done);
 
@@ -1554,27 +1563,24 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 							THREADID tid = current->tid();
 							safe_assert(tid >= 0);
 
-							newnode = exists->set_selected_thread(current);
+							// let's assume not consuming
+							tval = TPFALSE;
 
-							// check condition
-							TransitionPredicatePtr pred = exists->pred();
-							if(pred != NULL) {
-								if(pred->EvalPreState(current) != TPTRUE) {
-									tval = TPFALSE; // we are not consuming this node
+							std::set<THREADID>* tids = exists->covered_tids();
+							if(tids->find(tid) == tids->end()) {
 
-									// we are not done yet, so leave done as false
-									safe_assert(!done);
+								newnode = exists->set_selected_thread(current);
 
+								// check condition
+								TransitionPredicatePtr pred = exists->pred();
+								if(pred == NULL || pred->EvalPreState(current) == TPTRUE) {
+									// we are consuming this node, but we are not done, yet
+									tval = TPTRUE;
+								} else {
 									// clear selected thread
 									newnode = exists->clear_selected_thread();
-
-									goto SWITCH;
 								}
 							}
-
-							// we are consuming this node, but we are not done, yet
-							tval = TPTRUE;
-
 							// we are not done yet, so leave done as false
 							safe_assert(!done);
 
@@ -1926,7 +1932,7 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredica
 
 /********************************************************************************/
 
-void Scenario::DSLForallThread(const ThreadVarPtr& var) {
+void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/) {
 	VLOG(2) << "Adding DSLForallThread";
 
 	//=======================================================
@@ -1942,6 +1948,7 @@ void Scenario::DSLForallThread(const ThreadVarPtr& var) {
 		if(child_index >= 0) {
 			// re-select the thread to update the associated thread variable
 			select->set_var(var); // first select var before setting the thread
+			select->set_pred(pred);
 			select->set_selected_thread(child_index);
 
 			// update current node
@@ -1975,8 +1982,9 @@ void Scenario::DSLForallThread(const ThreadVarPtr& var) {
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
 		select->set_var(var);
+		select->set_pred(pred);
 	} else {
-		select = new ForallThreadNode(var);
+		select = new ForallThreadNode(var, pred);
 	}
 	safe_assert(!select->covered());
 

@@ -195,6 +195,8 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 		// if select thread and child_index is -1, then add this with index -1
 		if(INSTANCEOF(this, ForallThreadNode*)) {
 			current_nodes->push_back({this, -1});
+		} else if(INSTANCEOF(this, ExistsThreadNode*)) {
+			current_nodes->push_back({this, 0});
 		}
 
 		for(int i = 0; i < sz; ++i) {
@@ -266,6 +268,10 @@ void ExecutionTreeManager::Restart() {
 	current_nodes_.clear();
 
 	replay_path_.clear();
+
+	// clean end_node's exceptions etc
+	end_node_.set_exception(NULL);
+	safe_assert(end_node_.old_root() == NULL);
 
 	// reset semaphore value to 0
 	sem_ref_.Set(0);
@@ -637,37 +643,58 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 		}
 	}
 
-	// locked, create a new end node and set it
-	// also adds to the path and set to ref
-	safe_assert(!IS_ENDNODE(current_node_.parent()));
 	EndNode* end_node = ASINSTANCEOF(current_node_.get(), EndNode*);
-	if(end_node == NULL) {
-		// locked, create a new end node and set it
-		end_node = new EndNode();
-	}
-	// add to the path and set to ref
-	AddToPath(end_node, 0);
-	safe_assert(current_node_.get() == end_node);
-	safe_assert(IS_ENDNODE(current_node_.get()));
 
-	// compute coverage for the just-visited node
-	if(!DoBacktrack(current_node_, reason)) {
-		// root is covered
-		safe_assert(root_node_.covered());
-		// no need to continue
+	// check the last node in the path
+	ChildLoc last = GetLastInPath();
+	safe_assert(!IS_ENDNODE(last.parent()));
+	ExistsThreadNode* exists = ASINSTANCEOF(last.parent(), ExistsThreadNode*);
+	if(exists != NULL) {
+		// update covered tid set
+		std::set<THREADID>* tids = exists->covered_tids();
+		tids->insert(safe_notnull(exists->thread())->tid());
+		// do not backtrack, just leave it there
+		// this will be covered only when it cannot be consumed
+		VLOG(1) << "Adding tid to covered tids";
+	} else {
+
+		// locked, create a new end node and set it
+		// also adds to the path and set to ref
+		if(end_node == NULL) {
+			// locked, create a new end node and set it
+			end_node = new EndNode();
+		}
+		// add to the path and set to ref
+		AddToPath(end_node, 0);
+		safe_assert(current_node_.get() == end_node);
 		safe_assert(IS_ENDNODE(current_node_.get()));
-		// notify threads about the end of the controlled run
-		ReleaseRef(end_node); // this does not add the node to the path, it is already added
-		return false;
+
+		// compute coverage for the just-visited node
+		if(!DoBacktrack(current_node_, reason)) {
+			// root is covered
+			safe_assert(root_node_.covered());
+			// no need to continue
+			safe_assert(IS_ENDNODE(current_node_.get()));
+			// notify threads about the end of the controlled run
+			ReleaseRef(end_node); // this does not add the node to the path, it is already added
+			return false;
+		}
 	}
 
 	//================================================
 
 	// check alternate paths
 	if(current_nodes_.empty()) {
+		if(end_node == NULL) {
+			// this means end_node has not been added to the path, so use static end_node
+			safe_assert(!IS_ENDNODE(current_node_.get()))
+			end_node = &end_node_;
+			// update current_node to get end_node when calling GetLastInPath
+			current_node_ = {end_node, 0};
+		}
 		// notify threads about the end of the controlled run
 		ReleaseRef(end_node); // this does not add the node to the path, it is already added
-		safe_assert(IS_ENDNODE(current_node_.get()));
+//		safe_assert(IS_ENDNODE(current_node_.get()));
 		return false;
 	}
 
@@ -705,21 +732,24 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	if(IS_ENDNODE(current_node_.parent())) {
 		safe_assert(IS_ENDNODE(node));
 		end_node = static_cast<EndNode*>(current_node_.parent());
-	} else
-		if(IS_ENDNODE(node)) {
-			safe_assert(IS_ENDNODE(current_node_.get()));
-			end_node = static_cast<EndNode*>(node);
+
+	} else if(IS_ENDNODE(node)) {
+		safe_assert(IS_ENDNODE(current_node_.get()));
+		safe_assert(current_node_.get() == node);
+		end_node = static_cast<EndNode*>(node);
+
+	} else {
+		ExecutionTree* last = GetLastInPath().get();
+		if(IS_ENDNODE(last)) {
+			end_node = static_cast<EndNode*>(last);
 		} else {
-			ExecutionTree* last = GetLastInPath().get();
-			if(IS_ENDNODE(last)) {
-				end_node = static_cast<EndNode*>(last);
-			} else {
-				// locked, create a new end node and set it
-				end_node = new EndNode();
-			}
-			// add to the path and set to ref
-			ReleaseRef(end_node, 0);
+			// locked, create a new end node and set it
+			end_node = new EndNode();
 		}
+		// add to the path and set to ref
+		ReleaseRef(end_node, 0);
+	}
+
 	safe_assert(end_node != NULL);
 	// add my exception to the end node
 	end_node->add_exception(exception, current, where);

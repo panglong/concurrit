@@ -226,6 +226,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define FORALL(t)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
 					DSLForallThread(t);
 
+#define FORALL_ST(t, p) \
+					ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
+					DSLForallThread(t, p);
+
 /********************************************************************************/
 
 #define FUNC(v, f)	static FuncVar v(reinterpret_cast<void*>(f))

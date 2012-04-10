@@ -183,7 +183,7 @@ public:
 		old_root_ = NULL;
 	}
 
-	~EndNode(){
+	virtual ~EndNode(){
 		// delete associated exceptions
 		if(exception_ != NULL) {
 			// this also clears the list of exceptions recursively (following the next_ pointer)
@@ -215,6 +215,15 @@ public:
 private:
 	DECL_FIELD(ConcurritException*, exception)
 	DECL_FIELD(ExecutionTree*, old_root)
+};
+
+class StaticEndNode : public EndNode {
+public:
+	StaticEndNode() : EndNode(NULL) {}
+
+	~StaticEndNode(){
+		CHECK(false) << "StaticEndNode should not be deleted!!!";
+	}
 };
 
 /********************************************************************************/
@@ -324,8 +333,8 @@ private:
 class SelectThreadNode : public SelectionNode {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
-	SelectThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL, int num_children = 0)
-	: SelectionNode(parent, num_children), var_(var) {
+	SelectThreadNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), ExecutionTree* parent = NULL, int num_children = 0)
+	: SelectionNode(parent, num_children), var_(var), pred_(pred) {
 		safe_assert(safe_notnull(var_.get())->thread() == NULL);
 	}
 	virtual ~SelectThreadNode() {}
@@ -342,6 +351,7 @@ public:
 
 private:
 	DECL_FIELD(ThreadVarPtr, var)
+	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
 /********************************************************************************/
@@ -349,7 +359,7 @@ private:
 class ExistsThreadNode : public SelectThreadNode {
 public:
 	ExistsThreadNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), ExecutionTree* parent = NULL)
-	: SelectThreadNode(var, parent, 1), thread_(NULL), pred_(pred) {}
+	: SelectThreadNode(var, pred, parent, 1), thread_(NULL) {}
 
 	~ExistsThreadNode() {}
 
@@ -394,15 +404,15 @@ public:
 
 private:
 	DECL_FIELD(Coroutine*, thread)
-	DECL_FIELD(TransitionPredicatePtr, pred)
+	DECL_FIELD_REF(std::set<THREADID>, covered_tids)
 };
 
 /********************************************************************************/
 
 class ForallThreadNode : public SelectThreadNode {
 public:
-	ForallThreadNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL)
-	: SelectThreadNode(var, parent, 0) {}
+	ForallThreadNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), ExecutionTree* parent = NULL)
+	: SelectThreadNode(var, pred, parent, 0) {}
 
 	~ForallThreadNode() {}
 
@@ -410,6 +420,11 @@ public:
 
 	// override
 	bool ComputeCoverage(bool recurse, bool call_parent = false);
+
+	ChildLoc clear_selected_thread() {
+		var_->set_thread(NULL);
+		return ChildLoc::EMPTY();
+	}
 
 	ChildLoc set_selected_thread(Coroutine* co) {
 		int child_index = add_or_get_thread(co);
@@ -640,6 +655,7 @@ private:
 private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(LockNode, lock_node)
+	DECL_FIELD_REF(StaticEndNode, end_node)
 	DECL_FIELD_REF(ChildLoc, current_node)
 	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
 	DECL_FIELD(unsigned, num_paths)
