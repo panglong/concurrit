@@ -1247,7 +1247,7 @@ void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
 		ExecutionTree* parent = loc.parent();
 		safe_assert(parent != NULL);
 		// this must be a transition node
-		SingleTransitionNode* trans = ASINSTANCEOF(parent, SingleTransitionNode*);
+		TransitionNode* trans = ASINSTANCEOF(parent, TransitionNode*);
 		if(trans != NULL) {
 			ChildLoc newloc;
 			TPVALUE tval = pre_state ?
