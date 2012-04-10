@@ -800,32 +800,34 @@ LOCALFUN VOID ImageUnload(IMG img, VOID *) {
 
 /* ===================================================================== */
 
+LOCALFUN INLINE
 VOID CallTrace(TRACE trace, INS ins) {
-	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
-		if (!INS_IsDirectBranchOrCall(ins)) {
-			// Indirect call
-			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
-					IARG_CONTEXT,
-					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
-					IARG_BRANCH_TARGET_ADDR,
-					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
-
-		} else if (INS_IsDirectBranchOrCall(ins)) {
-			// Direct call
-			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-
-			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
-
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
-					IARG_CONTEXT,
-					IARG_THREAD_ID, IARG_PTR, TRUE, IARG_PTR, loc,
-					IARG_ADDRINT, target,
-					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
-
-		}
-	} else if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
+//	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
+//		if (!INS_IsDirectBranchOrCall(ins)) {
+//			// Indirect call
+//			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
+//
+//			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
+//					IARG_CONTEXT,
+//					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
+//					IARG_BRANCH_TARGET_ADDR,
+//					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
+//
+//		} else if (INS_IsDirectBranchOrCall(ins)) {
+//			// Direct call
+//			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
+//
+//			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
+//
+//			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
+//					IARG_CONTEXT,
+//					IARG_THREAD_ID, IARG_PTR, TRUE, IARG_PTR, loc,
+//					IARG_ADDRINT, target,
+//					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
+//
+//		}
+//	} else
+	if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
 		RTN rtn = TRACE_Rtn(trace);
 
 #if defined(TARGET_LINUX) && defined(TARGET_IA32)
@@ -841,6 +843,7 @@ VOID CallTrace(TRACE trace, INS ins) {
 
 /* ===================================================================== */
 
+LOCALFUN INLINE
 VOID MemoryTrace(TRACE trace, INS ins) {
 	if (INS_IsStackRead(ins) || INS_IsStackWrite(ins))
 		return;

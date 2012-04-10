@@ -1274,8 +1274,10 @@ void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
 			itr = current_nodes->erase(itr);
 		}
 	}
-
-	exec_tree_.PopulateLocations();
+	// populate reachable nodes after the transition
+	if(!pre_state) {
+		exec_tree_.PopulateLocations();
+	}
 }
 
 /********************************************************************************/
