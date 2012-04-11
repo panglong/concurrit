@@ -1,2 +1,3 @@
 queueDelete
-consumer_decompress
+consumer
+fileWriter

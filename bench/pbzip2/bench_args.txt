@@ -1,1 +1,1 @@
--f -k -p3 -o ../input/smallinput
+-f -k -p3 -o inputs/smallinput

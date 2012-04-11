@@ -11,18 +11,29 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
 
-////		CONFIG("-w" + to_string(5 * USECSPERSEC));
-//		Config::MaxWaitTimeUSecs = USECSPERSEC;
-//
-//		FUNC(fg, pqueue_get);
-//		FUNC(fp, pqueue_put);
-//
-//		EXISTS(t1, IN_FUNC(fg), "T1");
-//		EXISTS(t2, (t1 != t2) && IN_FUNC(fg), "T2");
-//
-//		RUN_UNTIL(t1, AT_PC(42), "pqueue_get by T1");
-//
-//		RUN_UNTIL(t2, RETURNS(fg), "pqueue_get by T2");
+		Config::MaxWaitTimeUSecs = USECSPERSEC;
+
+
+		FUNC(fc, consumer);
+		FUNC(fd, queueDelete);
+		FUNC(fw, fileWriter);
+
+		EXISTS(t_consumer, IN_FUNC(fc), "Consumer");
+		EXISTS(t_writer, (t_writer != t_consumer) && IN_FUNC(fw), "Writer");
+
+		WHILE_STAR {
+			IF_STAR {
+				RUN_ONCE(PTRUE, t_consumer, "Running consumer");
+			} ELSE {
+				RUN_ONCE(PTRUE, t_writer, "Running writer");
+			}
+		}
+
+		RUN_ONCE(RETURNS(fw), t_writer, "Running writer");
+
+		EXISTS(t_deleter, (t_writer != t_consumer) && (t_writer != t_deleter) && IN_FUNC(fd), "Deleter");
+
+		RUN_UNTIL(t_deleter, RETURNS(fd), "Deletes");
 
 	}
 

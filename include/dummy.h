@@ -49,7 +49,7 @@ extern void TriggerAssert(const char* expr, const char* filename, const char* fu
 
 /********************************************************************************/
 
-#define concurritAssert(b)	if(!(b)) { TriggerAssert(#b, __FILE__, __FUNCTION__, __LINE__); }
+#define concurritAssert(b)	if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); TriggerAssert(#b, __FILE__, __FUNCTION__, __LINE__); }
 
 #ifdef __cplusplus
 } // extern "C"

@@ -89,6 +89,8 @@
 #include <windows.h>
 #endif
 
+#include "dummy.h"
+
 // uncomment for debug output
 //#define PBZIP_DEBUG
 
@@ -159,12 +161,9 @@ static char BWTblockSizeChar = '9';
 void mySignalCatcher(int);
 char *memstr(char *, int, char *, int);
 int producer_decompress(int, off_t, queue *);
-extern "C" void *consumer_decompress(void *);
-void *fileWriter(void *);
+void *consumer_decompress(void *);
 int producer(int, int, off_t, int, queue *);
-void *consumer(void *);
 queue *queueInit(int);
-extern "C" void queueDelete(queue *);
 void queueAdd(queue *, char *, unsigned int, int);
 char *queueDel(queue *, unsigned int *, int *);
 int getFileMetaData(char *);
@@ -172,6 +171,9 @@ int writeFileMetaData(char *);
 int testBZ2ErrorHandling(int, BZFILE *, int);
 int testCompressedData(char *);
 
+extern "C" void *consumer(void *);
+extern "C" void *fileWriter(void *);
+extern "C" void queueDelete(queue *);
 
 /*
  *********************************************************
@@ -886,6 +888,8 @@ void *consumer (void *q)
 
 	for (;;)
 	{
+		AtPc(42); AtPc(43);
+		concurritAssert(fifo->mut != NULL);
 		pthread_mutex_lock(fifo->mut);
 		while (fifo->empty)
 		{
@@ -894,6 +898,7 @@ void *consumer (void *q)
 			#endif
 			if (allDone == 1)
 			{
+				concurritAssert(fifo->mut != NULL);
 				pthread_mutex_unlock(fifo->mut);
 				#ifdef PBZIP_DEBUG
 				printf ("consumer: exiting2\n");
@@ -930,6 +935,7 @@ void *consumer (void *q)
 		fprintf(stderr, "consumer:  Buffer: %x  Size: %u   Block: %d\n", FileData, inSize, blockNum);
 		#endif
 
+		concurritAssert(fifo->mut != NULL);
 		pthread_mutex_unlock(fifo->mut);
 		pret = pthread_cond_signal(fifo->notFull);
 		if (pret != 0)
@@ -1047,6 +1053,8 @@ void queueDelete (queue *q)
 		delete q->mut;
 		q->mut = NULL;
 	}
+
+	AtPc(44);
 
 	if (q->notFull != NULL)
 	{

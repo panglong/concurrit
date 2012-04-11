@@ -186,7 +186,7 @@ bool ExecutionTree::ComputeCoverage(bool recurse, bool call_parent /*= false*/) 
 /*************************************************************************************/
 
 void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* current_nodes) {
-	if(ExecutionTreeManager::IS_SELECTNODE(this) && !this->covered_) {
+	if(ExecutionTreeManager::IS_SELECTNODE(this) && !this->covered()) {
 		int sz = children_.size();
 		int child_index = loc.child_index();
 		safe_assert(loc.parent() == this);
@@ -200,8 +200,7 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 		for(int i = 0; i < sz; ++i) {
 			if(i != child_index) {
 				ExecutionTree* c = child(i);
-				if(c == NULL || (ExecutionTreeManager::IS_TRANSNODE(c))) {
-					safe_assert(c == NULL || !c->covered_);
+				if(c == NULL || (ExecutionTreeManager::IS_TRANSNODE(c) && !c->covered())) {
 					current_nodes->push_back({this, i});
 				} else {
 					ChildLoc cloc = {c, -1};

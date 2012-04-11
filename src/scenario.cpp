@@ -1783,6 +1783,8 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
 		safe_assert(choice != NULL);
 		safe_assert(choice->info() == info);
+		choice->set_message(message);
+
 		// update current node
 		exec_tree_.set_current_node(reploc);
 
@@ -1807,8 +1809,10 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
+		choice->set_message(message);
 	} else {
 		choice = new ChoiceNode(info);
+		choice->set_message(message);
 	}
 
 	safe_assert(!choice->covered());
@@ -1818,19 +1822,19 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 	bool cov_0 = choice->child_covered(0);
 	bool cov_1 = choice->child_covered(1);
 
-	if(!cov_1) {
-		ret = 1;
-	} else {
-		safe_assert(!cov_0);
-		ret = 0;
-	}
-
-//	if(!cov_0 && !cov_1) {
-//		// select randomly
-//		ret = rand() % 2;
+//	if(!cov_1) {
+//		ret = 1;
 //	} else {
-//		ret = !cov_0 ? 0 : 1;
+//		safe_assert(!cov_0);
+//		ret = 0;
 //	}
+
+	if(!cov_0 && !cov_1) {
+		// select randomly
+		ret = rand() % 2;
+	} else {
+		ret = !cov_0 ? 0 : 1;
+	}
 
 	exec_tree_.ReleaseRef(choice, ret);
 
@@ -1857,6 +1861,7 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 		safe_assert(trans != NULL);
 		trans->set_var(var);
 		trans->set_pred(pred);
+		trans->set_message(message);
 
 		// update current node
 		exec_tree_.set_current_node(reploc);
@@ -1888,8 +1893,10 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 		}
 		trans->set_var(var); // should set the variabl again, because var is a local object
 		trans->set_pred(pred);
+		trans->set_message(message);
 	} else {
 		trans = new SingleTransitionNode(pred, var);
+		trans->set_message(message);
 	}
 
 	safe_assert(!trans->covered());
