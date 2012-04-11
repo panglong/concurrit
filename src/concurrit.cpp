@@ -46,6 +46,13 @@ MainFuncType Concurrit::driver_main_;
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
 
+	// init work dir
+	CONCURRIT_HOME = getenv("CONCURRIT_HOME");
+
+	// init logging
+	google::InitGoogleLogging("concurrit");
+
+
 	//==========================================
 
 	// first set the signal handler
@@ -112,12 +119,6 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 // init pth
 //	int pth_init_result = pth_init();
 //	safe_assert(pth_init_result == TRUE);
-
-	// init work dir
-	CONCURRIT_HOME = getenv("CONCURRIT_HOME");
-
-	// init logging
-	google::InitGoogleLogging("concurrit");
 
 	AuxState::Init();
 

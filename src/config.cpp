@@ -37,6 +37,7 @@ namespace concurrit {
 
 // set to default values
 bool Config::OnlyShowHelp = false;
+bool Config::DeleteCoveredSubtrees = false;
 //bool Config::CanEnableDisablePinTool = true;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
 char* Config::SaveDotGraphToFile = NULL;

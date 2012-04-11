@@ -232,6 +232,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
+#define TVAR(t)		ThreadVarPtr t = ThreadVarPtr(new ThreadVar());
+
+/********************************************************************************/
+
 #define PTRUE		TransitionPredicate::True()
 #define PFALSE		TransitionPredicate::False()
 

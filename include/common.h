@@ -242,6 +242,7 @@ public:
 	static bool OnlyShowHelp;
 //	static bool CanEnableDisablePinTool;
 	static int ExitOnFirstExecution;
+	static bool DeleteCoveredSubtrees;
 	static char* SaveDotGraphToFile;
 //	static bool RunUncontrolled;
 	static void ParseCommandLine(int argc = -1, char **argv = NULL);

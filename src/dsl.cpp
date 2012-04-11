@@ -202,7 +202,8 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 		for(int i = 0; i < sz; ++i) {
 			if(i != child_index) {
 				ExecutionTree* c = child(i);
-				if(c == NULL || ExecutionTreeManager::IS_TRANSNODE(c)) {
+				if(c == NULL || (ExecutionTreeManager::IS_TRANSNODE(c))) {
+					safe_assert(c == NULL || !c->covered_);
 					current_nodes->push_back({this, i});
 				} else {
 					ChildLoc cloc = {c, -1};
@@ -271,7 +272,7 @@ void ExecutionTreeManager::Restart() {
 
 	// clean end_node's exceptions etc
 	end_node_.set_exception(NULL);
-	safe_assert(end_node_.old_root() == NULL);
+//	safe_assert(end_node_.old_root() == NULL);
 
 	// reset semaphore value to 0
 	sem_ref_.Set(0);
@@ -491,28 +492,7 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 	safe_assert(CheckCompletePath(&path, loc));
 
 	const int sz = path.size();
-	//===========================
-	// make the parent of last element (if SelectThreadNode) covered, because there is no way to cover it
-	if(reason == THREADS_ALLENDED && sz > 1) {
-		ChildLoc last = path[1]; // not the end node but the previous node
-		ExecutionTree* last_parent = last.parent();
-		if(INSTANCEOF(last_parent, SelectThreadNode*)) {
-			last_parent->set_covered(true);
-		}
-	}
-
-	//===========================
-	// if last one is choice and one of the branches goes to the end of the script
-	// then we make all of the instances created at the same line as covered
-	if(reason == SUCCESS) {
-		ChildLoc last = path[1]; // not the end node but the previous node
-		ChoiceNode* choice = ASINSTANCEOF(last.parent(), ChoiceNode*);
-		if(choice != NULL) {
-			// idx goes to the end of the script
-			int idx = last.child_index();
-			choice->info()->set_covered(idx, true);
-		}
-	}
+	safe_assert(sz > 1);
 
 	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
@@ -547,7 +527,7 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 	// now delete the (largest) covered subtree
 	ExecutionTree* end_node = path[0].parent();
 	safe_assert(IS_ENDNODE(end_node));
-	if(BETWEEN(1, highest_covered_index, sz-2)) {
+	if(Config::DeleteCoveredSubtrees && BETWEEN(1, highest_covered_index, sz-2)) {
 		ChildLoc parent_loc = path[highest_covered_index+1];
 		ExecutionTree* subtree_root = parent_loc.get();
 		safe_assert(subtree_root == path[highest_covered_index].parent());
@@ -562,18 +542,6 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 
 	// current_node_ must be pointing to the end node
 	safe_assert(current_node_.parent() == end_node && current_node_.child_index() == 0);
-
-//	fprintf(stderr, "Path length: %d\n", path->size());
-//	fprintf(stderr, "Num execution tree nodes: %d\n", ExecutionTree::num_nodes());
-//
-//	// sanity prints
-//	for(int i = sz-1; i >= 0; --i) {
-//		ChildLoc element = (*path)[i];
-//		element.parent()->ToStream(stderr);
-//		fprintf(stderr, " index %d\n", element.child_index());
-//	}
-//	fprintf(stderr, "\n\n\n");
-
 
 	// check if the root is covered
 	return !root_node_.covered();
@@ -643,13 +611,38 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 		}
 	}
 
+	//================================================
+
 	EndNode* end_node = ASINSTANCEOF(current_node_.get(), EndNode*);
 
 	// check the last node in the path
 	ChildLoc last = GetLastInPath();
-	safe_assert(!IS_ENDNODE(last.parent()));
-	ExistsThreadNode* exists = ASINSTANCEOF(last.parent(), ExistsThreadNode*);
-	if(exists != NULL) {
+	ExecutionTree* last_parent = last.parent();
+	safe_assert(!IS_ENDNODE(last_parent));
+
+	//===========================
+	// make the parent of last element (if SelectThreadNode) covered, because there is no way to cover it
+	if(reason == THREADS_ALLENDED) {
+		if(INSTANCEOF(last_parent, SelectThreadNode*)) {
+			last_parent->set_covered(true);
+		}
+	}
+
+	//===========================
+	// if last one is choice and one of the branches goes to the end of the script
+	// then we make all of the instances created at the same line as covered
+	if(reason == SUCCESS) {
+		ChoiceNode* choice = ASINSTANCEOF(last_parent, ChoiceNode*);
+		if(choice != NULL) {
+			// idx goes to the end of the script
+			int idx = last.child_index();
+			choice->info()->set_covered(idx, true);
+		}
+	}
+
+	//===========================
+	ExistsThreadNode* exists = ASINSTANCEOF(last_parent, ExistsThreadNode*);
+	if(exists != NULL && !exists->is_covered()) {
 		// update covered tid set
 		std::set<THREADID>* tids = exists->covered_tids();
 		tids->insert(safe_notnull(exists->thread())->tid());
@@ -671,9 +664,10 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 
 		// compute coverage for the just-visited node
 		if(!DoBacktrack(current_node_, reason)) {
-			// root is covered
+			// root is covered, no need to continue
 			safe_assert(root_node_.covered());
-			// no need to continue
+
+			safe_assert(current_node_.get() == end_node);
 			safe_assert(IS_ENDNODE(current_node_.get()));
 			// notify threads about the end of the controlled run
 			ReleaseRef(end_node); // this does not add the node to the path, it is already added
@@ -697,6 +691,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 //		safe_assert(IS_ENDNODE(current_node_.get()));
 		return false;
 	}
+
+	//================================================
 
 	VLOG(2) << "Alternate path exists, will replay";
 

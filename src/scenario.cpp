@@ -1300,7 +1300,12 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 		ThreadVarPtr& var = trans->var();
 		if(var != NULL) {
 			selected_thread = var->thread();
-			safe_assert(selected_thread != NULL);
+			if(selected_thread == NULL) {
+				safe_assert(!trans->thread_preselected());
+				// select thread as this one
+				var->set_thread(current);
+				selected_thread = current;
+			}
 		}
 
 		if(selected_thread != current) {
@@ -1331,7 +1336,12 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 			ThreadVarPtr& var = truntil->var();
 			safe_assert(var != NULL);
 			Coroutine* selected_thread = var->thread();
-			safe_assert(selected_thread != NULL);
+			if(selected_thread == NULL) {
+				safe_assert(!truntil->thread_preselected());
+				// select thread as this one
+				var->set_thread(current);
+				selected_thread = current;
+			}
 
 			if(selected_thread != current) {
 				// we are not supposed to take this transition, so put it back and retry
@@ -1366,6 +1376,11 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 		tval = TPUNKNOWN;
 	}
 
+	// clear the thread variable if not preselected
+	if(tval == TPFALSE && node->var() != NULL && !node->thread_preselected()) {
+		node->var()->set_thread(NULL);
+	}
+
 	safe_assert(tval == TPFALSE || tval == TPUNKNOWN);
 	return tval;
 }
@@ -1380,6 +1395,9 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 	// TPUNKNOWN: will keep the node, but we put it back to atomic_ref to take it later
 	// TPINVALID: cannot occur
 	TPVALUE tval = TPTRUE;
+
+	// check if the selected thread is current
+	safe_assert(node->var() == NULL || node->var()->thread() == current);
 
 	SingleTransitionNode* trans = ASINSTANCEOF(node, SingleTransitionNode*);
 	if(trans != NULL) {
@@ -1809,7 +1827,7 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thre
 	DSLTransition(pred, ThreadVarPtr(new ThreadVar(thread)));
 }
 
-void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= boost::shared_ptr()*/) {
+void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	//=======================================================

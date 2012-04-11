@@ -106,8 +106,15 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
-	TransitionNode(ExecutionTree* parent = NULL, int num_children = 0) : ExecutionTree(parent, num_children) {}
+	TransitionNode(const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(parent, num_children), var_(var) {
+		thread_preselected_ = (var_ != NULL && var_->thread() != NULL);
+	}
 	virtual ~TransitionNode(){}
+
+private:
+	DECL_FIELD(ThreadVarPtr, var)
+	DECL_FIELD(bool, thread_preselected)
 };
 
 class SelectionNode : public ExecutionTree {
@@ -180,7 +187,7 @@ public:
 		covered_ = true;
 		set_child(this); // points to itself
 		exception_ = NULL;
-		old_root_ = NULL;
+//		old_root_ = NULL;
 	}
 
 	virtual ~EndNode(){
@@ -196,25 +203,47 @@ public:
 	}
 
 	virtual void ToStream(FILE* file) {
-		fprintf(file, "EndNode. %s exception.", (exception_ == NULL ? "Has no " : "Has "));
+		fprintf(file, "%s", ToString().c_str());
 		ExecutionTree::ToStream(file);
 	}
 
+	std::string ToString() {
+		std::stringstream s;
+		s << "EndNode(";
+		if(exception_ == NULL) {
+			s << "SUCCESS";
+		} else {
+			BacktrackException* be = ASINSTANCEOF(exception_, BacktrackException*);
+			if(be != NULL) {
+				s << BacktrackException::ReasonToString(be->reason());
+			} else {
+				AssertionViolationException* ae = ASINSTANCEOF(exception_, AssertionViolationException*);
+				if(ae != NULL) {
+					s << "ASSERT";
+				} else {
+					s << exception_->what();
+				}
+			}
+		}
+		s << ")";
+		return s.str();
+	}
+
 	DotNode* UpdateDotGraph(DotGraph* g) {
-		DotNode* node = new DotNode("EndNode");
+		DotNode* node = new DotNode(this->ToString());
 		g->AddNode(node);
 		g->AddEdge(new DotEdge(node, node));
-		if(old_root_ != NULL) {
-			DotNode* cn = old_root_->UpdateDotGraph(g);
-			g->AddNode(cn);
-			g->AddEdge(new DotEdge(node, cn, "OLD"));
-		}
+//		if(old_root_ != NULL) {
+//			DotNode* cn = old_root_->UpdateDotGraph(g);
+//			g->AddNode(cn);
+//			g->AddEdge(new DotEdge(node, cn, "OLD"));
+//		}
 		return node;
 	}
 
 private:
 	DECL_FIELD(ConcurritException*, exception)
-	DECL_FIELD(ExecutionTree*, old_root)
+//	DECL_FIELD(ExecutionTree*, old_root)
 };
 
 class StaticEndNode : public EndNode {
@@ -510,8 +539,8 @@ private:
 
 class SingleTransitionNode : public TransitionNode {
 public:
-	SingleTransitionNode(const TransitionPredicatePtr& pred, ThreadVarPtr var = boost::shared_ptr<ThreadVar>(), ExecutionTree* parent = NULL)
-	: TransitionNode(parent, 1), pred_(pred), var_(var), thread_(NULL) {}
+	SingleTransitionNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL)
+	: TransitionNode(var, parent, 1), pred_(pred), thread_(NULL) {}
 
 	~SingleTransitionNode() {}
 
@@ -537,7 +566,6 @@ public:
 
 private:
 	DECL_FIELD(TransitionPredicatePtr, pred)
-	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(Coroutine*, thread) // keep performing thread here
 };
 
@@ -545,8 +573,8 @@ private:
 
 class MultiTransitionNode : public TransitionNode {
 public:
-	MultiTransitionNode(ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(parent, num_children) {}
+	MultiTransitionNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL, int num_children = 1)
+	: TransitionNode(var, parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -559,7 +587,9 @@ public:
 class TransferUntilNode : public MultiTransitionNode {
 public:
 	TransferUntilNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, ExecutionTree* parent = NULL)
-	: MultiTransitionNode(parent, 1), var_(var), pred_(pred) {}
+	: MultiTransitionNode(var, parent, 1), pred_(pred) {
+		CHECK(var_ != NULL) << "TransferUntil node is given NULL thread variable!";
+	}
 
 	~TransferUntilNode() {}
 
@@ -583,7 +613,6 @@ public:
 		return node;
 	}
 private:
-	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
