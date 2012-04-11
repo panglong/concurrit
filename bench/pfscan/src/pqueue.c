@@ -103,7 +103,6 @@ pqueue_get(PQUEUE *qp,
         pthread_mutex_unlock(&qp->mtx);
 
         AtPc(42);
-        AtPc(43);
 
         pthread_mutex_lock(&qp->mtx);
 //        thrilleAssertC(qp->occupied > 0);

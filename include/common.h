@@ -359,6 +359,9 @@ main_args ArgVectorToMainArgs(const std::vector<char*>& args);
 
 void short_sleep(long nanoseconds, bool continue_on_signal);
 
+void* FuncAddressByName(const char* name, bool default_first = true, bool try_other = false, bool fail_on_null = false);
+
+
 /********************************************************************************/
 
 } // end namepace

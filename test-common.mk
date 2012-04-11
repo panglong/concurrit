@@ -25,7 +25,7 @@ clean:
 clean-test:
 	rm -f bin/*
 
-bin/$(TARGET): makedirs lib/$(TARGETLIB) $(SRCS) $(HEADERS)
+bin/$(TARGET): lib/$(TARGETLIB) $(SRCS) $(HEADERS)
 	$(CC) $(TEST_FLAGS) -o $@ $(SRCS)
 	$(CC) $(TEST_FLAGS) -c -o obj/$(TARGET).o $(SRCS)
 	ar rcs lib/$(TARGET).a obj/$(TARGET).o
@@ -40,9 +40,11 @@ pin: lib/$(TARGETLIB) bin/$(TARGET)
 	DYLD_LIBRARY_PATH=="$(BENCHDIR)/lib:$(DYLD_LIBRARY_PATH)" \
 		$(CONCURRIT_HOME)/scripts/run_pintool.sh bin/$(TARGET) $(ARGS)
 
-shared: lib/lib$(TARGET).so
+shared: makedirs lib/lib$(TARGET).so
+
 LIBFLAGS+=-ldummy -lpthread -I$(CONCURRIT_INCDIR) -L$(CONCURRIT_LIBDIR)
-lib/lib$(TARGET).so: makedirs $(LIBSRCS) $(LIBHEADERS)
+
+lib/lib$(TARGET).so: $(LIBSRCS) $(LIBHEADERS)
 	$(CC) -I. -Isrc -g -gdwarf-2 -O1 -w -fPIC $(LIBFLAGS) -shared -o $@ $(LIBSRCS)
 
-all: bin/$(TARGET)
+all: makedirs shared bin/$(TARGET)

@@ -235,7 +235,11 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define FUNC(v, f)		static FuncVar v(reinterpret_cast<void*>(f));
+//#define FUNC(v, f)		static FuncVar v(reinterpret_cast<void*>(f));
+
+						// try only default, and fail if not found
+#define FUNC(v, f)		static FuncVar v(FuncAddressByName(#f, true, false, true));
+
 
 /********************************************************************************/
 

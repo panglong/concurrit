@@ -93,13 +93,8 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	// find the driver main function
-	Concurrit::driver_main_ = (MainFuncType) dlsym(RTLD_NEXT, "__main__");
-	if(Concurrit::driver_main_ == NULL) { \
-		fprintf(stderr, "Concurrit: RTLD_NEXT init of __main__ failed, using the RTLD_DEFAULT init.\n");
-		Concurrit::driver_main_ = (MainFuncType) dlsym(RTLD_DEFAULT, "__main__");
-	}
-	CHECK(Concurrit::driver_main_ != NULL) << "Concurrit: __main__ init failed!";
+	// find the driver main function, try next first, and fail if not found
+	Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", false, true, true);
 
 	//==========================================
 

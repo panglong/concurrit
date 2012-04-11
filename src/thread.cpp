@@ -108,7 +108,7 @@ void* ThreadEntry(void* arg) {
 	__pthread_errno__ = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
 	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 
-	__pthread_errno__ = pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &oldstate);
+	__pthread_errno__ = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
 	safe_assert(__pthread_errno__ == PTH_SUCCESS);
 
 	void* return_value = thread->Run();

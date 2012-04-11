@@ -108,6 +108,27 @@ void print_stack_trace() {
 
 /********************************************************************************/
 
+void* FuncAddressByName(const char* name, bool default_first /*= true*/, bool try_other /*= false*/, bool fail_on_null /*= false*/) {
+	bool next_first = !default_first;
+	void* addr = reinterpret_cast<void*>(dlsym(next_first ? RTLD_NEXT : RTLD_DEFAULT, name));
+	if(addr == NULL) {
+		fprintf(stderr, "%s init of %s failed.\n", (next_first ? "RTLD_NEXT" : "RTLD_DEFAULT"), name);
+		if(try_other) {
+			addr = reinterpret_cast<void*>(dlsym(next_first ? RTLD_DEFAULT : RTLD_NEXT, name));
+			if(addr == NULL) fprintf(stderr, "%s init of %s failed.\n", (next_first ? "RTLD_DEFAULT": "RTLD_NEXT"), name);
+		}
+	}
+	if(addr == NULL && fail_on_null) {
+		fprintf(stderr, "%s could not been found!\n", name);
+		fflush(stderr);
+		_Exit(UNRECOVERABLE_ERROR);
+	}
+
+	return addr;
+}
+
+/********************************************************************************/
+
 } // end namespace
 
 
