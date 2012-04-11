@@ -65,6 +65,10 @@ public:
 	: name_(name), thread_(thread) {}
 	~ThreadVar() {}
 
+	std::string ToString() {
+		return thread_ == NULL ? std::string("no-tid") : to_string(thread_->tid());
+	}
+
 private:
 	DECL_FIELD(std::string, name)
 	DECL_FIELD(Coroutine*, thread)
