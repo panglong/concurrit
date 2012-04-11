@@ -175,7 +175,7 @@ void print_stack_trace();
 
 #ifdef SAFE_ASSERT
 #include <execinfo.h>
-#define safe_notnull(o) 	CHECK_NOTNULL(o)
+#define safe_notnull(o) 	(CHECK_NOTNULL(o))
 #define safe_assert(cond) \
 		if (!(cond))  { \
 			fprintf(stderr, "\nCounit: safe assert fail: safe_assert(%s):", #cond); \

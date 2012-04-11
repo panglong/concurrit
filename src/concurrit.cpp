@@ -196,12 +196,12 @@ void Concurrit::SetupSignalHandler() {
 		_Exit(UNRECOVERABLE_ERROR);
 	}
 
-	if (sigaction(SIGINT, &sigact, (struct sigaction *)NULL) != 0) {
-		fprintf(stderr, "error setting signal handler for %d (%s)\n",
-				SIGINT, strsignal(SIGINT));
-		fflush(stderr);
-		_Exit(UNRECOVERABLE_ERROR);
-	}
+//	if (sigaction(SIGINT, &sigact, (struct sigaction *)NULL) != 0) {
+//		fprintf(stderr, "error setting signal handler for %d (%s)\n",
+//				SIGINT, strsignal(SIGINT));
+//		fflush(stderr);
+//		_Exit(UNRECOVERABLE_ERROR);
+//	}
 }
 
 void Concurrit::SignalHandler(int sig_num, siginfo_t * info, void * ucontext) {
@@ -212,24 +212,24 @@ void Concurrit::SignalHandler(int sig_num, siginfo_t * info, void * ucontext) {
 		fflush(stderr);
 		raise(sig_num);
 		break;
-	case SIGINT:
-		Scenario* scenario = Scenario::Current();
-		if(scenario == NULL){
-			fprintf(stderr, "Scenario is null when signal is handled!");
-			fflush(stderr);
-			raise(sig_num);
-		}
-		// send backtrack exception
-		TestStatus status = scenario->test_status();
-		if(BETWEEN(TEST_SETUP, status, TEST_TEARDOWN)) {
-			scenario->exec_tree()->EndWithBacktrack(Coroutine::Current(), SEARCH_ENDS, "SIGINT");
-			return;
-		} else {
-			fprintf(stderr, "Signal sent when not running the test, calling the default handler!");
-			fflush(stderr);
-			raise(sig_num);
-		}
-		break;
+//	case SIGINT:
+//		Scenario* scenario = Scenario::Current();
+//		if(scenario == NULL){
+//			fprintf(stderr, "Scenario is null when signal is handled!");
+//			fflush(stderr);
+//			raise(sig_num);
+//		}
+//		// send backtrack exception
+//		TestStatus status = scenario->test_status();
+//		if(BETWEEN(TEST_SETUP, status, TEST_TEARDOWN)) {
+//			scenario->exec_tree()->EndWithBacktrack(Coroutine::Current(), SEARCH_ENDS, "SIGINT");
+//			return;
+//		} else {
+//			fprintf(stderr, "Signal sent when not running the test, calling the default handler!");
+//			fflush(stderr);
+//			raise(sig_num);
+//		}
+//		break;
 	}
 	unreachable();
 }

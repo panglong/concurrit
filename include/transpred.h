@@ -721,7 +721,7 @@ public:
 #define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f)
 #define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f)
 
-#define IN_FUNC(f)		TPInFunc::create(safe_notnull(f))
+#define IN_FUNC(f)		TPInFunc::create(f)
 #define TIMES_IN_FUNC(f, k) \
 						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, f	, k)
 
@@ -747,6 +747,7 @@ public:
 	}
 
 	static TransitionPredicatePtr create(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr()) {
+		safe_assert(addr != 0);
 		TransitionPredicatePtr p(new TPInFunc(addr, tvar));
 		return p;
 	}

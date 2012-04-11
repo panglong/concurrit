@@ -59,7 +59,7 @@ typedef std::vector<ExecutionTree*> ExecutionTreeList;
 
 class ExecutionTree : public Writable {
 public:
-	ExecutionTree(ExecutionTree* parent = NULL, int num_children = 0) : parent_(parent), covered_(false) {
+	ExecutionTree(ExecutionTree* parent = NULL, int num_children = 0) : parent_(parent), covered_(false), message_(NULL) {
 		InitChildren(num_children);
 		num_nodes_++;
 	}
@@ -91,12 +91,20 @@ public:
 	virtual DotNode* UpdateDotGraph(DotGraph* g);
 	DotGraph* CreateDotGraph();
 
+	virtual void OnConsumed(int child_index = 0) {
+		if(message_ != NULL) {
+			VLOG(1) << "<< " << message_ << " >>";
+		}
+	}
+
 private:
 	DECL_FIELD(ExecutionTree*, parent)
 	DECL_FIELD_REF(ExecutionTreeList, children)
 	DECL_FIELD(bool, covered)
 
 	DECL_STATIC_FIELD(int, num_nodes)
+
+	DECL_FIELD(const char*, message)
 
 	friend class ExecutionTreeManager;
 };

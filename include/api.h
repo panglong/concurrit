@@ -216,19 +216,13 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 // exists thread
 
-#define EXISTS(t)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
-					DSLExistsThread(t);
+#define NOPRED			TransitionPredicatePtr()
 
-#define EXISTS_ST(t, p) \
-					ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
-					DSLExistsThread(t, p);
+#define EXISTS(t, ...)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
+						DSLExistsThread(t, __VA_ARGS__);
 
-#define FORALL(t)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
-					DSLForallThread(t);
-
-#define FORALL_ST(t, p) \
-					ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
-					DSLForallThread(t, p);
+#define FORALL(t, ...)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
+						DSLForallThread(t, __VA_ARGS__);
 
 /********************************************************************************/
 
@@ -245,9 +239,8 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define RUN_UNTIL(t, p)		DSLTransferUntil((t), (p));
-#define RUN_ONCE(t, p)		DSLTransition((p), (t));
-#define TRANSITION(p)		DSLTransition((p));
+#define RUN_UNTIL(...)		DSLTransferUntil(__VA_ARGS__);
+#define RUN_ONCE(...)		DSLTransition(__VA_ARGS__);
 
 /********************************************************************************/
 

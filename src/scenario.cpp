@@ -1621,6 +1621,7 @@ SWITCH:
 		switch(tval) {
 		case TPTRUE: // consume the transition
 			VLOG(2) << "Consuming transition";
+			node->OnConsumed(newnode.child_index());
 			// in this case, we insert a new node to the path represented by newnode
 			safe_assert(!newnode.empty());
 			safe_assert(!exec_tree_.IS_TRANSNODE(node));
@@ -1756,7 +1757,7 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 
 /********************************************************************************/
 
-bool Scenario::DSLChoice(StaticChoiceInfo* info) {
+bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLChoice";
 
 	//=======================================================
@@ -1825,11 +1826,11 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info) {
 
 /********************************************************************************/
 
-void Scenario::DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thread) {
-	DSLTransition(pred, ThreadVarPtr(new ThreadVar(thread)));
+void Scenario::DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thread, const char* message /*= NULL*/) {
+	DSLTransition(pred, ThreadVarPtr(new ThreadVar(thread)), message);
 }
 
-void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/) {
+void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	//=======================================================
@@ -1888,11 +1889,11 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred) {
-	DSLTransferUntil(ThreadVarPtr(new ThreadVar(thread)), pred);
+void Scenario::DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+	DSLTransferUntil(ThreadVarPtr(new ThreadVar(thread)), pred, message);
 }
 
-void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred) {
+void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransferUntil";
 
 	//=======================================================
@@ -1952,7 +1953,7 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredica
 
 /********************************************************************************/
 
-void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/) {
+void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLForallThread";
 
 	//=======================================================
@@ -2018,14 +2019,14 @@ void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicat
 
 /********************************************************************************/
 
-void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/) {
+void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLExistsThread";
 
 	//=======================================================
 
 	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
-		safe_assert(!reploc.empty());
+		safe_assert(reploc.parent() != NULL);
 		ExistsThreadNode* select = ASINSTANCEOF(reploc.parent(), ExistsThreadNode*);
 		safe_assert(select != NULL);
 
@@ -2036,6 +2037,7 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicat
 			select->set_var(var); // first select var before setting the thread
 			select->set_pred(pred);
 			select->set_selected_thread();
+			select->set_message(message);
 
 			// update current node
 			exec_tree_.set_current_node(reploc);
@@ -2069,8 +2071,10 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicat
 		}
 		select->set_var(var);
 		select->set_pred(pred);
+		select->set_message(message);
 	} else {
 		select = new ExistsThreadNode(var, pred);
+		select->set_message(message);
 	}
 	safe_assert(!select->covered());
 

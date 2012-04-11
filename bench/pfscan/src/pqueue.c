@@ -19,9 +19,9 @@
 #include "pqueue.h"
 
 
-#ifdef ERR1
-void thrilleAssertC(int);
-#endif
+//#ifdef ERR1
+//void thrilleAssertC(int);
+//#endif
 
 int
 pqueue_init(PQUEUE *qp,
@@ -81,6 +81,8 @@ pqueue_put(PQUEUE *qp,
     return 1;
 }
 
+#define ERR1
+#include "dummy.h"
 
 
 int
@@ -99,8 +101,12 @@ pqueue_get(PQUEUE *qp,
     {
 #ifdef ERR1
         pthread_mutex_unlock(&qp->mtx);
+
+        AtPc(42);
+
         pthread_mutex_lock(&qp->mtx);
-        thrilleAssertC(qp->occupied > 0);
+//        thrilleAssertC(qp->occupied > 0);
+        concurritAssert(qp->occupied > 0);
 #endif
 	*item = qp->buf[qp->nextout++];
 	qp->nextout %= qp->qsize;
