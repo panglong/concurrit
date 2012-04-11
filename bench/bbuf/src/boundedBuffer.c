@@ -256,8 +256,8 @@ int bounded_buf_is_full(bounded_buf_t* bbuf)
 
 
 
-#define PRODUCER_SUM  5
-#define CONSUMER_SUM  5
+#define PRODUCER_SUM  2
+#define CONSUMER_SUM  2
 
 
 typedef struct thread_tag

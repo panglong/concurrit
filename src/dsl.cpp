@@ -193,10 +193,8 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 		safe_assert(BETWEEN(-1, child_index, sz-1));
 
 		// if select thread and child_index is -1, then add this with index -1
-		if(INSTANCEOF(this, ForallThreadNode*)) {
+		if(INSTANCEOF(this, SelectThreadNode*)) {
 			current_nodes->push_back({this, -1});
-		} else if(INSTANCEOF(this, ExistsThreadNode*)) {
-			current_nodes->push_back({this, 0});
 		}
 
 		for(int i = 0; i < sz; ++i) {
@@ -251,6 +249,9 @@ void ExecutionTreeManager::SaveDotGraph(const char* filename) {
 	DotNode* node = root_node_.UpdateDotGraph(&g);
 	node->set_label("Root");
 	g.WriteToFile(filename);
+	char buff[256];
+	snprintf(buff, 256, "dot -Tpng %s -o %s.png", filename, filename);
+	system(buff);
 	printf("Wrote dot file to %s\n", filename);
 }
 

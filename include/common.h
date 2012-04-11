@@ -288,6 +288,7 @@ public:
 	static void Destroy();
 	static volatile bool IsInitialized();
 	static void* CallDriverMain(void*);
+	static void SetupSignalHandler();
 	static void SignalHandler(int sig_num, siginfo_t * info, void * ucontext);
 private:
 	static volatile bool initialized_;

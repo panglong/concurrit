@@ -469,6 +469,7 @@ void Scenario::RunTestCase() throw() {
 			if(be == NULL) {
 				// mark the end of the path with end node and the corresponding exception
 				exec_tree_.EndWithException(group_.main(), e);
+				return;
 			}
 
 			reason = be->reason();
@@ -477,6 +478,7 @@ void Scenario::RunTestCase() throw() {
 			// then change the backtrack type to THREADS_ALLENDED
 			if(reason == TIMEOUT && group_.IsAllEnded()) {
 				reason = THREADS_ALLENDED;
+				VLOG(1) << "Replacing TIMEOUT with THREADS_ALLENDED; all threads have ended.";
 			}
 			if(reason == TIMEOUT ||
 				reason == TREENODE_COVERED ||
@@ -2026,16 +2028,22 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicat
 		safe_assert(!reploc.empty());
 		ExistsThreadNode* select = ASINSTANCEOF(reploc.parent(), ExistsThreadNode*);
 		safe_assert(select != NULL);
-		// re-select the thread to update the associated thread variable
-		select->set_var(var); // first select var before setting the thread
-		select->set_pred(pred);
-		select->set_selected_thread();
 
-		// update current node
-		exec_tree_.set_current_node(reploc);
+		int child_index = reploc.child_index();
+		// if index is -1, then we should submit this select thread
+		if(child_index >= 0) {
+			// re-select the thread to update the associated thread variable
+			select->set_var(var); // first select var before setting the thread
+			select->set_pred(pred);
+			select->set_selected_thread();
 
-		VLOG(2) << "Replaying path with exists thread node.";
-		return;
+			// update current node
+			exec_tree_.set_current_node(reploc);
+
+			VLOG(2) << "Replaying path with forall thread node.";
+			return;
+		}
+		safe_assert(exec_tree_.replay_path()->empty());
 	}
 
 	//=======================================================
