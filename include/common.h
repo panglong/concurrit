@@ -194,12 +194,14 @@ void print_stack_trace();
 #define unimplemented() \
 		VLOG(2) << "Executing unimplemented code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
 		fprintf(stderr, "Unimplemented operation!"); \
+		concurrit::print_stack_trace(); \
 		fflush(stderr); \
 		_Exit(UNRECOVERABLE_ERROR); \
 
 #define unreachable() \
 		VLOG(2) << "Executing unreachable code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
 		fprintf(stderr, "Unreachable code!"); \
+		concurrit::print_stack_trace(); \
 		fflush(stderr); \
 		_Exit(UNRECOVERABLE_ERROR); \
 
@@ -233,23 +235,6 @@ typedef unsigned int vctime_t;
 
 /********************************************************************************/
 
-const long MaxWaitTimeUSecs = 3 * 999999L;
-
-/********************************************************************************/
-
-class Config {
-public:
-	static bool OnlyShowHelp;
-//	static bool CanEnableDisablePinTool;
-	static int ExitOnFirstExecution;
-	static bool DeleteCoveredSubtrees;
-	static char* SaveDotGraphToFile;
-//	static bool RunUncontrolled;
-	static void ParseCommandLine(int argc = -1, char **argv = NULL);
-};
-
-/********************************************************************************/
-
 enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
 
 const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
@@ -278,6 +263,23 @@ struct main_args {
 		s << "]";
 		return s.str();
 	}
+};
+
+/********************************************************************************/
+
+#define USECSPERSEC	999999L
+
+class Config {
+public:
+	static bool OnlyShowHelp;
+//	static bool CanEnableDisablePinTool;
+	static int ExitOnFirstExecution;
+	static bool DeleteCoveredSubtrees;
+	static char* SaveDotGraphToFile;
+	static long MaxWaitTimeUSecs;
+//	static bool RunUncontrolled;
+	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
+	static bool ParseCommandLine(const main_args& args);
 };
 
 /********************************************************************************/
@@ -349,6 +351,9 @@ std::string vector_to_string(const std::vector<T>& v) {
 }
 
 /********************************************************************************/
+
+main_args StringToMainArgs(const std::string& s, bool add_program_name = false);
+main_args StringToMainArgs(const char* s, bool add_program_name = false);
 
 main_args ArgVectorToMainArgs(const std::vector<char*>& args);
 

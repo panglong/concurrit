@@ -63,7 +63,7 @@ public:
 	static void Enable();
 	static void Disable();
 
-	static inline bool IsEnabled() { return enabled_; }
+	static inline bool IsEnabled() { safe_assert(!enabled_ || Concurrit::IsInitialized()); return enabled_; }
 
 	/******************************************************************************************/
 

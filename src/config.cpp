@@ -41,6 +41,7 @@ bool Config::DeleteCoveredSubtrees = false;
 //bool Config::CanEnableDisablePinTool = true;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
 char* Config::SaveDotGraphToFile = NULL;
+long Config::MaxWaitTimeUSecs = 3 * USECSPERSEC;
 //bool Config::RunUncontrolled = false;
 
 /********************************************************************************/
@@ -53,13 +54,17 @@ static void usage() {
 			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n");
 }
 
-void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
-	if(argc <= 0 || argv == NULL) return;
+bool Config::ParseCommandLine(const main_args& args) {
+	return ParseCommandLine(args.argc_, args.argv_);
+}
+
+bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
+	if(argc <= 0 || argv == NULL) return false;
 
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "chf::d::")) != -1) {
+	while ((c = getopt(argc, argv, "w:chf::d::")) != -1) {
 		switch(c) {
 		case 'c':
 			Config::DeleteCoveredSubtrees = true;
@@ -88,11 +93,18 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 //		case 'u':
 //			Config::RunUncontrolled = true;
 //			break;
+		case 'w':
+			CHECK(optarg != NULL) << "Argument is missing, long value is required!";
+			Config::MaxWaitTimeUSecs = atol(optarg);
+			safe_assert(Config::MaxWaitTimeUSecs > 0);
+			printf("MaxWaitTimeUSecs is %l.\n", Config::MaxWaitTimeUSecs);
+			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");
 			break;
 		}
 	}
+	return true;
 }
 
 

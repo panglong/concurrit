@@ -222,43 +222,58 @@ public:
 	virtual const char* what() const throw()
 	{
 		std::stringstream s(std::stringstream::out);
-		s << "Exception in " << where_ << "\n";
-		s << "Cause: " << cause_->what() << "\n";
+		s << "Exception in " << where_ << std::endl;
+		s << "Cause: " << cause_->what() << std::endl;
+		if(next_ != NULL) {
+			s << "Next: ";
+			s << next_->what();
+		}
 		return s.str().c_str();
 	}
 
 	// also assume exception
-	bool is_backtrack() {
+	BacktrackException* get_backtrack() {
 		ConcurritException* ce = this;
 		while(ce != NULL) {
-			if(INSTANCEOF(cause_, BacktrackException*)) {
-				return true;
+			if(INSTANCEOF(ce->cause_, BacktrackException*)) {
+				return static_cast<BacktrackException*>(ce->cause_);
 			}
 			ce = ce->next_;
 		}
-		return false;
+		return NULL;
 	}
 
-	bool is_assertion_violation() {
+	AssertionViolationException* get_assertion_violation() {
 		ConcurritException* ce = this;
 		while(ce != NULL) {
-			if(INSTANCEOF(cause_, AssertionViolationException*)) {
-				return true;
+			if(INSTANCEOF(ce->cause_, AssertionViolationException*)) {
+				return static_cast<AssertionViolationException*>(ce->cause_);
 			}
 			ce = ce->next_;
 		}
-		return false;
+		return NULL;
 	}
 
-	bool is_internal() {
+	InternalException* get_internal() {
 		ConcurritException* ce = this;
 		while(ce != NULL) {
-			if(INSTANCEOF(cause_, InternalException*)) {
-				return true;
+			if(INSTANCEOF(ce->cause_, InternalException*)) {
+				return static_cast<InternalException*>(ce->cause_);
 			}
 			ce = ce->next_;
 		}
-		return false;
+		return NULL;
+	}
+
+	std::exception* get_non_backtrack() {
+		ConcurritException* ce = this;
+		while(ce != NULL) {
+			if(!INSTANCEOF(ce->cause_, BacktrackException*)) {
+				return ce->cause_;
+			}
+			ce = ce->next_;
+		}
+		return NULL;
 	}
 
 private:

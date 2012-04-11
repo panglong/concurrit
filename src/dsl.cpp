@@ -314,7 +314,7 @@ void ExecutionTreeManager::PopulateLocations() {
 // this always sets the timeout
 ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long timeout_usec /*= -1*/) {
 	safe_assert(Coroutine::Current()->IsMain());
-	if(timeout_usec < 0) timeout_usec = MaxWaitTimeUSecs;
+	if(timeout_usec < 0) timeout_usec = Config::MaxWaitTimeUSecs;
 	ExecutionTree* node = AcquireRef(mode, timeout_usec);
 	if(IS_ENDNODE(node)) {
 		// main has not ended the execution, so this must be due to an exception by another thread
@@ -652,7 +652,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 		tids->insert(safe_notnull(exists->thread())->tid());
 		// do not backtrack, just leave it there
 		// this will be covered only when it cannot be consumed
-		VLOG(1) << "Adding tid to covered tids";
+		VLOG(2) << "Adding tid to covered tids";
 	} else {
 
 		// locked, create a new end node and set it
@@ -730,7 +730,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 
 // (do not use AcquireRefEx here)
 void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
-	VLOG(2) << "Inserting end node to indicate exception.";
+	VLOG(1) << "Inserting end node to indicate exception.";
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
@@ -754,10 +754,10 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 		// add to the path and set to ref
 		ReleaseRef(end_node, 0);
 	}
-
-	safe_assert(end_node != NULL);
+	safe_assert(end_node == &end_node_);
 	// add my exception to the end node
 	end_node->add_exception(exception, current, where);
+	VLOG(1) << "Inserted end node to indicate exception.";
 }
 
 /*************************************************************************************/

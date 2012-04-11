@@ -37,6 +37,21 @@ namespace concurrit {
 
 /********************************************************************************/
 
+main_args StringToMainArgs(const std::string& s, bool add_program_name /*= false*/) {
+	return StringToMainArgs(s.c_str(), add_program_name);
+}
+
+main_args StringToMainArgs(const char* s, bool add_program_name /*= false*/) {
+	std::vector<char*> args;
+	if(add_program_name) {
+		args.push_back("<dummy_program_name>");
+	}
+	args.push_back(const_cast<char*>(s));
+	return ArgVectorToMainArgs(args);
+}
+
+/********************************************************************************/
+
 main_args ArgVectorToMainArgs(const std::vector<char*>& args) {
 	const size_t c = args.size();
 	main_args m(c, NULL);

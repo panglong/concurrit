@@ -201,10 +201,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 // DSL for the preemptive mode
 //#define STAR	DSLChoice(__LINE__)
-#define STAR(stmt, line) static StaticChoiceInfo __choice_info_##line(line); stmt(DSLChoice(&__choice_info_##line))
-#define WHILE_STAR	STAR(while, __LINE__)
-#define IF_STAR		STAR(if, __LINE__)
-#define ELSE		else
+#define STAR(stmt, line) 	static StaticChoiceInfo __choice_info_##line(line); stmt(DSLChoice(&__choice_info_##line))
+#define WHILE_STAR			STAR(while, __LINE__)
+#define IF_STAR				STAR(if, __LINE__)
+#define ELSE				else
 
 #define CONSTRAIN_ALL(pred) \
 	TransitionConstraintAll(this, (pred));
@@ -226,21 +226,26 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define TVAR(t)		ThreadVarPtr t = ThreadVarPtr(new ThreadVar());
+#define TVAR(t)			ThreadVarPtr t = ThreadVarPtr(new ThreadVar());
 
 /********************************************************************************/
 
-#define PTRUE		TransitionPredicate::True()
-#define PFALSE		TransitionPredicate::False()
+#define PTRUE			TransitionPredicate::True()
+#define PFALSE			TransitionPredicate::False()
 
 /********************************************************************************/
 
-#define FUNC(v, f)	static FuncVar v(reinterpret_cast<void*>(f));
+#define FUNC(v, f)		static FuncVar v(reinterpret_cast<void*>(f));
 
 /********************************************************************************/
 
-#define RUN_UNTIL(...)		DSLTransferUntil(__VA_ARGS__);
-#define RUN_ONCE(...)		DSLTransition(__VA_ARGS__);
+#define RUN_UNTIL(...)	DSLTransferUntil(__VA_ARGS__);
+#define RUN_ONCE(...)	DSLTransition(__VA_ARGS__);
+
+/********************************************************************************/
+
+// allow to add command line arguments
+#define CONFIG(s)		static bool __config_##__LINE__ = Config::ParseCommandLine(StringToMainArgs((s), true));
 
 /********************************************************************************/
 

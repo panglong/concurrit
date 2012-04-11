@@ -63,7 +63,7 @@ public:
 
 	void Restart();
 	void Finish();
-	void WaitForAllEnd();
+	bool WaitForAllEnd(long timeout = 0);
 
 	bool HasMember(Coroutine* member);
 	bool HasMember(THREADID tid);

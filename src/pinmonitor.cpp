@@ -186,7 +186,6 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	if(!PinMonitor::IsEnabled()) {
 		return;
 	}
-	safe_assert(Concurrit::IsInitialized());
 
 	VLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
 
@@ -244,6 +243,10 @@ void EndInstrument() {
 }
 
 void AtPc(int pc) {
+	if(!PinMonitor::IsEnabled()) {
+		return;
+	}
+
 	VLOG(2) << "Thread at pc " << pc;
 	// controlled transition
 	Coroutine* co = safe_notnull(Coroutine::Current());

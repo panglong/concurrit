@@ -222,8 +222,8 @@ void Scenario::JoinPThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 
 /********************************************************************************/
 
-void Scenario::JoinAllThreads() {
-	group_.WaitForAllEnd();
+bool Scenario::JoinAllThreads(long timeout) {
+	return group_.WaitForAllEnd(timeout);
 }
 
 /********************************************************************************/
@@ -291,33 +291,33 @@ Result* Scenario::Explore() {
 				}
 
 			} catch(ConcurritException* ce) {
+				AssertionViolationException* ae = NULL;
+				InternalException* ie = NULL;
+				BacktrackException* be = NULL;
+
 				// check the contents of ce, check backtrack last
-				if(ce->is_assertion_violation()){
+				if((ae = ce->get_assertion_violation()) != NULL){
 					VLOG(2) << SC_TITLE << "Assertion is violated!";
-					VLOG(2) << ce->what();
+					VLOG(2) << ae->what();
 
-					safe_assert(INSTANCEOF(ce->cause(), AssertionViolationException*));
-					result = new AssertionViolationResult(static_cast<AssertionViolationException*>(ce->cause()), schedule_->Clone());
-				} else if(ce->is_internal()){
+					result = new AssertionViolationResult(ae, schedule_->Clone());
+
+				} else if((ie = ce->get_internal()) != NULL){
 					VLOG(2) << SC_TITLE << "Internal exception thrown!";
-					VLOG(2) << ce->what();
+					VLOG(2) << ie->what();
 
-					safe_assert(INSTANCEOF(ce->cause(), InternalException*));
-					throw ce->cause();
-				} else if(!ce->is_backtrack()) {
-					safe_assert(ce->cause() != NULL);
-					VLOG(2) << SC_TITLE << "Exception caught: " << ce->cause()->what();
+					throw ie;
 
-					safe_assert(INSTANCEOF(ce->cause(), std::exception*));
-					result = new RuntimeExceptionResult(ce->cause(), schedule_->Clone());
+				} else if((be = ce->get_backtrack()) == NULL){
+					VLOG(2) << SC_TITLE << "Exception caught: " << be->what();
+
+					result = new RuntimeExceptionResult(be, schedule_->Clone());
 				} else {
+					safe_assert(be != NULL);
 					// Backtrack exception!!!
-					safe_assert(INSTANCEOF(ce->cause(), BacktrackException*));
-					BacktrackException* be = static_cast<BacktrackException*>(ce->cause());
 					safe_assert(be->reason() != UNKNOWN);
 
-					VLOG(2) << SC_TITLE << "Backtracking: " << ce->cause()->what();
-//					printf("BACKTRACK: %s\n", ce->cause()->what());
+					VLOG(2) << SC_TITLE << "Backtracking: " << be->what();
 
 					// is backtrack is for terminating the search, exit the search loop
 					if((--Config::ExitOnFirstExecution == 0) || be->reason() == SEARCH_ENDS) {
@@ -412,7 +412,12 @@ void Scenario::RunUncontrolled() {
 	VLOG(2) << "Starting uncontrolled run";
 
 	// start waiting all to end
-	JoinAllThreads();
+	while(!JoinAllThreads(USECSPERSEC)) {
+		if(exec_tree_.end_node()->exception()->get_non_backtrack() != NULL) {
+			VLOG(1) << "There is a non-backtrack exception, so exiting without waiting threads!";
+			break;
+		}
+	}
 
 	VLOG(2) << "Ending uncontrolled run";
 }
@@ -464,14 +469,17 @@ void Scenario::RunTestCase() throw() {
 			TestCase();
 
 		} catch(std::exception* e) {
+			safe_assert(e != NULL);
 			// EndWithSuccess may ignore some backtracks and choose to replay
 			be = ASINSTANCEOF(e, BacktrackException*);
 			if(be == NULL) {
+				VLOG(1) << "Test execution ended with non-backtrack exception: " << safe_notnull(e->what());
+
 				// mark the end of the path with end node and the corresponding exception
 				exec_tree_.EndWithException(group_.main(), e);
 				return;
 			}
-
+			VLOG(2) << "RunTestCase throw backtrack exception, handling...";
 			reason = be->reason();
 			safe_assert(reason != SUCCESS);
 			// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
@@ -497,15 +505,20 @@ void Scenario::RunTestCase() throw() {
 
 	} while(exec_tree_.EndWithSuccess(reason));
 
+	VLOG(2) << "Handled current and all alternative paths, exiting RunTestCase...";
+
 	//====================================
 	// after trying all alternate paths
 	safe_assert(exec_tree_.current_nodes()->empty() || exec_tree_.root_node()->covered());
 
 	if(reason != SUCCESS) {
-		VLOG(1) << "Test script ended with exception: " << BacktrackException::ReasonToString(be->reason());
+		if(be == NULL) {
+			be = GetBacktrackException(reason);
+		} else {
+			be->set_reason(reason);
+		}
+		VLOG(1) << "Test execution ended with backtrack exception: " << BacktrackException::ReasonToString(be->reason());
 
-		safe_assert(be != NULL);
-		be->set_reason(reason);
 		// mark the end of the path with end node and the corresponding exception
 		exec_tree_.EndWithException(group_.main(), be);
 	}
@@ -1712,6 +1725,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		case TPTRUE: // consume the transition if node is not null, otherwise, there was no node to handle
 			VLOG(2) << "Consuming transition";
 			safe_assert(node != NULL);
+			node->OnConsumed(newnode.child_index());
 			// in this case, we insert a new node to the path represented by newnode
 			safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
 			UpdateAlternateLocations(current, false);
@@ -1729,6 +1743,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 			VLOG(2) << "Unknown, with the same transition";
 			safe_assert(exec_tree_.IS_MULTITRANSNODE(node));
 			safe_assert(current->current_node() == node);
+			node->OnConsumed();
 			UpdateAlternateLocations(current, false);
 			// we release the node back (will take it later)
 			exec_tree_.ReleaseRef(node);
@@ -1905,6 +1920,7 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredica
 		safe_assert(truntil != NULL);
 		truntil->set_var(var);
 		truntil->set_pred(pred);
+		truntil->set_message(message);
 
 		// update current node
 		exec_tree_.set_current_node(reploc);
@@ -1938,6 +1954,7 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredica
 		truntil->set_pred(pred);
 	} else {
 		truntil = new TransferUntilNode(var, pred);
+		truntil->set_message(message);
 	}
 
 	safe_assert(!truntil->covered());

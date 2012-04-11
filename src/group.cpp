@@ -161,14 +161,17 @@ void CoroutineGroup::Finish() {
 
 /********************************************************************************/
 
-void CoroutineGroup::WaitForAllEnd() {
+bool CoroutineGroup::WaitForAllEnd(long timeout) {
 	for_each_member(co) {
 		if(co->status() > PASSIVE) {
-			co->WaitForEnd();
+			if(!co->WaitForEnd(timeout)) {
+				return false;
+			}
 		}
 	}
 
 	safe_assert(IsAllEnded());
+	return true;
 }
 
 /********************************************************************************/

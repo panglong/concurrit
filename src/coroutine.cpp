@@ -111,12 +111,12 @@ void Coroutine::Finish() {
 			this->Join();
 			VLOG(2) << CO_TITLE << "Joined the thread";
 		} else {
-			unreachable();
-//			// kill the thread
-//			VLOG(2) << CO_TITLE << "Cancelling the thread";
-//			this->Cancel();
-//			VLOG(2) << CO_TITLE << "Waiting for the thread";
-//			this->Join();
+			fprintf(stderr, "Killing thread %d...", tid_);
+			VLOG(2) << CO_TITLE << "Cancelling the thread";
+			this->Cancel();
+			VLOG(2) << CO_TITLE << "Waiting for the thread";
+			this->Join();
+			fprintf(stderr, "Done.\n");
 		}
 	}
 
@@ -125,21 +125,31 @@ void Coroutine::Finish() {
 
 /********************************************************************************/
 
-void Coroutine::WaitForEnd() {
+bool Coroutine::WaitForEnd(long timeout) {
 	safe_assert(BETWEEN(ENABLED, status_, ENDED));
 	VLOG(2) << "Waiting for coroutine " << tid_ << " to end.";
 
 	// wait for the semaphore twice
-	sem_end_.Wait(2);
+	sem_end_.Wait(); // taken first token
+
+	if(timeout <= 0) {
+		sem_end_.Wait(); // taken second token
+	} else {
+		int result = sem_end_.WaitTimed(timeout); // take second token
+		if(result == ETIMEDOUT) {
+			sem_end_.Signal(); // put back the token taken above
+			return false;
+		}
+		safe_assert(result == PTH_SUCCESS);
+	}
 
 	// then give back both signals
  	sem_end_.Signal(2);
 
 	VLOG(2) << "Detected coroutine " << tid_ << " has ended.";
 	safe_assert(status_ == ENDED);
-//	while(status_ != WAITING && status_ != ENDED) {
-//		Thread::Yield(true);
-//	}
+
+	return true;
 }
 
 /********************************************************************************/
@@ -227,6 +237,15 @@ void* Coroutine::Run() {
 				// run the actual function
 				return_value = call_function();
 
+				//---------------
+				if(scenario->test_status() == TEST_CONTROLLED) {
+					// last controlled transition
+					// set predicate for "will end" before this transition
+					safe_assert(status_ == ENABLED);
+					AuxState::Ends->set(true, tid_);
+					scenario->OnControlledTransition(this);
+				}
+
 			} catch(std::exception* e) {
 				// first check if this is due to pthread_exit
 				BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
@@ -243,20 +262,10 @@ void* Coroutine::Run() {
 						this->Transfer(group->main(), MSG_EXCEPTION);
 					} else {
 						// (immediatelly) notify all others that there is an exception
+						VLOG(1) << "Coroutine threw exception, calling EndWithException...";
 						scenario->exec_tree()->EndWithException(this, exception_);
 					}
 				}
-			}
-
-			//---------------
-			if(scenario->test_status() == TEST_CONTROLLED) {
-				// last controlled transition
-				// set predicate for "will end" before this transition
-				safe_assert(status_ == ENABLED);
-//				safe_assert(trinfolist_.empty());
-//				trinfolist_.push_back(EndingTransitionInfo()); // put predicate indicating ending state
-				AuxState::Ends->set(true, tid_);
-				scenario->OnControlledTransition(this);
 			}
 
 			//---------------
