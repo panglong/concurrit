@@ -22,7 +22,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 //			EXISTS(t);
 			FORALL(t);
 //			TVAR(t);
-			RUN_UNTIL(t, PTRUE);
+			RUN_UNTIL(t, ENDS());
 //			DSLTransition(TransitionPredicate::False(), t);
 //			RUN_UNTIL(t, TransitionPredicate::False());
 		}
