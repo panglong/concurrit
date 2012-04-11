@@ -79,7 +79,6 @@ public:
 	ExecutionTree* get_child(int i);
 
 	virtual bool child_covered(int i = 0);
-	virtual bool is_covered() { return covered_; }
 
 	virtual bool ComputeCoverage(bool recurse, bool call_parent = false);
 

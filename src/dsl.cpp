@@ -646,7 +646,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 
 	//===========================
 	ExistsThreadNode* exists = ASINSTANCEOF(last_parent, ExistsThreadNode*);
-	if(exists != NULL && !exists->is_covered()) {
+	if(exists != NULL && !exists->covered()) {
 		// update covered tid set
 		std::set<THREADID>* tids = exists->covered_tids();
 		tids->insert(safe_notnull(exists->thread())->tid());
