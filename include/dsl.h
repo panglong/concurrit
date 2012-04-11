@@ -191,10 +191,15 @@ public:
 	}
 
 	virtual ~EndNode(){
+		clear_exceptions();
+	}
+
+	void clear_exceptions() {
 		// delete associated exceptions
 		if(exception_ != NULL) {
 			// this also clears the list of exceptions recursively (following the next_ pointer)
 			delete exception_;
+			exception_ = NULL;
 		}
 	}
 
@@ -244,6 +249,8 @@ public:
 private:
 	DECL_FIELD(ConcurritException*, exception)
 //	DECL_FIELD(ExecutionTree*, old_root)
+
+	DISALLOW_COPY_AND_ASSIGN(EndNode)
 };
 
 class StaticEndNode : public EndNode {
@@ -253,6 +260,8 @@ public:
 	~StaticEndNode(){
 		CHECK(false) << "StaticEndNode should not be deleted!!!";
 	}
+
+	DISALLOW_COPY_AND_ASSIGN(StaticEndNode)
 };
 
 /********************************************************************************/

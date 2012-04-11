@@ -77,7 +77,7 @@ int ExecutionTree::num_nodes_ = 0;
 ExecutionTree::~ExecutionTree(){
 	VLOG(2) << "Deleting execution tree!";
 	for_each_child(child) {
-		if(child != NULL && child != this /*for EndNode*/) {
+		if(child != NULL && !INSTANCEOF(child, EndNode*)) {
 			delete child;
 		}
 	}
@@ -271,7 +271,7 @@ void ExecutionTreeManager::Restart() {
 	replay_path_.clear();
 
 	// clean end_node's exceptions etc
-	end_node_.set_exception(NULL);
+	end_node_.clear_exceptions();
 //	safe_assert(end_node_.old_root() == NULL);
 
 	// reset semaphore value to 0
@@ -509,11 +509,13 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 		}
 	}
 
+
 	//===========================
 	// after coverage computation:
 	// first remove alternate paths which become covered, since we will delete covered subtrees below
-	for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(), end = current_nodes_.end(); itr < end; ) {
+	for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(); itr < current_nodes_.end(); ) {
 		ChildLoc loc = *itr;
+		safe_assert(loc.parent() != &end_node_);
 		if(loc.parent()->covered()) {
 			// delete it
 			itr = current_nodes_.erase(itr);
@@ -522,6 +524,7 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*=
 			++itr;
 		}
 	}
+
 
 	//===========================
 	// now delete the (largest) covered subtree
@@ -655,7 +658,9 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 		// also adds to the path and set to ref
 		if(end_node == NULL) {
 			// locked, create a new end node and set it
-			end_node = new EndNode();
+			end_node = &end_node_; // new EndNode();
+		} else {
+			safe_assert(end_node == &end_node_);
 		}
 		// add to the path and set to ref
 		AddToPath(end_node, 0);
@@ -740,7 +745,7 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 			end_node = static_cast<EndNode*>(last);
 		} else {
 			// locked, create a new end node and set it
-			end_node = new EndNode();
+			end_node = &end_node_; // new EndNode();
 		}
 		// add to the path and set to ref
 		ReleaseRef(end_node, 0);

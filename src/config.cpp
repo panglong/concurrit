@@ -49,7 +49,8 @@ static void usage() {
 	printf("-h: Show this help. (OnlyShowHelp)\n"
 			"-e: Enable/Disable Pin instrumentation.(CanEnableDisablePinTool)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
-			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n");
+			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
+			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n");
 }
 
 void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
@@ -58,8 +59,12 @@ void Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "hf::d::")) != -1) {
+	while ((c = getopt(argc, argv, "chf::d::")) != -1) {
 		switch(c) {
+		case 'c':
+			Config::DeleteCoveredSubtrees = true;
+			printf("Will cut covered subtrees!\n");
+			break;
 		case 'h':
 			Config::OnlyShowHelp = true;
 			usage();
