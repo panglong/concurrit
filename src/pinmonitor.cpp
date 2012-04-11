@@ -254,10 +254,9 @@ void AtPc(int pc) {
 	safe_notnull(safe_notnull(co->group())->scenario())->OnControlledTransition(co);
 }
 
-void concurritAssert(int b) {
-	if(!b) {
-		ASSERT(false);
-	}
+void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
+	VLOG(2) << "Triggering assertion violation!";
+	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
 }
 
 /********************************************************************************/

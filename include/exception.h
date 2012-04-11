@@ -313,6 +313,10 @@ inline void TRIGGER_TERMINATE_SEARCH() {
 	TRIGGER_BACKTRACK(SEARCH_ENDS);
 }
 
+inline void TRIGGER_ASSERTION_VIOLATION(const char* expr, const char* filename, const char* funcname, int line) {
+	throw new AssertionViolationException(expr, new SourceLocation(filename, funcname, line));
+}
+
 //inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {
 //	VLOG(2) << "WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what();
 //	__concurrit_exception__->set_where(m);

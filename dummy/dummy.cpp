@@ -32,6 +32,8 @@
  */
 
 #include "dummy.h"
+#include <cstdlib>
+#include <cstdio>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,13 +41,17 @@ extern "C" {
 
 /********************************************************************************/
 
-void StartInstrument() {}
+#define dummy_error()	fprintf(stderr, "Function %s in dummy.cpp should be called!!!\n", __FUNCTION__); \
+						fflush(stderr); \
+						exit(EXIT_FAILURE);
 
-void EndInstrument() {}
+void StartInstrument() {dummy_error();}
 
-void AtPc(int pc) {}
+void EndInstrument() {dummy_error();}
 
-void concurritAssert(int b) {}
+void AtPc(int pc) {dummy_error();}
+
+void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}
 
 /********************************************************************************/
 
