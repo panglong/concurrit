@@ -704,6 +704,9 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 
 	// select the next one and replay
 	ChildLoc next_loc = current_nodes_.back(); current_nodes_.pop_back();
+	safe_assert(next_loc.parent() != NULL);
+	safe_assert(!next_loc.parent()->covered());
+	safe_assert(next_loc.empty() || next_loc.get() == NULL || !next_loc.get()->covered());
 
 	// compute the path to follow
 	replay_path_.clear();
