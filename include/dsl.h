@@ -437,7 +437,7 @@ public:
 		return (pred_->EvalPreState(current) == TPTRUE);
 	}
 
-	virtual ThreadVarPtr& var(int child_index = 0) = 0;
+	virtual ThreadVarPtr var(int child_index = 0) = 0;
 
 private:
 	DECL_FIELD(TransitionPredicatePtr, pred)
@@ -489,7 +489,7 @@ public:
 		return node;
 	}
 
-	ThreadVarPtr& var(int child_index = 0) {
+	ThreadVarPtr var(int child_index = 0) {
 		safe_assert(child_index == 0);
 		safe_assert(var_ != NULL);
 		return var_;
@@ -552,7 +552,7 @@ public:
 		return node;
 	}
 
-	ThreadVarPtr& var(int child_index = 0) {
+	ThreadVarPtr var(int child_index = 0) {
 		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
 		ThreadVarPtr var = idxToThreadMap_[child_index];
 		safe_assert(var != NULL);
@@ -564,7 +564,7 @@ private:
 
 	// returns the index of the new child
 	int add_or_get_thread(Coroutine* co) {
-		THREADID tid = co->tid();
+		THREADID tid = safe_notnull(co)->tid();
 		int child_index = child_index_by_tid(tid);
 		if(child_index < 0) {
 			const size_t sz = children_.size();

@@ -2063,8 +2063,8 @@ ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= Tr
 
 	exec_tree_.ReleaseRef(NULL);
 
-	VLOG(2) << "Added DSLForallThread.";
 	safe_assert(var != NULL || !var->is_empty());
+	VLOG(2) << "Added DSLForallThread: " << var->thread()->tid();
 	return var;
 }
 
@@ -2144,8 +2144,9 @@ ThreadVarPtr Scenario::DSLExistsThread(const TransitionPredicatePtr& pred /*= Tr
 	exec_tree_.ReleaseRef(NULL);
 
 
-	VLOG(2) << "Added DSLExistsThread.";
 	safe_assert(var != NULL || !var->is_empty());
+	VLOG(2) << "Added DSLExistsThread: " << var->thread()->tid();
+
 	return var;
 }
 

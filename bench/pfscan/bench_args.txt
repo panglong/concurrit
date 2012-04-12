@@ -1,1 +1,1 @@
--n5 jalbert /home/elmas/concurrit/bench/pfscan/inputs/pfscan_test
+-n3 jalbert /home/elmas/concurrit/bench/pfscan/inputs/pfscan_test
