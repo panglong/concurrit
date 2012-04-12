@@ -2025,9 +2025,6 @@ ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= Tr
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
-	// clear the variable
-	var->clear_thread();
-
 	ForallThreadNode* select = NULL;
 	node = exec_tree_.GetLastInPath();
 	if(node != NULL) {
@@ -2059,10 +2056,9 @@ ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= Tr
 
 	// check if correctly consumed
 	ChildLoc last = exec_tree_.GetLastInPath();
-	select = ASINSTANCEOF(last.parent(), ForallThreadNode*);
-	safe_assert(select != NULL && select == node);
+	safe_assert(select == ASINSTANCEOF(last.parent(), ForallThreadNode*));
 	int child_index = last.child_index();
-	safe_assert(child_index > 0);
+	safe_assert(child_index >= 0);
 	var = select->var(child_index);
 
 	exec_tree_.ReleaseRef(NULL);
