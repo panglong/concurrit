@@ -201,7 +201,7 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 		for(int i = 0; i < sz; ++i) {
 			if(i != child_index) {
 				// check if we can proceed
-				if(select != NULL && !select->CanSelectThread(child_index)) {
+				if(select != NULL && !select->CanSelectThread(i)) {
 					continue;
 				}
 
