@@ -436,9 +436,8 @@ public:
 
 	bool EvalState(Coroutine* t = NULL) {
 		safe_assert(t != NULL);
-		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
 
-		THREADID tid = tvar_ == NULL ? t->tid() : tvar_->thread()->tid();
+		THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
 
 		safe_assert(var1_ != NULL);
 		if(var2_ == NULL) {
@@ -603,16 +602,15 @@ public:
 
 	bool EvalState(Coroutine* t = NULL) {
 		safe_assert(t != NULL);
-		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
 
-		THREADID tid = tvar_ == NULL ? t->tid() : tvar_->thread()->tid();
+		THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
 
 		safe_assert(var_ != NULL);
 		if(key_ == NULL) {
 			safe_assert(value_ == NULL);
 			return var_->isset(tid);
 		} else if(value_ == NULL) {
-			return var_->isset(key_->get(tid));
+			return var_->isset(key_->get(tid), tid);
 		} else {
 			return var_->get(key_->get(tid), tid) == value_->get(tid);
 		}

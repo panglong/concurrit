@@ -11,52 +11,24 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
 
-		Config::MaxWaitTimeUSecs = (5*USECSPERSEC);
-
-//
-//		FUNC(fc, consumer);
-//		FUNC(fd, queueDelete);
-//		FUNC(fw, fileWriter);
-//
-//		EXISTS(t_writer, IN_FUNC(fw), "Writer");
-//
-//		Config::ChooseStarRandomly = false;
-//		WHILE_STAR {
-//			Config::ChooseStarRandomly = true;
-//			IF_STAR {
-//				EXISTS(t_consumer, (t_writer != t_consumer) && IN_FUNC(fc), "Consumer");
-//				RUN_ONCE(!RETURNS(fc), t_consumer, "Running consumer");
-//			} ELSE {
-//				RUN_ONCE(!RETURNS(fw), t_writer, "Running writer");
-//			}
-//			Config::ChooseStarRandomly = false;
-//		}
-//
-//		RUN_UNTIL(t_writer, RETURNS(fw), "Ending writer");
-//
-//		EXISTS(t_deleter, IN_FUNC(fd), "Deleter");
-//
-//		RUN_UNTIL(t_deleter, RETURNS(fd), "Deletes");
-
+		MAX_WAIT_TIME(5*USECSPERSEC);
 
 		FUNC(fc, consumer);
 		FUNC(fd, queueDelete);
 		FUNC(fw, fileWriter);
 
-		EXISTS(tc, IN_FUNC(fc), "Consumer");
-		RUN_UNTIL(tc, AT_PC(42), "Running consumer");
+		EXISTS(t_witness, IN_FUNC(fc), "Consumer");
+		RUN_UNTIL(STEP(t_witness), AT_PC(42), __, "Running consumer");
 
-		EXISTS(t_consumer, (tc != t_consumer) && IN_FUNC(fc), "Consumer");
-		RUN_UNTIL(t_consumer, RETURNS(fc), "Running consumer");
+		MAX_WAIT_TIME(5*USECSPERSEC);
 
 		EXISTS(t_writer, IN_FUNC(fw), "Writer");
-		RUN_UNTIL(t_writer, RETURNS(fw), "Ending writer");
+		RUN_UNTIL(NOT(t_witness) && !IN_FUNC(fd), RETURNS2(fw, t_writer), __, "Ending writer");
 
 		EXISTS(t_deleter, IN_FUNC(fd), "Deleter");
+		RUN_UNTIL(STEP(t_deleter), RETURNS(fd), __, "Deletes");
 
-		RUN_UNTIL(t_deleter, RETURNS(fd), "Deletes");
-
-		RUN_UNTIL(tc, RETURNS(fc), "Ending first consumer");
+		RUN_UNTIL(STEP(t_witness), RETURNS(fc), __, "Ending first consumer");
 
 
 	}

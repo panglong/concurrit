@@ -506,9 +506,9 @@ void Scenario::RunTestCase() throw() {
 
 		VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
 
-	} while(exec_tree_.EndWithSuccess(reason));
+	} while(exec_tree_.EndWithSuccess(&reason));
 
-	VLOG(2) << "Handled current and all alternative paths, exiting RunTestCase...";
+	VLOG(1) << "Handled current and all alternative paths, exiting RunTestCase...";
 
 	//====================================
 	// after trying all alternate paths
@@ -520,7 +520,7 @@ void Scenario::RunTestCase() throw() {
 		} else {
 			be->set_reason(reason);
 		}
-		VLOG(1) << "Test execution ended with backtrack exception: " << BacktrackException::ReasonToString(be->reason());
+		VLOG(1) << "Test execution ended with backtrack exception: " << BacktrackException::ReasonToString(reason);
 
 		// mark the end of the path with end node and the corresponding exception
 		exec_tree_.EndWithException(group_.main(), be);

@@ -383,6 +383,9 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				int result = sem_ref_.WaitTimed(timeout_usec);
 				if(result == ETIMEDOUT) {
 					// fire timeout (backtrack)
+					ExecutionTree* cn = GetRef();
+					VLOG(1) << "AcquireRef: Node not consumed on time: " <<
+							(cn == NULL ? "NULL" : (cn->message() == NULL ? "NULL" : cn->message()));
 					TRIGGER_BACKTRACK(TIMEOUT);
 				}
 				safe_assert(result == PTH_SUCCESS);
@@ -399,6 +402,9 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 		if(timeout_usec > 0) {
 			if(timer.getElapsedTimeInMicroSec() > timeout_usec) {
 				// fire timeout (backtrack)
+				ExecutionTree* cn = GetRef();
+				VLOG(1) << "AcquireRef: Node not consumed on time: " <<
+						(cn == NULL ? "NULL" : (cn->message() == NULL ? "NULL" : cn->message()));
 				TRIGGER_BACKTRACK(TIMEOUT);
 			}
 		}
@@ -461,14 +467,12 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 
 /*************************************************************************************/
 
-ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc& leaf_loc, ExecutionTreePath* path /*= NULL*/) {
+ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTreePath* path /*= NULL*/) {
 	if(path == NULL) {
 		path = new ExecutionTreePath();
 	}
 	safe_assert(path->empty());
-	safe_assert(leaf_loc.parent() != NULL);
-
-	ChildLoc loc = leaf_loc;
+	safe_assert(loc.parent() != NULL);
 
 	ExecutionTree* p = NULL;
 	while(true) {
@@ -490,7 +494,7 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc& leaf_loc, Executi
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::DoBacktrack(ChildLoc& loc, BacktrackReason reason /*= SUCCESS*/) {
+bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= SUCCESS*/) {
 	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
 
 	ExecutionTreePath path;
@@ -572,7 +576,7 @@ ChildLoc ExecutionTreeManager::GetLastInPath() {
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc& first) {
+bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc first) {
 	safe_assert(path->size() >= 2);
 	safe_assert(path->back().parent() == &root_node_);
 	safe_assert((*path)[0] == first);
@@ -587,40 +591,42 @@ bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc& 
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
+bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 	VLOG(2) << "Ending with success " << reason;
 	// wait until the last node is consumed (or an end node is inserted)
 	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
-	if(reason == THREADS_ALLENDED) {
+	if(*reason == THREADS_ALLENDED) {
 		// no other threads, do not wait on empty, just force-lock it
 		SetRef(&lock_node_);
 		lock_node_.OnLock();
 	} else {
 		// try to first wait for empty, if we timeout, we remove it by waiting for full
 		try {
+			VLOG(1) << "AcquireRefEx-1 in EndWithSuccess.";
 			ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
 			safe_assert(IS_EMPTY(node));
 		} catch(std::exception* e) {
 			BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 			safe_assert(be != NULL);
-			reason = be->reason();
+			*reason = be->reason();
 			// reason may be EXCEPTION
-			if(reason == EXCEPTION) {
+			if(*reason == EXCEPTION) {
 				// should terminate the search
 				safe_assert(IS_ENDNODE(GetRef()));
 				return false;
 			}
-			else if(reason == TIMEOUT) {
+			else if(*reason == TIMEOUT) {
 				// this should not timeout
 				try {
+					VLOG(1) << "AcquireRefEx-2 in EndWithSuccess.";
 					ExecutionTree* node = AcquireRefEx(EXIT_ON_FULL);
 					safe_assert(IS_FULL(node));
 				} catch(std::exception* e) {
 					BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 					safe_assert(be != NULL);
-					reason = be->reason();
-					safe_assert(reason == EXCEPTION);
+					*reason = be->reason();
+					safe_assert(*reason == EXCEPTION);
 					safe_assert(IS_ENDNODE(GetRef()));
 					return false;
 				}
@@ -640,7 +646,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 
 	//===========================
 	// make the parent of last element (if SelectThreadNode) covered, because there is no way to cover it
-	if(reason == THREADS_ALLENDED) {
+	if(*reason == THREADS_ALLENDED) {
 		if(INSTANCEOF(last_parent, SelectThreadNode*)) {
 			last_parent->set_covered(true);
 		}
@@ -649,7 +655,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 	//===========================
 	// if last one is choice and one of the branches goes to the end of the script
 	// then we make all of the instances created at the same line as covered
-	if(reason == SUCCESS) {
+	if(*reason == SUCCESS) {
 		ChoiceNode* choice = ASINSTANCEOF(last_parent, ChoiceNode*);
 		if(choice != NULL) {
 			// idx goes to the end of the script
@@ -684,7 +690,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 		safe_assert(IS_ENDNODE(current_node_.get()));
 
 		// compute coverage for the just-visited node
-		if(!DoBacktrack(current_node_, reason)) {
+		if(!DoBacktrack(current_node_, *reason)) {
 			// root is covered, no need to continue
 			safe_assert(root_node_.covered());
 
@@ -745,7 +751,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 
 // (do not use AcquireRefEx here)
 void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
-	VLOG(1) << "Inserting end node to indicate exception.";
+	VLOG(2) << "Inserting end node to indicate exception.";
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
@@ -772,7 +778,7 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	safe_assert(end_node == &end_node_);
 	// add my exception to the end node
 	end_node->add_exception(exception, current, where);
-	VLOG(1) << "Inserted end node to indicate exception.";
+	VLOG(2) << "Inserted end node to indicate exception.";
 }
 
 /*************************************************************************************/

@@ -299,6 +299,8 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f, TID)
 #define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, TID)
 
+#define RETURNS2(f, t)	safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, t)
+
 /********************************************************************************/
 
 #define IN_FUNC(f)		TPInFunc::create(f, TID)

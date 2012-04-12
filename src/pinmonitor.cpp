@@ -270,7 +270,7 @@ void concurritFuncReturn(void* addr) {
 
 
 void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
-	VLOG(2) << "Triggering assertion violation!";
+	VLOG(1) << "Triggering assertion violation!";
 	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
 }
 
