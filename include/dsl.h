@@ -59,7 +59,8 @@ typedef std::vector<ExecutionTree*> ExecutionTreeList;
 
 class ExecutionTree : public Writable {
 public:
-	ExecutionTree(ExecutionTree* parent = NULL, int num_children = 0) : parent_(parent), covered_(false), message_(NULL) {
+	ExecutionTree(const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
+	: parent_(parent), covered_(false), message_(message) {
 		InitChildren(num_children);
 		num_nodes_++;
 	}
@@ -91,9 +92,9 @@ public:
 	virtual DotNode* UpdateDotGraph(DotGraph* g);
 	DotGraph* CreateDotGraph();
 
-	virtual void OnConsumed(int child_index = 0) {
+	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
 		if(message_ != NULL) {
-			VLOG(1) << "<< " << message_ << " >>";
+			VLOG(1) << "[" << safe_notnull(current)->tid() << "]" << "<< " << message_ << " >>";
 		}
 	}
 
@@ -113,21 +114,45 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
-	TransitionNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(parent, num_children), pred_(pred), var_(var) {
-		thread_preselected_ = (var_ != NULL && var_->thread() != NULL);
-	}
+	TransitionNode(const TransitionPredicatePtr& pred,
+				   const ThreadVarPtr& var = ThreadVarPtr(),
+				   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
+				   const char* message = NULL,
+				   ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(message, parent, num_children), pred_(pred), var_(var), constraints_(constraints) {}
 	virtual ~TransitionNode(){}
+
+	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
+		safe_assert(current != NULL);
+		safe_assert(BETWEEN(0, child_index, children_.size()-1));
+		ExecutionTree::OnConsumed(current, child_index);
+		// update var if not null
+		if(var_ != NULL) {
+			var_->set_thread(current);
+		}
+	}
+
+	void Update(const TransitionPredicatePtr& pred,
+			   const ThreadVarPtr& var = ThreadVarPtr(),
+			   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
+			   const char* message = NULL) {
+		pred_ = pred;
+		var_ = var;
+		constraints_ = constraints;
+		message_ = message;
+	}
+
 
 private:
 	DECL_FIELD(TransitionPredicatePtr, pred)
 	DECL_FIELD(ThreadVarPtr, var)
-	DECL_FIELD(bool, thread_preselected)
+	DECL_FIELD(TransitionConstraintsPtr, constraints)
 };
 
 class SelectionNode : public ExecutionTree {
 public:
-	SelectionNode(ExecutionTree* parent = NULL, int num_children = 0) : ExecutionTree(parent, num_children) {}
+	SelectionNode(const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(message, parent, num_children) {}
 	virtual ~SelectionNode(){}
 };
 
@@ -191,7 +216,7 @@ private:
 
 class EndNode : public ExecutionTree {
 public:
-	EndNode(ExecutionTree* parent = NULL) : ExecutionTree(parent, 1) {
+	EndNode(ExecutionTree* parent = NULL) : ExecutionTree("EndNode", parent, 1) {
 		covered_ = true;
 		set_child(this); // points to itself
 		exception_ = NULL;
@@ -319,7 +344,8 @@ private:
 
 class ChoiceNode : public SelectionNode {
 public:
-	ChoiceNode(StaticChoiceInfo* info, ExecutionTree* parent = NULL) : SelectionNode(parent, 2), info_(info) {}
+	ChoiceNode(StaticChoiceInfo* info, const char* message = NULL, ExecutionTree* parent = NULL)
+	: SelectionNode(message, parent, 2), info_(info) {}
 	~ChoiceNode() {}
 
 	virtual void ToStream(FILE* file) {
@@ -379,8 +405,11 @@ private:
 class SelectThreadNode : public SelectionNode {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
-	SelectThreadNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), ExecutionTree* parent = NULL, int num_children = 0)
-	: SelectionNode(parent, num_children), var_(var), pred_(pred) {
+	SelectThreadNode(const ThreadVarPtr& var,
+					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+					 const char* message = NULL,
+					 ExecutionTree* parent = NULL, int num_children = 0)
+	: SelectionNode(message, parent, num_children), var_(var), pred_(pred) {
 		safe_assert(safe_notnull(var_.get())->thread() == NULL);
 	}
 	virtual ~SelectThreadNode() {}
@@ -395,6 +424,14 @@ public:
 		ExecutionTree::ToStream(file);
 	}
 
+	void Update(const TransitionPredicatePtr& pred,
+			   const ThreadVarPtr& var = ThreadVarPtr(),
+			   const char* message = NULL) {
+		pred_ = pred;
+		var_ = var;
+		message_ = message;
+	}
+
 private:
 	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(TransitionPredicatePtr, pred)
@@ -404,30 +441,26 @@ private:
 
 class ExistsThreadNode : public SelectThreadNode {
 public:
-	ExistsThreadNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), ExecutionTree* parent = NULL)
-	: SelectThreadNode(var, pred, parent, 1), thread_(NULL) {}
+	ExistsThreadNode(const ThreadVarPtr& var,
+					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+					 const char* message = NULL,
+					 ExecutionTree* parent = NULL)
+	: SelectThreadNode(var, pred, message, parent, 1) {}
 
 	~ExistsThreadNode() {}
 
 	bool is_exists() { return true; }
-
-	ChildLoc set_selected_thread() {
-		safe_assert(thread_ != NULL);
-		return set_selected_thread(thread_);
-	}
 
 	ChildLoc set_selected_thread(Coroutine* thread) {
 		ChildLoc newnode = {this, 0};
 		// set thread of the variable
 		safe_assert(var_ != NULL);
 		safe_assert(var_->thread() == NULL);
-		thread_ = thread;
 		var_->set_thread(thread);
 		return newnode;
 	}
 
 	ChildLoc clear_selected_thread() {
-		thread_ = NULL;
 		var_->set_thread(NULL);
 		return ChildLoc::EMPTY();
 	}
@@ -443,13 +476,12 @@ public:
 			cn = new DotNode("NULL");
 		}
 		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, thread_ == NULL ? "-1" : to_string(thread_->tid())));
+		g->AddEdge(new DotEdge(node, cn, "?"));
 
 		return node;
 	}
 
 private:
-	DECL_FIELD(Coroutine*, thread)
 	DECL_FIELD_REF(std::set<THREADID>, covered_tids)
 };
 
@@ -457,8 +489,11 @@ private:
 
 class ForallThreadNode : public SelectThreadNode {
 public:
-	ForallThreadNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), ExecutionTree* parent = NULL)
-	: SelectThreadNode(var, pred, parent, 0) {}
+	ForallThreadNode(const ThreadVarPtr& var,
+					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+					 const char* message = NULL,
+					 ExecutionTree* parent = NULL)
+	: SelectThreadNode(var, pred, message, parent, 0) {}
 
 	~ForallThreadNode() {}
 
@@ -556,8 +591,12 @@ private:
 
 class SingleTransitionNode : public TransitionNode {
 public:
-	SingleTransitionNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL)
-	: TransitionNode(pred, var, parent, 1) {}
+	SingleTransitionNode(const TransitionPredicatePtr& pred,
+						 const ThreadVarPtr& var = ThreadVarPtr(),
+						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
+						 const char* message = NULL,
+						 ExecutionTree* parent = NULL)
+	: TransitionNode(pred, var, constraints, message, parent, 1) {}
 
 	~SingleTransitionNode() {}
 
@@ -586,8 +625,12 @@ public:
 
 class MultiTransitionNode : public TransitionNode {
 public:
-	MultiTransitionNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(pred, var, parent, num_children) {}
+	MultiTransitionNode(const TransitionPredicatePtr& pred,
+						 const ThreadVarPtr& var = ThreadVarPtr(),
+						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
+						 const char* message = NULL,
+						 ExecutionTree* parent = NULL, int num_children = 1)
+	: TransitionNode(pred, var, constraints, message, parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -599,8 +642,12 @@ public:
 
 class TransferUntilNode : public MultiTransitionNode {
 public:
-	TransferUntilNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL)
-	: MultiTransitionNode(pred, var, parent, 1) {}
+	TransferUntilNode(const TransitionPredicatePtr& pred,
+					 const ThreadVarPtr& var = ThreadVarPtr(),
+					 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
+					 const char* message = NULL,
+					 ExecutionTree* parent = NULL)
+	: MultiTransitionNode(pred, var, constraints, message, parent, 1) {}
 
 	~TransferUntilNode() {}
 

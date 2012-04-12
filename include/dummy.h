@@ -34,6 +34,9 @@
 #ifndef DUMMY_H_
 #define DUMMY_H_
 
+#include "stdlib.h"
+#include "stdio.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

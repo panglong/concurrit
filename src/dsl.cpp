@@ -599,7 +599,13 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 			BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 			safe_assert(be != NULL);
 			reason = be->reason();
-			if(reason == TIMEOUT) {
+			// reason may be EXCEPTION
+			if(reason == EXCEPTION) {
+				// should terminate the search
+				safe_assert(IS_ENDNODE(GetRef()));
+				return false;
+			}
+			else if(reason == TIMEOUT) {
 				// this should not timeout
 				try {
 					ExecutionTree* node = AcquireRefEx(EXIT_ON_FULL);
@@ -608,11 +614,14 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 					BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 					safe_assert(be != NULL);
 					reason = be->reason();
-					safe_assert(reason != TIMEOUT);
+					safe_assert(reason == EXCEPTION);
+					safe_assert(IS_ENDNODE(GetRef()));
+					return false;
 				}
 			}
 		}
 	}
+	safe_assert(IS_LOCKNODE(GetRef()) || IS_ENDNODE(GetRef()));
 
 	//================================================
 
@@ -648,7 +657,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason& reason) {
 	if(exists != NULL && !exists->covered()) {
 		// update covered tid set
 		std::set<THREADID>* tids = exists->covered_tids();
-		tids->insert(safe_notnull(exists->thread())->tid());
+		safe_assert(exists->var() != NULL && exists->var()->thread() != NULL);
+		tids->insert(exists->var()->thread()->tid());
 		// do not backtrack, just leave it there
 		// this will be covered only when it cannot be consumed
 		VLOG(2) << "Adding tid to covered tids";
@@ -766,18 +776,6 @@ void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason 
 	EndWithException(current, GetBacktrackException(reason), where);
 }
 
-
-/*************************************************************************************/
-
-TransitionConstraint::TransitionConstraint(Scenario* scenario)
-: scenario_(scenario) {
-	scenario_->trans_constraints()->push_back(TransitionPredicatePtr(this));
-}
-
-TransitionConstraint::~TransitionConstraint(){
-	safe_assert(scenario_->trans_constraints()->back().get() == this);
-	scenario_->trans_constraints()->pop_back();
-}
 
 /*************************************************************************************/
 

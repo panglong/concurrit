@@ -230,7 +230,7 @@ private:
 	DECL_FIELD(bool, dpor_enabled)
 	DECL_VOL_FIELD(TestStatus, test_status)
 
-	DECL_FIELD_REF(NAryTransitionPredicate, trans_constraints)
+	DECL_FIELD(TransitionConstraintsPtr, trans_constraints)
 
 	DECL_FIELD(Statistics, statistics)
 

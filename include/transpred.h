@@ -69,6 +69,8 @@ public:
 		return thread_ == NULL ? std::string("no-tid") : to_string(thread_->tid());
 	}
 
+	inline void clear_thread() { thread_ = NULL; }
+
 private:
 	DECL_FIELD(std::string, name)
 	DECL_FIELD(Coroutine*, thread)
@@ -148,7 +150,7 @@ public:
 	}
 
 	bool EvalPostState(Coroutine* t = NULL) {
-		safe_assert(result_ == TPTRUE || result_ == TPFALSE);
+		CHECK(result_ == TPTRUE || result_ == TPFALSE) << "result_ is " << to_string(result_);
 		return (result_ == TPTRUE);
 	}
 private:
@@ -170,28 +172,29 @@ private:
 
 /********************************************************************************/
 
-enum NAryOp { NAryAND, NAryOR };
+enum NAryOp { NAryAND = 1, NAryOR = 2 };
+
+template<NAryOp op_>
 class NAryTransitionPredicate : public TransitionPredicate, public std::vector<TransitionPredicatePtr> {
 public:
-	NAryTransitionPredicate(NAryOp op = NAryAND, std::vector<TransitionPredicatePtr>* preds = NULL)
-	: TransitionPredicate(), std::vector<TransitionPredicatePtr>(), op_(op) {
+	NAryTransitionPredicate(std::vector<TransitionPredicatePtr>* preds = NULL)
+	: TransitionPredicate(), std::vector<TransitionPredicatePtr>() {
 		if(preds != NULL) {
-			for(iterator itr = preds->begin(), end = preds->end(); itr != end; ++itr) {
+			for(iterator itr = preds->begin(); itr != preds->end(); ++itr) {
 				push_back(*itr);
 			}
 		}
 	}
-	NAryTransitionPredicate(NAryOp op, TransitionPredicatePtr pred1, TransitionPredicatePtr pred2)
-	: TransitionPredicate(), std::vector<TransitionPredicatePtr>(), op_(op) {
+	NAryTransitionPredicate(TransitionPredicatePtr pred1, TransitionPredicatePtr pred2)
+	: TransitionPredicate(), std::vector<TransitionPredicatePtr>() {
 		push_back(pred1);
 		push_back(pred2);
 	}
 	~NAryTransitionPredicate() {}
 
 	TPVALUE EvalPreState(Coroutine* t = NULL) {
-		safe_assert(!empty());
 		TPVALUE v = (op_ == NAryAND) ? TPTRUE : TPFALSE;
-		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
+		for(NAryTransitionPredicate<op_>::iterator itr = begin(); itr != end(); ++itr) {
 			// update current
 			TransitionPredicatePtr current = (*itr);
 			// update v
@@ -204,9 +207,8 @@ public:
 	}
 
 	bool EvalPostState(Coroutine* t = NULL) {
-		safe_assert(!empty());
 		bool v = (op_ == NAryAND) ? true : false;
-		for(NAryTransitionPredicate::iterator itr = begin(); itr != end(); ++itr) {
+		for(NAryTransitionPredicate<op_>::iterator itr = begin(); itr != end(); ++itr) {
 			// update current
 			TransitionPredicatePtr current = (*itr);
 			// update v
@@ -217,41 +219,52 @@ public:
 		}
 		return v;
 	}
-private:
-	DECL_FIELD(NAryOp, op)
+
+	boost::shared_ptr<NAryTransitionPredicate<op_>> Clone() {
+		if(empty()) {
+			return boost::shared_ptr<NAryTransitionPredicate<op_>>();
+		}
+		boost::shared_ptr<NAryTransitionPredicate<op_>> p(new NAryTransitionPredicate<op_>());
+		for(iterator itr = begin(); itr != end(); ++itr) {
+			p->push_back(*itr);
+		}
+		return p;
+	}
 };
 
+typedef NAryTransitionPredicate<NAryAND> TransitionConstraints;
+typedef boost::shared_ptr<NAryTransitionPredicate<NAryAND>> TransitionConstraintsPtr;
+
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
+
+class Scenario;
 
 // constraints
-class TransitionConstraint : public TransitionPredicate {
+class ConstraintInstaller {
 public:
-	TransitionConstraint(Scenario* scenario);
-
-	virtual ~TransitionConstraint();
-
-	virtual TPVALUE EvalPreState(Coroutine* t = NULL) = 0;
-	virtual bool EvalPostState(Coroutine* t = NULL) = 0;
+	ConstraintInstaller(Scenario* scenario, const TransitionPredicatePtr& pred);
+	~ConstraintInstaller();
 
 private:
 	DECL_FIELD(Scenario*, scenario)
+	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
 /********************************************************************************/
 
-class TransitionConstraintAll : public TransitionConstraint {
+class TransitionConstraintAll : public TransitionPredicate {
 public:
-	TransitionConstraintAll(Scenario* scenario, TransitionPredicatePtr pred)
-	: TransitionConstraint(scenario), pred_(pred) {}
+	TransitionConstraintAll(const TransitionPredicatePtr& pred)
+	: TransitionPredicate(), pred_(pred) {}
 
 	~TransitionConstraintAll() {}
 
-	virtual TPVALUE EvalPreState(Coroutine* t = NULL) {
+	TPVALUE EvalPreState(Coroutine* t = NULL) {
 		return pred_->EvalPreState(t);
 	}
-	virtual bool EvalPostState(Coroutine* t = NULL) {
+	bool EvalPostState(Coroutine* t = NULL) {
 		return pred_->EvalPostState(t);
 	}
 
@@ -262,14 +275,14 @@ private:
 
 /********************************************************************************/
 
-class TransitionConstraintFirst : public TransitionConstraintAll {
+class TransitionConstraintFirst : public TransitionPredicate {
 public:
-	TransitionConstraintFirst(Scenario* scenario, TransitionPredicatePtr pred)
-	: TransitionConstraintAll(scenario, pred), done_(false) {}
+	TransitionConstraintFirst(const TransitionPredicatePtr& pred)
+	: TransitionPredicate(), pred_(pred), done_(false) {}
 
 	~TransitionConstraintFirst() {}
 
-	virtual TPVALUE EvalPreState(Coroutine* t = NULL) {
+	TPVALUE EvalPreState(Coroutine* t = NULL) {
 		if(!done_) {
 			done_ = true;
 			return pred_->EvalPreState(t);
@@ -278,16 +291,17 @@ public:
 		}
 	}
 
-	virtual bool EvalPostState(Coroutine* t = NULL) {
+	bool EvalPostState(Coroutine* t = NULL) {
 		if(!done_) {
 			done_ = true;
 			return pred_->EvalPostState(t);
 		} else {
-			return TPTRUE;
+			return true;
 		}
 	}
 
 private:
+	DECL_FIELD(TransitionPredicatePtr, pred)
 	DECL_FIELD(bool, done)
 };
 
@@ -655,6 +669,9 @@ public:
 
 		boost::shared_ptr<AuxVar0<int, -1>> _pc(new AuxVar0<int, -1>("Pc"));
 		AuxState::Pc = _pc;
+
+		ThreadVarPtr _tid(new ThreadVar());
+		AuxState::Tid = _tid;
 	}
 
 	static void Reset(THREADID t = -1) {
@@ -706,29 +723,10 @@ public:
 	static boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> NumInFunc;
 
 	static boost::shared_ptr<AuxVar0<int, -1>> Pc;
+
+	// current thread variable updated at each transition
+	static ThreadVarPtr Tid;
 };
-
-/********************************************************************************/
-
-#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends)
-
-#define READS()			safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads)
-#define WRITES()		safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes)
-
-#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x)
-#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
-
-#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f)
-#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f)
-
-#define IN_FUNC(f)		TPInFunc::create(f)
-#define TIMES_IN_FUNC(f, k) \
-						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, f	, k)
-
-#define THR_EQ(t1, t2)	TPThreadVarsEqual::create((t1), (t2))
-#define THR_NEQ(t1, t2)	THR_EQ(t1, t2)->operator!()
-
-#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->operator()(AuxState::Pc, pc)
 
 /********************************************************************************/
 

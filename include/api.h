@@ -39,6 +39,7 @@
 #include "yieldapi.h"
 #include "exception.h"
 #include "coroutine.h"
+#include "transpred.h"
 
 namespace concurrit {
 
@@ -206,11 +207,11 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define IF_STAR				STAR(if, __LINE__)
 #define ELSE				else
 
-#define CONSTRAIN_ALL(pred) \
-	TransitionConstraintAll(this, (pred));
+/********************************************************************************/
 
-#define CONSTRAIN_FIRST(pred) \
-	TransitionConstraintFirst(this, (pred));
+#define CONSTRAIN_ALL(pred) 	static TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+
+#define CONSTRAIN_FIRST(pred) 	static TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
 
 /********************************************************************************/
 
@@ -218,15 +219,13 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 #define NOPRED			TransitionPredicatePtr()
 
-#define EXISTS(t, ...)	ThreadVarPtr t(new ThreadVar()); \
+#define TVAR(t)			static ThreadVarPtr t(new ThreadVar());
+
+#define EXISTS(t, ...)	TVAR(t); \
 						DSLExistsThread(t, __VA_ARGS__);
 
-#define FORALL(t, ...)	ThreadVarPtr t(new ThreadVar()); \
+#define FORALL(t, ...)	TVAR(t); \
 						DSLForallThread(t, __VA_ARGS__);
-
-/********************************************************************************/
-
-#define TVAR(t)			ThreadVarPtr t = ThreadVarPtr(new ThreadVar());
 
 /********************************************************************************/
 
@@ -243,13 +242,9 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define RUN_UNTIL(...)	DSLTransferUntil(__VA_ARGS__);
-#define RUN_ONCE(...)	DSLTransition(__VA_ARGS__);
+#define RUN_UNTIL(p, ...) 	{ CONSTRAIN_ALL(p); DSLTransferUntil(__VA_ARGS__); }
 
-/********************************************************************************/
-
-// allow to add command line arguments
-#define CONFIG(s)		static bool __config_##__LINE__ = Config::ParseCommandLine(StringToMainArgs((s), true));
+#define RUN_ONCE(...)		DSLTransition(__VA_ARGS__);
 
 /********************************************************************************/
 
@@ -266,6 +261,8 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 		} \
 
 
+/********************************************************************************/
+
 #define CONCURRIT_BEGIN_TEST(test_name, test_desc) \
 		/* define scenario sub-class */ \
 		class test_name : public Scenario { \
@@ -274,16 +271,101 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 			~test_name() {} \
 
 
+/********************************************************************************/
+
 #define SETUP() 	void SetUp()
 #define TEARDOWN() 	void TearDown()
 #define TESTCASE() 	void TestCase()
 
+/********************************************************************************/
 
 #define CONCURRIT_END_TEST(test_name) \
 		}; /* end class */ \
 		/* add to the suite */ \
 		static StaticSuiteAdder<test_name> __static_suite_adder_##test_name##__(&__concurrit_suite__); \
 
+/********************************************************************************/
+
+#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends)
+
+/********************************************************************************/
+
+#define READS()			safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads)
+#define WRITES()		safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes)
+
+#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x)
+#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
+
+/********************************************************************************/
+
+#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f)
+#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f)
+
+/********************************************************************************/
+
+#define IN_FUNC(f)		TPInFunc::create(f)
+#define TIMES_IN_FUNC(f, k) \
+						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, f	, k)
+
+/********************************************************************************/
+
+#define TID				(AuxState::Tid)
+#define __				(ThreadVarPtr())
+//template<typename T>
+//boost::shared_ptr<T> __() {
+//	return boost::shared_ptr<T>();
+//}
+
+#define STEP(t)			(TID == t)
+
+//static TransitionPredicatePtr MakeStep(ThreadVarPtr t, ...) {
+//	va_list args;
+//	va_start(args, t);
+//	safe_assert(t != NULL);
+//	TransitionPredicatePtr p = (TID == t);
+//	ThreadVarPtr tt = va_arg(args, ThreadVarPtr);
+//	while(tt != NULL) {
+//		p = (p || (TID == tt));
+//		tt = va_arg(args, ThreadVarPtr);
+//	}
+//	va_end(args);
+//	return p;
+//}
+//#define STEP(...) \
+//	MakeStep(__VA_ARGS__, ThreadVarPtr())
+
+//static TransitionPredicatePtr MakeNStep(const ThreadVarPtr& t, ...) {
+//	ThreadVarPtr tt;
+//	va_list args;
+//	va_start(args, t);
+//	safe_assert(t != NULL);
+//	TransitionPredicatePtr p = (TID != t);
+//	tt = va_arg(args, const ThreadVarPtr&);
+//	while(tt != NULL) {
+//		p = (p && (TID != tt));
+//		tt = va_arg(args, const ThreadVarPtr&);
+//	}
+//	va_end(args);
+//	return p;
+//}
+//#define NSTEP(...) \
+//	MakeNStep(__VA_ARGS__, ThreadVarPtr())
+
+
+/********************************************************************************/
+
+#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->operator()(AuxState::Pc, pc)
+
+/********************************************************************************/
+
+// allow to add command line arguments
+#define CONFIG(s)		static bool __config_##__LINE__ = Config::ParseCommandLine(StringToMainArgs((s), true));
+
+/********************************************************************************/
+
+#define MAX_WAIT_TIME(t)	Config::MaxWaitTimeUSecs = (t);
+
+/********************************************************************************/
 
 } // end namespace
 

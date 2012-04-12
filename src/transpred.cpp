@@ -52,6 +52,8 @@ boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::NumInFunc;
 
 boost::shared_ptr<AuxVar0<int, -1>> AuxState::Pc;
 
+ThreadVarPtr AuxState::Tid;
+
 /*************************************************************************************/
 
 // extern'ed variables
@@ -71,24 +73,24 @@ TransitionPredicatePtr operator!(const TransitionPredicatePtr& pred) {
 /********************************************************************************/
 
 TransitionPredicatePtr operator &&(const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2) {
-	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryAND, pred1, pred2));
+	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryAND>(pred1, pred2));
 	return p;
 }
 
 TransitionPredicatePtr operator ||(const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2) {
-	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryOR, pred1, pred2));
+	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryOR>(pred1, pred2));
 	return p;
 }
 
 /********************************************************************************/
 
 TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b) {
-	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryAND, pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
+	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryAND>(pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
 	return p;
 }
 
 TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b) {
-	TransitionPredicatePtr p(new NAryTransitionPredicate(NAryOR, pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
+	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryOR>(pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
 	return p;
 }
 
@@ -100,8 +102,14 @@ public:
 	~TPThreadVarsEqual() {}
 
 	bool EvalState(Coroutine* t = NULL) {
-		Coroutine* co1 = safe_notnull(tvar1_->thread());
-		Coroutine* co2 = safe_notnull(tvar2_->thread());
+		safe_assert(tvar1_ != NULL && tvar2_ != NULL);
+		Coroutine* co1 = tvar1_->thread();
+		Coroutine* co2 = tvar2_->thread();
+		if(co1 == NULL || co2 == NULL) {
+			VLOG(2) << "Evaluating TPThreadVarsEqual, one of them is NULL";
+			return true;
+		}
+		VLOG(2) << "Evaluating TPThreadVarsEqual for " << co1->tid() << " and " << co2->tid();
 		return co1->tid() == co2->tid();
 	}
 
@@ -114,6 +122,23 @@ private:
 	DECL_FIELD(ThreadVarPtr, tvar1)
 	DECL_FIELD(ThreadVarPtr, tvar2)
 };
+
+/********************************************************************************/
+
+ConstraintInstaller::ConstraintInstaller(Scenario* scenario, const TransitionPredicatePtr& pred)
+: scenario_(scenario), pred_(pred) {
+	safe_assert(scenario_ != NULL);
+	safe_assert(pred_ != NULL);
+	scenario_->trans_constraints()->push_back(pred_);
+}
+
+ConstraintInstaller::~ConstraintInstaller() {
+	safe_assert(scenario_ != NULL);
+	safe_assert(pred_ != NULL);
+	safe_assert(!scenario_->trans_constraints()->empty());
+	safe_assert(scenario_->trans_constraints()->back().get() == pred_.get());
+	scenario_->trans_constraints()->pop_back();
+}
 
 /********************************************************************************/
 

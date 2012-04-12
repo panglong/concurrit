@@ -19,10 +19,10 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 //			DSLTransition(TransitionPredicate::False());
 //			DSLTransition(TransitionPredicate::True());
 
-//			EXISTS(t);
-			FORALL(t);
+			EXISTS(t, PTRUE, "t");
+//			FORALL(t);
 //			TVAR(t);
-			RUN_UNTIL(t, ENDS());
+			RUN_UNTIL(STEP(t), ENDS(), __, "step...");
 //			DSLTransition(TransitionPredicate::False(), t);
 //			RUN_UNTIL(t, TransitionPredicate::False());
 		}
