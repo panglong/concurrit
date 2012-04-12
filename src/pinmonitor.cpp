@@ -150,7 +150,7 @@ inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* 
 	safe_assert(loc != NULL);
 
 	// update auxstate
-	AuxState::Enters->set(PTR2ADDRINT(addr), current->tid());
+	AuxState::Enters->set(PTR2ADDRINT(addr), true, current->tid());
 
 	int c = AuxState::InFunc->get(PTR2ADDRINT(addr), current->tid());
 	safe_assert(c >= 0);
@@ -167,7 +167,7 @@ inline void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void*
 	safe_assert(loc != NULL);
 
 	// update auxstate
-	AuxState::Returns->set(PTR2ADDRINT(addr), current->tid());
+	AuxState::Returns->set(PTR2ADDRINT(addr), true, current->tid());
 
 	scenario->BeforeControlledTransition(current);
 

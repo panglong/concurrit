@@ -490,6 +490,8 @@ void Semaphore::Wait() {
 
 
 int Semaphore::WaitTimed(long timeout) {
+	if(timeout <= 0) { Wait(); return PTH_SUCCESS; }
+
 	const long kOneSecondMicros = 1000000L;  // NOLINT
 
 	// Split timeout into second and nanosecond parts.
@@ -512,7 +514,7 @@ int Semaphore::WaitTimed(long timeout) {
 	// Wait for semaphore signalled or timeout.
 	while (true) {
 		__pthread_errno__ = sem_timedwait(&sem_, &ts);
-		if (__pthread_errno__ == PTH_SUCCESS) return 0;  // Successfully got semaphore.
+		if (__pthread_errno__ == PTH_SUCCESS) return PTH_SUCCESS;  // Successfully got semaphore.
 		if (__pthread_errno__ > 0) {
 			// For glibc prior to 2.3.4 sem_timedwait returns the error instead of -1.
 			errno = __pthread_errno__;

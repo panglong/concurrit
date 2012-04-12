@@ -284,7 +284,8 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends, TID)
+#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends, true, TID)
+#define ENDS2(t)		safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends, true, t)
 
 /********************************************************************************/
 
@@ -296,10 +297,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f, TID)
-#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, TID)
+#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f, true, TID)
+#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, true, TID)
 
-#define RETURNS2(f, t)	safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, t)
+#define RETURNS2(f, t)	safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, true, t)
 
 /********************************************************************************/
 
@@ -354,7 +355,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->operator()(AuxState::Pc, pc)
+#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->operator()(AuxState::Pc, pc, TID)
 
 /********************************************************************************/
 

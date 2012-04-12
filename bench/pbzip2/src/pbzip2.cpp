@@ -699,6 +699,9 @@ void *fileWriter(void *outname)
 		if (hOutfile == -1)
 		{
 			fprintf(stderr, " *ERROR: Could not create output file [%s]!\n", OutFilename);
+
+			concurritFuncReturn(reinterpret_cast<void*>(fileWriter));
+
 			return (NULL);
 		}
 	}
@@ -732,6 +735,9 @@ void *fileWriter(void *outname)
 			if (OutputBuffer[currBlock].buf != NULL)
 				delete [] OutputBuffer[currBlock].buf;
 			pthread_mutex_unlock(MemMutex);
+
+			concurritFuncReturn(reinterpret_cast<void*>(fileWriter));
+
 			return (NULL);
 		}
 
@@ -758,6 +764,8 @@ void *fileWriter(void *outname)
 	}
 
 	concurritFuncReturn(reinterpret_cast<void*>(fileWriter));
+
+	printf("WRITERRRRR\n");
 
 	return (NULL);
 }
@@ -1056,6 +1064,8 @@ void queueDelete (queue *q)
 {
 	if (q == NULL)
 		return;
+
+	printf("DELETERRRRR\n");
 
 	if (q->mut != NULL)
 	{

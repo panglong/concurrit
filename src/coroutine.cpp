@@ -242,8 +242,11 @@ void* Coroutine::Run() {
 					// last controlled transition
 					// set predicate for "will end" before this transition
 					safe_assert(status_ == ENABLED);
+					safe_assert(!AuxState::Ends->isset(tid_));
 					AuxState::Ends->set(true, tid_);
+					safe_assert(AuxState::Ends->isset(tid_));
 					scenario->OnControlledTransition(this);
+					safe_assert(AuxState::Ends->isset(tid_));
 				}
 
 			} catch(std::exception* e) {

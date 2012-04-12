@@ -516,24 +516,25 @@ public:
 		if(!acc->second.find(acc2, key)) {
 			return undef_value_;
 		}
-		return acc2->second;
+		T value = acc2->second;
+		safe_assert(value != undef_value_);
+		return value;
 	}
 
-	void set(const K& key = undef_key_, const T& value = undef_value_, THREADID t = -1) {
+	void set(const K& key, const T& value, THREADID t = -1) {
 		WLOCK();
 
+		safe_assert(key != undef_key_);
 		typename M::accessor acc;
 		if(!map_.find(acc, t)) {
 			map_.insert(acc, t);
 			acc->second = MM();
 		}
-		typename MM::accessor acc2;
-		acc->second.insert(acc2, key);
-		acc2->second = value;
-	}
-
-	void set(const K& key = undef_key_, THREADID t = -1) {
-		set(key, undef_value_, t);
+		if(value != undef_value_) {
+			typename MM::accessor acc2;
+			acc->second.insert(acc2, key);
+			acc2->second = value;
+		}
 	}
 
 	bool isset(const K& key, THREADID t = -1) {
@@ -544,7 +545,9 @@ public:
 			return false;
 		}
 		typename MM::const_accessor acc2;
-		return acc->second.find(acc2, key);
+		bool _isset = acc->second.find(acc2, key);
+		safe_assert(acc2->second != undef_value_);
+		return _isset;
 	}
 
 	bool isset(THREADID t = -1) {
@@ -642,10 +645,10 @@ public:
 		boost::shared_ptr<AuxVar0<bool, false>> _ends(new AuxVar0<bool, false>("Ends"));
 		AuxState::Ends = _ends;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> _reads(new AuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
+		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _reads(new AuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
 		AuxState::Reads = _reads;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> _writes(new AuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
+		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _writes(new AuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
 		AuxState::Writes = _writes;
 
 //		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
@@ -674,7 +677,7 @@ public:
 	}
 
 	static void Reset(THREADID t = -1) {
-		Ends->reset(t);
+//		Ends->reset(t);
 
 		Reads->reset(t);
 		Writes->reset(t);
@@ -686,8 +689,6 @@ public:
 		Returns->reset(t);
 
 		Pc->reset(t);
-
-		Tid->clear_thread();
 	}
 
 	static void Clear() {
@@ -713,8 +714,8 @@ public:
 	// auxiliary variables
 	static boost::shared_ptr<AuxVar0<bool, false>> Ends;
 
-	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> Reads;
-	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, false>> Writes;
+	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> Reads;
+	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> Writes;
 
 //	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsFrom;
 //	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsTo;
@@ -740,9 +741,8 @@ public:
 
 	bool EvalState(Coroutine* t = NULL) {
 		safe_assert(t != NULL);
-		safe_assert(tvar_ == NULL || (tvar_->thread() == t));
 
-		THREADID tid = tvar_ == NULL ? t->tid() : tvar_->thread()->tid();
+		THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
 
 		return AuxState::InFunc->get(addr_, tid) > 0;
 	}

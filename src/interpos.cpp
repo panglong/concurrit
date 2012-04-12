@@ -104,7 +104,7 @@ int Originals::pthread_cancel(pthread_t thread) {
 static int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
 
-	VLOG(2) << "Creating new thread via interpositioned pthread_create.";
+	VLOG(1) << "Creating new thread via interpositioned pthread_create.";
 
 	Coroutine* co = safe_notnull(Scenario::Current())->CreatePThread(start_routine, arg, thread, attr);
 
@@ -114,7 +114,7 @@ static int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *att
 static int concurrit_pthread_join(pthread_t thread, void ** value_ptr) {
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
 
-	VLOG(2) << "Joining thread via interpositioned pthread_join.";
+	VLOG(1) << "Joining thread via interpositioned pthread_join.";
 
 	Coroutine* co = safe_notnull(safe_notnull(Scenario::Current())->group())->GetMember(thread);
 	Scenario::Current()->JoinPThread(co, value_ptr);
@@ -125,7 +125,7 @@ static int concurrit_pthread_join(pthread_t thread, void ** value_ptr) {
 static void concurrit_pthread_exit(void * param0) {
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
 
-	VLOG(2) << "Exiting thread via interpositioned pthread_exit.";
+	VLOG(1) << "Exiting thread via interpositioned pthread_exit.";
 
 	Coroutine* co = safe_notnull(Coroutine::Current());
 
@@ -139,7 +139,7 @@ static void concurrit_pthread_exit(void * param0) {
 static int concurrit_pthread_cancel(pthread_t thread) {
 	CHECK(Concurrit::IsInitialized()) << "Concurrit has not been initialized yet!";
 
-	VLOG(2) << "Exiting thread via interpositioned pthread_cancel.";
+	VLOG(1) << "Exiting thread via interpositioned pthread_cancel.";
 
 	CHECK(false) << "pthread_cancel is not supported yet!!!";
 
