@@ -1339,8 +1339,6 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 			if(tval == TPTRUE) {
 				VLOG(2) << "Will consume the current transition";
 				*newnode = {trans, 0}; // newnode is the next of node
-				// set performer thread
-				trans->set_thread(current);
 			}
 		}
 
@@ -1429,8 +1427,6 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 		if(tval == TPTRUE) {
 			VLOG(2) << "Will consume the current transition";
 			*newnode = {trans, 0}; // newnode is the next of node
-			// set performer thread
-			trans->set_thread(current);
 		}
 	} else { //=============================================================
 		TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
@@ -1837,12 +1833,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 
 /********************************************************************************/
 
-void Scenario::DSLTransition(Coroutine* thread, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
-	ThreadVarPtr p(new ThreadVar(thread));
-	DSLTransition(p, pred, message);
-}
-
-void Scenario::DSLTransition(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	//=======================================================
@@ -1904,12 +1895,7 @@ void Scenario::DSLTransition(const ThreadVarPtr& var, const TransitionPredicateP
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
-	ThreadVarPtr p(new ThreadVar(thread));
-	DSLTransferUntil(p, pred, message);
-}
-
-void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+void Scenario::DSLTransferUntil(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransferUntil";
 
 	//=======================================================
@@ -1954,7 +1940,7 @@ void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredica
 		truntil->set_var(var);
 		truntil->set_pred(pred);
 	} else {
-		truntil = new TransferUntilNode(var, pred);
+		truntil = new TransferUntilNode(pred, var);
 		truntil->set_message(message);
 	}
 

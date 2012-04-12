@@ -113,13 +113,14 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
-	TransitionNode(const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(parent, num_children), var_(var) {
+	TransitionNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(parent, num_children), pred_(pred), var_(var) {
 		thread_preselected_ = (var_ != NULL && var_->thread() != NULL);
 	}
 	virtual ~TransitionNode(){}
 
 private:
+	DECL_FIELD(TransitionPredicatePtr, pred)
 	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(bool, thread_preselected)
 };
@@ -556,7 +557,7 @@ private:
 class SingleTransitionNode : public TransitionNode {
 public:
 	SingleTransitionNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL)
-	: TransitionNode(var, parent, 1), pred_(pred), thread_(NULL) {}
+	: TransitionNode(pred, var, parent, 1) {}
 
 	~SingleTransitionNode() {}
 
@@ -576,21 +577,17 @@ public:
 			cn = new DotNode("NULL");
 		}
 		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, thread_ == NULL ? "?" : to_string(thread_->tid())));
+		g->AddEdge(new DotEdge(node, cn, "?"));
 		return node;
 	}
-
-private:
-	DECL_FIELD(TransitionPredicatePtr, pred)
-	DECL_FIELD(Coroutine*, thread) // keep performing thread here
 };
 
 /********************************************************************************/
 
 class MultiTransitionNode : public TransitionNode {
 public:
-	MultiTransitionNode(const ThreadVarPtr& var, ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(var, parent, num_children) {}
+	MultiTransitionNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL, int num_children = 1)
+	: TransitionNode(pred, var, parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -602,10 +599,8 @@ public:
 
 class TransferUntilNode : public MultiTransitionNode {
 public:
-	TransferUntilNode(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, ExecutionTree* parent = NULL)
-	: MultiTransitionNode(var, parent, 1), pred_(pred) {
-		CHECK(var_ != NULL) << "TransferUntil node is given NULL thread variable!";
-	}
+	TransferUntilNode(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), ExecutionTree* parent = NULL)
+	: MultiTransitionNode(pred, var, parent, 1) {}
 
 	~TransferUntilNode() {}
 
@@ -628,8 +623,6 @@ public:
 		g->AddEdge(new DotEdge(node, cn, safe_notnull(var_.get())->ToString()));
 		return node;
 	}
-private:
-	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
 /********************************************************************************/
