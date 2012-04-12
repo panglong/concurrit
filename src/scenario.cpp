@@ -1529,22 +1529,22 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 			//=================================================================
 			VLOG(2) << "Checking execution tree node type";
 			// get the node
-			SingleTransitionNode* trans = ASINSTANCEOF(node, SingleTransitionNode*);
+			TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 			if(trans != NULL) {
-				VLOG(2) << "Evaluating single transition predicate";
+				VLOG(2) << "Evaluating transition node";
 
 				tval = EvalPreState(current, trans, &newnode);
 
 				done = (tval == TPUNKNOWN);
 
-			} else { //=======================================================
-				TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
-				if(truntil != NULL) {
-					VLOG(2) << "Evaluating transfer-until predicate";
-
-					tval = EvalPreState(current, truntil, &newnode);
-
-					done = (tval == TPUNKNOWN);
+//			} else { //=======================================================
+//				TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
+//				if(truntil != NULL) {
+//					VLOG(2) << "Evaluating transfer-until predicate";
+//
+//					tval = EvalPreState(current, truntil, &newnode);
+//
+//					done = (tval == TPUNKNOWN);
 
 				} else { //=======================================================
 					ForallThreadNode* forall = ASINSTANCEOF(node, ForallThreadNode*);
@@ -1618,7 +1618,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 							safe_assert(false);
 						}
 					}
-				}
+//				}
 			}
 		}
 
@@ -1692,26 +1692,27 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		ChildLoc newnode = {NULL, -1};
 
 		VLOG(2) << "Checking execution tree node type";
+		safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
 
-		SingleTransitionNode* trans = ASINSTANCEOF(node, SingleTransitionNode*);
+		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 		if(trans != NULL) {
-			VLOG(2) << "Evaluating single transition predicate";
+			VLOG(2) << "Evaluating transition node";
+
 			tval = EvalPostState(current, trans, &newnode);
 
-		}
-		else {//=======================================================
-			safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
-			VLOG(2) << "Evaluating transfer-until predicate";
-			TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
-			if(truntil != NULL) {
-
-				tval = EvalPostState(current, truntil, &newnode);
+//		} else {//=======================================================
+//			safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
+//			VLOG(2) << "Evaluating transfer-until predicate";
+//			TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
+//			if(truntil != NULL) {
+//
+//				tval = EvalPostState(current, truntil, &newnode);
 
 			} else {
 				// TODO(elmas): others are not supported yet
 				safe_assert(false);
 			}
-		}
+//		}
 
 		//=================================================================
 		VLOG(2) << "Switching on three-valued variable";
