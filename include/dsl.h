@@ -405,35 +405,41 @@ private:
 class SelectThreadNode : public SelectionNode {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
-	SelectThreadNode(const ThreadVarPtr& var,
-					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+	SelectThreadNode(const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL, int num_children = 0)
-	: SelectionNode(message, parent, num_children), var_(var), pred_(pred) {
-		safe_assert(safe_notnull(var_.get())->thread() == NULL);
-	}
+	: SelectionNode(message, parent, num_children), pred_(pred) {}
 	virtual ~SelectThreadNode() {}
 
 	virtual bool is_exists() = 0;
 	bool is_forall() { return !is_exists(); }
 
 	void ToStream(FILE* file) {
-		fprintf(file, "%sThreadNode. Selected %s.",
-				(is_exists() ? "Exists" : "Forall"),
-				((var_ != NULL && var_->thread() != NULL) ? to_string(var_->thread()->tid()).c_str() : "no thread"));
+		fprintf(file, "%sThreadNode.", (is_exists() ? "Exists" : "Forall"));
 		ExecutionTree::ToStream(file);
 	}
 
 	void Update(const TransitionPredicatePtr& pred,
-			   const ThreadVarPtr& var = ThreadVarPtr(),
 			   const char* message = NULL) {
 		pred_ = pred;
-		var_ = var;
 		message_ = message;
 	}
 
+	bool CanSelectThread(int child_index = 0) {
+		safe_assert(BETWEEN(0, child_index, children_.size()-1));
+		if(pred_ == NULL) {
+			return NULL;
+		}
+		// check condition
+		ThreadVarPtr var = this->var(child_index);
+		Coroutine* current = safe_notnull(var.get())->thread();
+		AuxState::Tid->set_thread(current);
+		return (pred_->EvalPreState(current) == TPTRUE);
+	}
+
+	virtual ThreadVarPtr& var(int child_index = 0) = 0;
+
 private:
-	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(TransitionPredicatePtr, pred)
 };
 
@@ -441,11 +447,13 @@ private:
 
 class ExistsThreadNode : public SelectThreadNode {
 public:
-	ExistsThreadNode(const ThreadVarPtr& var,
-					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+	ExistsThreadNode(const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(var, pred, message, parent, 1) {}
+	: SelectThreadNode(pred, message, parent, 1) {
+		ThreadVarPtr p(new ThreadVar());
+		var_ = p;
+	}
 
 	~ExistsThreadNode() {}
 
@@ -481,7 +489,14 @@ public:
 		return node;
 	}
 
+	ThreadVarPtr& var(int child_index = 0) {
+		safe_assert(child_index == 0);
+		safe_assert(var_ != NULL);
+		return var_;
+	}
+
 private:
+	DECL_FIELD_SET(ThreadVarPtr, var)
 	DECL_FIELD_REF(std::set<THREADID>, covered_tids)
 };
 
@@ -489,11 +504,10 @@ private:
 
 class ForallThreadNode : public SelectThreadNode {
 public:
-	ForallThreadNode(const ThreadVarPtr& var,
-					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+	ForallThreadNode(const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(var, pred, message, parent, 0) {}
+	: SelectThreadNode(pred, message, parent, 0) {}
 
 	~ForallThreadNode() {}
 
@@ -502,34 +516,17 @@ public:
 	// override
 	bool ComputeCoverage(bool recurse, bool call_parent = false);
 
-	ChildLoc clear_selected_thread() {
-		var_->set_thread(NULL);
-		return ChildLoc::EMPTY();
-	}
-
 	ChildLoc set_selected_thread(Coroutine* co) {
 		int child_index = add_or_get_thread(co);
-		// update newnode to point to the proper child index of select thread
-		ChildLoc newnode = {this, child_index};
-		safe_assert(!newnode.empty());
-		// set thread of the variable
-		safe_assert(var_ != NULL);
-		safe_assert(var_->thread() == NULL);
-		var_->set_thread(co);
-		return newnode;
+		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
+		ThreadVarPtr var = this->var(child_index);
+		return {this, child_index};
 	}
 
 	ChildLoc set_selected_thread(int child_index) {
 		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
-		Coroutine* co = idxToThreadMap_[child_index];
-		// update newnode to point to the proper child index of select thread
-		ChildLoc newnode = {this, child_index};
-		safe_assert(!newnode.empty());
-		// set thread of the variable
-		safe_assert(var_ != NULL);
-		safe_assert(var_->thread() == NULL);
-		var_->set_thread(co);
-		return newnode;
+		ThreadVarPtr var = this->var(child_index);
+		return {this, child_index};
 	}
 
 	ExecutionTree* child_by_tid(THREADID tid) {
@@ -549,10 +546,18 @@ public:
 				cn = new DotNode("NULL");
 			}
 			g->AddNode(cn);
-			g->AddEdge(new DotEdge(node, cn, to_string(safe_notnull(idxToThreadMap_[i])->tid())));
+			g->AddEdge(new DotEdge(node, cn, to_string(this->var(i).get()->thread()->tid())));
 		}
 
 		return node;
+	}
+
+	ThreadVarPtr& var(int child_index = 0) {
+		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
+		ThreadVarPtr var = idxToThreadMap_[child_index];
+		safe_assert(var != NULL);
+		safe_assert(!var->is_empty());
+		return var;
 	}
 
 private:
@@ -566,7 +571,8 @@ private:
 			safe_assert(idxToThreadMap_.size() == sz);
 			tidToIdxMap_[tid] = sz;
 			children_.push_back(NULL);
-			idxToThreadMap_.push_back(co);
+			ThreadVarPtr p(new ThreadVar(co));
+			idxToThreadMap_.push_back(p);
 			return sz;
 		} else {
 			return child_index;
@@ -584,7 +590,7 @@ private:
 
 private:
 	DECL_FIELD_REF(TidToIdxMap, tidToIdxMap)
-	DECL_FIELD_REF(std::vector<Coroutine*>, idxToThreadMap)
+	DECL_FIELD_REF(std::vector<ThreadVarPtr>, idxToThreadMap)
 };
 
 /********************************************************************************/
@@ -692,6 +698,7 @@ static inline bool IS_ENDNODE(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*
 static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
 static inline bool IS_MULTITRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, MultiTransitionNode*)); }
 static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectionNode*)); }
+static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectThreadNode*)); }
 
 	// set atomic_ref to lock_node, and return the previous node according to mode
 	// if atomic_ref is end_node, returns it immediatelly

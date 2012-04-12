@@ -122,6 +122,14 @@ namespace concurrit {
 		inline type& name() { return name##_; } \
 		private:	\
 
+#define DECL_FIELD_SET(type, name) \
+		protected: \
+		type name##_; \
+		public: \
+		inline void set_##name(type value) { name##_ = value; } \
+		private:	\
+
+
 #define DECL_FIELD_REF(type, name) \
 		protected: \
 		type name##_; \

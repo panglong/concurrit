@@ -168,8 +168,8 @@ public:
 
 	void DSLTransferUntil(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 
-	void DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
-	void DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
+	ThreadVarPtr DSLExistsThread(const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
+	ThreadVarPtr DSLForallThread(const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 
 	TPVALUE EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
 	TPVALUE EvalPostState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);

@@ -70,6 +70,7 @@ public:
 	}
 
 	inline void clear_thread() { thread_ = NULL; }
+	inline bool is_empty() { return thread_ == NULL; }
 
 private:
 	DECL_FIELD(std::string, name)
@@ -687,6 +688,8 @@ public:
 		Returns->reset(t);
 
 		Pc->reset(t);
+
+		Tid->clear_thread();
 	}
 
 	static void Clear() {
@@ -705,6 +708,8 @@ public:
 
 		InFunc->clear();
 		NumInFunc->clear();
+
+		Tid->clear_thread();
 	}
 
 	// auxiliary variables

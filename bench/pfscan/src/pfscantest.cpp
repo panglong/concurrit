@@ -17,7 +17,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		FUNC(fp, pqueue_put);
 
 		EXISTS(t1, IN_FUNC(fg), "T1");
-		EXISTS(t2, (t1 != t2) && IN_FUNC(fg), "T2");
+		EXISTS(t2, NOT(t1) && IN_FUNC(fg), "T2");
 
 		RUN_UNTIL(STEP(t1), AT_PC(42), __, "pqueue_get by T1");
 

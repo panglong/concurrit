@@ -209,23 +209,21 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define CONSTRAIN_ALL(pred) 	static TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+#define CONSTRAIN_ALL(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
 
-#define CONSTRAIN_FIRST(pred) 	static TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+#define CONSTRAIN_FIRST(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
 
 /********************************************************************************/
 
 // exists thread
 
-#define NOPRED			TransitionPredicatePtr()
+//#define NOPRED			TransitionPredicatePtr()
 
-#define TVAR(t)			static ThreadVarPtr t(new ThreadVar());
+//#define TVAR(t)			static ThreadVarPtr t(new ThreadVar());
 
-#define EXISTS(t, ...)	TVAR(t); \
-						DSLExistsThread(t, __VA_ARGS__);
+#define EXISTS(t, ...)	ThreadVarPtr t = DSLExistsThread(__VA_ARGS__);
 
-#define FORALL(t, ...)	TVAR(t); \
-						DSLForallThread(t, __VA_ARGS__);
+#define FORALL(t, ...)	ThreadVarPtr t = DSLForallThread(__VA_ARGS__);
 
 /********************************************************************************/
 
@@ -286,26 +284,26 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends)
+#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends, TID)
 
 /********************************************************************************/
 
-#define READS()			safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads)
-#define WRITES()		safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes)
+#define READS()			safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, TID)
+#define WRITES()		safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, TID)
 
-#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x)
-#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x)
-
-/********************************************************************************/
-
-#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f)
-#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f)
+#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x, TID)
+#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x, TID)
 
 /********************************************************************************/
 
-#define IN_FUNC(f)		TPInFunc::create(f)
+#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f, TID)
+#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, TID)
+
+/********************************************************************************/
+
+#define IN_FUNC(f)		TPInFunc::create(f, TID)
 #define TIMES_IN_FUNC(f, k) \
-						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, f	, k)
+						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, f, k, TID)
 
 /********************************************************************************/
 
@@ -315,7 +313,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 //boost::shared_ptr<T> __() {
 //	return boost::shared_ptr<T>();
 //}
-
+#define NOT(t)			(TID != t)
 #define STEP(t)			(TID == t)
 
 //static TransitionPredicatePtr MakeStep(ThreadVarPtr t, ...) {

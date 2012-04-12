@@ -193,12 +193,18 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 		safe_assert(BETWEEN(-1, child_index, sz-1));
 
 		// if select thread and child_index is -1, then add this with index -1
-		if(INSTANCEOF(this, SelectThreadNode*)) {
+		SelectThreadNode* select = ASINSTANCEOF(this, SelectThreadNode*);
+		if(select != NULL) {
 			current_nodes->push_back({this, -1});
 		}
 
 		for(int i = 0; i < sz; ++i) {
 			if(i != child_index) {
+				// check if we can proceed
+				if(select != NULL && !select->CanSelectThread(child_index)) {
+					continue;
+				}
+
 				ExecutionTree* c = child(i);
 				if(c == NULL || (ExecutionTreeManager::IS_TRANSNODE(c) && !c->covered())) {
 					current_nodes->push_back({this, i});

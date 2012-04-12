@@ -1473,6 +1473,12 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 	}
 
 	safe_assert(tval == TPFALSE || tval == TPTRUE || tval == TPUNKNOWN);
+
+	// we do things to consume the transition here
+	if(tval == TPTRUE || tval == TPUNKNOWN) {
+		node->OnConsumed(current, tval == TPUNKNOWN ? 0 : newnode->child_index());
+	}
+
 	return tval;
 }
 
@@ -1580,15 +1586,16 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 						if(child == NULL || !child->covered()) {
 							// set the selected thread to current
 							newnode = forall->set_selected_thread(current);
+							safe_assert(!newnode.empty());
 
 							// check condition
-							TransitionPredicatePtr pred = forall->pred();
-							if(pred == NULL || pred->EvalPreState(current) == TPTRUE) {
+							if(forall->CanSelectThread(newnode.child_index())) {
 								// we are consuming this node, but we are not done, yet
 								tval = TPTRUE;
+								node->OnConsumed(current, newnode.child_index());
 							} else {
 								// clear selected thread
-								newnode = forall->clear_selected_thread();
+								newnode.set_child_index(-1);
 							}
 
 						}
@@ -1614,12 +1621,13 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 							if(tids->find(tid) == tids->end()) {
 
 								newnode = exists->set_selected_thread(current);
+								safe_assert(!newnode.empty());
 
 								// check condition
-								TransitionPredicatePtr pred = exists->pred();
-								if(pred == NULL || pred->EvalPreState(current) == TPTRUE) {
+								if(exists->CanSelectThread(newnode.child_index())) {
 									// we are consuming this node, but we are not done, yet
 									tval = TPTRUE;
+									node->OnConsumed(current, newnode.child_index());
 								} else {
 									// clear selected thread
 									newnode = exists->clear_selected_thread();
@@ -1645,10 +1653,10 @@ SWITCH:
 		switch(tval) {
 		case TPTRUE: // consume the transition
 			VLOG(2) << "Consuming transition";
-			node->OnConsumed(current, newnode.child_index());
 			// in this case, we insert a new node to the path represented by newnode
 			safe_assert(!newnode.empty());
 			safe_assert(!exec_tree_.IS_TRANSNODE(node));
+			safe_assert(exec_tree_.IS_SELECTTHREADNODE(node));
 			exec_tree_.ReleaseRef(newnode);
 			break;
 
@@ -1737,7 +1745,6 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		case TPTRUE: // consume the transition if node is not null, otherwise, there was no node to handle
 			VLOG(2) << "Consuming transition";
 			safe_assert(node != NULL);
-			node->OnConsumed(current, newnode.child_index());
 			// in this case, we insert a new node to the path represented by newnode
 			safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
 			UpdateAlternateLocations(current, false);
@@ -1755,7 +1762,6 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 			VLOG(2) << "Unknown, with the same transition";
 			safe_assert(exec_tree_.IS_MULTITRANSNODE(node));
 			safe_assert(current->current_node() == node);
-			node->OnConsumed(current);
 			UpdateAlternateLocations(current, false);
 			// we release the node back (will take it later)
 			exec_tree_.ReleaseRef(node);
@@ -1901,6 +1907,13 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 	// set atomic_ref to point to trans
 	exec_tree_.ReleaseRef(trans);
 
+	//=======================================================
+	// wait for the consumption
+
+	node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+	exec_tree_.ReleaseRef(NULL);
+
 	VLOG(2) << "Added DSLTransition.";
 }
 
@@ -1958,16 +1971,25 @@ void Scenario::DSLTransferUntil(const TransitionPredicatePtr& pred, const Thread
 	// set atomic_ref to point to trans
 	exec_tree_.ReleaseRef(trans);
 
+	//=======================================================
+	// wait for the consumption
+
+	node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+	exec_tree_.ReleaseRef(NULL);
+
 	VLOG(2) << "Added DSLTransferUntil.";
 }
 
 
 /********************************************************************************/
 
-void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLForallThread";
 
 	//=======================================================
+
+	ThreadVarPtr var;
 
 	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
@@ -1979,14 +2001,17 @@ void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicat
 		// if index is -1, then we should submit this select thread
 		if(child_index >= 0) {
 			// re-select the thread to update the associated thread variable
-			select->Update(pred, var, message);
+			select->Update(pred, message);
 			select->set_selected_thread(child_index);
+			var = select->var(child_index);
+			safe_assert(var != NULL || !var->is_empty());
 
 			// update current node
 			exec_tree_.set_current_node(reploc);
 
 			VLOG(2) << "Replaying path with forall thread node.";
-			return;
+
+			return var;
 		}
 		safe_assert(exec_tree_.replay_path()->empty());
 	}
@@ -2015,9 +2040,9 @@ void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicat
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
-		select->Update(pred, var, message);
+		select->Update(pred, message);
 	} else {
-		select = new ForallThreadNode(var, pred, message);
+		select = new ForallThreadNode(pred, message);
 	}
 	safe_assert(!select->covered());
 
@@ -2026,15 +2051,35 @@ void Scenario::DSLForallThread(const ThreadVarPtr& var, const TransitionPredicat
 	// set atomic_ref to point to select
 	exec_tree_.ReleaseRef(select);
 
+	//=======================================================
+	// wait for the consumption
+
+	node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+
+	// check if correctly consumed
+	ChildLoc last = exec_tree_.GetLastInPath();
+	select = ASINSTANCEOF(last.parent(), ForallThreadNode*);
+	safe_assert(select != NULL && select == node);
+	int child_index = last.child_index();
+	safe_assert(child_index > 0);
+	var = select->var(child_index);
+
+	exec_tree_.ReleaseRef(NULL);
+
 	VLOG(2) << "Added DSLForallThread.";
+	safe_assert(var != NULL || !var->is_empty());
+	return var;
 }
 
 /********************************************************************************/
 
-void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+ThreadVarPtr Scenario::DSLExistsThread(const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLExistsThread";
 
 	//=======================================================
+
+	ThreadVarPtr var;
 
 	if(is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
@@ -2046,13 +2091,15 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicat
 		// if index is -1, then we should submit this select thread
 		if(child_index >= 0) {
 			// re-select the thread to update the associated thread variable
-			select->Update(pred, var, message);
+			select->Update(pred, message);
+			var = select->var();
+			safe_assert(var != NULL || !var->is_empty());
 
 			// update current node
 			exec_tree_.set_current_node(reploc);
 
 			VLOG(2) << "Replaying path with forall thread node.";
-			return;
+			return var;
 		}
 		safe_assert(exec_tree_.replay_path()->empty());
 	}
@@ -2066,9 +2113,6 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicat
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
-	// clear the variable
-	var->clear_thread();
-
 	ExistsThreadNode* select = NULL;
 	node = exec_tree_.GetLastInPath();
 	if(node != NULL) {
@@ -2081,19 +2125,34 @@ void Scenario::DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicat
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
-		select->Update(pred, var, message);
+		select->Update(pred, message);
 	} else {
-		select = new ExistsThreadNode(var, pred, message);
+		select = new ExistsThreadNode(pred, message);
 	}
 	safe_assert(!select->covered());
 
 	// not covered yet
 
+	// clear the var
+	var = select->var();
+	var->clear_thread();
+
 	// set atomic_ref to point to select
 	exec_tree_.ReleaseRef(select);
 
+	//=======================================================
+	// wait for the consumption
+
+	node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+	exec_tree_.ReleaseRef(NULL);
+
+
 	VLOG(2) << "Added DSLExistsThread.";
+	safe_assert(var != NULL || !var->is_empty());
+	return var;
 }
 
 /********************************************************************************/
+
 } // end namespace
