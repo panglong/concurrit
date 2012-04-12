@@ -687,6 +687,8 @@ void *fileWriter(void *outname)
 	int currBlock = 0;
 	int ret = -1;
 
+	concurritFuncEnter(reinterpret_cast<void*>(fileWriter));
+
 	OutFilename = (char *) outname;
 
 	// write to file instead of stdout
@@ -754,6 +756,8 @@ void *fileWriter(void *outname)
 	{
 		fprintf(stderr, "    Output Size: %llu bytes\n", (unsigned long long)CompressedSize);
 	}
+
+	concurritFuncReturn(reinterpret_cast<void*>(fileWriter));
 
 	return (NULL);
 }
@@ -886,6 +890,8 @@ void *consumer (void *q)
 
 	fifo = (queue *)q;
 
+	concurritFuncEnter(reinterpret_cast<void*>(consumer));
+
 	for (;;)
 	{
 		AtPc(42); AtPc(43);
@@ -979,10 +985,14 @@ void *consumer (void *q)
 			FileData = NULL;
 			pthread_mutex_unlock(MemMutex);
 		}
+
 	} // for
 	#ifdef PBZIP_DEBUG
 	printf ("consumer: exiting\n");
 	#endif
+
+	concurritFuncReturn(reinterpret_cast<void*>(consumer));
+
 	return (NULL);
 }
 
@@ -1053,8 +1063,6 @@ void queueDelete (queue *q)
 		delete q->mut;
 		q->mut = NULL;
 	}
-
-	AtPc(44);
 
 	if (q->notFull != NULL)
 	{

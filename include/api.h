@@ -218,10 +218,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 #define NOPRED			TransitionPredicatePtr()
 
-#define EXISTS(t, ...)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
+#define EXISTS(t, ...)	ThreadVarPtr t(new ThreadVar()); \
 						DSLExistsThread(t, __VA_ARGS__);
 
-#define FORALL(t, ...)	ThreadVarPtr t = ThreadVarPtr(new ThreadVar()); \
+#define FORALL(t, ...)	ThreadVarPtr t(new ThreadVar()); \
 						DSLForallThread(t, __VA_ARGS__);
 
 /********************************************************************************/

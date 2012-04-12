@@ -45,6 +45,9 @@ extern void EndInstrument();
 
 extern void AtPc(int pc);
 
+extern void concurritFuncEnter(void* addr);
+extern void concurritFuncReturn(void* addr);
+
 extern void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
 
 /********************************************************************************/

@@ -163,15 +163,15 @@ public:
 	/******************************************************************/
 
 	bool DSLChoice(StaticChoiceInfo* info, const char* message = NULL);
-	void DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thread, const char* message = NULL);
-	void DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = boost::shared_ptr<ThreadVar>(), const char* message = NULL);
 
-	void DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
-	void DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
+	void DSLTransition(Coroutine* thread, const TransitionPredicatePtr& pred, const char* message = NULL);
+	void DSLTransition(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, const char* message = NULL);
 
 	void DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred, const char* message = NULL);
 	void DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, const char* message = NULL);
 
+	void DSLExistsThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
+	void DSLForallThread(const ThreadVarPtr& var, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 
 	TPVALUE EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
 	TPVALUE EvalPostState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);

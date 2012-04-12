@@ -1822,16 +1822,8 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 	bool cov_0 = choice->child_covered(0);
 	bool cov_1 = choice->child_covered(1);
 
-//	if(!cov_1) {
-//		ret = 1;
-//	} else {
-//		safe_assert(!cov_0);
-//		ret = 0;
-//	}
-
 	if(!cov_0 && !cov_1) {
-		// select randomly
-		ret = rand() % 2;
+		ret = (Config::ChooseStarRandomly ? (rand() % 2) : 1);
 	} else {
 		ret = !cov_0 ? 0 : 1;
 	}
@@ -1845,11 +1837,12 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 
 /********************************************************************************/
 
-void Scenario::DSLTransition(const TransitionPredicatePtr& pred, Coroutine* thread, const char* message /*= NULL*/) {
-	DSLTransition(pred, ThreadVarPtr(new ThreadVar(thread)), message);
+void Scenario::DSLTransition(Coroutine* thread, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+	ThreadVarPtr p(new ThreadVar(thread));
+	DSLTransition(p, pred, message);
 }
 
-void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+void Scenario::DSLTransition(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	//=======================================================
@@ -1912,7 +1905,8 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 /********************************************************************************/
 
 void Scenario::DSLTransferUntil(Coroutine* thread, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
-	DSLTransferUntil(ThreadVarPtr(new ThreadVar(thread)), pred, message);
+	ThreadVarPtr p(new ThreadVar(thread));
+	DSLTransferUntil(p, pred, message);
 }
 
 void Scenario::DSLTransferUntil(const ThreadVarPtr& var, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {

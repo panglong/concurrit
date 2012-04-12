@@ -51,6 +51,9 @@ void EndInstrument() {dummy_error();}
 
 void AtPc(int pc) {dummy_error();}
 
+void concurritFuncEnter(void* addr) {dummy_error();}
+void concurritFuncReturn(void* addr) {dummy_error();}
+
 void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}
 
 /********************************************************************************/

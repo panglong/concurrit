@@ -278,6 +278,7 @@ public:
 	static char* SaveDotGraphToFile;
 	static long MaxWaitTimeUSecs;
 //	static bool RunUncontrolled;
+	static bool ChooseStarRandomly;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);
 };

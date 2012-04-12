@@ -254,6 +254,21 @@ void AtPc(int pc) {
 	safe_notnull(safe_notnull(co->group())->scenario())->OnControlledTransition(co);
 }
 
+void concurritFuncEnter(void* addr) {
+	if(!PinMonitor::IsEnabled()) {
+		return;
+	}
+	PinMonitor::FuncEnter(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0, 0);
+}
+
+void concurritFuncReturn(void* addr) {
+	if(!PinMonitor::IsEnabled()) {
+		return;
+	}
+	PinMonitor::FuncReturn(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0);
+}
+
+
 void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
 	VLOG(2) << "Triggering assertion violation!";
 	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
