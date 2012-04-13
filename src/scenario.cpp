@@ -255,9 +255,6 @@ Result* Scenario::Explore() {
 
 	Result* result = NULL;
 
-	// set main's group
-	group_.main()->set_group(&group_);
-
 	for(;true;) {
 
 		/************************************************************************/
@@ -653,12 +650,12 @@ void Scenario::Start() {
 	} else {
 		// restart
 		exec_tree_.Restart();
+
+		// clear aux state
+		AuxState::Clear();
 	}
 
 	test_status_ = TEST_BEGIN;
-
-	// clear aux state
-	AuxState::Clear();
 
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
@@ -666,14 +663,14 @@ void Scenario::Start() {
 		schedule_->Restart();
 	}
 
+	group_.Restart(); // restarts only already started coroutines
+
 	// reset vc tracker
 	vcTracker_.Restart();
 
-	group_.Restart(); // restarts only already started coroutines
-
 	transfer_criteria_.Reset();
 
-	safe_assert(trans_constraints_->empty());
+	trans_constraints_->clear();
 }
 
 /********************************************************************************/
