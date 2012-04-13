@@ -17,10 +17,10 @@ See LICENSE file for details.
 #include "detectht.h"
 #include "bzlib.h"
 
-#ifdef ERR1
-#define malloc thrilleMallocC
-void * thrilleMallocC(size_t);
-#endif
+//#ifdef ERR1
+//#define malloc thrilleMallocC
+//void * thrilleMallocC(size_t);
+//#endif
 
 #ifndef HT_DETECTION
 #warning Dont know how to detect hyperthreading on this system, please implement it to counter the need to specify it explicitly
@@ -82,6 +82,8 @@ void * allocMem( size_t size )
 
   return result;
 }
+
+#define ERR1
 
 /* The compressing threads' function */
 void * threadFunction()

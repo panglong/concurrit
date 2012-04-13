@@ -44,8 +44,8 @@ boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> AuxState::Writes;
 //boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom;
 //boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo;
 
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, 0>> AuxState::Enters;
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, 0>> AuxState::Returns;
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters;
+boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns;
 
 boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::InFunc;
 boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::NumInFunc;
@@ -149,6 +149,14 @@ TransitionPredicatePtr operator == (const ThreadVarPtr& t1, const ThreadVarPtr& 
 TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
 	return !(t1 == t2);
 }
+
+//TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
+//	return (TID == t1) || (TID == t2);
+//}
+//
+//TransitionPredicatePtr operator ! (const ThreadVarPtr& t1) {
+//	return (TID != t1);
+//}
 
 /********************************************************************************/
 

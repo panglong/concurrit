@@ -5,10 +5,10 @@
 
 #include "note.h"
 
-#ifdef ERR1
-#define malloc thrilleMallocC
-void * thrilleMallocC(size_t);
-#endif
+//#ifdef ERR1
+//#define malloc thrilleMallocC
+//void * thrilleMallocC(size_t);
+//#endif
 
 int verbosityLevel = 0;
 

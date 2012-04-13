@@ -1,1 +1,1 @@
--1 -p4 ../inputs/smallinput
+-1 -p4 inputs/smallinput

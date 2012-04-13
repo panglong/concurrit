@@ -770,7 +770,8 @@ private:
 
 TransitionPredicatePtr operator == (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
 TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
-
+//TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
+//TransitionPredicatePtr operator ! (const ThreadVarPtr& t1);
 
 } // end namespace
 
