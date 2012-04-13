@@ -107,12 +107,14 @@ void PinMonitor::Disable() {
 // callbacks
 
 inline void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
+	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
 	scenario->BeforeControlledTransition(current);
 }
 
 inline void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
+	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
 	scenario->AfterControlledTransition(current);
@@ -121,6 +123,7 @@ inline void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, S
 /********************************************************************************/
 
 inline void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
+	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
 	// update auxstate
@@ -128,6 +131,7 @@ inline void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* a
 }
 
 inline void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
+	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
 	// update auxstate
@@ -147,6 +151,7 @@ inline void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* ad
 //}
 
 inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1) {
+	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
 	// update auxstate
@@ -164,6 +169,7 @@ inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* 
 }
 
 inline void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval) {
+	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
 	// update auxstate
@@ -176,6 +182,25 @@ inline void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void*
 	AuxState::InFunc->set(PTR2ADDRINT(addr), c-1, current->tid());
 
 	scenario->AfterControlledTransition(current);
+}
+
+/********************************************************************************/
+
+inline void PinMonitor::ThreadEnd(Coroutine* current, Scenario* scenario) {
+	safe_assert(current != NULL && scenario != NULL);
+
+	// last controlled transition
+	// set predicate for "will end" before this transition
+	safe_assert(current->status() == ENABLED);
+	THREADID tid = current->tid();
+
+	safe_assert(!AuxState::Ends->isset(tid));
+	AuxState::Ends->set(true, tid);
+	safe_assert(AuxState::Ends->isset(tid));
+
+	scenario->OnControlledTransition(current);
+
+	safe_assert(AuxState::Ends->isset(tid));
 }
 
 /********************************************************************************/
@@ -272,6 +297,13 @@ void concurritFuncReturn(void* addr) {
 void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
 	VLOG(1) << "Triggering assertion violation!";
 	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
+}
+
+void concurritThreadEnd() {
+	if(!PinMonitor::IsEnabled()) {
+		return;
+	}
+	PinMonitor::ThreadEnd(Coroutine::Current(), Scenario::Current());
 }
 
 /********************************************************************************/

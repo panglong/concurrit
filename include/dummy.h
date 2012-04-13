@@ -53,6 +53,8 @@ extern void concurritFuncReturn(void* addr);
 
 extern void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
 
+extern void concurritThreadEnd();
+
 /********************************************************************************/
 
 #define concurritAssert(b)	if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); TriggerAssert(#b, __FILE__, __FUNCTION__, __LINE__); }

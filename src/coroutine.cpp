@@ -238,16 +238,7 @@ void* Coroutine::Run() {
 				return_value = call_function();
 
 				//---------------
-				if(scenario->test_status() == TEST_CONTROLLED) {
-					// last controlled transition
-					// set predicate for "will end" before this transition
-					safe_assert(status_ == ENABLED);
-					safe_assert(!AuxState::Ends->isset(tid_));
-					AuxState::Ends->set(true, tid_);
-					safe_assert(AuxState::Ends->isset(tid_));
-					scenario->OnControlledTransition(this);
-					safe_assert(AuxState::Ends->isset(tid_));
-				}
+				concurritThreadEnd();
 
 			} catch(std::exception* e) {
 				// first check if this is due to pthread_exit

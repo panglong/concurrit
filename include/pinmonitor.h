@@ -77,6 +77,8 @@ public:
 	static inline void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1);
 	static inline void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
 
+	static inline void ThreadEnd(Coroutine* current, Scenario* scenario);
+
 //	static inline void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
 
 private:

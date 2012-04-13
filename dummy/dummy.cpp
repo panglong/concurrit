@@ -56,6 +56,8 @@ void concurritFuncReturn(void* addr) {dummy_error();}
 
 void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}
 
+void concurritThreadEnd()  {dummy_error();}
+
 /********************************************************************************/
 
 #ifdef __cplusplus

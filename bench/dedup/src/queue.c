@@ -2,6 +2,8 @@
 #include "queue.h"
 #include "config.h"
 
+#include "dummy.h"
+
 #ifdef PARALLEL
 #include <pthread.h>
 #endif //PARALLEL
@@ -57,6 +59,9 @@ int dequeue(struct queue * que, int * fetch_count, void ** to_buf) {
       }
 
 #endif
+
+      AtPc(42);
+
       pthread_mutex_lock(&que->mutex);
 #endif
 

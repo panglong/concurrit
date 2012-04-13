@@ -11,7 +11,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
+		MAX_WAIT_TIME(USECSPERSEC);
 
 		FUNC(f, threadFunction);
 
