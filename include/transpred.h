@@ -63,7 +63,7 @@ class ThreadVar {
 public:
 	ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
 	: name_(name), thread_(thread) {}
-	~ThreadVar() {}
+	virtual ~ThreadVar() {}
 
 	std::string ToString() {
 		return thread_ == NULL ? std::string("no-tid") : to_string(thread_->tid());
@@ -75,6 +75,20 @@ public:
 private:
 	DECL_FIELD(std::string, name)
 	DECL_FIELD(Coroutine*, thread)
+};
+
+// Thread variable that should not be deleted
+class StaticThreadVar : public ThreadVar {
+public:
+	StaticThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
+	: ThreadVar(thread, name) {}
+	~StaticThreadVar() {
+		if(Concurrit::IsInitialized()) {
+			fprintf(stderr, "StaticThreadVar %s should not be deleted while Concurrit is active!", name_.c_str());
+			fflush(stderr);
+			_Exit(UNRECOVERABLE_ERROR);
+		}
+	}
 };
 
 typedef boost::shared_ptr<ThreadVar> ThreadVarPtr;
@@ -345,13 +359,9 @@ public:
 	AuxVar0(const char* name = "") : AuxVar(name) {}
 	virtual ~AuxVar0(){}
 
-	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar);
-
-	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const ThreadVarPtr& tvar) {
-		return this->operator()(var1, AuxVar0Ptr(), tvar);
-	}
-
-	TransitionPredicatePtr operator ()(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP0(const AuxVar0Ptr& var1, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP1(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP2(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar);
 
 	virtual void reset(THREADID t = -1) {
 		set(undef_value_, t);
@@ -456,16 +466,20 @@ private:
 	DECL_FIELD(ThreadVarPtr, tvar)
 };
 
-
 template<typename T, T undef_value_>
-TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar) {
-	return AuxVar0Pre<T,undef_value_>::create(var1, var2, tvar);
+TransitionPredicatePtr AuxVar0<T,undef_value_>::TP0(const AuxVar0Ptr& var1, const ThreadVarPtr& tvar) {
+	return this->TP2(var1, AuxVar0Ptr(), tvar);
 }
 
 template<typename T, T undef_value_>
-TransitionPredicatePtr AuxVar0<T,undef_value_>::operator ()(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar) {
+TransitionPredicatePtr AuxVar0<T,undef_value_>::TP1(const AuxVar0Ptr& var1, const T& value, const ThreadVarPtr& tvar) {
 	AuxVar0Ptr p(new AuxConst0<T,undef_value_>(value));
-	return this->operator()(var1, p, tvar);
+	return this->TP2(var1, p, tvar);
+}
+
+template<typename T, T undef_value_>
+TransitionPredicatePtr AuxVar0<T,undef_value_>::TP2(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar) {
+	return AuxVar0Pre<T,undef_value_>::create(var1, var2, tvar);
 }
 
 /********************************************************************************/
@@ -490,26 +504,11 @@ public:
 	AuxVar1(const char* name = "") : AuxVar(name) {}
 	~AuxVar1(){}
 
-	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const K& key, const T& value, const ThreadVarPtr& tvar) {
-		AuxKeyConstPtr p(new AuxKeyConstType(key));
-		AuxValueConstPtr q(new AuxValueConstType(value));
-		return this->operator()(var, p, q, tvar);
-	}
-
-	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const K& key, const ThreadVarPtr& tvar) {
-		AuxKeyConstPtr p(new AuxKeyConstType(key));
-		return this->operator()(var, p, AuxValueConstPtr(), tvar);
-	}
-
-	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const ThreadVarPtr& tvar) {
-		return this->operator()(var, AuxKeyConstPtr(), AuxValueConstPtr(), tvar);
-	}
-
-	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const AuxKeyPtr& key, const ThreadVarPtr& tvar) {
-		return this->operator()(var, key, AuxValueConstPtr(), tvar);
-	}
-
-	TransitionPredicatePtr operator ()(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP0(const AuxVarPtr& var, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP1(const AuxVarPtr& var, const K& key, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP2(const AuxVarPtr& var, const AuxKeyPtr& key, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP3(const AuxVarPtr& var, const K& key, const T& value, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP4(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar);
 
 	//================================================
 
@@ -637,7 +636,30 @@ private:
 /********************************************************************************/
 
 template<typename K, typename T, K undef_key_, T undef_value_>
-TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::operator ()(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar) {
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP0(const AuxVarPtr& var, const ThreadVarPtr& tvar) {
+	return this->TP4(var, AuxKeyConstPtr(), AuxValueConstPtr(), tvar);
+}
+
+template<typename K, typename T, K undef_key_, T undef_value_>
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP1(const AuxVarPtr& var, const K& key, const ThreadVarPtr& tvar) {
+	AuxKeyConstPtr p(new AuxKeyConstType(key));
+	return this->TP4(var, p, AuxValueConstPtr(), tvar);
+}
+
+template<typename K, typename T, K undef_key_, T undef_value_>
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP2(const AuxVarPtr& var, const AuxKeyPtr& key, const ThreadVarPtr& tvar) {
+	return this->TP4(var, key, AuxValueConstPtr(), tvar);
+}
+
+template<typename K, typename T, K undef_key_, T undef_value_>
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP3(const AuxVarPtr& var, const K& key, const T& value, const ThreadVarPtr& tvar) {
+	AuxKeyConstPtr p(new AuxKeyConstType(key));
+	AuxValueConstPtr q(new AuxValueConstType(value));
+	return this->TP4(var, p, q, tvar);
+}
+
+template<typename K, typename T, K undef_key_, T undef_value_>
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP4(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar) {
 	return AuxVar1Pre<K,T,undef_key_,undef_value_>::create(var, key, value, tvar);
 }
 
@@ -680,7 +702,7 @@ public:
 		boost::shared_ptr<AuxVar0<int, -1>> _pc(new AuxVar0<int, -1>("Pc"));
 		AuxState::Pc = _pc;
 
-		ThreadVarPtr _tid(new ThreadVar());
+		ThreadVarPtr _tid(new StaticThreadVar(NULL, "TID"));
 		AuxState::Tid = _tid;
 	}
 

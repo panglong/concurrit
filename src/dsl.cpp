@@ -384,7 +384,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				if(result == ETIMEDOUT) {
 					// fire timeout (backtrack)
 					ExecutionTree* cn = GetRef();
-					VLOG(1) << "AcquireRef: Node not consumed on time: " <<
+					VLOG(2) << "AcquireRef: Node not consumed on time: " <<
 							(cn == NULL ? "NULL" : (cn->message() == NULL ? "NULL" : cn->message()));
 					TRIGGER_BACKTRACK(TIMEOUT);
 				}
@@ -403,7 +403,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			if(timer.getElapsedTimeInMicroSec() > timeout_usec) {
 				// fire timeout (backtrack)
 				ExecutionTree* cn = GetRef();
-				VLOG(1) << "AcquireRef: Node not consumed on time: " <<
+				VLOG(2) << "AcquireRef: Node not consumed on time: " <<
 						(cn == NULL ? "NULL" : (cn->message() == NULL ? "NULL" : cn->message()));
 				TRIGGER_BACKTRACK(TIMEOUT);
 			}
@@ -603,7 +603,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 	} else {
 		// try to first wait for empty, if we timeout, we remove it by waiting for full
 		try {
-			VLOG(1) << "AcquireRefEx-1 in EndWithSuccess.";
+			VLOG(2) << "AcquireRefEx-1 in EndWithSuccess.";
 			ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
 			safe_assert(IS_EMPTY(node));
 		} catch(std::exception* e) {
@@ -619,7 +619,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 			else if(*reason == TIMEOUT) {
 				// this should not timeout
 				try {
-					VLOG(1) << "AcquireRefEx-2 in EndWithSuccess.";
+					VLOG(2) << "AcquireRefEx-2 in EndWithSuccess.";
 					ExecutionTree* node = AcquireRefEx(EXIT_ON_FULL);
 					safe_assert(IS_FULL(node));
 				} catch(std::exception* e) {

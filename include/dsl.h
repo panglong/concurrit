@@ -94,7 +94,7 @@ public:
 
 	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
 		if(message_ != NULL) {
-			VLOG(1) << "[" << safe_notnull(current)->tid() << "]" << "<< " << message_ << " >>";
+			VLOG(1) << "[TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
 		}
 	}
 

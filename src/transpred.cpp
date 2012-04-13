@@ -123,6 +123,33 @@ private:
 	DECL_FIELD(ThreadVarPtr, tvar2)
 };
 
+class TPThreadVarsNotEqual : public PreStateTransitionPredicate {
+public:
+	TPThreadVarsNotEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : PreStateTransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
+	~TPThreadVarsNotEqual() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		safe_assert(tvar1_ != NULL && tvar2_ != NULL);
+		Coroutine* co1 = tvar1_->thread();
+		Coroutine* co2 = tvar2_->thread();
+		if(co1 == NULL || co2 == NULL) {
+			VLOG(2) << "Evaluating TPThreadVarsEqual, one of them is NULL";
+			return true;
+		}
+		VLOG(2) << "Evaluating TPThreadVarsEqual for " << co1->tid() << " and " << co2->tid();
+		return co1->tid() != co2->tid();
+	}
+
+	static TransitionPredicatePtr create(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) {
+		TransitionPredicatePtr p(new TPThreadVarsNotEqual(tvar1, tvar2));
+		return p;
+	}
+
+private:
+	DECL_FIELD(ThreadVarPtr, tvar1)
+	DECL_FIELD(ThreadVarPtr, tvar2)
+};
+
 /********************************************************************************/
 
 ConstraintInstaller::ConstraintInstaller(Scenario* scenario, const TransitionPredicatePtr& pred)
@@ -147,7 +174,7 @@ TransitionPredicatePtr operator == (const ThreadVarPtr& t1, const ThreadVarPtr& 
 }
 
 TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
-	return !(t1 == t2);
+	return TPThreadVarsNotEqual::create(t1, t2);
 }
 
 //TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {

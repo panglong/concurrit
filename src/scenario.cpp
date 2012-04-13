@@ -489,7 +489,7 @@ void Scenario::RunTestCase() throw() {
 			// then change the backtrack type to THREADS_ALLENDED
 			if(reason == TIMEOUT && group_.IsAllEnded()) {
 				reason = THREADS_ALLENDED;
-				VLOG(1) << "Replacing TIMEOUT with THREADS_ALLENDED; all threads have ended.";
+				VLOG(2) << "Replacing TIMEOUT with THREADS_ALLENDED; all threads have ended.";
 			}
 			if(reason == TIMEOUT ||
 				reason == TREENODE_COVERED ||
@@ -508,7 +508,7 @@ void Scenario::RunTestCase() throw() {
 
 	} while(exec_tree_.EndWithSuccess(&reason));
 
-	VLOG(1) << "Handled current and all alternative paths, exiting RunTestCase...";
+	VLOG(2) << "Handled current and all alternative paths, exiting RunTestCase...";
 
 	//====================================
 	// after trying all alternate paths

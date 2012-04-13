@@ -219,7 +219,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 //#define NOPRED			TransitionPredicatePtr()
 
-//#define TVAR(t)			static ThreadVarPtr t(new ThreadVar());
+#define TVAR(t)			ThreadVarPtr t(new ThreadVar());
 
 #define EXISTS(t, ...)	ThreadVarPtr t = DSLExistsThread(__VA_ARGS__);
 
@@ -284,29 +284,29 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define ENDS()			safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends, TID)
-#define ENDS2(t)		safe_notnull(AuxState::Ends.get())->operator()(AuxState::Ends, t)
+#define ENDS()			safe_notnull(AuxState::Ends.get())->TP1(AuxState::Ends, true, TID)
+#define ENDS2(t)		safe_notnull(AuxState::Ends.get())->TP1(AuxState::Ends, true, t)
 
 /********************************************************************************/
 
-#define READS()			safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, TID)
-#define WRITES()		safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, TID)
+#define READS()			safe_notnull(AuxState::Reads.get())->TP0(AuxState::Reads, TID)
+#define WRITES()		safe_notnull(AuxState::Writes.get())->TP0(AuxState::Writes, TID)
 
-#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->operator()(AuxState::Reads, x, TID)
-#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->operator()(AuxState::Writes, x, TID)
+#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, x, TID)
+#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, x, TID)
 
 /********************************************************************************/
 
-#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->operator()(AuxState::Enters, f, TID)
-#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, TID)
+#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->TP3(AuxState::Enters, f, true, TID)
+#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->TP3(AuxState::Returns, f, true, TID)
 
-#define RETURNS2(f, t)	safe_notnull(AuxState::Returns.get())->operator()(AuxState::Returns, f, t)
+#define RETURNS2(f, t)	safe_notnull(AuxState::Returns.get())->TP3(AuxState::Returns, f, true, t)
 
 /********************************************************************************/
 
 #define IN_FUNC(f)		TPInFunc::create(f, TID)
 #define TIMES_IN_FUNC(f, k) \
-						safe_notnull(AuxState::NumInFunc.get())->operator()(AuxState::NumInFunc, f, k, TID)
+						safe_notnull(AuxState::NumInFunc.get())->TP3(AuxState::NumInFunc, f, k, TID)
 
 /********************************************************************************/
 
@@ -355,7 +355,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->operator()(AuxState::Pc, pc, TID)
+#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, TID)
 
 /********************************************************************************/
 
