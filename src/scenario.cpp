@@ -264,11 +264,9 @@ Result* Scenario::Explore() {
 		for(;true;) {
 			try {
 
-				Start();
-
 				VLOG(1) << "Exploring new execution...";
 
-				VLOG(2) << SC_TITLE << "Starting path " << counter("Num paths explored");
+				VLOG(2) << SC_TITLE << "Starting path " << unsigned(counter("Num paths explored"));
 
 				ConcurritException* exc = RunOnce();
 
@@ -384,6 +382,8 @@ ConcurritException* Scenario::CollectExceptions() {
 
 ConcurritException* Scenario::RunOnce() throw() {
 
+	Start();
+
 	RunSetUp();
 
 	RunTestCase();
@@ -404,9 +404,6 @@ void Scenario::RunUncontrolled() {
 	test_status_ = TEST_UNCONTROLLED;
 
 	PinMonitor::Disable();
-
-	// clear aux state
-	AuxState::Clear();
 
 	Thread::Yield(true);
 
