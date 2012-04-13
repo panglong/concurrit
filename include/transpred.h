@@ -681,11 +681,11 @@ public:
 		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _writes(new AuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
 		AuxState::Writes = _writes;
 
-//		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
-//		AuxState::CallsFrom = _callsfrom;
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
+		AuxState::CallsFrom = _callsfrom;
 
-//		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
-//		AuxState::CallsTo = _callsto;
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
+		AuxState::CallsTo = _callsto;
 
 		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _enters(new AuxVar1<ADDRINT, bool, -1, false>("Enters"));
 		AuxState::Enters = _enters;
@@ -707,13 +707,11 @@ public:
 	}
 
 	static void Reset(THREADID t = -1) {
-//		Ends->reset(t);
-
 		Reads->reset(t);
 		Writes->reset(t);
 
-//		CallsFrom->reset(t);
-//		CallsTo->reset(t);
+		CallsFrom->reset(t);
+		CallsTo->reset(t);
 
 		Enters->reset(t);
 		Returns->reset(t);
@@ -727,8 +725,8 @@ public:
 		Reads->clear();
 		Writes->clear();
 
-//		CallsFrom->clear();
-//		CallsTo->clear();
+		CallsFrom->clear();
+		CallsTo->clear();
 
 		Enters->clear();
 		Returns->clear();
@@ -747,8 +745,8 @@ public:
 	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> Reads;
 	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> Writes;
 
-//	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsFrom;
-//	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsTo;
+	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsFrom;
+	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsTo;
 
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Enters;
 	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Returns;

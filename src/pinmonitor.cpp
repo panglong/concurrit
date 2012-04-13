@@ -140,15 +140,15 @@ inline void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* ad
 
 /********************************************************************************/
 
-//inline void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1) {
-//	safe_assert(loc_src != NULL && loc_target != NULL);
-//
-//	// update auxstate
-//	AuxState::CallsFrom->set(PTR2ADDRINT(addr_src), current->tid());
-//	AuxState::CallsTo->set(PTR2ADDRINT(addr_target), current->tid());
-//
-//	scenario->OnControlledTransition(current);
-//}
+inline void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1) {
+	safe_assert(loc_src != NULL && loc_target != NULL);
+
+	// update auxstate
+	AuxState::CallsFrom->set(PTR2ADDRINT(addr_src), current->tid());
+	AuxState::CallsTo->set(PTR2ADDRINT(addr_target), current->tid());
+
+	scenario->OnControlledTransition(current);
+}
 
 inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1) {
 	safe_assert(current != NULL && scenario != NULL);
@@ -239,9 +239,9 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 		case FuncReturn:
 			PinMonitor::FuncReturn(current, scenario, info->addr, info->loc_src, info->retval);
 			break;
-//		case FuncCall:
-//			PinMonitor::FuncCall(current, scenario, info->addr, info->addr_target, info->direct, info->loc_src, info->loc_target, info->arg0, info->arg1);
-//			break;
+		case FuncCall:
+			PinMonitor::FuncCall(current, scenario, info->addr, info->addr_target, info->direct, info->loc_src, info->loc_target, info->arg0, info->arg1);
+			break;
 		default:
 			printf("Call type: %d\n", info->type);
 			bool UnrecognizedPinMonitorCallType = false;

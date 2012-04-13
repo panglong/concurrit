@@ -362,30 +362,30 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
-//VOID PIN_FAST_ANALYSIS_CALL
-//FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
-//		ADDRINT target, ADDRINT arg0, ADDRINT arg1) {
-//
-//	if(!InstParams::OnInstruction(threadid)) {
-//		return;
-//	}
-//	//===============================================================
-//
-//	PinSourceLocation* loc_target = PinSourceLocation::get(target);
-//
-//	concurrit::PinMonitorCallInfo info;
-//	info.type = concurrit::FuncCall;
-//	info.threadid = threadid;
-//	info.addr = loc_src->pointer();
-//	info.addr_target = loc_target->pointer();
-//	info.direct = direct;
-//	info.loc_src = loc_src;
-//	info.loc_target = loc_target;
-//	info.arg0 = arg0;
-//	info.arg1 = arg1;
-//
-//	CallNativePinMonitor(ctxt, threadid, &info);
-//}
+VOID PIN_FAST_ANALYSIS_CALL
+FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
+		ADDRINT target, ADDRINT arg0, ADDRINT arg1, ADDRINT rtn_addr) {
+
+	if(!InstParams::OnInstruction(threadid)) {
+		return;
+	}
+	//===============================================================
+
+	PinSourceLocation* loc_target = PinSourceLocation::get(target);
+
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::FuncCall;
+	info.threadid = threadid;
+	info.addr = ADDRINT2PTR(rtn_addr); // loc_src->pointer();
+	info.addr_target = loc_target->pointer();
+	info.direct = direct;
+	info.loc_src = loc_src;
+	info.loc_target = loc_target;
+	info.arg0 = arg0;
+	info.arg1 = arg1;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+}
 
 /* ===================================================================== */
 
@@ -426,7 +426,7 @@ FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDR
 	concurrit::PinMonitorCallInfo info;
 	info.type = concurrit::FuncReturn;
 	info.threadid = threadid;
-	info.addr = ADDRINT2PTR(rtn_addr);
+	info.addr = ADDRINT2PTR(rtn_addr); // loc_src->pointer();
 	info.loc_src = loc;
 	info.retval = ret0;
 
@@ -797,31 +797,33 @@ LOCALFUN VOID ImageUnload(IMG img, VOID *) {
 
 LOCALFUN INLINE
 VOID CallTrace(TRACE trace, INS ins) {
-//	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
-//		if (!INS_IsDirectBranchOrCall(ins)) {
-//			// Indirect call
-//			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-//
-//			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
-//					IARG_CONTEXT,
-//					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
-//					IARG_BRANCH_TARGET_ADDR,
-//					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
-//
-//		} else if (INS_IsDirectBranchOrCall(ins)) {
-//			// Direct call
-//			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
-//
-//			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
-//
-//			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
-//					IARG_CONTEXT,
-//					IARG_THREAD_ID, IARG_PTR, TRUE, IARG_PTR, loc,
-//					IARG_ADDRINT, target,
-//					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
-//
-//		}
-//	} else
+	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
+		if (!INS_IsDirectBranchOrCall(ins)) {
+			// Indirect call
+			RTN rtn = TRACE_Rtn(trace);
+			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
+
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
+					IARG_CONTEXT,
+					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
+					IARG_BRANCH_TARGET_ADDR,
+					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_ADDRINT, RTN_Address(rtn), IARG_END);
+
+		} else if (INS_IsDirectBranchOrCall(ins)) {
+			// Direct call
+			RTN rtn = TRACE_Rtn(trace);
+			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
+
+			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
+
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
+					IARG_CONTEXT,
+					IARG_THREAD_ID, IARG_PTR, TRUE, IARG_PTR, loc,
+					IARG_ADDRINT, target,
+					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_ADDRINT, RTN_Address(rtn), IARG_END);
+
+		}
+	} else
 	if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
 		RTN rtn = TRACE_Rtn(trace);
 
