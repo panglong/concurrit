@@ -209,9 +209,15 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define CONSTRAIN_ALL(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+#define PTRUE			TransitionPredicate::True()
+#define PFALSE			TransitionPredicate::False()
 
-#define CONSTRAIN_FIRST(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+/********************************************************************************/
+
+//#define FUNC(v, f)		static FuncVar v(reinterpret_cast<void*>(f));
+
+						// try only default, and fail if not found
+#define FUNC(v, f)		static FuncVar v(FuncAddressByName(#f, true, false, true));
 
 /********************************************************************************/
 
@@ -227,22 +233,25 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define PTRUE			TransitionPredicate::True()
-#define PFALSE			TransitionPredicate::False()
+#define CONSTRAIN_ALL(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+
+#define CONSTRAIN_FST(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
 
 /********************************************************************************/
 
-//#define FUNC(v, f)		static FuncVar v(reinterpret_cast<void*>(f));
+#define RUN_UNTIL1(r, ...) 			DSLTransferUntil((r), __VA_ARGS__);
 
-						// try only default, and fail if not found
-#define FUNC(v, f)		static FuncVar v(FuncAddressByName(#f, true, false, true));
+#define RUN_UNTIL2a(p, r, ...) 		{ CONSTRAIN_FST(p); RUN_UNTIL1((r), __VA_ARGS__); }
 
+#define RUN_UNTIL2b(q, r, ...) 		{ CONSTRAIN_ALL(q); RUN_UNTIL1((r), __VA_ARGS__); }
+
+#define RUN_UNTIL3(p, q, r, ...) 	{ CONSTRAIN_FST(p); CONSTRAIN_ALL(q); RUN_UNTIL1((r), __VA_ARGS__); }
 
 /********************************************************************************/
 
-#define RUN_UNTIL(p, ...) 	{ CONSTRAIN_ALL(p); DSLTransferUntil(__VA_ARGS__); }
+#define RUN_ONCE(p, ...)			RUN_UNTIL2a((p), (p), __VA_ARGS__);
 
-#define RUN_ONCE(...)		DSLTransition(__VA_ARGS__);
+#define RUN_UNTIL(q, r, ...) 		RUN_UNTIL2b((q), (r), __VA_ARGS__);
 
 /********************************************************************************/
 

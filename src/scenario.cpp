@@ -1476,6 +1476,10 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 
 	// we do things to consume the transition here
 	if(tval == TPTRUE || tval == TPUNKNOWN) {
+		node->OnTaken(current, tval == TPUNKNOWN ? 0 : newnode->child_index());
+	}
+
+	if(tval == TPTRUE) {
 		node->OnConsumed(current, tval == TPUNKNOWN ? 0 : newnode->child_index());
 	}
 
@@ -1846,6 +1850,9 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 		ret = !cov_0 ? 0 : 1;
 	}
 
+	choice->OnSubmitted();
+	choice->OnConsumed(Coroutine::Current(), ret);
+
 	exec_tree_.ReleaseRef(choice, ret);
 
 	VLOG(2) << "DSLChoice returns " << ret;
@@ -1903,6 +1910,8 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 	safe_assert(!trans->covered());
 
 	// not covered yet
+
+	trans->OnSubmitted();
 
 	// set atomic_ref to point to trans
 	exec_tree_.ReleaseRef(trans);
@@ -1967,6 +1976,8 @@ void Scenario::DSLTransferUntil(const TransitionPredicatePtr& pred, const Thread
 	safe_assert(!trans->covered());
 
 	// not covered yet
+
+	trans->OnSubmitted();
 
 	// set atomic_ref to point to trans
 	exec_tree_.ReleaseRef(trans);
@@ -2044,6 +2055,8 @@ ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= Tr
 	safe_assert(!select->covered());
 
 	// not covered yet
+
+	select->OnSubmitted();
 
 	// set atomic_ref to point to select
 	exec_tree_.ReleaseRef(select);
@@ -2132,6 +2145,8 @@ ThreadVarPtr Scenario::DSLExistsThread(const TransitionPredicatePtr& pred /*= Tr
 	// clear the var
 	var = select->var();
 	var->clear_thread();
+
+	select->OnSubmitted();
 
 	// set atomic_ref to point to select
 	exec_tree_.ReleaseRef(select);

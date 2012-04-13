@@ -293,31 +293,24 @@ private:
 class TransitionConstraintFirst : public TransitionPredicate {
 public:
 	TransitionConstraintFirst(const TransitionPredicatePtr& pred)
-	: TransitionPredicate(), pred_(pred), done_(false) {}
+	: TransitionPredicate(), pred_(pred) {}
 
 	~TransitionConstraintFirst() {}
 
 	TPVALUE EvalPreState(Coroutine* t = NULL) {
-		if(!done_) {
-			done_ = true;
-			return pred_->EvalPreState(t);
-		} else {
-			return TPTRUE;
-		}
+		return pred_->EvalPreState(t);
 	}
 
 	bool EvalPostState(Coroutine* t = NULL) {
-		if(!done_) {
-			done_ = true;
-			return pred_->EvalPostState(t);
-		} else {
+		if(pred_->EvalPreState(t)) {
+			pred_ = TransitionPredicate::True();
 			return true;
 		}
+		return false;
 	}
 
 private:
 	DECL_FIELD(TransitionPredicatePtr, pred)
-	DECL_FIELD(bool, done)
 };
 
 /********************************************************************************/

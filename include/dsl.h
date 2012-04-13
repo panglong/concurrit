@@ -94,7 +94,13 @@ public:
 
 	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
 		if(message_ != NULL) {
-			VLOG(1) << "[TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
+			VLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
+		}
+	}
+
+	virtual void OnSubmitted() {
+		if(message_ != NULL) {
+			VLOG(1) << "Submitted: [ACTION: " << message_ << "]";
 		}
 	}
 
@@ -122,13 +128,16 @@ public:
 	: ExecutionTree(message, parent, num_children), pred_(pred), var_(var), constraints_(constraints) {}
 	virtual ~TransitionNode(){}
 
-	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
+	virtual void OnTaken(Coroutine* current, int child_index = 0) {
 		safe_assert(current != NULL);
 		safe_assert(BETWEEN(0, child_index, children_.size()-1));
-		ExecutionTree::OnConsumed(current, child_index);
 		// update var if not null
 		if(var_ != NULL) {
 			var_->set_thread(current);
+		}
+
+		if(message_ != NULL) {
+			VLOG(1) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
 		}
 	}
 
@@ -437,6 +446,20 @@ public:
 		return (pred_->EvalPreState(current) == TPTRUE);
 	}
 
+	ThreadVarPtr create_thread_var(Coroutine* current = NULL) {
+		std::stringstream s;
+		if(message_ != NULL) {
+			s << message_;
+		} else if(current != NULL) {
+			s << "THR-" << current->tid();
+		} else {
+			s << "ThreadVar";
+		}
+
+		ThreadVarPtr p(new ThreadVar(current, s.str()));
+		return p;
+	}
+
 	virtual ThreadVarPtr var(int child_index = 0) = 0;
 
 private:
@@ -451,8 +474,7 @@ public:
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
 	: SelectThreadNode(pred, message, parent, 1) {
-		ThreadVarPtr p(new ThreadVar());
-		var_ = p;
+		var_ = create_thread_var();
 	}
 
 	~ExistsThreadNode() {}
@@ -571,8 +593,8 @@ private:
 			safe_assert(idxToThreadMap_.size() == sz);
 			tidToIdxMap_[tid] = sz;
 			children_.push_back(NULL);
-			ThreadVarPtr p(new ThreadVar(co));
-			idxToThreadMap_.push_back(p);
+			ThreadVarPtr var = create_thread_var(co);
+			idxToThreadMap_.push_back(var);
 			return sz;
 		} else {
 			return child_index;
