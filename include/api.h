@@ -202,10 +202,16 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 // DSL for the preemptive mode
 //#define STAR	DSLChoice(__LINE__)
-#define STAR(stmt, line) 	static StaticChoiceInfo __choice_info_##line(line); stmt(DSLChoice(&__choice_info_##line))
-#define WHILE_STAR			STAR(while, __LINE__)
-#define IF_STAR				STAR(if, __LINE__)
-#define ELSE				else
+// DSL for the preemptive mode
+//#define STAR	DSLChoice(__LINE__)
+#define STAR(nd, stmt, line) 	static StaticChoiceInfo __choice_info_##line((line), (nd)); stmt(DSLChoice(&(__choice_info_##line)))
+#define WHILE_STAR				STAR(Config::IsStarNondeterministic, while, __LINE__)
+#define IF_STAR					STAR(Config::IsStarNondeterministic, if, __LINE__)
+#define WHILE_DTSTAR			STAR(false, while, __LINE__)
+#define IF_DTSTAR				STAR(false, if, __LINE__)
+#define WHILE_NDSTAR			STAR(true, while, __LINE__)
+#define IF_NDSTAR				STAR(true, if, __LINE__)
+#define ELSE					else
 
 /********************************************************************************/
 

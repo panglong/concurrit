@@ -1839,7 +1839,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 	bool cov_1 = choice->child_covered(1);
 
 	if(!cov_0 && !cov_1) {
-		ret = (Config::ChooseStarRandomly ? (rand() % 2) : 1);
+		ret = (safe_notnull(choice->info())->nondet() ? (rand() % 2) : 1);
 	} else {
 		ret = !cov_0 ? 0 : 1;
 	}

@@ -331,8 +331,9 @@ private:
 
 class StaticChoiceInfo {
 public:
-	StaticChoiceInfo(int line){
+	StaticChoiceInfo(int line, bool nondet) {
 		line_ = line;
+		nondet_ = nondet;
 		covered_[0] = false;
 		covered_[1] = false;
 	}
@@ -347,7 +348,8 @@ public:
 		covered_[i] = covered;
 	}
 private:
-	int line_;
+	DECL_FIELD(int, line)
+	DECL_FIELD(bool, nondet)
 	bool covered_[2];
 };
 
