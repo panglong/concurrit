@@ -58,10 +58,13 @@ using namespace INSTLIB;
 /* ===================================================================== */
 
 KNOB<string> KnobLogFile(KNOB_MODE_WRITEONCE, "pintool", "log_file",
-		"~/concurrit/work/pinlogfile.txt", "Specify log file path");
+		"/home/elmas/concurrit/work/pinlogfile.txt", "Specify log file path");
 
 KNOB<string> KnobFinFile(KNOB_MODE_WRITEONCE, "pintool", "finfile",
-		"~/concurrit/work/finfile.txt", "Specify names of functions to instrument");
+		"/home/elmas/concurrit/work/finfile.txt", "Specify names of functions to instrument");
+
+KNOB<string> KnobFilteredImagesFile(KNOB_MODE_WRITEONCE, "pintool", "filtered_images_file",
+		"/home/elmas/concurrit/work/filtered_images.txt", "Specify names of images to filter out");
 
 /* ===================================================================== */
 
@@ -92,6 +95,8 @@ LOCALVAR PIN_LOCK lock;
 #define GLB_LOCK_INIT()		InitLock(&lock)
 #define GLB_LOCK()			GetLock(&lock, 1)
 #define GLB_UNLOCK()		ReleaseLock(&lock)
+
+std::string CONCURRIT_HOME;
 
 /* ===================================================================== */
 
@@ -141,7 +146,6 @@ private:
 public:
 	static void ParseFile(const char* filename) {
 		safe_assert(filename != NULL);
-		FILE* fin = fopen(filename, "r");
 
 		RTNIdsToInstrument.clear();
 		RTNIdsToInstrument.insert(ADDRINT(0)); // dummy id
@@ -149,23 +153,11 @@ public:
 		RTNNamesToInstrument.clear();
 		RTNNamesToInstrument.insert("StartEndInstrument"); // dummy name
 
-		if (fin != NULL) {
-			char buff[256];
-			while(!feof(fin)) {
-				if(fgets(buff, 256, fin) == NULL) {
-					break;
-				} else {
-					size_t sz = strnlen(buff, 256);
-					if(buff[sz-1] == '\n') {
-						buff[sz-1] = '\0';
-					}
-					if(buff[0] != '#') {
-						log_file << "Adding routine to instrument: " << buff << std::endl;
-						RTNNamesToInstrument.insert(buff);
-					}
-				}
-			}
-			fclose(fin);
+		std::vector<std::string> lines;
+		concurrit::ReadLinesFromFile(filename, &lines, false, '#');
+		for(std::vector<std::string>::iterator itr = lines.begin(); itr < lines.end(); ++itr) {
+			log_file << "Adding function to instrument: " << (*itr) << std::endl;
+			RTNNamesToInstrument.insert(*itr);
 		}
 	}
 
@@ -534,41 +526,12 @@ LOCALVAR std::vector<string> FilteredImages;
 typedef tbb::concurrent_hash_map<UINT32,BOOL> FilteredImageIdsType;
 LOCALVAR FilteredImageIdsType FilteredImageIds;
 
-LOCALFUN void InitFilteredImages() {
-	FilteredImages.push_back("libstdc++.so");
-	FilteredImages.push_back("libm.so");
-	FilteredImages.push_back("libc.so");
-	FilteredImages.push_back("libgcc_s.so");
-	FilteredImages.push_back("libselinux.so");
-	FilteredImages.push_back("librt.so");
-	FilteredImages.push_back("libdl.so");
-	FilteredImages.push_back("libacl.so");
-	FilteredImages.push_back("libattr.so");
-	FilteredImages.push_back("ld-linux.so");
-	FilteredImages.push_back("ld-linux-x86-64.so");
+LOCALFUN void InitFilteredImages(const char* filename) {
+	safe_assert(filename != NULL);
 
-	FilteredImages.push_back("libpthread.so");
-	FilteredImages.push_back("libpth.so");
+	FilteredImages.clear();
+	concurrit::ReadLinesFromFile(filename, &FilteredImages, false, '#');
 
-	FilteredImages.push_back("libtbb.so");
-	FilteredImages.push_back("libtbb_debug.so");
-	FilteredImages.push_back("libtbbmalloc.so");
-	FilteredImages.push_back("libtbbmalloc_debug.so");
-	FilteredImages.push_back("libtbbmalloc_proxy.so");
-	FilteredImages.push_back("libtbbmalloc_proxy_debug.so");
-	FilteredImages.push_back("libtbb_preview.so");
-	FilteredImages.push_back("libtbb_preview_debug.so");
-
-	FilteredImages.push_back("libconcurrit.so");
-	FilteredImages.push_back("libdummy.so");
-	FilteredImages.push_back("libgflags.so");
-	FilteredImages.push_back("libglog.so");
-
-	FilteredImages.push_back("libbz2.so");
-	FilteredImages.push_back("libnsl.so");
-	FilteredImages.push_back("libssl.so");
-	FilteredImages.push_back("libz.so");
-	FilteredImages.push_back("libm.so");
 }
 
 /* ===================================================================== */
@@ -1032,15 +995,17 @@ int main(int argc, CHAR *argv[]) {
 		return Usage();
 	}
 
-	// read function names to instrument
-	InstParams::ParseFile(KnobFinFile.Value().c_str());
+	CONCURRIT_HOME = std::string(getenv("CONCURRIT_HOME"));
 
 //	control.CheckKnobs(Handler, 0);
 	skipper.CheckKnobs(0);
 
 	log_file.open(KnobLogFile.Value().c_str());
 
-	InitFilteredImages();
+	// read function names to instrument
+	InstParams::ParseFile(KnobFinFile.Value().c_str());
+
+	InitFilteredImages(KnobFilteredImagesFile.Value().c_str());
 
 	tls_key = PIN_CreateThreadDataKey(ThreadLocalDestruct);
 	PIN_AddThreadStartFunction(ThreadStart, 0);

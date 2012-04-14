@@ -361,6 +361,9 @@ std::string vector_to_string(const std::vector<T>& v) {
 
 /********************************************************************************/
 
+FILE* my_fopen(const char * filename, const char * mode, bool exit_on_fail = true);
+void my_fclose(FILE* file, bool exit_on_fail = true);
+
 main_args StringToMainArgs(const std::string& s, bool add_program_name = false);
 main_args StringToMainArgs(const char* s, bool add_program_name = false);
 
@@ -369,6 +372,8 @@ main_args ArgVectorToMainArgs(const std::vector<char*>& args);
 void short_sleep(long nanoseconds, bool continue_on_signal);
 
 void* FuncAddressByName(const char* name, bool default_first = true, bool try_other = false, bool fail_on_null = false);
+
+std::vector<std::string>* ReadLinesFromFile(const char* filename, std::vector<std::string>* lines = NULL, bool exit_on_fail = true, char comment = '#');
 
 
 /********************************************************************************/

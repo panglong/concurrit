@@ -129,6 +129,60 @@ void* FuncAddressByName(const char* name, bool default_first /*= true*/, bool tr
 
 /********************************************************************************/
 
+std::vector<std::string>* ReadLinesFromFile(const char* filename, std::vector<std::string>* lines /*= NULL*/, bool exit_on_fail /*= true*/, char comment /*= '#'*/) {
+	if(lines == NULL) {
+		lines = new std::vector<std::string>();
+	}
+	const size_t buff_sz = 256;
+	FILE* fin = my_fopen(filename, "r", exit_on_fail);
+
+	if(fin != NULL) {
+		char buff[buff_sz];
+		while(!feof(fin)) {
+			if(fgets(buff, buff_sz, fin) == NULL) {
+				break;
+			} else {
+				size_t sz = strnlen(buff, buff_sz);
+				if(sz > 0 && buff[0] != comment) {
+					if(buff[sz-1] == '\n') {
+						buff[sz-1] = '\0';
+						--sz;
+						if(sz == 0) continue;
+					}
+
+					lines->push_back(buff);
+				}
+			}
+		}
+		my_fclose(fin, exit_on_fail);
+	}
+	return lines;
+}
+
+/********************************************************************************/
+
+FILE* my_fopen(const char * filename, const char * mode, bool exit_on_fail /*= true*/) {
+	FILE* file = fopen(filename, mode);
+	if(file == NULL && exit_on_fail) {
+		fprintf(stderr, "File could not be opened: %s\n", filename);
+		fflush(stderr);
+		_Exit(UNRECOVERABLE_ERROR);
+	}
+	return file;
+}
+
+/********************************************************************************/
+
+void my_fclose(FILE* file, bool exit_on_fail /*= true*/) {
+	if(fclose(file) && exit_on_fail) {
+		fprintf(stderr, "File could not be closed\n");
+		fflush(stderr);
+		_Exit(UNRECOVERABLE_ERROR);
+	}
+}
+
+/********************************************************************************/
+
 } // end namespace
 
 

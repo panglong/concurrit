@@ -36,6 +36,7 @@ test: bin/$(TARGET)
 	
 pin: lib/$(TARGETLIB) bin/$(TARGET)
 	LD_PRELOAD=$(CONCURRIT_HOME)/lib/libconcurrit.so:$(LD_PRELOAD) \
+	PATH="$(BENCHDIR)/bin:$(PATH)" \
 	LD_LIBRARY_PATH="$(BENCHDIR)/lib:$(LD_LIBRARY_PATH)" \
 	DYLD_LIBRARY_PATH=="$(BENCHDIR)/lib:$(DYLD_LIBRARY_PATH)" \
 		$(CONCURRIT_HOME)/scripts/run_pintool.sh bin/$(TARGET) $(ARGS)

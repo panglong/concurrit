@@ -41,13 +41,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-FILE* my_fopen(const char * filename, const char * mode);
-
-void my_fclose(FILE* file);
-
-
-/********************************************************************************/
-
 class SerializationException : public std::exception {
 public:
 	virtual const char* what() const throw() {
