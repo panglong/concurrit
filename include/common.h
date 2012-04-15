@@ -181,17 +181,15 @@ namespace concurrit {
 
 void print_stack_trace();
 
+#define safe_fail(...) 	fprintf(stderr, __VA_ARGS__); fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
+						concurrit::print_stack_trace(); \
+						fflush(stderr); \
+						_Exit(UNRECOVERABLE_ERROR); \
+
 #ifdef SAFE_ASSERT
 #include <execinfo.h>
 #define safe_notnull(o) 	(CHECK_NOTNULL(o))
-#define safe_assert(cond) \
-		if (!(cond))  { \
-			fprintf(stderr, "\nCounit: safe assert fail: safe_assert(%s):", #cond); \
-			fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
-			concurrit::print_stack_trace(); \
-			fflush(stderr); \
-			_Exit(UNRECOVERABLE_ERROR); \
-		}
+#define safe_assert(cond) 	if (!(cond))  { safe_fail("\nCounit: safe assert fail: safe_assert(%s):", #cond); }
 #else
 #define safe_notnull(o) 	(o)
 #define safe_assert(cond) /* noop */
@@ -201,17 +199,11 @@ void print_stack_trace();
 
 #define unimplemented() \
 		VLOG(2) << "Executing unimplemented code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
-		fprintf(stderr, "Unimplemented operation!"); \
-		concurrit::print_stack_trace(); \
-		fflush(stderr); \
-		_Exit(UNRECOVERABLE_ERROR); \
+		safe_fail("Unimplemented operation!"); \
 
 #define unreachable() \
 		VLOG(2) << "Executing unreachable code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
-		fprintf(stderr, "Unreachable code!"); \
-		concurrit::print_stack_trace(); \
-		fflush(stderr); \
-		_Exit(UNRECOVERABLE_ERROR); \
+		safe_fail("Unreachable code!"); \
 
 /********************************************************************************/
 // #define NOTNULL(ptr)	(ptr)

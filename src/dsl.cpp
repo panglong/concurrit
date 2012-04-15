@@ -343,6 +343,9 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 		ExecutionTree* node = ExchangeRef(&lock_node_);
 		if(IS_LOCKNODE(node)) {
 			// noop
+			if(lock_node_.owner() == Coroutine::Current()) {
+				safe_fail("Double-locking of atomic_ref!");
+			}
 			Thread::Yield(true);
 		}
 		else
