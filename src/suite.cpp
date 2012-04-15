@@ -80,27 +80,36 @@ std::map<std::string, Result*> Suite::RunScenarios() {
 }
 
 void Suite::RunAll() {
-	std::map<std::string, Result*> results = RunScenarios();
+	try {
+		std::map<std::string, Result*> results = RunScenarios();
 
-	std::stringstream s;
-	int num_success = 0, num_failure = 0;
-	// count success
-	for(std::map<std::string, Result*>::iterator itr = results.begin(); itr != results.end(); ++itr) {
-		Result* result = itr->second;
-		if(result->IsSuccess()) ++num_success; else ++num_failure;
-		s << "\nScenario: " << itr->first << "\n";
-		s << result->ToString() << "\n";
-		delete result;
+		std::stringstream s;
+		int num_success = 0, num_failure = 0;
+		// count success
+		for(std::map<std::string, Result*>::iterator itr = results.begin(); itr != results.end(); ++itr) {
+			Result* result = itr->second;
+			if(result->IsSuccess()) ++num_success; else ++num_failure;
+			s << "\nScenario: " << itr->first << "\n";
+			s << result->ToString() << "\n";
+			delete result;
+		}
+
+		// print statistics
+		printf("\nSuite ended.\n");
+		printf("%d succeeded. %d failed.\n", num_success, num_failure);
+
+		printf("\nResults:");
+		printf("%s", s.str().c_str());
+
+		printf("Total coverage:\n%s\n", coverage_.ToString().c_str());
+
+	} catch(std::exception* e) {
+		safe_assert(e != NULL && e->what() != NULL);
+		safe_fail("Unexpected std::exception: %s\n", e->what());
+
+	} catch(...) {
+		safe_fail("Unexpected non-std::exception!");
 	}
-
-	// print statistics
-	printf("\nSuite ended.\n");
-	printf("%d succeeded. %d failed.\n", num_success, num_failure);
-
-	printf("\nResults:");
-	printf("%s", s.str().c_str());
-
-	printf("Total coverage:\n%s\n", coverage_.ToString().c_str());
 }
 
 } // end namespace

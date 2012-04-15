@@ -496,10 +496,11 @@ void Scenario::RunTestCase() throw() {
 				reason == THREADS_ALLENDED) { // TODO(elmas): we can find without restarting which ones win here
 				// retry...
 			} else {
-				throw e;
+				break; // this is handled below (if(reason != SUCCESS) case)
 			}
 		} catch(...) {
 			fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
+			fflush(stderr);
 			_Exit(UNRECOVERABLE_ERROR);
 		}
 
@@ -507,7 +508,7 @@ void Scenario::RunTestCase() throw() {
 
 	} while(exec_tree_.EndWithSuccess(&reason));
 
-	VLOG(2) << "Handled current and all alternative paths, exiting RunTestCase...";
+	VLOG(2) << "Handled all paths or there is an exception, exiting RunTestCase...";
 
 	//====================================
 	// after trying all alternate paths

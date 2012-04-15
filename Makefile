@@ -12,6 +12,8 @@ FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions \
 		-w -Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
 		# -Wall -Winline 
 
+CC?=g++
+
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux
 
