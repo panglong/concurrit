@@ -43,7 +43,7 @@ int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on fi
 char* Config::SaveDotGraphToFile = NULL;
 long Config::MaxWaitTimeUSecs = 3 * USECSPERSEC;
 bool Config::IsStarNondeterministic = false;
-//bool Config::RunUncontrolled = false;
+bool Config::RunUncontrolled = false;
 
 /********************************************************************************/
 
@@ -91,9 +91,9 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
 			break;
-//		case 'u':
-//			Config::RunUncontrolled = true;
-//			break;
+		case 'u':
+			Config::RunUncontrolled = true;
+			break;
 		case 'w':
 			CHECK(optarg != NULL) << "Argument is missing, long value is required!";
 			Config::MaxWaitTimeUSecs = atol(optarg);

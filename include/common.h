@@ -285,7 +285,7 @@ public:
 	static bool DeleteCoveredSubtrees;
 	static char* SaveDotGraphToFile;
 	static long MaxWaitTimeUSecs;
-//	static bool RunUncontrolled;
+	static bool RunUncontrolled;
 	static bool IsStarNondeterministic;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);

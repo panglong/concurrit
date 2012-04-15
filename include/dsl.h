@@ -246,6 +246,7 @@ public:
 	}
 
 	void add_exception(std::exception* e, Coroutine* owner, const std::string& where) {
+		safe_assert(e != NULL);
 		exception_ = new ConcurritException(e, owner, where, exception_);
 	}
 
@@ -718,6 +719,7 @@ public:
 static inline bool IS_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
 inline bool IS_FULL(ExecutionTree* n) { return !IS_EMPTY(n) && !IS_LOCKNODE(n); }
 inline bool IS_LOCKNODE(ExecutionTree* n) { return ((n) == (&lock_node_)); }
+static inline bool IS_ENDNODE(ExecutionTree* n) { bool b = (INSTANCEOF(n, EndNode*)); safe_assert(!b || n == &end_node_); return b; }
 static inline bool IS_ENDNODE(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
 static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
 static inline bool IS_MULTITRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, MultiTransitionNode*)); }
@@ -745,7 +747,7 @@ static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n,
 	bool DoBacktrack(ChildLoc loc, BacktrackReason reason = SUCCESS);
 
 	bool EndWithSuccess(BacktrackReason* reason);
-	void EndWithException(Coroutine* current, std::exception* exception, const std::string& where = "<unknown>");
+	EndNode* EndWithException(Coroutine* current, std::exception* exception = NULL, const std::string& where = "<unknown>");
 	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where);
 
 	bool CheckCompletePath(ExecutionTreePath* path, ChildLoc first);
