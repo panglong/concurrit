@@ -750,7 +750,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 /*************************************************************************************/
 
 // (do not use AcquireRefEx here)
-EndNode* ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
+void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
 	VLOG(2) << "Inserting end node to indicate exception.";
 	EndNode* end_node = NULL;
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
@@ -779,7 +779,6 @@ EndNode* ExecutionTreeManager::EndWithException(Coroutine* current, std::excepti
 	// add my exception to the end node
 	end_node->add_exception(exception, current, where);
 	VLOG(2) << "Inserted end node to indicate exception.";
-	return end_node;
 }
 
 /*************************************************************************************/

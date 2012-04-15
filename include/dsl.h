@@ -747,7 +747,7 @@ static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n,
 	bool DoBacktrack(ChildLoc loc, BacktrackReason reason = SUCCESS);
 
 	bool EndWithSuccess(BacktrackReason* reason);
-	EndNode* EndWithException(Coroutine* current, std::exception* exception = NULL, const std::string& where = "<unknown>");
+	void EndWithException(Coroutine* current, std::exception* exception = NULL, const std::string& where = "<unknown>");
 	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where);
 
 	bool CheckCompletePath(ExecutionTreePath* path, ChildLoc first);
