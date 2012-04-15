@@ -38,7 +38,6 @@ namespace concurrit {
 // set to default values
 bool Config::OnlyShowHelp = false;
 bool Config::DeleteCoveredSubtrees = false;
-//bool Config::CanEnableDisablePinTool = true;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
 char* Config::SaveDotGraphToFile = NULL;
 long Config::MaxWaitTimeUSecs = 3 * USECSPERSEC;
@@ -65,7 +64,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "w:chf::d::")) != -1) {
+	while ((c = getopt(argc, argv, "uw:chf::d::")) != -1) {
 		switch(c) {
 		case 'c':
 			Config::DeleteCoveredSubtrees = true;
@@ -75,9 +74,6 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			Config::OnlyShowHelp = true;
 			usage();
 			break;
-//		case 'e':
-//			Config::CanEnableDisablePinTool = true;
-//			break;
 		case 'f':
 			Config::ExitOnFirstExecution = (optarg == NULL) ? 1 : atoi(optarg);
 			safe_assert(Config::ExitOnFirstExecution >= 1);
@@ -93,6 +89,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			break;
 		case 'u':
 			Config::RunUncontrolled = true;
+			printf("Will run the test in uncontrolled mode.\n");
 			break;
 		case 'w':
 			CHECK(optarg != NULL) << "Argument is missing, long value is required!";

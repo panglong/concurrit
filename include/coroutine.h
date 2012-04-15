@@ -54,7 +54,7 @@ typedef int StatusType;
 const int ABSENT = 0, PASSIVE = 1, ENABLED = 2, WAITING = 3/*for message*/, BLOCKED = 4, ENDED = 5, TERMINATED = 6;
 
 // for log messages
-#define CO_TITLE	"[[" << tid_ << "]] "
+#define CO_TITLE	"[" << tid_ << "] "
 
 // coroutine is simulated by a thread
 class Coroutine : public Thread

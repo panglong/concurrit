@@ -769,7 +769,6 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 	VLOG(2) << "Inserting end node to indicate exception.";
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = NULL;
-
 	try {
 		node = AcquireRef(EXIT_ON_LOCK);
 	} catch(...) {

@@ -15,7 +15,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		{
 			EXISTS(t, PTRUE, "t");
 
-			RUN_UNTIL(STEP(t), ENDS(), __, "step...");
+			RUN_UNTIL(STEP(t), READS(), __, "step...");
 		}
 	}
 

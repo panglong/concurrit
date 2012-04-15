@@ -272,7 +272,6 @@ struct main_args {
 class Config {
 public:
 	static bool OnlyShowHelp;
-//	static bool CanEnableDisablePinTool;
 	static int ExitOnFirstExecution;
 	static bool DeleteCoveredSubtrees;
 	static char* SaveDotGraphToFile;

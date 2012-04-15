@@ -250,6 +250,7 @@ void* Coroutine::Run() {
 					// other kinds of errors
 					VLOG(2) << CO_TITLE << " threw an exception...";
 					// record the exception in scenario
+					safe_assert(!INSTANCEOF(e, ConcurritException*));
 					exception_ = e;
 					if(ConcurritExecutionMode == COOPERATIVE) {
 						// send main exception message
@@ -433,8 +434,6 @@ void Coroutine::OnAccess(SharedAccess* access) {
 /********************************************************************************/
 
 void Coroutine::FinishControlledTransition() {
-	// remove all transition info records
-//	trinfolist_.clear();
 
 	// remove auxiliary state
 	AuxState::Reset(tid_);
