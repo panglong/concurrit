@@ -402,19 +402,19 @@ void Scenario::RunUncontrolled() {
 
 	PinMonitor::Disable();
 
-	Thread::Yield(true);
-
 	//---------------------------
+
+	Thread::Yield(true);
 
 	VLOG(2) << "Starting uncontrolled run";
 
 	// start waiting all to end
-	while(!JoinAllThreads(USECSPERSEC)) {
+	do {
 		if(exec_tree_.end_node()->exception()->get_non_backtrack() != NULL) {
 			VLOG(1) << "There is a non-backtrack exception, so exiting without waiting threads!";
 			break;
 		}
-	}
+	} while(!JoinAllThreads(Config::RunUncontrolled ? 0 : Config::MaxWaitTimeUSecs));
 
 	VLOG(2) << "Ending uncontrolled run";
 }
@@ -453,6 +453,8 @@ void Scenario::RunTestCase() throw() {
 
 	PinMonitor::Enable();
 
+	//---------------------------
+
 	BacktrackReason reason = SUCCESS;
 	BacktrackException* be = NULL;
 	do {
@@ -463,7 +465,10 @@ void Scenario::RunTestCase() throw() {
 
 			RunTestDriver();
 
-			TestCase();
+			// run test case when RunUncontrolled flag is not set
+			if(!Config::RunUncontrolled) {
+				TestCase();
+			}
 
 		} catch(std::exception* e) {
 			safe_assert(e != NULL);

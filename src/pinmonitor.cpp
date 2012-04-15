@@ -84,22 +84,18 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 /******************************************************************************************/
 
 void PinMonitor::Enable() {
-//	if(!Config::RunUncontrolled) {
-//		if(Config::CanEnableDisablePinTool) {
-			VLOG(2) << ">>> Enabling Pin instrumentation.";
-			EnablePinTool();
-//		}
+	if(!Config::RunUncontrolled) {
+		VLOG(2) << ">>> Enabling Pin instrumentation.";
+		EnablePinTool();
 		enabled_ = true;
-//	}
+	}
 }
 void PinMonitor::Disable() {
-//	if(!Config::RunUncontrolled) {
-//		if(Config::CanEnableDisablePinTool) {
-			VLOG(2) << ">>> Disabling Pin instrumentation.";
-			DisablePinTool();
-//		}
+	if(!Config::RunUncontrolled) {
+		VLOG(2) << ">>> Disabling Pin instrumentation.";
+		DisablePinTool();
 		enabled_ = false;
-//	}
+	}
 }
 
 /******************************************************************************************/
