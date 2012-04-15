@@ -344,7 +344,12 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 		if(IS_LOCKNODE(node)) {
 			// noop
 			if(lock_node_.owner() == Coroutine::Current()) {
-				safe_fail("Double-locking of atomic_ref!");
+				if(mode == EXIT_ON_LOCK) {
+					// calling thread has the lock, so safe to return
+					return node;
+				} else {
+					safe_fail("Double-locking of atomic_ref!");
+				}
 			}
 			Thread::Yield(true);
 		}
@@ -382,7 +387,6 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			//=========================================
 			// yield and wait
 			if(timeout_usec > 0) {
-//				VLOG(2) << "Timed wait in AcquireRef";
 				int result = sem_ref_.WaitTimed(timeout_usec);
 				if(result == ETIMEDOUT) {
 					// fire timeout (backtrack)
@@ -393,7 +397,6 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				}
 				safe_assert(result == PTH_SUCCESS);
 			} else {
-//				VLOG(2) << "Untimed wait in AcquireRef";
 				sem_ref_.Wait();
 			}
 			sem_ref_.Signal();
@@ -623,7 +626,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 				// this should not timeout
 				try {
 					VLOG(2) << "AcquireRefEx-2 in EndWithSuccess.";
-					ExecutionTree* node = AcquireRefEx(EXIT_ON_FULL);
+					ExecutionTree* node = AcquireRefEx(EXIT_ON_LOCK);
 					safe_assert(IS_FULL(node));
 				} catch(std::exception* e) {
 					BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
@@ -711,11 +714,13 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 	if(current_nodes_.empty()) {
 		if(end_node == NULL) {
 			// this means end_node has not been added to the path, so use static end_node
-			safe_assert(!IS_ENDNODE(current_node_.get()))
+			safe_assert(!IS_ENDNODE(current_node_.get()));
 			end_node = &end_node_;
 			// update current_node to get end_node when calling GetLastInPath
 			current_node_ = {end_node, 0};
 		}
+		safe_assert(IS_ENDNODE(GetLastInPath().parent()));
+		safe_assert(IS_ENDNODE(GetLastInPath().get()));
 		// notify threads about the end of the controlled run
 		ReleaseRef(end_node); // this does not add the node to the path, it is already added
 //		safe_assert(IS_ENDNODE(current_node_.get()));
@@ -752,43 +757,59 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 
 /*************************************************************************************/
 
-// (do not use AcquireRefEx here)
-void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
-	VLOG(2) << "Inserting end node to indicate exception.";
-	EndNode* end_node = NULL;
-	// wait until we lock the atomic_ref, but the old node can be null or any other node
-	ExecutionTree* node = AcquireRef(EXIT_ON_LOCK);
-	if(IS_ENDNODE(current_node_.parent())) {
-		safe_assert(IS_ENDNODE(node));
-		end_node = static_cast<EndNode*>(current_node_.parent());
 
-	} else if(IS_ENDNODE(node)) {
-		safe_assert(IS_ENDNODE(current_node_.get()));
-		safe_assert(current_node_.get() == node);
-		end_node = static_cast<EndNode*>(node);
-
-	} else {
-		ExecutionTree* last = GetLastInPath().get();
-		if(IS_ENDNODE(last)) {
-			end_node = static_cast<EndNode*>(last);
-		} else {
-			// locked, create a new end node and set it
-			end_node = &end_node_; // new EndNode();
-		}
-		// add to the path and set to ref
-		ReleaseRef(end_node, 0);
-	}
-	safe_assert(end_node == &end_node_);
-	// add my exception to the end node
-	end_node->add_exception(exception, current, where);
-	VLOG(2) << "Inserted end node to indicate exception.";
+void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where) {
+	EndWithException(current, GetBacktrackException(reason), where);
 }
 
 /*************************************************************************************/
 
+// (do not use AcquireRefEx here)
+void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
+	VLOG(2) << "Inserting end node to indicate exception.";
+	// wait until we lock the atomic_ref, but the old node can be null or any other node
+	ExecutionTree* node = NULL;
 
-void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where) {
-	EndWithException(current, GetBacktrackException(reason), where);
+	try {
+		node = AcquireRef(EXIT_ON_LOCK);
+	} catch(...) {
+		safe_fail("Unexpected exception (possibly due to TIMEOUT)!");
+	}
+
+//	if(IS_ENDNODE(current_node_.parent())) {
+//		safe_assert(IS_ENDNODE(node));
+//		end_node = static_cast<EndNode*>(current_node_.parent());
+//
+//	} else if(IS_ENDNODE(node)) {
+//		safe_assert(IS_ENDNODE(current_node_.get()));
+//		safe_assert(current_node_.get() == node);
+//		end_node = static_cast<EndNode*>(node);
+//	} else {
+//		ExecutionTree* last = GetLastInPath().get();
+//		if(IS_ENDNODE(last)) {
+//			end_node = static_cast<EndNode*>(last);
+//		} else {
+//			// locked, create a new end node and set it
+//			end_node = &end_node_; // new EndNode();
+//		}
+//		// add to the path and set to ref
+//		ReleaseRef(end_node, 0);
+//	}
+
+	// add my exception to the end node
+	// do it before releasing the node to atomic_ref
+	end_node_.add_exception(exception, current, where);
+
+	safe_assert(!IS_ENDNODE(node) || (current_node_.parent() == node));
+
+	if(!IS_ENDNODE(node)) {
+		safe_assert(current_node_.parent() != node);
+		safe_assert(current_node_.get() != node);
+		// add to the path and set to ref
+		ReleaseRef(&end_node_, 0);
+	}
+
+	VLOG(2) << "Inserted end node to indicate exception.";
 }
 
 

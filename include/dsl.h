@@ -719,8 +719,7 @@ public:
 static inline bool IS_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
 inline bool IS_FULL(ExecutionTree* n) { return !IS_EMPTY(n) && !IS_LOCKNODE(n); }
 inline bool IS_LOCKNODE(ExecutionTree* n) { return ((n) == (&lock_node_)); }
-static inline bool IS_ENDNODE(ExecutionTree* n) { bool b = (INSTANCEOF(n, EndNode*)); safe_assert(!b || n == &end_node_); return b; }
-static inline bool IS_ENDNODE(ExecutionTree* n) { return (INSTANCEOF(n, EndNode*)); }
+inline bool IS_ENDNODE(ExecutionTree* n) { bool b = (INSTANCEOF(n, EndNode*)); safe_assert(!b || (n == &end_node_)); return b; }
 static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
 static inline bool IS_MULTITRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, MultiTransitionNode*)); }
 static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectionNode*)); }
