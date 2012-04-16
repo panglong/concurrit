@@ -177,13 +177,16 @@ TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& 
 	return TPThreadVarsNotEqual::create(t1, t2);
 }
 
-//TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
-//	return (TID == t1) || (TID == t2);
-//}
-//
-//TransitionPredicatePtr operator ! (const ThreadVarPtr& t1) {
-//	return (TID != t1);
-//}
+TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
+	TransitionPredicatePtr p = (TID == t1);
+	TransitionPredicatePtr q = (TID == t2);
+	return (p || q);
+}
+
+TransitionPredicatePtr operator ! (const ThreadVarPtr& t1) {
+	TransitionPredicatePtr p = (TID != t1);
+	return p;
+}
 
 /********************************************************************************/
 

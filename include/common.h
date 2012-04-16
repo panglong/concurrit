@@ -179,6 +179,7 @@ namespace concurrit {
 
 #define UNRECOVERABLE_ERROR 5
 
+#include <execinfo.h>
 void print_stack_trace();
 
 #define safe_exit(c)	fprintf(stderr, "Terminating with exit-code: %s.\n", #c); exit(c)
@@ -188,7 +189,6 @@ void print_stack_trace();
 						_Exit(UNRECOVERABLE_ERROR); \
 
 #ifdef SAFE_ASSERT
-#include <execinfo.h>
 #define safe_notnull(o) 	(CHECK_NOTNULL(o))
 #define safe_assert(cond) 	if (!(cond))  { safe_fail("\nCounit: safe assert fail: safe_assert(%s):", #cond); }
 #else
