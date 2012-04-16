@@ -93,8 +93,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	// find the driver main function, try next first, and fail if not found
-	Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", false, true, true);
+	LoadTestLibrary();
 
 	//==========================================
 
@@ -140,6 +139,27 @@ void Concurrit::Destroy() {
 
 volatile bool Concurrit::IsInitialized() {
 	return initialized_;
+}
+
+/********************************************************************************/
+
+void Concurrit::LoadTestLibrary() {
+	void* handle = NULL;
+	if(Config::TestLibraryFile != NULL) {
+		handle = dlopen(Config::TestLibraryFile, RTLD_LAZY | RTLD_GLOBAL);
+		if(handle == NULL) {
+			safe_fail("Cannot load the test library %s!\n", Config::TestLibraryFile);
+		}
+		// find the driver main function, try next first, and fail if not found
+		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", handle, true);
+		safe_assert(Concurrit::driver_main_ != concurrit::__main__);
+		VLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
+	} else {
+		// find the driver main function, try next first, and fail if not found
+		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", false, true, true);
+		safe_assert(Concurrit::driver_main_ == concurrit::__main__);
+		VLOG(1) << "Not loading a test library";
+	}
 }
 
 /********************************************************************************/

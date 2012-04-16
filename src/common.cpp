@@ -123,6 +123,18 @@ void* FuncAddressByName(const char* name, bool default_first /*= true*/, bool tr
 	return addr;
 }
 
+void* FuncAddressByName(const char* name, void* handle, bool fail_on_null /*= false*/) {
+	void* addr = reinterpret_cast<void*>(dlsym(handle, name));
+	if(addr == NULL) {
+		if(fail_on_null) {
+			safe_fail("dlsym init of %s failed.\n", name);
+		} else {
+			fprintf(stderr, "dlsym init of %s failed.\n", name);
+		}
+	}
+	return addr;
+}
+
 /********************************************************************************/
 
 std::vector<std::string>* ReadLinesFromFile(const char* filename, std::vector<std::string>* lines /*= NULL*/, bool exit_on_fail /*= true*/, char comment /*= '#'*/) {

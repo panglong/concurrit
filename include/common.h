@@ -277,6 +277,7 @@ public:
 	static char* SaveDotGraphToFile;
 	static long MaxWaitTimeUSecs;
 	static bool RunUncontrolled;
+	static char* TestLibraryFile;
 	static bool IsStarNondeterministic;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);
@@ -292,6 +293,7 @@ public:
 	static void* CallDriverMain(void*);
 	static void SetupSignalHandler();
 	static void SignalHandler(int sig_num, siginfo_t * info, void * ucontext);
+	static void LoadTestLibrary();
 private:
 	static volatile bool initialized_;
 	DECL_STATIC_FIELD_REF(main_args, driver_args)
@@ -363,6 +365,7 @@ main_args ArgVectorToMainArgs(const std::vector<char*>& args);
 void short_sleep(long nanoseconds, bool continue_on_signal);
 
 void* FuncAddressByName(const char* name, bool default_first = true, bool try_other = false, bool fail_on_null = false);
+void* FuncAddressByName(const char* name, void* handle, bool fail_on_null = false);
 
 std::vector<std::string>* ReadLinesFromFile(const char* filename, std::vector<std::string>* lines = NULL, bool exit_on_fail = true, char comment = '#');
 

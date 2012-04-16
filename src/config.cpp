@@ -43,6 +43,7 @@ char* Config::SaveDotGraphToFile = NULL;
 long Config::MaxWaitTimeUSecs = 3 * USECSPERSEC;
 bool Config::IsStarNondeterministic = false;
 bool Config::RunUncontrolled = false;
+char* Config::TestLibraryFile = NULL;
 
 /********************************************************************************/
 
@@ -51,7 +52,9 @@ static void usage() {
 			"-e: Enable/Disable Pin instrumentation.(CanEnableDisablePinTool)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
-			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n");
+			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
+			"-l: Test program as shared (.so) library"
+			"-u: Run test program uncontrolled.");
 }
 
 bool Config::ParseCommandLine(const main_args& args) {
@@ -64,7 +67,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "uw:chf::d::")) != -1) {
+	while ((c = getopt(argc, argv, "l:uw:chf::d::")) != -1) {
 		switch(c) {
 		case 'c':
 			Config::DeleteCoveredSubtrees = true;
@@ -96,6 +99,13 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			Config::MaxWaitTimeUSecs = atol(optarg);
 			safe_assert(Config::MaxWaitTimeUSecs > 0);
 			printf("MaxWaitTimeUSecs is %l.\n", Config::MaxWaitTimeUSecs);
+			break;
+		case 'l':
+			if(optarg == NULL) {
+				safe_fail("Argument of -l option is missing, a library file is required!");
+			}
+			Config::TestLibraryFile = strdup(optarg);
+			printf("Will load the test program from the library %s.\n", Config::TestLibraryFile);
 			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");
