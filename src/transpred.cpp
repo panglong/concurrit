@@ -93,7 +93,7 @@ void AuxState::Init() {
 
 /*************************************************************************************/
 
-void AuxState::Reset(THREADID t = -1) {
+void AuxState::Reset(THREADID t /*= -1*/) {
 	Reads->reset(t);
 	Writes->reset(t);
 

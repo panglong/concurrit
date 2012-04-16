@@ -376,15 +376,21 @@ public:
 		if(!map_.find(acc, t)) {
 			return undef_value_;
 		}
-		return acc->second;
+		T value = acc->second;
+		safe_assert(value != undef_value_);
+		return value;
 	}
 
 	virtual void set(const T& value, THREADID t = -1) {
 		WLOCK();
 
 		typename M::accessor acc;
-		map_.insert(acc, t);
-		acc->second = value;
+		if(value == undef_value_) {
+			map_.erase(t);
+		} else {
+			map_.insert(acc, t);
+			acc->second = value;
+		}
 	}
 
 private:
@@ -519,6 +525,7 @@ public:
 	T get(const K& key, THREADID t = -1) {
 		RLOCK();
 
+		safe_assert(key != undef_key_);
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
 			return undef_value_;
@@ -541,7 +548,9 @@ public:
 			map_.insert(acc, t);
 			acc->second = MM();
 		}
-		if(value != undef_value_) {
+		if(value == undef_value_) {
+			acc->second.erase(key);
+		} else {
 			typename MM::accessor acc2;
 			acc->second.insert(acc2, key);
 			acc2->second = value;
@@ -551,6 +560,7 @@ public:
 	bool isset(const K& key, THREADID t = -1) {
 		RLOCK();
 
+		safe_assert(key != undef_key_);
 		typename M::const_accessor acc;
 		if(!map_.find(acc, t)) {
 			return false;
@@ -578,7 +588,6 @@ public:
 		if(map_.find(acc, t)) {
 			acc->second.clear();
 		}
-//		map_.erase(t);
 	}
 
 	void clear() {
