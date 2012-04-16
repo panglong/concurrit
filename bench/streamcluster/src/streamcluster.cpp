@@ -35,9 +35,11 @@ using namespace tbb;
 #include <hooks.h>
 #endif
 
+#include "dummy.h"
+
 #ifdef ERR1
-#define malloc thrilleMallocCPP
-void * thrilleMallocCPP(size_t);
+//#define malloc thrilleMallocCPP
+//void * thrilleMallocCPP(size_t);
 #endif
 
 using namespace std;
@@ -1687,6 +1689,8 @@ struct pkmedian_arg_t
   pthread_barrier_t* barrier;
 };
 
+extern "C" void* localSearchSub(void* arg_);
+
 void* localSearchSub(void* arg_) {
 
   pkmedian_arg_t* arg= (pkmedian_arg_t*)arg_;
@@ -1706,6 +1710,9 @@ void localSearch( Points* points, long kmin, long kmax, long* kfinal ) {
   localSearchSub(&arg);
 }
 #else //!TBB_VERSION
+
+
+extern "C" void localSearch( Points* points, long kmin, long kmax, long* kfinal );
 
 void localSearch( Points* points, long kmin, long kmax, long* kfinal ) {
     pthread_barrier_t barrier;

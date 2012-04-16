@@ -137,7 +137,7 @@ public:
 		}
 
 		if(message_ != NULL) {
-			VLOG(1) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
+			VLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
 		}
 	}
 
