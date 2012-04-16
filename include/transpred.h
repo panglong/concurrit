@@ -47,7 +47,7 @@ class Coroutine;
 
 class FuncVar {
 public:
-	FuncVar(void* addr)	: addr_(PTR2ADDRINT(addr)) {}
+	explicit FuncVar(void* addr) : addr_(PTR2ADDRINT(addr)) {}
 	~FuncVar() {}
 
 	operator ADDRINT() { return addr_; }
@@ -61,7 +61,7 @@ private:
 
 class ThreadVar {
 public:
-	ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
+	explicit ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
 	: name_(name), thread_(thread) {}
 	virtual ~ThreadVar() {}
 
@@ -80,7 +80,7 @@ private:
 // Thread variable that should not be deleted
 class StaticThreadVar : public ThreadVar {
 public:
-	StaticThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
+	explicit StaticThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
 	: ThreadVar(thread, name) {}
 	~StaticThreadVar() {
 		if(Concurrit::IsInitialized()) {
@@ -174,7 +174,7 @@ private:
 
 class NotTransitionPredicate : public TransitionPredicate {
 public:
-	NotTransitionPredicate(TransitionPredicatePtr pred) : TransitionPredicate(), pred_(pred) {}
+	explicit NotTransitionPredicate(TransitionPredicatePtr pred) : TransitionPredicate(), pred_(pred) {}
 	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(TransitionPredicatePtr(pred)) {}
 	~NotTransitionPredicate() {}
 	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPNOT(pred_->EvalPreState(t)); }
@@ -269,7 +269,7 @@ private:
 
 class TransitionConstraintAll : public TransitionPredicate {
 public:
-	TransitionConstraintAll(const TransitionPredicatePtr& pred)
+	explicit TransitionConstraintAll(const TransitionPredicatePtr& pred)
 	: TransitionPredicate(), pred_(pred) {}
 
 	~TransitionConstraintAll() {}
@@ -290,7 +290,7 @@ private:
 
 class TransitionConstraintFirst : public TransitionPredicate {
 public:
-	TransitionConstraintFirst(const TransitionPredicatePtr& pred)
+	explicit TransitionConstraintFirst(const TransitionPredicatePtr& pred)
 	: TransitionPredicate(), pred_(pred) {}
 
 	~TransitionConstraintFirst() {}
@@ -321,7 +321,7 @@ private:
 
 class AuxVar {
 public:
-	AuxVar(const std::string& name) : name_(name) {}
+	explicit AuxVar(const std::string& name) : name_(name) {}
 	virtual ~AuxVar(){
 		if(name_ != "const") {
 			fprintf(stderr, "Deleting non-constant auxiliary variable: %s!\n", name_.c_str());
@@ -347,7 +347,7 @@ class AuxVar0 : public AuxVar {
 	typedef tbb::concurrent_hash_map<THREADID, T> M;
 	typedef boost::shared_ptr<AuxVar0<T,undef_value_>> AuxVar0Ptr;
 public:
-	AuxVar0(const char* name = "") : AuxVar(name) {}
+	explicit AuxVar0(const char* name = "") : AuxVar(name) {}
 	virtual ~AuxVar0(){}
 
 	TransitionPredicatePtr TP0(const AuxVar0Ptr& var1, const ThreadVarPtr& tvar);
@@ -396,7 +396,7 @@ private:
 template<typename T, T undef_value_>
 class StaticAuxVar0 : public AuxVar0<T, undef_value_> {
 public:
-	StaticAuxVar0(const char* name = "") : AuxVar0<T, undef_value_>(name) {}
+	explicit StaticAuxVar0(const char* name = "") : AuxVar0<T, undef_value_>(name) {}
 	~StaticAuxVar0() {
 		if(Concurrit::IsInitialized()) {
 			safe_fail("StaticAuxVar0 %s should not be deleted while Concurrit is active!", AuxVar::name().c_str());
@@ -409,7 +409,7 @@ public:
 template<typename T, T undef_value_>
 class AuxConst0 : public AuxVar0<T, undef_value_> {
 public:
-	AuxConst0(const T& value = undef_value_) : AuxVar0<T,undef_value_>("const"), value_(value) {}
+	explicit AuxConst0(const T& value) : AuxVar0<T,undef_value_>("const"), value_(value) {}
 	~AuxConst0(){}
 
 	void reset(THREADID t = -1) {
@@ -505,7 +505,7 @@ protected:
 	typedef boost::shared_ptr<AuxValueConstType> AuxValueConstPtr;
 public:
 
-	AuxVar1(const char* name = "") : AuxVar(name) {}
+	explicit AuxVar1(const char* name = "") : AuxVar(name) {}
 	virtual ~AuxVar1(){}
 
 	TransitionPredicatePtr TP0(const AuxVarPtr& var, const ThreadVarPtr& tvar);
@@ -595,7 +595,7 @@ private:
 template<typename K, typename T, K undef_key_, T undef_value_>
 class StaticAuxVar1 : public AuxVar1<K, T, undef_key_, undef_value_> {
 public:
-	StaticAuxVar1(const char* name = "") : AuxVar1<K, T, undef_key_, undef_value_>(name) {}
+	explicit StaticAuxVar1(const char* name = "") : AuxVar1<K, T, undef_key_, undef_value_>(name) {}
 	~StaticAuxVar1() {
 		if(Concurrit::IsInitialized()) {
 			safe_fail("StaticAuxVar1 %s should not be deleted while Concurrit is active!", AuxVar::name().c_str());
@@ -688,73 +688,11 @@ private:
 	~AuxState(){}
 public:
 
-	static void Init() {
-		boost::shared_ptr<AuxVar0<bool, false>> _ends(new StaticAuxVar0<bool, false>("Ends"));
-		AuxState::Ends = _ends;
+	static void Init();
 
-		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _reads(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
-		AuxState::Reads = _reads;
+	static void Reset(THREADID t = -1);
 
-		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _writes(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
-		AuxState::Writes = _writes;
-
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
-		AuxState::CallsFrom = _callsfrom;
-
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
-		AuxState::CallsTo = _callsto;
-
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _enters(new StaticAuxVar1<ADDRINT, bool, -1, false>("Enters"));
-		AuxState::Enters = _enters;
-
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _returns(new StaticAuxVar1<ADDRINT, bool, -1, false>("Returns"));
-		AuxState::Returns = _returns;
-
-		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _infunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("InFunc"));
-		AuxState::InFunc = _infunc;
-
-		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _numinfunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("NumInFunc"));
-		AuxState::NumInFunc = _numinfunc;
-
-		boost::shared_ptr<AuxVar0<int, -1>> _pc(new StaticAuxVar0<int, -1>("Pc"));
-		AuxState::Pc = _pc;
-
-		ThreadVarPtr _tid(new StaticThreadVar(NULL, "TID"));
-		AuxState::Tid = _tid;
-	}
-
-	static void Reset(THREADID t = -1) {
-		Reads->reset(t);
-		Writes->reset(t);
-
-		CallsFrom->reset(t);
-		CallsTo->reset(t);
-
-		Enters->reset(t);
-		Returns->reset(t);
-
-		Pc->reset(t);
-	}
-
-	static void Clear() {
-		Ends->clear();
-
-		Reads->clear();
-		Writes->clear();
-
-		CallsFrom->clear();
-		CallsTo->clear();
-
-		Enters->clear();
-		Returns->clear();
-
-		Pc->clear();
-
-		InFunc->clear();
-		NumInFunc->clear();
-
-		Tid->clear_thread();
-	}
+	static void Clear();
 
 	// auxiliary variables
 	static boost::shared_ptr<AuxVar0<bool, false>> Ends;

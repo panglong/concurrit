@@ -56,6 +56,80 @@ ThreadVarPtr AuxState::Tid;
 
 /*************************************************************************************/
 
+void AuxState::Init() {
+	boost::shared_ptr<AuxVar0<bool, false>> _ends(new StaticAuxVar0<bool, false>("Ends"));
+	AuxState::Ends = _ends;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _reads(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
+	AuxState::Reads = _reads;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _writes(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
+	AuxState::Writes = _writes;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
+	AuxState::CallsFrom = _callsfrom;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
+	AuxState::CallsTo = _callsto;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _enters(new StaticAuxVar1<ADDRINT, bool, -1, false>("Enters"));
+	AuxState::Enters = _enters;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _returns(new StaticAuxVar1<ADDRINT, bool, -1, false>("Returns"));
+	AuxState::Returns = _returns;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _infunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("InFunc"));
+	AuxState::InFunc = _infunc;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _numinfunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("NumInFunc"));
+	AuxState::NumInFunc = _numinfunc;
+
+	boost::shared_ptr<AuxVar0<int, -1>> _pc(new StaticAuxVar0<int, -1>("Pc"));
+	AuxState::Pc = _pc;
+
+	ThreadVarPtr _tid(new StaticThreadVar(NULL, "TID"));
+	AuxState::Tid = _tid;
+}
+
+/*************************************************************************************/
+
+void AuxState::Reset(THREADID t = -1) {
+	Reads->reset(t);
+	Writes->reset(t);
+
+	CallsFrom->reset(t);
+	CallsTo->reset(t);
+
+	Enters->reset(t);
+	Returns->reset(t);
+
+	Pc->reset(t);
+}
+
+/*************************************************************************************/
+
+void AuxState::Clear() {
+	Ends->clear();
+
+	Reads->clear();
+	Writes->clear();
+
+	CallsFrom->clear();
+	CallsTo->clear();
+
+	Enters->clear();
+	Returns->clear();
+
+	Pc->clear();
+
+	InFunc->clear();
+	NumInFunc->clear();
+
+	Tid->clear_thread();
+}
+
+/*************************************************************************************/
+
 // extern'ed variables
 static TransitionPredicatePtr __true_transition_predicate__(new TrueTransitionPredicate());
 static TransitionPredicatePtr __false_transition_predicate__(new FalseTransitionPredicate());
