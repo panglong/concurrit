@@ -394,6 +394,19 @@ private:
 /********************************************************************************/
 
 template<typename T, T undef_value_>
+class StaticAuxVar0 : public AuxVar0<T, undef_value_> {
+public:
+	StaticAuxVar0(const char* name = "") : AuxVar0<T, undef_value_>(name) {}
+	~StaticAuxVar0() {
+		if(Concurrit::IsInitialized()) {
+			safe_fail("StaticAuxVar0 %s should not be deleted while Concurrit is active!", AuxVar::name().c_str());
+		}
+	}
+};
+
+/********************************************************************************/
+
+template<typename T, T undef_value_>
 class AuxConst0 : public AuxVar0<T, undef_value_> {
 public:
 	AuxConst0(const T& value = undef_value_) : AuxVar0<T,undef_value_>("const"), value_(value) {}
@@ -493,7 +506,7 @@ protected:
 public:
 
 	AuxVar1(const char* name = "") : AuxVar(name) {}
-	~AuxVar1(){}
+	virtual ~AuxVar1(){}
 
 	TransitionPredicatePtr TP0(const AuxVarPtr& var, const ThreadVarPtr& tvar);
 	TransitionPredicatePtr TP1(const AuxVarPtr& var, const K& key, const ThreadVarPtr& tvar);
@@ -575,6 +588,19 @@ public:
 	}
 private:
 	DECL_FIELD(M, map)
+};
+
+/********************************************************************************/
+
+template<typename K, typename T, K undef_key_, T undef_value_>
+class StaticAuxVar1 : public AuxVar1<K, T, undef_key_, undef_value_> {
+public:
+	StaticAuxVar1(const char* name = "") : AuxVar1<K, T, undef_key_, undef_value_>(name) {}
+	~StaticAuxVar1() {
+		if(Concurrit::IsInitialized()) {
+			safe_fail("StaticAuxVar1 %s should not be deleted while Concurrit is active!", AuxVar::name().c_str());
+		}
+	}
 };
 
 /********************************************************************************/
@@ -663,34 +689,34 @@ private:
 public:
 
 	static void Init() {
-		boost::shared_ptr<AuxVar0<bool, false>> _ends(new AuxVar0<bool, false>("Ends"));
+		boost::shared_ptr<AuxVar0<bool, false>> _ends(new StaticAuxVar0<bool, false>("Ends"));
 		AuxState::Ends = _ends;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _reads(new AuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
+		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _reads(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
 		AuxState::Reads = _reads;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _writes(new AuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
+		boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _writes(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
 		AuxState::Writes = _writes;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new AuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
 		AuxState::CallsFrom = _callsfrom;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new AuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
 		AuxState::CallsTo = _callsto;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _enters(new AuxVar1<ADDRINT, bool, -1, false>("Enters"));
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _enters(new StaticAuxVar1<ADDRINT, bool, -1, false>("Enters"));
 		AuxState::Enters = _enters;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _returns(new AuxVar1<ADDRINT, bool, -1, false>("Returns"));
+		boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _returns(new StaticAuxVar1<ADDRINT, bool, -1, false>("Returns"));
 		AuxState::Returns = _returns;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _infunc(new AuxVar1<ADDRINT, int, -1, 0>("InFunc"));
+		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _infunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("InFunc"));
 		AuxState::InFunc = _infunc;
 
-		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _numinfunc(new AuxVar1<ADDRINT, int, -1, 0>("NumInFunc"));
+		boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _numinfunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("NumInFunc"));
 		AuxState::NumInFunc = _numinfunc;
 
-		boost::shared_ptr<AuxVar0<int, -1>> _pc(new AuxVar0<int, -1>("Pc"));
+		boost::shared_ptr<AuxVar0<int, -1>> _pc(new StaticAuxVar0<int, -1>("Pc"));
 		AuxState::Pc = _pc;
 
 		ThreadVarPtr _tid(new StaticThreadVar(NULL, "TID"));
