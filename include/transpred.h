@@ -448,7 +448,9 @@ private:
 
 template<typename T, T undef_value_>
 class AuxVar0Pre : public PreStateTransitionPredicate {
-	typedef boost::shared_ptr<AuxVar0<T,undef_value_>> AuxVar0Ptr;
+	typedef AuxVar0<T,undef_value_> AuxVar0Type;
+	typedef boost::shared_ptr<AuxVar0Type> AuxVar0Ptr;
+	typedef StaticAuxVar0<T,undef_value_> StaticAuxVar0Type;
 public:
 	AuxVar0Pre(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar) : PreStateTransitionPredicate(), var1_(var1), var2_(var2), tvar_(tvar) {}
 	~AuxVar0Pre(){}
@@ -464,10 +466,23 @@ public:
 		THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
 
 		safe_assert(var1_ != NULL);
+		safe_assert(INSTANCEOF(var1_.get(), StaticAuxVar0Type*));
 		if(var2_ == NULL) {
 			return var1_->isset(tid);
+		} else
+		if(!var2_->isset(tid)) {
+			// if var1 is set for tid, assign this value to var2
+			if(var1_->isset(tid)) {
+				var2_->set(var1_->get(tid), tid);
+				return true;
+			} else {
+				return false;
+			}
 		}
-		return var1_->get(tid) == var2_->get(tid);
+		if(var1_->isset(tid)) {
+			return var1_->get(tid) == var2_->get(tid);
+		}
+		return false;
 	}
 
 private:
@@ -521,6 +536,40 @@ public:
 	TransitionPredicatePtr TP4(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar);
 
 	//================================================
+
+	// get first key
+	K get_first_key(THREADID t = -1) {
+		RLOCK();
+
+		typename M::const_accessor acc;
+		if(map_.find(acc, t)) {
+			if(acc->second.empty()) {
+				return undef_key_;
+			}
+			K key = acc->second.begin()->first;
+			safe_assert(key != undef_key_);
+			return key;
+		}
+		unreachable(); // call isset(t) first!
+		return undef_key_;
+	}
+
+	// get first value
+	T get_first_value(THREADID t = -1) {
+		RLOCK();
+
+		typename M::const_accessor acc;
+		if(map_.find(acc, t)) {
+			if(acc->second.empty()) {
+				return undef_key_;
+			}
+			T value = acc->second.begin()->second;
+			safe_assert(value != undef_value_);
+			return value;
+		}
+		unreachable(); // call isset(t) first!
+		return undef_value_;
+	}
 
 	T get(const K& key, THREADID t = -1) {
 		RLOCK();
@@ -617,6 +666,7 @@ public:
 template<typename K, typename T,  K undef_key_, T undef_value_>
 class AuxVar1Pre : public PreStateTransitionPredicate {
 	typedef AuxVar1<K,T,undef_key_,undef_value_> AuxVarType;
+	typedef StaticAuxVar1<K,T,undef_key_,undef_value_> StaticAuxVarType;
 	typedef boost::shared_ptr<AuxVarType> AuxVarPtr;
 	typedef AuxVar0<K,undef_key_> AuxKeyType;
 	typedef boost::shared_ptr<AuxKeyType> AuxKeyPtr;
@@ -642,13 +692,39 @@ public:
 		THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
 
 		safe_assert(var_ != NULL);
+		safe_assert(INSTANCEOF(var_.get(), StaticAuxVarType*));
 		if(key_ == NULL) {
 			safe_assert(value_ == NULL);
 			return var_->isset(tid);
 		} else if(value_ == NULL) {
+			if(!key_->isset(tid)) {
+				// if var is set for tid, assign this value to key
+				if(var_->isset(tid)) {
+					// set first key
+					key_->set(var_->get_first_key(tid), tid);
+					return true;
+				} else {
+					return false;
+				}
+			}
 			return var_->isset(key_->get(tid), tid);
 		} else {
-			return var_->get(key_->get(tid), tid) == value_->get(tid);
+			safe_assert(key_->isset(tid));
+			if(!value_->isset(tid)) {
+				// if var is set for tid, assign this value to value
+				if(var_->isset(key_->get(tid), tid)) {
+					// set first value
+					value_->set(var_->get(key_->get(tid), tid), tid);
+					return true;
+				} else {
+					return false;
+				}
+			}
+			if(var_->isset(key_->get(tid), tid)) {
+				return var_->get(key_->get(tid), tid) == value_->get(tid);
+			} else {
+				return false;
+			}
 		}
 	}
 

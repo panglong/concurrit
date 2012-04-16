@@ -276,8 +276,7 @@ static char helpText[] =
 #endif
 ;
 
-static
-int main( int argc, char *argv[] )
+int main0( int argc, char *argv[] )
 {
   int hyperthreading = -1;
   unsigned int threadsCount = 0;

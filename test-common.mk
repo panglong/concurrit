@@ -3,7 +3,7 @@ include $(CONCURRIT_HOME)/common.mk
 # variables to set: TARGET, SRCS, optional: HEADERS
 # others set when running pin: BENCH, BENCHDIR
 
-CC?=gcc
+CC=gcc
 
 TEST_FLAGS=$(CONCURRIT_TEST_INC_FLAGS) $(CONCURRIT_TEST_LIB_FLAGS) -I. -Isrc -L. -Llib -g -gdwarf-2 -O1 -w -fPIC -fexceptions $(CONCURRIT_C_STD)
 
