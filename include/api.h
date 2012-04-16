@@ -321,8 +321,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 /********************************************************************************/
 
 #define IN_FUNC(f)		TPInFunc::create(f, TID)
-#define TIMES_IN_FUNC(f, k) \
-						safe_notnull(AuxState::NumInFunc.get())->TP3(AuxState::NumInFunc, f, k, TID)
+#define TIMES_IN_FUNC(f, k)	safe_notnull(AuxState::NumInFunc.get())->TP3(AuxState::NumInFunc, f, k, TID)
 
 /********************************************************************************/
 

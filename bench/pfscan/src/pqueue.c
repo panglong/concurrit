@@ -81,9 +81,7 @@ pqueue_put(PQUEUE *qp,
     return 1;
 }
 
-#define ERR1
 #include "dummy.h"
-
 
 int
 pqueue_get(PQUEUE *qp,
@@ -102,7 +100,7 @@ pqueue_get(PQUEUE *qp,
 #ifdef ERR1
         pthread_mutex_unlock(&qp->mtx);
 
-        AtPc(42);
+        AtPc(42); AtPc(43);
 
         pthread_mutex_lock(&qp->mtx);
 //        thrilleAssertC(qp->occupied > 0);

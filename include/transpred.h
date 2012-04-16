@@ -334,7 +334,7 @@ public:
 
 private:
 	DECL_FIELD(std::string, name)
-	DECL_FIELD(RWLock, rwlock)
+	DECL_FIELD_REF(RWLock, rwlock)
 };
 
 #define RLOCK() ScopeRLock __sm__(&rwlock_)
@@ -467,22 +467,26 @@ public:
 
 		safe_assert(var1_ != NULL);
 		safe_assert(INSTANCEOF(var1_.get(), StaticAuxVar0Type*));
-		if(var2_ == NULL) {
-			return var1_->isset(tid);
-		} else
-		if(!var2_->isset(tid)) {
-			// if var1 is set for tid, assign this value to var2
-			if(var1_->isset(tid)) {
-				var2_->set(var1_->get(tid), tid);
-				return true;
-			} else {
-				return false;
+
+		{ ScopeRLock lock_var1(var1_->rwlock());
+
+			if(var2_ == NULL) {
+				return var1_->isset(tid);
+			} else
+			if(!var2_->isset(tid)) {
+				// if var1 is set for tid, assign this value to var2
+				if(var1_->isset(tid)) {
+					var2_->set(var1_->get(tid), tid);
+					return true;
+				} else {
+					return false;
+				}
 			}
+			if(var1_->isset(tid)) {
+				return var1_->get(tid) == var2_->get(tid);
+			}
+			return false;
 		}
-		if(var1_->isset(tid)) {
-			return var1_->get(tid) == var2_->get(tid);
-		}
-		return false;
 	}
 
 private:
@@ -615,9 +619,9 @@ public:
 			return false;
 		}
 		typename MM::const_accessor acc2;
-		bool _isset = acc->second.find(acc2, key);
-		safe_assert(acc2->second != undef_value_);
-		return _isset;
+		bool ret = acc->second.find(acc2, key);
+		safe_assert(!ret || (acc2->second != undef_value_));
+		return ret;
 	}
 
 	bool isset(THREADID t = -1) {
@@ -693,37 +697,41 @@ public:
 
 		safe_assert(var_ != NULL);
 		safe_assert(INSTANCEOF(var_.get(), StaticAuxVarType*));
-		if(key_ == NULL) {
-			safe_assert(value_ == NULL);
-			return var_->isset(tid);
-		} else if(value_ == NULL) {
-			if(!key_->isset(tid)) {
-				// if var is set for tid, assign this value to key
-				if(var_->isset(tid)) {
-					// set first key
-					key_->set(var_->get_first_key(tid), tid);
-					return true;
-				} else {
-					return false;
+
+		{ ScopeRLock lock_var(var_->rwlock());
+
+			if(key_ == NULL) {
+				safe_assert(value_ == NULL);
+				return var_->isset(tid);
+			} else if(value_ == NULL) {
+				if(!key_->isset(tid)) {
+					// if var is set for tid, assign this value to key
+					if(var_->isset(tid)) {
+						// set first key
+						key_->set(var_->get_first_key(tid), tid);
+						return true;
+					} else {
+						return false;
+					}
 				}
-			}
-			return var_->isset(key_->get(tid), tid);
-		} else {
-			safe_assert(key_->isset(tid));
-			if(!value_->isset(tid)) {
-				// if var is set for tid, assign this value to value
-				if(var_->isset(key_->get(tid), tid)) {
-					// set first value
-					value_->set(var_->get(key_->get(tid), tid), tid);
-					return true;
-				} else {
-					return false;
-				}
-			}
-			if(var_->isset(key_->get(tid), tid)) {
-				return var_->get(key_->get(tid), tid) == value_->get(tid);
+				return var_->isset(key_->get(tid), tid);
 			} else {
-				return false;
+				safe_assert(key_->isset(tid));
+				if(!value_->isset(tid)) {
+					// if var is set for tid, assign this value to value
+					if(var_->isset(key_->get(tid), tid)) {
+						// set first value
+						value_->set(var_->get(key_->get(tid), tid), tid);
+						return true;
+					} else {
+						return false;
+					}
+				}
+				if(var_->isset(key_->get(tid), tid)) {
+					return var_->get(key_->get(tid), tid) == value_->get(tid);
+				} else {
+					return false;
+				}
 			}
 		}
 	}
