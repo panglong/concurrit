@@ -270,6 +270,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 		int main(int argc, char ** argv) { \
 			static ConcurritInitializer __concurrit__initializer__(argc, argv); \
 			__concurrit_suite__.RunAll(); \
+			safe_exit(EXIT_SUCCESS); \
 			return EXIT_SUCCESS; \
 		} \
 
