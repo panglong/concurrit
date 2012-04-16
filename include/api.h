@@ -372,6 +372,8 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 #define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, TID)
 
+#define AT_PC2(pc, t)		safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, t)
+
 /********************************************************************************/
 
 // allow to add command line arguments

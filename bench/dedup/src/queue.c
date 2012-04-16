@@ -60,7 +60,7 @@ int dequeue(struct queue * que, int * fetch_count, void ** to_buf) {
 
 #endif
 
-      AtPc(42);
+      AtPc(42); AtPc(43);
 
       pthread_mutex_lock(&que->mutex);
 #endif
