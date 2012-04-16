@@ -106,10 +106,16 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 
 Coroutine* Scenario::RunTestDriver() {
 	// create a new thread to run the test driver
-	VLOG(2) << "Calling driver's main function.";
-	Coroutine* co = CreateThread(Concurrit::CallDriverMain, NULL);
-	safe_assert(co != NULL);
-	return co;
+	MainFuncType main_func = Concurrit::driver_main();
+	safe_assert(main_func != NULL);
+	if(main_func != concurrit::__main__) {
+		VLOG(2) << "Calling driver's main function.";
+		Coroutine* co = CreateThread(Concurrit::CallDriverMain, NULL);
+		safe_assert(co != NULL);
+		return co;
+	}
+	VLOG(2) << "No test-supplied __main__function, skipping the driver thread.";
+	return NULL;
 }
 
 /********************************************************************************/
@@ -340,13 +346,10 @@ Result* Scenario::Explore() {
 				break;
 			}
 			catch(std::exception* e) {
-				fprintf(stderr, "Exceptions other than ConcurritException are not expected!!!\n");
-				fprintf(stderr, "Exception caught: %s", e->what());
-				_Exit(UNRECOVERABLE_ERROR);
+				safe_fail("Exceptions other than ConcurritException are not expected: %s!!!\n", safe_notnull(e->what()));
 			}
 			catch(...) {
-				fprintf(stderr, "Exceptions other than std::exception are not expected!!!\n");
-				_Exit(UNRECOVERABLE_ERROR);
+				safe_fail("Exceptions other than std::exception are not expected!!!\n");
 			}
 
 		} // end for
@@ -429,8 +432,7 @@ void Scenario::RunSetUp() throw() {
 	try {
 		SetUp();
 	} catch(...) {
-		fprintf(stderr, "Exceptions in SetUp are not allowed!!!\n");
-		_Exit(UNRECOVERABLE_ERROR);
+		safe_fail("Exceptions in SetUp are not allowed!!!\n");
 	}
 }
 
@@ -441,8 +443,7 @@ void Scenario::RunTearDown() throw() {
 	try {
 		TearDown();
 	} catch(...) {
-		fprintf(stderr, "Exceptions in TearDown are not allowed!!!\n");
-		_Exit(UNRECOVERABLE_ERROR);
+		safe_fail("Exceptions in TearDown are not allowed!!!\n");
 	}
 }
 
@@ -499,9 +500,7 @@ void Scenario::RunTestCase() throw() {
 				break; // this is handled below (if(reason != SUCCESS) case)
 			}
 		} catch(...) {
-			fprintf(stderr, "Exceptions other than std::exception in TestCase are not allowed!!!\n");
-			fflush(stderr);
-			_Exit(UNRECOVERABLE_ERROR);
+			safe_fail("Exceptions other than std::exception in TestCase are not allowed!!!\n");
 		}
 
 		VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);

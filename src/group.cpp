@@ -73,15 +73,15 @@ CoroutineGroup:: CoroutineGroup() {
 
 void CoroutineGroup::AddMember(Coroutine* member) {
 	// check if not our member
-	CHECK(!HasMember(member));
 	safe_assert(!member->IsMain()); // cannot add main in here
+	CHECK(!HasMember(member));
 
 	// set thread id if not set yet
 	THREADID tid = member->tid();
 	if(tid < 0) {
 		tid = next_tid_;
 		member->set_tid(tid);
-	}
+	} // otherwise, we keep the tid of the thread unchanged
 	next_tid_ = tid + 1;
 
 	// once determined the tid, then insert it as new member
@@ -92,6 +92,8 @@ void CoroutineGroup::AddMember(Coroutine* member) {
 	safe_assert(next_idx_ == member_tidseq_.size());
 	member_tidseq_.push_back(tid);
 	++next_idx_;
+
+	VLOG(2) << "Added new member to group. Tid: " << tid << " next_idx_: " << next_idx_;
 }
 
 /********************************************************************************/

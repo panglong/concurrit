@@ -76,12 +76,10 @@ void short_sleep(long nanoseconds, bool continue_on_signal) {
 	do {
 		rval = nanosleep(&tv, &tv);
 		if(rval == EINVAL) {
-			fprintf(stderr, "Invalid time value: %lu\n", nanoseconds);
-			_Exit(UNRECOVERABLE_ERROR);
+			safe_fail("Invalid time value: %lu\n", nanoseconds);
 		}
 		if(rval == EFAULT) {
-			fprintf(stderr, "Problem with copying from user space: %lu\n", nanoseconds);
-			_Exit(UNRECOVERABLE_ERROR);
+			safe_fail("Problem with copying from user space: %lu\n", nanoseconds);
 		}
 		safe_assert (rval == 0 || rval == EINTR);
 
@@ -119,9 +117,7 @@ void* FuncAddressByName(const char* name, bool default_first /*= true*/, bool tr
 		}
 	}
 	if(addr == NULL && fail_on_null) {
-		fprintf(stderr, "%s could not been found!\n", name);
-		fflush(stderr);
-		_Exit(UNRECOVERABLE_ERROR);
+		safe_fail("%s could not been found!\n", name);
 	}
 
 	return addr;
@@ -164,9 +160,7 @@ std::vector<std::string>* ReadLinesFromFile(const char* filename, std::vector<st
 FILE* my_fopen(const char * filename, const char * mode, bool exit_on_fail /*= true*/) {
 	FILE* file = fopen(filename, mode);
 	if(file == NULL && exit_on_fail) {
-		fprintf(stderr, "File could not be opened: %s\n", filename);
-		fflush(stderr);
-		_Exit(UNRECOVERABLE_ERROR);
+		safe_fail("File could not be opened: %s\n", filename);
 	}
 	return file;
 }
@@ -175,9 +169,7 @@ FILE* my_fopen(const char * filename, const char * mode, bool exit_on_fail /*= t
 
 void my_fclose(FILE* file, bool exit_on_fail /*= true*/) {
 	if(fclose(file) && exit_on_fail) {
-		fprintf(stderr, "File could not be closed\n");
-		fflush(stderr);
-		_Exit(UNRECOVERABLE_ERROR);
+		safe_fail("File could not be closed\n");
 	}
 }
 

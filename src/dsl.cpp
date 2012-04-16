@@ -500,7 +500,7 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTree
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= SUCCESS*/) {
+bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= SUCCESS*/) throw() {
 	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
 
 	ExecutionTreePath path;
@@ -597,7 +597,7 @@ bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc f
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
+bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	VLOG(2) << "Ending with success " << reason;
 	// wait until the last node is consumed (or an end node is inserted)
 	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
@@ -758,14 +758,14 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) {
 /*************************************************************************************/
 
 
-void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where) {
+void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where) throw() {
 	EndWithException(current, GetBacktrackException(reason), where);
 }
 
 /*************************************************************************************/
 
 // (do not use AcquireRefEx here)
-void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) {
+void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) throw() {
 	VLOG(2) << "Inserting end node to indicate exception.";
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = NULL;

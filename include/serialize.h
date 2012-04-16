@@ -93,7 +93,7 @@ public:
 			if(feof(file_)) {
 				throw new EOFException();
 			} else {
-				_Exit(UNRECOVERABLE_ERROR);
+				unreachable();
 			}
 		}
 		return x;

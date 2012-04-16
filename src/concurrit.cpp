@@ -76,7 +76,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	Config::ParseCommandLine(m.argc_, m.argv_);
 	if(Config::OnlyShowHelp) {
-		_Exit(EXIT_SUCCESS);
+		safe_exit(EXIT_SUCCESS);
 	}
 
 	// 2
@@ -165,13 +165,20 @@ int __main__(int argc, char* argv[]) {
 // default, empty implementation of test driver
 int __main__ (int, char**) {
 	VLOG(2) << "Running default test-driver main function.";
+	safe_fail("Default __main__ implementation should not be called!");
 }
 
 void* Concurrit::CallDriverMain(void*) {
 	MainFuncType main_func = Concurrit::driver_main();
 	safe_assert(main_func != NULL);
+	if(main_func == concurrit::__main__) {
+		safe_fail("Default __main__ implementation should not be called!");
+	}
+
 	// call the driver
+	safe_assert(driver_args_.check());
 	main_func(driver_args_.argc_, driver_args_.argv_);
+
 }
 
 /********************************************************************************/
@@ -185,10 +192,8 @@ void Concurrit::SetupSignalHandler() {
 	sigemptyset (&sigact.sa_mask);
 
 	if (sigaction(SIGSEGV, &sigact, (struct sigaction *)NULL) != 0) {
-		fprintf(stderr, "error setting signal handler for %d (%s)\n",
+		safe_fail("error setting signal handler for %d (%s)\n",
 				SIGSEGV, strsignal(SIGSEGV));
-		fflush(stderr);
-		_Exit(UNRECOVERABLE_ERROR);
 	}
 
 //	if (sigaction(SIGINT, &sigact, (struct sigaction *)NULL) != 0) {
@@ -203,9 +208,7 @@ void Concurrit::SignalHandler(int sig_num, siginfo_t * info, void * ucontext) {
 	fprintf(stderr, "Got signal %d: %s!\n", sig_num, strsignal(sig_num));
 	switch(sig_num) {
 	case SIGSEGV:
-		print_stack_trace();
-		fflush(stderr);
-		raise(sig_num);
+		safe_fail("Segmentation fault!");
 		break;
 //	case SIGINT:
 //		Scenario* scenario = Scenario::Current();

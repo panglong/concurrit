@@ -181,6 +181,7 @@ namespace concurrit {
 
 void print_stack_trace();
 
+#define safe_exit(c)	exit(c)
 #define safe_fail(...) 	fprintf(stderr, __VA_ARGS__); fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
 						concurrit::print_stack_trace(); \
 						fflush(stderr); \
@@ -262,6 +263,9 @@ struct main_args {
 		}
 		s << "]";
 		return s.str();
+	}
+	bool check() {
+		return (argc_ == 0 && argv_ == NULL) || (argc_ > 0 && argv_ != NULL);
 	}
 };
 

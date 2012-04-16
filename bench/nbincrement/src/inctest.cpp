@@ -47,16 +47,11 @@ CONCURRIT_BEGIN_TEST(INCScenario, "NB-Increment scenario")
 		}
 
 
-		while(STAR)
+		WHILE_DTSTAR
 		{
-//				EXISTS(t);
-//				DSLTransition(TransitionPredicate::True(), t);
 
-//			DSLTransition(TransitionPredicate::True());
-
-			EXISTS(t);
-			DSLTransferUntil(t, ENDS());
-//			DSLTransferUntil(t, TransitionPredicate::True());
+			EXISTS(t, PTRUE, "t");
+			RUN_UNTIL(STEP(t), ENDS(), __, "Run until");
 		}
 	}
 

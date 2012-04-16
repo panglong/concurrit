@@ -84,9 +84,7 @@ public:
 	: ThreadVar(thread, name) {}
 	~StaticThreadVar() {
 		if(Concurrit::IsInitialized()) {
-			fprintf(stderr, "StaticThreadVar %s should not be deleted while Concurrit is active!", name_.c_str());
-			fflush(stderr);
-			_Exit(UNRECOVERABLE_ERROR);
+			safe_fail("StaticThreadVar %s should not be deleted while Concurrit is active!", name_.c_str());
 		}
 	}
 };
