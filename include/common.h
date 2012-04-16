@@ -181,7 +181,7 @@ namespace concurrit {
 
 void print_stack_trace();
 
-#define safe_exit(c)	exit(c)
+#define safe_exit(c)	fprintf(stderr, "Terminating with exit-code: %s.\n", #c); exit(c)
 #define safe_fail(...) 	fprintf(stderr, __VA_ARGS__); fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
 						concurrit::print_stack_trace(); \
 						fflush(stderr); \
@@ -198,13 +198,9 @@ void print_stack_trace();
 
 #define safe_delete(o) 		delete (safe_notnull(o))
 
-#define unimplemented() \
-		VLOG(2) << "Executing unimplemented code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
-		safe_fail("Unimplemented operation!"); \
+#define unimplemented() safe_fail("Executing unimplemented code in function: %s, file %s!\n", __PRETTY_FUNCTION__, __FILE__);
 
-#define unreachable() \
-		VLOG(2) << "Executing unreachable code in function: " << __PRETTY_FUNCTION__ << " file: " << __FILE__; \
-		safe_fail("Unreachable code!"); \
+#define unreachable() 	safe_fail("Executing unreachable code in function: %s, file %s!\n", __PRETTY_FUNCTION__, __FILE__);
 
 /********************************************************************************/
 // #define NOTNULL(ptr)	(ptr)
