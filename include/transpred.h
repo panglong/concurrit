@@ -70,6 +70,10 @@ public:
 
 	static TransitionPredicatePtr True();
 	static TransitionPredicatePtr False();
+
+	virtual std::string ToString() {
+		return ""; // TODO(elmas): implement
+	}
 };
 
 TransitionPredicatePtr operator ! (const TransitionPredicatePtr& pred);

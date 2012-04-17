@@ -154,7 +154,6 @@ public:
 		message_ = message;
 	}
 
-
 private:
 	DECL_FIELD(TransitionPredicatePtr, assertion)
 	DECL_FIELD(TransitionPredicatePtr, pred)

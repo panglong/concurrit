@@ -1456,6 +1456,17 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 				// this is the selected thread
 				// evaluate transition predicate
 
+				// first check the assertion
+				TransitionPredicatePtr assertion = truntil->assertion();
+				if(assertion != NULL && assertion != TransitionPredicate::True()) {
+					// do check assertion
+					tval = assertion->EvalPreState(current);
+					if(tval == TPFALSE) {
+						// trigger assertion violation
+						TRIGGER_ASSERTION_VIOLATION(assertion->ToString().c_str(), "", "", 0);
+					}
+				}
+
 				tval = constraints != NULL ? constraints->EvalPreState(current) : TPTRUE;
 				if(tval != TPFALSE) {
 
@@ -1526,6 +1537,16 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 //	} else { //=============================================================
 		TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
 		if(truntil != NULL) {
+
+			// first check the assertion
+			TransitionPredicatePtr assertion = truntil->assertion();
+			if(assertion != NULL && assertion != TransitionPredicate::True()) {
+				// do check assertion
+				if(!assertion->EvalPostState(current)) {
+					// trigger assertion violation
+					TRIGGER_ASSERTION_VIOLATION(assertion->ToString().c_str(), "", "", 0);
+				}
+			}
 
 			bool ret = constraints != NULL ? constraints->EvalPostState(current) : TPTRUE;
 			tval = (ret ? TPTRUE : TPFALSE);
