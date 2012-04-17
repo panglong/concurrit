@@ -626,38 +626,38 @@ private:
 
 /********************************************************************************/
 
-class SingleTransitionNode : public TransitionNode {
-public:
-	SingleTransitionNode(const TransitionPredicatePtr& assertion,
-						 const TransitionPredicatePtr& pred,
-						 const ThreadVarPtr& var = ThreadVarPtr(),
-						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
-						 const char* message = NULL,
-						 ExecutionTree* parent = NULL)
-	: TransitionNode(assertion, pred, var, constraints, message, parent, 1) {}
-
-	~SingleTransitionNode() {}
-
-	virtual void ToStream(FILE* file) {
-		fprintf(file, "TransitionNode.");
-		ExecutionTree::ToStream(file);
-	}
-
-	DotNode* UpdateDotGraph(DotGraph* g) {
-		DotNode* node = new DotNode("TransitionNode");
-		g->AddNode(node);
-		ExecutionTree* c = child();
-		DotNode* cn = NULL;
-		if(c != NULL) {
-			cn = c->UpdateDotGraph(g);
-		} else {
-			cn = new DotNode("NULL");
-		}
-		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, "?"));
-		return node;
-	}
-};
+//class SingleTransitionNode : public TransitionNode {
+//public:
+//	SingleTransitionNode(const TransitionPredicatePtr& assertion,
+//						 const TransitionPredicatePtr& pred,
+//						 const ThreadVarPtr& var = ThreadVarPtr(),
+//						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
+//						 const char* message = NULL,
+//						 ExecutionTree* parent = NULL)
+//	: TransitionNode(assertion, pred, var, constraints, message, parent, 1) {}
+//
+//	~SingleTransitionNode() {}
+//
+//	virtual void ToStream(FILE* file) {
+//		fprintf(file, "TransitionNode.");
+//		ExecutionTree::ToStream(file);
+//	}
+//
+//	DotNode* UpdateDotGraph(DotGraph* g) {
+//		DotNode* node = new DotNode("TransitionNode");
+//		g->AddNode(node);
+//		ExecutionTree* c = child();
+//		DotNode* cn = NULL;
+//		if(c != NULL) {
+//			cn = c->UpdateDotGraph(g);
+//		} else {
+//			cn = new DotNode("NULL");
+//		}
+//		g->AddNode(cn);
+//		g->AddEdge(new DotEdge(node, cn, "?"));
+//		return node;
+//	}
+//};
 
 /********************************************************************************/
 
