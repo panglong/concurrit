@@ -103,7 +103,7 @@ void AuxState::Reset(THREADID t /*= -1*/) {
 	Enters->reset(t);
 	Returns->reset(t);
 
-	Pc->reset(t);
+//	Pc->reset(t);
 }
 
 /*************************************************************************************/
@@ -260,6 +260,44 @@ TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& 
 TransitionPredicatePtr operator ! (const ThreadVarPtr& t1) {
 	TransitionPredicatePtr p = (TID != t1);
 	return p;
+}
+
+/********************************************************************************/
+
+// ThreadVar
+
+std::string ThreadVar::ToString() {
+	return thread_ == NULL ? std::string("no-tid") : to_string(thread_->tid());
+}
+
+bool operator==(const ThreadVar& tx, const ThreadVar& ty) {
+	Coroutine* co1 = const_cast<ThreadVar&>(tx).thread();
+	Coroutine* co2 = const_cast<ThreadVar&>(tx).thread();
+	if(co1 == NULL || co2 == NULL) {
+		return co1 == co2;
+	}
+	return co1->tid() == co2->tid();
+}
+
+bool operator!=(const ThreadVar& tx, const ThreadVar& ty) {
+	return !(tx == ty);
+}
+
+bool operator<(const ThreadVar& tx, const ThreadVar& ty) {
+	Coroutine* co1 = const_cast<ThreadVar&>(tx).thread();
+	Coroutine* co2 = const_cast<ThreadVar&>(tx).thread();
+	if(co1 == NULL || co2 == NULL) {
+		return PTR2ADDRINT(co1) < PTR2ADDRINT(co2);
+	}
+	return co1->tid() < co2->tid();
+}
+
+// operator <
+bool ThreadVarPtr_compare::operator()(const ThreadVarPtr& tx, const ThreadVarPtr& ty) const {
+	safe_assert(tx != NULL && ty != NULL);
+	ThreadVar* txp = tx.get();
+	ThreadVar* typ = ty.get();
+	return (*txp) < (*typ);
 }
 
 /********************************************************************************/

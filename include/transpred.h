@@ -35,61 +35,12 @@
 #define TRANSPRED_H_
 
 #include "common.h"
+#include "threadvar.h"
 #include "thread.h"
 #include "tbb/concurrent_hash_map.h"
 #include <boost/shared_ptr.hpp>
 
 namespace concurrit {
-
-class Coroutine;
-
-/********************************************************************************/
-
-class FuncVar {
-public:
-	explicit FuncVar(void* addr) : addr_(PTR2ADDRINT(addr)) {}
-	~FuncVar() {}
-
-	operator ADDRINT() { return addr_; }
-	operator void*() { return ADDRINT2PTR(addr_); }
-
-private:
-	DECL_FIELD(ADDRINT, addr)
-};
-
-/********************************************************************************/
-
-class ThreadVar {
-public:
-	explicit ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
-	: name_(name), thread_(thread) {}
-	virtual ~ThreadVar() {}
-
-	std::string ToString() {
-		return thread_ == NULL ? std::string("no-tid") : to_string(thread_->tid());
-	}
-
-	inline void clear_thread() { thread_ = NULL; }
-	inline bool is_empty() { return thread_ == NULL; }
-
-private:
-	DECL_FIELD(std::string, name)
-	DECL_FIELD(Coroutine*, thread)
-};
-
-// Thread variable that should not be deleted
-class StaticThreadVar : public ThreadVar {
-public:
-	explicit StaticThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
-	: ThreadVar(thread, name) {}
-	~StaticThreadVar() {
-		if(Concurrit::IsInitialized()) {
-			safe_fail("StaticThreadVar %s should not be deleted while Concurrit is active!", name_.c_str());
-		}
-	}
-};
-
-typedef boost::shared_ptr<ThreadVar> ThreadVarPtr;
 
 /********************************************************************************/
 

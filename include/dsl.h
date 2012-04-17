@@ -432,18 +432,20 @@ public:
 	}
 
 	void Update(const TransitionPredicatePtr& pred,
-			   const char* message = NULL) {
+				const char* message = NULL) {
 		pred_ = pred;
 		message_ = message;
 	}
 
 	bool CanSelectThread(int child_index = 0) {
 		safe_assert(BETWEEN(0, child_index, children_.size()-1));
+		// if no pred, then this means TRUE, so skip checking pred
 		if(pred_ == NULL) {
-			return NULL;
+			return true;
 		}
 		// check condition
 		ThreadVarPtr var = this->var(child_index);
+		safe_assert(var != NULL);
 		Coroutine* current = safe_notnull(var.get())->thread();
 		AuxState::Tid->set_thread(current);
 		return (pred_->EvalPreState(current) == TPTRUE);

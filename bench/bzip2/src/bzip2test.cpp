@@ -20,7 +20,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		TVAR(t_old);
 		WHILE_STAR {
-			RUN_ONCE((STEP(t1) || STEP(t2)) && (TID != t_old), t_old, "Interleaving");
+
+			RUN_ONCE((STEP(t1) || STEP(t2)), __, "Interleaving");
 		}
 
 	}

@@ -171,6 +171,7 @@ public:
 	ThreadVarPtr DSLExistsThread(const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 	ThreadVarPtr DSLForallThread(const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 
+	TPVALUE EvalSelectThread(Coroutine* current, SelectThreadNode* node, ChildLoc* newnode);
 	TPVALUE EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
 	TPVALUE EvalPostState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
 	void UpdateAlternateLocations(Coroutine* current, bool pre_state);

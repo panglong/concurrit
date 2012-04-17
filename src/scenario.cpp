@@ -1299,6 +1299,89 @@ void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
 
 /********************************************************************************/
 
+TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, ChildLoc* newnode) {
+	safe_assert(current != NULL && node != NULL);
+
+	// value determining what to with the transition
+	// TPTRUE: cannot occur, we leave the decision to after the transition (TPTRUE result is interpreted as TPUNKNOWN)
+	// TPFALSE: release the node back
+	// TPUNKNOWN: keep the node and decide after the transition
+	// TPINVALID: cannot occur
+	TPVALUE tval = TPTRUE;
+
+	// set current thread id
+	AuxState::Tid->set_thread(current);
+
+	ForallThreadNode* forall = ASINSTANCEOF(node, ForallThreadNode*);
+	if(forall != NULL) {
+		VLOG(2) << "Evaluating forall-thread node";
+
+		// if select is covered, we should not be reaching this
+		safe_assert(!forall->covered());
+
+		// check if this thread has been covered
+		THREADID tid = current->tid();
+		safe_assert(tid >= 0);
+
+		// let's assume not consuming
+		tval = TPFALSE;
+
+		ExecutionTree* child = forall->child_by_tid(tid);
+		if(child == NULL || !child->covered()) {
+			// set the selected thread to current
+			*newnode = forall->set_selected_thread(current);
+			safe_assert(!newnode->empty());
+
+			// check condition
+			if(forall->CanSelectThread(newnode->child_index())) {
+				// we are consuming this node, but we are not done, yet
+				tval = TPTRUE;
+				node->OnConsumed(current, newnode->child_index());
+			} else {
+				// clear selected thread
+				newnode->set_child_index(-1);
+			}
+		}
+
+	} else { //=======================================================
+		ExistsThreadNode* exists = ASINSTANCEOF(node, ExistsThreadNode*);
+		if(exists != NULL) {
+			VLOG(2) << "Evaluating exists-thread node";
+
+			// if select is covered, we should not be reaching this
+			safe_assert(!exists->covered());
+
+			// check if this thread has been covered
+			THREADID tid = current->tid();
+			safe_assert(tid >= 0);
+
+			// let's assume not consuming
+			tval = TPFALSE;
+
+			std::set<THREADID>* tids = exists->covered_tids();
+			if(tids->find(tid) == tids->end()) {
+
+				*newnode = exists->set_selected_thread(current);
+				safe_assert(!newnode->empty());
+
+				// check condition
+				if(exists->CanSelectThread(newnode->child_index())) {
+					// we are consuming this node, but we are not done, yet
+					tval = TPTRUE;
+					node->OnConsumed(current, newnode->child_index());
+				} else {
+					// clear selected thread
+					*newnode = exists->clear_selected_thread();
+				}
+			}
+		}
+	}
+
+	return tval;
+}
+
+/********************************************************************************/
+
 TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode) {
 	safe_assert(current != NULL && node != NULL);
 
@@ -1571,78 +1654,18 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 //					done = (tval == TPUNKNOWN);
 
 				} else { //=======================================================
-					ForallThreadNode* forall = ASINSTANCEOF(node, ForallThreadNode*);
-					if(forall != NULL) {
-						VLOG(2) << "Evaluating forall-thread node";
+					SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
+					if(select != NULL) {
+						VLOG(2) << "Evaluating select-thread node";
 
-						// if select is covered, we should not be reaching this
-						safe_assert(!forall->covered());
+						tval = EvalSelectThread(current, select, &newnode);
 
-						// check if this thread has been covered
-						THREADID tid = current->tid();
-						safe_assert(tid >= 0);
-
-						// let's assume not consuming
-						tval = TPFALSE;
-
-						ExecutionTree* child = forall->child_by_tid(tid);
-						if(child == NULL || !child->covered()) {
-							// set the selected thread to current
-							newnode = forall->set_selected_thread(current);
-							safe_assert(!newnode.empty());
-
-							// check condition
-							if(forall->CanSelectThread(newnode.child_index())) {
-								// we are consuming this node, but we are not done, yet
-								tval = TPTRUE;
-								node->OnConsumed(current, newnode.child_index());
-							} else {
-								// clear selected thread
-								newnode.set_child_index(-1);
-							}
-
-						}
 						// we are not done yet, so leave done as false
 						safe_assert(!done);
 
 					} else { //=======================================================
-						ExistsThreadNode* exists = ASINSTANCEOF(node, ExistsThreadNode*);
-						if(exists != NULL) {
-							VLOG(2) << "Evaluating exists-thread node";
-
-							// if select is covered, we should not be reaching this
-							safe_assert(!exists->covered());
-
-							// check if this thread has been covered
-							THREADID tid = current->tid();
-							safe_assert(tid >= 0);
-
-							// let's assume not consuming
-							tval = TPFALSE;
-
-							std::set<THREADID>* tids = exists->covered_tids();
-							if(tids->find(tid) == tids->end()) {
-
-								newnode = exists->set_selected_thread(current);
-								safe_assert(!newnode.empty());
-
-								// check condition
-								if(exists->CanSelectThread(newnode.child_index())) {
-									// we are consuming this node, but we are not done, yet
-									tval = TPTRUE;
-									node->OnConsumed(current, newnode.child_index());
-								} else {
-									// clear selected thread
-									newnode = exists->clear_selected_thread();
-								}
-							}
-							// we are not done yet, so leave done as false
-							safe_assert(!done);
-
-						} else { //=======================================================
-							// TODO(elmas): others are not supported yet
-							safe_assert(false);
-						}
+						// TODO(elmas): others are not supported yet
+						safe_assert(false);
 					}
 //				}
 			}
