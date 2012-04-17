@@ -102,8 +102,6 @@ void AuxState::Reset(THREADID t /*= -1*/) {
 
 	Enters->reset(t);
 	Returns->reset(t);
-
-//	Pc->reset(t);
 }
 
 /*************************************************************************************/
@@ -301,70 +299,6 @@ bool ThreadVarPtr_compare::operator()(const ThreadVarPtr& tx, const ThreadVarPtr
 }
 
 /********************************************************************************/
-
-//#define for_each_transinfo(info, tinfos) \
-//	TransitionInfoList* __list__ = tinfos; \
-//	TransitionInfoList::iterator __itr__ = __list__->begin(); \
-//	TransitionInfo* info = (__itr__ != __list__->end() ? &(*__itr__) : NULL); \
-//	for (; __itr__ != __list__->end(); info = ((++__itr__) != __list__->end() ? &(*__itr__) : NULL))
-
-/********************************************************************************/
-
-//class TPEnds : public PreStateTransitionPredicate {
-//public:
-//	TPEnds(ThreadVarPtr var) : PreStateTransitionPredicate(), var_(var) {}
-//	~TPEnds() {}
-//
-//	bool EvalState(Coroutine* t = NULL) {
-//		safe_assert(t != NULL);
-//
-//		return AuxState::Ends.get(t->coid());
-//	}
-//
-//private:
-//	DECL_FIELD(ThreadVarPtr, var)
-//};
-//
-///********************************************************************************/
-//
-//class TPReads : public PreStateTransitionPredicate {
-//public:
-//	TPReads(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
-//	~TPReads() {}
-//
-//	bool EvalState(Coroutine* t = NULL) {
-//		safe_assert(t != NULL);
-//		return addr_ == NULL ?
-//				AuxState::Reads.get(t->coid()) :
-//				AuxState::Reads.get(t->coid(), PTR2ADDRINT(addr_));
-//	}
-//
-//private:
-//	DECL_FIELD(void*, addr)
-//};
-//
-///********************************************************************************/
-//
-//class TPWrites: public PreStateTransitionPredicate {
-//public:
-//	TPWrites(void* addr = NULL) : PreStateTransitionPredicate(), addr_(addr) {}
-//	~TPWrites() {}
-//
-//	bool EvalState(Coroutine* t = NULL) {
-//		safe_assert(t != NULL);
-//		return addr_ == NULL ?
-//				AuxState::Writes.get(t->coid()) :
-//				AuxState::Writes.get(t->coid(), PTR2ADDRINT(addr_));
-//	}
-//
-//private:
-//	DECL_FIELD(void*, addr)
-//};
-
-/********************************************************************************/
-/********************************************************************************/
-/********************************************************************************/
-
 
 } // end namespace
 
