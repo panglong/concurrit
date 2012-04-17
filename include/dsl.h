@@ -120,12 +120,13 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
-	TransitionNode(const TransitionPredicatePtr& pred,
+	TransitionNode(const TransitionPredicatePtr& assertion,
+				   const TransitionPredicatePtr& pred,
 				   const ThreadVarPtr& var = ThreadVarPtr(),
 				   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 				   const char* message = NULL,
 				   ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(message, parent, num_children), pred_(pred), var_(var), constraints_(constraints) {}
+	: ExecutionTree(message, parent, num_children), assertion_(assertion), pred_(pred), var_(var), constraints_(constraints) {}
 	virtual ~TransitionNode(){}
 
 	virtual void OnTaken(Coroutine* current, int child_index = 0) {
@@ -141,10 +142,12 @@ public:
 		}
 	}
 
-	void Update(const TransitionPredicatePtr& pred,
+	void Update(const TransitionPredicatePtr& assertion,
+				const TransitionPredicatePtr& pred,
 			   const ThreadVarPtr& var = ThreadVarPtr(),
 			   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 			   const char* message = NULL) {
+		assertion_ = assertion;
 		pred_ = pred;
 		var_ = var;
 		constraints_ = constraints;
@@ -153,6 +156,7 @@ public:
 
 
 private:
+	DECL_FIELD(TransitionPredicatePtr, assertion)
 	DECL_FIELD(TransitionPredicatePtr, pred)
 	DECL_FIELD(ThreadVarPtr, var)
 	DECL_FIELD(TransitionConstraintsPtr, constraints)
@@ -624,12 +628,13 @@ private:
 
 class SingleTransitionNode : public TransitionNode {
 public:
-	SingleTransitionNode(const TransitionPredicatePtr& pred,
+	SingleTransitionNode(const TransitionPredicatePtr& assertion,
+						 const TransitionPredicatePtr& pred,
 						 const ThreadVarPtr& var = ThreadVarPtr(),
 						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 						 const char* message = NULL,
 						 ExecutionTree* parent = NULL)
-	: TransitionNode(pred, var, constraints, message, parent, 1) {}
+	: TransitionNode(assertion, pred, var, constraints, message, parent, 1) {}
 
 	~SingleTransitionNode() {}
 
@@ -658,12 +663,13 @@ public:
 
 class MultiTransitionNode : public TransitionNode {
 public:
-	MultiTransitionNode(const TransitionPredicatePtr& pred,
+	MultiTransitionNode(const TransitionPredicatePtr& assertion,
+						 const TransitionPredicatePtr& pred,
 						 const ThreadVarPtr& var = ThreadVarPtr(),
 						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 						 const char* message = NULL,
 						 ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(pred, var, constraints, message, parent, num_children) {}
+	: TransitionNode(assertion, pred, var, constraints, message, parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -675,12 +681,13 @@ public:
 
 class TransferUntilNode : public MultiTransitionNode {
 public:
-	TransferUntilNode(const TransitionPredicatePtr& pred,
+	TransferUntilNode(const TransitionPredicatePtr& assertion,
+					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
 					 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: MultiTransitionNode(pred, var, constraints, message, parent, 1) {}
+	: MultiTransitionNode(assertion, pred, var, constraints, message, parent, 1) {}
 
 	~TransferUntilNode() {}
 

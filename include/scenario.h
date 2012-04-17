@@ -164,9 +164,9 @@ public:
 
 	bool DSLChoice(StaticChoiceInfo* info, const char* message = NULL);
 
-	void DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
+	void DSLTransition(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 
-	void DSLTransferUntil(const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
+	void DSLTransferUntil(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 
 	ThreadVarPtr DSLExistsThread(const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 	ThreadVarPtr DSLForallThread(const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);

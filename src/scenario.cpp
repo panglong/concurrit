@@ -1884,7 +1884,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 
 /********************************************************************************/
 
-void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+void Scenario::DSLTransition(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransition";
 
 	//=======================================================
@@ -1894,7 +1894,7 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 		safe_assert(!reploc.empty());
 		SingleTransitionNode* trans = ASINSTANCEOF(reploc.parent(), SingleTransitionNode*);
 		safe_assert(trans != NULL);
-		trans->Update(pred, var, trans_constraints_->Clone(), message);
+		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
 
 		// update current node
 		exec_tree_.set_current_node(reploc);
@@ -1924,9 +1924,9 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
-		trans->Update(pred, var, trans_constraints_->Clone(), message);
+		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
 	} else {
-		trans = new SingleTransitionNode(pred, var, trans_constraints_->Clone(), message);
+		trans = new SingleTransitionNode(assertion, pred, var, trans_constraints_->Clone(), message);
 	}
 
 	safe_assert(!trans->covered());
@@ -1950,7 +1950,7 @@ void Scenario::DSLTransition(const TransitionPredicatePtr& pred, const ThreadVar
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUntil(const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+void Scenario::DSLTransferUntil(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransferUntil";
 
 	//=======================================================
@@ -1960,7 +1960,7 @@ void Scenario::DSLTransferUntil(const TransitionPredicatePtr& pred, const Thread
 		safe_assert(!reploc.empty());
 		TransferUntilNode* trans = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
 		safe_assert(trans != NULL);
-		trans->Update(pred, var, trans_constraints_->Clone(), message);
+		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
 
 		// update current node
 		exec_tree_.set_current_node(reploc);
@@ -1990,9 +1990,9 @@ void Scenario::DSLTransferUntil(const TransitionPredicatePtr& pred, const Thread
 			// backtrack
 			TRIGGER_BACKTRACK(TREENODE_COVERED);
 		}
-		trans->Update(pred, var, trans_constraints_->Clone(), message);
+		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
 	} else {
-		trans = new TransferUntilNode(pred, var, trans_constraints_->Clone(), message);
+		trans = new TransferUntilNode(assertion, pred, var, trans_constraints_->Clone(), message);
 	}
 
 	safe_assert(!trans->covered());
