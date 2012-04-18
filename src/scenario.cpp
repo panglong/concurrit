@@ -1837,7 +1837,7 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 
 /********************************************************************************/
 
-bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/) {
+bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLChoice";
 
 	//=======================================================
@@ -1847,7 +1847,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 		safe_assert(!reploc.empty());
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
 		safe_assert(choice != NULL);
-		safe_assert(choice->info() == info);
+		safe_assert(choice->info() == static_info);
 		choice->set_message(message);
 
 		// update current node
@@ -1876,7 +1876,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 		}
 		choice->set_message(message);
 	} else {
-		choice = new ChoiceNode(info);
+		choice = new ChoiceNode(static_info);
 		choice->set_message(message);
 	}
 
@@ -1971,7 +1971,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* info, const char* message /*= NULL*/)
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUntil(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLTransferUntil";
 
 	//=======================================================
@@ -2013,7 +2013,7 @@ void Scenario::DSLTransferUntil(const TransitionPredicatePtr& assertion, const T
 		}
 		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
 	} else {
-		trans = new TransferUntilNode(assertion, pred, var, trans_constraints_->Clone(), message);
+		trans = new TransferUntilNode(static_info, assertion, pred, var, trans_constraints_->Clone(), message);
 	}
 
 	safe_assert(!trans->covered());
@@ -2038,7 +2038,7 @@ void Scenario::DSLTransferUntil(const TransitionPredicatePtr& assertion, const T
 
 /********************************************************************************/
 
-ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLForallThread";
 
 	//=======================================================
@@ -2093,7 +2093,7 @@ ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= Tr
 		}
 		select->Update(pred, message);
 	} else {
-		select = new ForallThreadNode(pred, message);
+		select = new ForallThreadNode(static_info, pred, message);
 	}
 	safe_assert(!select->covered());
 
@@ -2126,7 +2126,7 @@ ThreadVarPtr Scenario::DSLForallThread(const TransitionPredicatePtr& pred /*= Tr
 
 /********************************************************************************/
 
-ThreadVarPtr Scenario::DSLExistsThread(const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	VLOG(2) << "Adding DSLExistsThread";
 
 	//=======================================================
@@ -2179,7 +2179,7 @@ ThreadVarPtr Scenario::DSLExistsThread(const TransitionPredicatePtr& pred /*= Tr
 		}
 		select->Update(pred, message);
 	} else {
-		select = new ExistsThreadNode(pred, message);
+		select = new ExistsThreadNode(static_info, pred, message);
 	}
 	safe_assert(!select->covered());
 

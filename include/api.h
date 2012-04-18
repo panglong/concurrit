@@ -200,52 +200,59 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-// DSL for the preemptive mode
-//#define STAR	DSLChoice(__LINE__)
-// DSL for the preemptive mode
-//#define STAR	DSLChoice(__LINE__)
-#define STAR(nd, stmt, line) 	static StaticChoiceInfo __choice_info_##line((line), (nd)); stmt(DSLChoice(&(__choice_info_##line)))
-#define WHILE_STAR				STAR(Config::IsStarNondeterministic, while, __LINE__)
-#define IF_STAR					STAR(Config::IsStarNondeterministic, if, __LINE__)
-#define WHILE_DTSTAR			STAR(false, while, __LINE__)
-#define IF_DTSTAR				STAR(false, if, __LINE__)
-#define WHILE_NDSTAR			STAR(true, while, __LINE__)
-#define IF_NDSTAR				STAR(true, if, __LINE__)
-#define ELSE					else
+// double expansion trick!
+#define STATIC_DSL_INFO_NAME_2(line)	__static_dsl_info_##line
+#define STATIC_DSL_INFO_NAME_1(line)	STATIC_DSL_INFO_NAME_2(line)
+
+#define STATIC_DSL_INFO_NAME			STATIC_DSL_INFO_NAME_1(__LINE__)
+#define	DECL_STATIC_DSL_INFO(code) 		static StaticDSLInfo STATIC_DSL_INFO_NAME (RECORD_SRCLOC(), (code));
 
 /********************************************************************************/
 
-#define PTRUE			TransitionPredicate::True()
-#define PFALSE			TransitionPredicate::False()
+#define STAR(nd, stmt, code) 		static StaticChoiceInfo STATIC_DSL_INFO_NAME((nd), (RECORD_SRCLOC()), (code)); stmt(DSLChoice(&STATIC_DSL_INFO_NAME))
+
+#define WHILE_STAR					STAR(Config::IsStarNondeterministic, while, "WHILE_STAR")
+#define IF_STAR						STAR(Config::IsStarNondeterministic, if, "IF_STAR")
+
+#define WHILE_DTSTAR				STAR(false, while, "WHILE_DTSTAR")
+#define IF_DTSTAR					STAR(false, if, "IF_DTSTAR")
+
+#define WHILE_NDSTAR				STAR(true, while, "WHILE_NDSTAR")
+#define IF_NDSTAR					STAR(true, if, "IF_NDSTAR")
+
+#define ELSE						else
 
 /********************************************************************************/
 
-//#define FUNC(v, f)		static FuncVar v(reinterpret_cast<void*>(f));
+#define PTRUE						TransitionPredicate::True()
+#define PFALSE						TransitionPredicate::False()
 
-						// try only default, and fail if not found
-#define FUNC(v, f)		static FuncVar v(FuncAddressByName(#f, true, false, true));
+/********************************************************************************/
+
+//#define FUNC(v, f)				static FuncVar v(reinterpret_cast<void*>(f));
+
+									// try only default, and fail if not found
+#define FUNC(v, f)					static FuncVar v(FuncAddressByName(#f, true, false, true));
 
 /********************************************************************************/
 
 // exists thread
 
-//#define NOPRED			TransitionPredicatePtr()
+#define TVAR(t)						ThreadVarPtr t(new ThreadVar());
 
-#define TVAR(t)			ThreadVarPtr t(new ThreadVar());
+#define EXISTS(t, ...)				DECL_STATIC_DSL_INFO("EXISTS " #t); ThreadVarPtr t = DSLExistsThread(&STATIC_DSL_INFO_NAME, __VA_ARGS__);
 
-#define EXISTS(t, ...)	ThreadVarPtr t = DSLExistsThread(__VA_ARGS__);
-
-#define FORALL(t, ...)	ThreadVarPtr t = DSLForallThread(__VA_ARGS__);
+#define FORALL(t, ...)				DECL_STATIC_DSL_INFO("FORALL " #t); ThreadVarPtr t = DSLForallThread(&STATIC_DSL_INFO_NAME, __VA_ARGS__);
 
 /********************************************************************************/
 
-#define CONSTRAIN_ALL(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+#define CONSTRAIN_ALL(pred) 		TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
 
-#define CONSTRAIN_FST(pred) 	TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
+#define CONSTRAIN_FST(pred) 		TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
 
 /********************************************************************************/
 
-#define RUN_UNTIL1(r, ...) 			DSLTransferUntil(PTRUE, (r), __VA_ARGS__);
+#define RUN_UNTIL1(r, ...) 			DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLTransferUntil(&STATIC_DSL_INFO_NAME, PTRUE, (r), __VA_ARGS__);
 
 #define RUN_UNTIL2a(p, r, ...) 		{ CONSTRAIN_FST(p); RUN_UNTIL1((r), __VA_ARGS__); }
 
@@ -327,46 +334,9 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 #define TID				(AuxState::Tid)
 #define __				(ThreadVarPtr())
-//template<typename T>
-//boost::shared_ptr<T> __() {
-//	return boost::shared_ptr<T>();
-//}
+
 #define NOT(t)			(TID != t)
 #define STEP(t)			(TID == t)
-
-//static TransitionPredicatePtr MakeStep(ThreadVarPtr t, ...) {
-//	va_list args;
-//	va_start(args, t);
-//	safe_assert(t != NULL);
-//	TransitionPredicatePtr p = (TID == t);
-//	ThreadVarPtr tt = va_arg(args, ThreadVarPtr);
-//	while(tt != NULL) {
-//		p = (p || (TID == tt));
-//		tt = va_arg(args, ThreadVarPtr);
-//	}
-//	va_end(args);
-//	return p;
-//}
-//#define STEP(...) \
-//	MakeStep(__VA_ARGS__, ThreadVarPtr())
-
-//static TransitionPredicatePtr MakeNStep(const ThreadVarPtr& t, ...) {
-//	ThreadVarPtr tt;
-//	va_list args;
-//	va_start(args, t);
-//	safe_assert(t != NULL);
-//	TransitionPredicatePtr p = (TID != t);
-//	tt = va_arg(args, const ThreadVarPtr&);
-//	while(tt != NULL) {
-//		p = (p && (TID != tt));
-//		tt = va_arg(args, const ThreadVarPtr&);
-//	}
-//	va_end(args);
-//	return p;
-//}
-//#define NSTEP(...) \
-//	MakeNStep(__VA_ARGS__, ThreadVarPtr())
-
 
 /********************************************************************************/
 

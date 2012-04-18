@@ -52,6 +52,22 @@ class ExecutionTree;
 typedef std::atomic_address ExecutionTreeRef;
 typedef std::vector<ExecutionTree*> ExecutionTreeList;
 
+/********************************************************************************/
+
+class StaticDSLInfo {
+public:
+	StaticDSLInfo(SourceLocation* loc = NULL, const char* code = NULL) : srcloc_(loc), code_(code) {}
+	virtual ~StaticDSLInfo() {
+		safe_delete(srcloc_);
+	}
+
+private:
+	DECL_FIELD(SourceLocation*, srcloc)
+	DECL_FIELD(std::string, code)
+};
+
+/********************************************************************************/
+
 #define for_each_child(child) \
 	ExecutionTreeList::iterator __itr__ = children_.begin(); \
 	ExecutionTree* child = (__itr__ != children_.end() ? *__itr__ : NULL); \
@@ -59,10 +75,13 @@ typedef std::vector<ExecutionTree*> ExecutionTreeList;
 
 class ExecutionTree : public Writable {
 public:
-	ExecutionTree(const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
-	: parent_(parent), covered_(false), message_(message) {
+	ExecutionTree(StaticDSLInfo* static_info = NULL, const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
+	: static_info_(static_info), parent_(parent), covered_(false), message_(message) {
 		InitChildren(num_children);
 		num_nodes_++;
+		if(message == NULL && static_info != NULL) {
+			message = static_info->code().c_str();
+		}
 	}
 
 	virtual ~ExecutionTree();
@@ -105,6 +124,7 @@ public:
 	}
 
 private:
+	DECL_FIELD(StaticDSLInfo*, static_info)
 	DECL_FIELD(ExecutionTree*, parent)
 	DECL_FIELD_REF(ExecutionTreeList, children)
 	DECL_FIELD(bool, covered)
@@ -120,13 +140,14 @@ private:
 
 class TransitionNode : public ExecutionTree {
 public:
-	TransitionNode(const TransitionPredicatePtr& assertion,
+	TransitionNode(StaticDSLInfo* static_info,
+				   const TransitionPredicatePtr& assertion,
 				   const TransitionPredicatePtr& pred,
 				   const ThreadVarPtr& var = ThreadVarPtr(),
 				   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 				   const char* message = NULL,
 				   ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(message, parent, num_children), assertion_(assertion), pred_(pred), var_(var), constraints_(constraints) {}
+	: ExecutionTree(static_info, message, parent, num_children), assertion_(assertion), pred_(pred), var_(var), constraints_(constraints) {}
 	virtual ~TransitionNode(){}
 
 	virtual void OnTaken(Coroutine* current, int child_index = 0) {
@@ -163,8 +184,8 @@ private:
 
 class SelectionNode : public ExecutionTree {
 public:
-	SelectionNode(const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(message, parent, num_children) {}
+	SelectionNode(StaticDSLInfo* static_info = NULL, const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(static_info, message, parent, num_children) {}
 	virtual ~SelectionNode(){}
 };
 
@@ -228,7 +249,7 @@ private:
 
 class EndNode : public ExecutionTree {
 public:
-	EndNode(ExecutionTree* parent = NULL) : ExecutionTree("EndNode", parent, 1) {
+	EndNode(ExecutionTree* parent = NULL) : ExecutionTree(NULL, "EndNode", parent, 1) {
 		covered_ = true;
 		set_child(this); // points to itself
 		exception_ = NULL;
@@ -333,10 +354,10 @@ private:
 
 /********************************************************************************/
 
-class StaticChoiceInfo {
+class StaticChoiceInfo : public StaticDSLInfo {
 public:
-	StaticChoiceInfo(int line, bool nondet) {
-		line_ = line;
+	StaticChoiceInfo(bool nondet, SourceLocation* loc = NULL, const char* code = NULL) : StaticDSLInfo(loc, code) {
+		safe_assert(loc != NULL);
 		nondet_ = nondet;
 		covered_[0] = false;
 		covered_[1] = false;
@@ -352,7 +373,6 @@ public:
 		covered_[i] = covered;
 	}
 private:
-	DECL_FIELD(int, line)
 	DECL_FIELD(bool, nondet)
 	bool covered_[2];
 };
@@ -360,7 +380,7 @@ private:
 class ChoiceNode : public SelectionNode {
 public:
 	ChoiceNode(StaticChoiceInfo* info, const char* message = NULL, ExecutionTree* parent = NULL)
-	: SelectionNode(message, parent, 2), info_(info) {}
+	: SelectionNode(info, message, parent, 2), info_(info) {}
 	~ChoiceNode() {}
 
 	virtual void ToStream(FILE* file) {
@@ -420,10 +440,11 @@ private:
 class SelectThreadNode : public SelectionNode {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
-	SelectThreadNode(const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+	SelectThreadNode(StaticDSLInfo* static_info = NULL,
+					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL, int num_children = 0)
-	: SelectionNode(message, parent, num_children), pred_(pred) {}
+	: SelectionNode(static_info, message, parent, num_children), pred_(pred) {}
 	virtual ~SelectThreadNode() {}
 
 	virtual bool is_exists() = 0;
@@ -478,10 +499,11 @@ private:
 
 class ExistsThreadNode : public SelectThreadNode {
 public:
-	ExistsThreadNode(const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+	ExistsThreadNode(StaticDSLInfo* static_info = NULL,
+					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(pred, message, parent, 1) {
+	: SelectThreadNode(static_info, pred, message, parent, 1) {
 		var_ = create_thread_var();
 	}
 
@@ -534,10 +556,11 @@ private:
 
 class ForallThreadNode : public SelectThreadNode {
 public:
-	ForallThreadNode(const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
+	ForallThreadNode(StaticDSLInfo* static_info = NULL,
+					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(pred, message, parent, 0) {}
+	: SelectThreadNode(static_info, pred, message, parent, 0) {}
 
 	~ForallThreadNode() {}
 
@@ -662,13 +685,14 @@ private:
 
 class MultiTransitionNode : public TransitionNode {
 public:
-	MultiTransitionNode(const TransitionPredicatePtr& assertion,
+	MultiTransitionNode(StaticDSLInfo* static_info,
+						 const TransitionPredicatePtr& assertion,
 						 const TransitionPredicatePtr& pred,
 						 const ThreadVarPtr& var = ThreadVarPtr(),
 						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 						 const char* message = NULL,
 						 ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(assertion, pred, var, constraints, message, parent, num_children) {}
+	: TransitionNode(static_info, assertion, pred, var, constraints, message, parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -680,13 +704,14 @@ public:
 
 class TransferUntilNode : public MultiTransitionNode {
 public:
-	TransferUntilNode(const TransitionPredicatePtr& assertion,
+	TransferUntilNode(StaticDSLInfo* static_info,
+					 const TransitionPredicatePtr& assertion,
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
 					 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: MultiTransitionNode(assertion, pred, var, constraints, message, parent, 1) {}
+	: MultiTransitionNode(static_info, assertion, pred, var, constraints, message, parent, 1) {}
 
 	~TransferUntilNode() {}
 
