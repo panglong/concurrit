@@ -44,6 +44,7 @@ long Config::MaxWaitTimeUSecs = 3 * USECSPERSEC;
 bool Config::IsStarNondeterministic = false;
 bool Config::RunUncontrolled = false;
 char* Config::TestLibraryFile = NULL;
+bool Config::KeepExecutionTree = true;
 
 /********************************************************************************/
 
@@ -54,7 +55,8 @@ static void usage() {
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
 			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-l: Test program as shared (.so) library"
-			"-u: Run test program uncontrolled.");
+			"-u: Run test program uncontrolled."
+			"-s: Use stack");
 }
 
 bool Config::ParseCommandLine(const main_args& args) {
@@ -67,7 +69,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "l:uw:chf::d::")) != -1) {
+	while ((c = getopt(argc, argv, "sl:uw:chf::d::")) != -1) {
 		switch(c) {
 		case 'c':
 			Config::DeleteCoveredSubtrees = true;
@@ -89,6 +91,10 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 				Config::SaveDotGraphToFile = strdup(const_cast<char*>(InWorkDir("exec_tree.dot")));
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
+			break;
+		case 's':
+			Config::KeepExecutionTree = false;
+			printf("Will use stack rather than execution tree.\n");
 			break;
 		case 'u':
 			Config::RunUncontrolled = true;

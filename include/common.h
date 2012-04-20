@@ -114,6 +114,13 @@ namespace concurrit {
 		inline void set_##name(type value) { name##_ = value; } \
 		private:	\
 
+#define DECL_FIELD_CONST(type, name) \
+		protected: \
+		type name##_; \
+		public: \
+		inline type name() const { return name##_; } \
+		inline void set_##name(type value) { name##_ = value; } \
+		private:	\
 
 #define DECL_FIELD_GET(type, name) \
 		protected: \
@@ -279,6 +286,7 @@ public:
 	static bool RunUncontrolled;
 	static char* TestLibraryFile;
 	static bool IsStarNondeterministic;
+	static bool KeepExecutionTree;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);
 };

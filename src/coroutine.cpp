@@ -136,6 +136,7 @@ bool Coroutine::WaitForEnd(long timeout) {
 	} else {
 		int result = sem_end_.WaitTimed(timeout); // take second token
 		if(result == ETIMEDOUT) {
+			VLOG(2) << "Waiting coroutine " << tid_ << " has timed out.";
 			sem_end_.Signal(); // put back the token taken above
 			return false;
 		}

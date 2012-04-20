@@ -129,7 +129,7 @@ int ExecutionTree::index_of(ExecutionTree* node) {
 /*************************************************************************************/
 
 bool ExecutionTree::child_covered(int i /*= 0*/) {
-	safe_assert(BETWEEN(0, i, children_.size()-1));
+	safe_assert(BETWEEN(0, i, int(children_.size())-1));
 	ExecutionTree* c = child(i);
 	return c != NULL && c->covered();
 }
@@ -145,14 +145,14 @@ void ExecutionTree::add_child(ExecutionTree* node) {
 /*************************************************************************************/
 
 void ExecutionTree::set_child(ExecutionTree* node, int i) {
-	safe_assert(BETWEEN(0, i, children_.size()-1));
+	safe_assert(BETWEEN(0, i, int(children_.size())-1));
 	children_[i] = node;
 }
 
 /*************************************************************************************/
 
 ExecutionTree* ExecutionTree::get_child(int i) {
-	safe_assert(BETWEEN(0, i, children_.size()-1));
+	safe_assert(BETWEEN(0, i, int(children_.size())-1));
 	return children_[i];
 }
 
@@ -185,11 +185,9 @@ bool ExecutionTree::ComputeCoverage(bool recurse, bool call_parent /*= false*/) 
 
 /*************************************************************************************/
 
-void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* current_nodes) {
+void ExecutionTree::PopulateLocations(int child_index, std::vector<ChildLoc>* current_nodes) {
 	if(ExecutionTreeManager::IS_SELECTNODE(this) && !this->covered()) {
 		int sz = children_.size();
-		int child_index = loc.child_index();
-		safe_assert(loc.parent() == this);
 		safe_assert(BETWEEN(-1, child_index, sz-1));
 
 		// if select thread and child_index is -1, then add this with index -1
@@ -209,8 +207,7 @@ void ExecutionTree::PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* curr
 				if(c == NULL || (ExecutionTreeManager::IS_TRANSNODE(c) && !c->covered())) {
 					current_nodes->push_back({this, i});
 				} else {
-					ChildLoc cloc = {c, -1};
-					c->PopulateLocations(cloc, current_nodes);
+					c->PopulateLocations(-1, current_nodes);
 				}
 			}
 		}
@@ -266,6 +263,10 @@ ExecutionTreeManager::ExecutionTreeManager() {
 	root_node_.InitChildren(1);
 	lock_node_.InitChildren(0);
 
+	stack_index_ = 0;
+	safe_assert(node_stack_.empty());
+	node_stack_.push_back({&root_node_, 0}); // of root node
+
 	Restart();
 }
 
@@ -283,11 +284,27 @@ void ExecutionTreeManager::Restart() {
 	// reset semaphore value to 0
 	sem_ref_.Set(0);
 
-	// sets root as the current parent, and adds it to the path
-	current_node_ = {&root_node_, 0};
-	root_node_.PopulateLocations(current_node_, &current_nodes_);
+	RestartChildIndexStack();
+
+	if(Config::KeepExecutionTree) {
+		root_node_.PopulateLocations(0, &current_nodes_);
+	}
 
 	SetRef(NULL);
+}
+
+void ExecutionTreeManager::RestartChildIndexStack() {
+	if(Config::KeepExecutionTree) {
+		// reset stack, since we are not relying on the stack
+		node_stack_.clear();
+		node_stack_.push_back({&root_node_, 0}); // of root node
+	}
+
+	// sets root as the current parent, and adds it to the path
+	stack_index_ = 0;
+	AddToNodeStack({&root_node_, 0}); // this sees the pre-inserted index 0 and makes the index 1
+	safe_assert(stack_index_ == 1);
+	safe_assert(!Config::KeepExecutionTree || node_stack_.size() == 1);
 }
 
 /*************************************************************************************/
@@ -295,20 +312,6 @@ void ExecutionTreeManager::Restart() {
 ExecutionTreeManager::~ExecutionTreeManager() {
 	// noop for now
 	// destructors of fields are called explicitly
-}
-
-/*************************************************************************************/
-
-void ExecutionTreeManager::PopulateLocations() {
-	// evaluate other nodes in current_nodes_
-	// do not touch the first one, which is the current one
-	for(int i = 0, sz = current_nodes_.size(); i < sz; ++i) {
-		ChildLoc loc = current_nodes_[i];
-		ExecutionTree* parent = loc.parent();
-		safe_assert(parent != NULL); // TODO(elmas): this can be NULL?
-		// populate alternate paths
-		parent->PopulateLocations(loc, &current_nodes_);
-	}
 }
 
 /*************************************************************************************/
@@ -449,26 +452,99 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 	safe_assert(!current_node_.empty());
 	safe_assert(node != NULL);
 
-	ChildLoc loc = GetLastInPath();
+	ChildLoc loc = GetNextNodeInStack(-1);
 	ExecutionTree* last_node = loc.get();
-	if(IS_ENDNODE(node) && last_node != NULL) {
-		// set old_root of end node
-		if(node != last_node) { // last_node can already be node, then skip
-			safe_assert(!IS_ENDNODE(last_node));
-//			static_cast<EndNode*>(node)->set_old_root(last_node);
-			// delete old_root
-			delete last_node;
+	if(IS_ENDNODE(node)) {
+		safe_assert(last_node != NULL || stack_index_ == node_stack_.size());
+		if(last_node != NULL) {
+			// truncate the path since we are ending abruptly
+			const size_t sz = node_stack_.size();
+			if(stack_index_ < sz) {
+				VLOG(2) << "Truncating from " << (stack_index_+1) << " of size " << sz;
+				TruncateNodeStack(stack_index_+1);
+				safe_assert(!node_stack_.empty() && !node_stack_.back().empty());
+				safe_assert(loc.get() == node_stack_.back().parent());
+				current_node_ = loc = node_stack_.back();
+				last_node = loc.get();
+			}
+			// set old_root of end node
+			if(node != last_node) { // last_node can already be node, then skip
+				safe_assert(!IS_ENDNODE(last_node));
+				// delete old_root
+				delete last_node;
+			}
 		}
 	} else {
 		// if node is not end node, the we are either overwriting NULL or the same value
 		safe_assert(loc.check(NULL) || loc.check(node));
 	}
+	safe_assert(!loc.empty());
 	loc.set(node); // also sets node's parent
 
 	// put node to the path
-	current_node_ = {node, child_index};
+	AddToNodeStack({node, child_index});
 
-	node->PopulateLocations(current_node_, &current_nodes_);
+	if(Config::KeepExecutionTree) {
+		node->PopulateLocations(child_index, &current_nodes_);
+	}
+}
+
+/*************************************************************************************/
+
+// use stack_element if not -1
+void ExecutionTreeManager::AddToNodeStack(const ChildLoc& current) {
+	safe_assert(!current.empty());
+	safe_assert(BETWEEN(0, stack_index_, node_stack_.size()));
+
+	// if we are adding end node, then the stack must have been truncated
+	safe_assert(!IS_ENDNODE(current.parent()) || stack_index_ == node_stack_.size());
+
+	const size_t sz = node_stack_.size();
+	if(stack_index_ < sz) {
+		ChildLoc& loc = node_stack_[stack_index_];
+		// sanity checks
+		safe_assert(loc.parent() == current.parent());
+		safe_assert(loc.child_index() == current.child_index());
+	} else {
+		safe_assert(stack_index_ == node_stack_.size());
+		node_stack_.push_back(current);
+	}
+	++stack_index_;
+	current_node_ = current;
+}
+
+/*************************************************************************************/
+
+ChildLoc ExecutionTreeManager::GetNextNodeInStack(int sub /*= 0*/) {
+	const int index = stack_index_ + sub;
+	VLOG(2) << "sub: " << sub << " GetNextNodeInStack: " << index << " size: " << node_stack_.size();
+	safe_assert(BETWEEN(0, index, node_stack_.size()));
+	ChildLoc loc = ChildLoc::EMPTY();
+	const size_t sz = node_stack_.size();
+	if(index < sz) {
+		// sanity checks
+		loc = node_stack_[index];
+		// sanity checks
+		safe_assert(!loc.empty());
+	} else if(sz > 0) {
+		safe_assert(!node_stack_.empty());
+		loc = {node_stack_.back().get(), -1};
+	}
+	return loc;
+}
+
+/*************************************************************************************/
+
+void ExecutionTreeManager::TruncateNodeStack(int index) {
+	safe_assert(BETWEEN(0, index, node_stack_.size()));
+
+	if(index < node_stack_.size()) {
+		for(ExecutionTreePath::iterator itr = node_stack_.begin()+index; itr < node_stack_.end(); ) {
+			itr = node_stack_.erase(itr);
+		}
+	}
+	safe_assert(index == node_stack_.size());
+	stack_index_ = index;
 }
 
 /*************************************************************************************/
@@ -503,26 +579,25 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTree
 bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= SUCCESS*/) throw() {
 	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
 
-	ExecutionTreePath path;
-	ComputePath(loc, &path);
-	safe_assert(CheckCompletePath(&path, loc));
+//	ExecutionTreePath path;
+//	ComputePath(loc, &path);
+	safe_assert(CheckCompletePath(&node_stack_, loc));
 
-	const int sz = path.size();
+	const int sz = node_stack_.size();
 	safe_assert(sz > 1);
 
 	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
-	int highest_covered_index = 0;
-	for(int i = 1; i < sz; ++i) {
-		ChildLoc element = path[i];
+	int highest_covered_index = sz-1;
+	for(int i = sz-2; i >= 0; --i) {
+		ChildLoc& element = node_stack_[i];
 		safe_assert(!element.empty());
-		safe_assert(element.check(path[i-1].parent()));
+		safe_assert(element.check(node_stack_[i+1].parent()));
 		ExecutionTree* node = element.parent();
-		node->ComputeCoverage(false); //  do not recurse, only use immediate children
-
-		if(node->covered()) {
-			highest_covered_index = i;
+		if(!node->ComputeCoverage(false)) { //  do not recurse, only use immediate children
+			break;
 		}
+		highest_covered_index = i;
 	}
 
 
@@ -544,20 +619,24 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= 
 
 	//===========================
 	// now delete the (largest) covered subtree
-	ExecutionTree* end_node = path[0].parent();
+	ExecutionTree* end_node = node_stack_.back().parent();
 	safe_assert(IS_ENDNODE(end_node));
-	if(Config::DeleteCoveredSubtrees && BETWEEN(1, highest_covered_index, sz-2)) {
-		ChildLoc parent_loc = path[highest_covered_index+1];
+	if((Config::DeleteCoveredSubtrees) && BETWEEN(1, highest_covered_index, sz-2)) {
+		ChildLoc parent_loc = node_stack_[highest_covered_index-1];
 		ExecutionTree* subtree_root = parent_loc.get();
-		safe_assert(subtree_root == path[highest_covered_index].parent());
+		safe_assert(subtree_root == node_stack_[highest_covered_index].parent());
 		// TODO(elmas): collect exceptions in the subtree and contain them in end_node
 		parent_loc.set(end_node); // shortcut parent to end_node
-		safe_assert(path[1].parent() != end_node);
-		safe_assert(path[1].get() == end_node);
-		path[1].set(NULL); // remove link to the end node, to avoid deleting it
+		safe_assert(node_stack_[sz-2].parent() != end_node);
+		safe_assert(node_stack_[sz-2].get() == end_node);
+		node_stack_[1].set(NULL); // remove link to the end node, to avoid deleting it
 		// we can now delete the subtree
 		delete subtree_root;
 	}
+
+	// truncate the stack
+	safe_assert(BETWEEN(0, highest_covered_index, int(node_stack_.size())-1));
+	TruncateNodeStack(highest_covered_index > 0 ? highest_covered_index-1 : 0);
 
 	// current_node_ must be pointing to the end node
 	safe_assert(current_node_.parent() == end_node && current_node_.child_index() == 0);
@@ -575,22 +654,17 @@ ExecutionTreePath* ExecutionTreeManager::ComputeCurrentPath(ExecutionTreePath* p
 
 /*************************************************************************************/
 
-ChildLoc ExecutionTreeManager::GetLastInPath() {
-	safe_assert(!current_node_.empty());
-	return current_node_;
-}
-
-/*************************************************************************************/
 
 bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc first) {
-	safe_assert(path->size() >= 2);
-	safe_assert(path->back().parent() == &root_node_);
-	safe_assert((*path)[0] == first);
-	safe_assert(IS_ENDNODE((*path)[0].get()));
-	safe_assert(IS_ENDNODE((*path)[0].parent()));
-	safe_assert(IS_ENDNODE((*path)[1].get()));
-	safe_assert(!IS_ENDNODE((*path)[1].parent()));
-	safe_assert((*path)[0].parent() == (*path)[0].get());
+	const size_t sz = path->size();
+	safe_assert(sz >= 2);
+	safe_assert((*path)[0].parent() == &root_node_);
+	safe_assert(path->back() == first);
+	safe_assert(IS_ENDNODE(path->back().get()));
+	safe_assert(IS_ENDNODE(path->back().parent()));
+	safe_assert(IS_ENDNODE((*path)[sz-2].get()));
+	safe_assert(!IS_ENDNODE((*path)[sz-2].parent()));
+	safe_assert(path->back().parent() == path->back().get());
 
 	return true;
 }
@@ -646,7 +720,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	EndNode* end_node = ASINSTANCEOF(current_node_.get(), EndNode*);
 
 	// check the last node in the path
-	ChildLoc last = GetLastInPath();
+	ChildLoc last = GetNextNodeInStack(-1);
 	ExecutionTree* last_parent = last.parent();
 	safe_assert(!IS_ENDNODE(last_parent));
 
@@ -711,16 +785,17 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	//================================================
 
 	// check alternate paths
+	safe_assert(Config::KeepExecutionTree || current_nodes_.empty());
 	if(current_nodes_.empty()) {
 		if(end_node == NULL) {
 			// this means end_node has not been added to the path, so use static end_node
 			safe_assert(!IS_ENDNODE(current_node_.get()));
 			end_node = &end_node_;
 			// update current_node to get end_node when calling GetLastInPath
-			current_node_ = {end_node, 0};
+			AddToNodeStack({end_node, 0});
 		}
-		safe_assert(IS_ENDNODE(GetLastInPath().parent()));
-		safe_assert(IS_ENDNODE(GetLastInPath().get()));
+		safe_assert(IS_ENDNODE(current_node_.parent()));
+		safe_assert(IS_ENDNODE(current_node_.get()));
 		// notify threads about the end of the controlled run
 		ReleaseRef(end_node); // this does not add the node to the path, it is already added
 //		safe_assert(IS_ENDNODE(current_node_.get()));
@@ -729,6 +804,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 
 	//================================================
 
+	safe_assert(Config::KeepExecutionTree);
 	VLOG(2) << "Alternate path exists, will replay";
 
 	// select the next one and replay
@@ -747,7 +823,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	replay_path_.pop_back(); // remove root
 
 	// restart for replay
-	current_node_ = {&root_node_, 0};
+	RestartChildIndexStack();
+
 	ReleaseRef(NULL); // nullify the atomic ref to continue
 
 	VLOG(2) << "Starting the replay";

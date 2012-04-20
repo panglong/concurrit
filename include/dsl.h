@@ -106,7 +106,7 @@ public:
 		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
 	}
 
-	void PopulateLocations(ChildLoc& loc, std::vector<ChildLoc>* current_nodes);
+	void PopulateLocations(int child_index, std::vector<ChildLoc>* current_nodes);
 
 	virtual DotNode* UpdateDotGraph(DotGraph* g);
 	DotGraph* CreateDotGraph();
@@ -197,7 +197,7 @@ public:
 	~ChildLoc(){}
 
 	void set(ExecutionTree* node) {
-		safe_assert(parent_ != NULL);
+		safe_assert(!empty());
 		parent_->set_child(node, child_index_);
 		if(node != NULL) {
 			node->set_parent(parent_);
@@ -205,7 +205,7 @@ public:
 	}
 
 	ExecutionTree* get() {
-		safe_assert(parent_ != NULL);
+		safe_assert(!empty());
 		ExecutionTree* node = parent_->get_child(child_index_);
 		return node;
 	}
@@ -225,7 +225,7 @@ public:
 		return get();
 	}
 
-	bool empty() {
+	bool empty() const {
 		return parent_ == NULL || child_index_ < 0;
 	}
 
@@ -240,9 +240,10 @@ public:
 	static ChildLoc EMPTY() {
 		return {NULL, -1};
 	}
+
 private:
-	DECL_FIELD(ExecutionTree*, parent)
-	DECL_FIELD(int, child_index);
+	DECL_FIELD_CONST(ExecutionTree*, parent)
+	DECL_FIELD_CONST(int, child_index);
 };
 
 /********************************************************************************/
@@ -503,9 +504,7 @@ public:
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(static_info, pred, message, parent, 1) {
-		var_ = create_thread_var();
-	}
+	: SelectThreadNode(static_info, pred, message, parent, 1), selected_tid_(-1), var_(create_thread_var()) {}
 
 	~ExistsThreadNode() {}
 
@@ -547,9 +546,17 @@ public:
 		return var_;
 	}
 
+	// override
+	void OnConsumed(Coroutine* current, int child_index = 0) {
+		ExecutionTree::OnConsumed(current, child_index);
+		// update selected_tid
+		selected_tid_ = current->tid();
+	}
+
 private:
 	DECL_FIELD_SET(ThreadVarPtr, var)
 	DECL_FIELD_REF(std::set<THREADID>, covered_tids)
+	DECL_FIELD(THREADID, selected_tid)
 };
 
 /********************************************************************************/
@@ -748,6 +755,7 @@ public:
 	~ExecutionTreeManager();
 
 	void Restart();
+	void RestartChildIndexStack();
 
 static inline bool IS_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
 inline bool IS_FULL(ExecutionTree* n) { return !IS_EMPTY(n) && !IS_LOCKNODE(n); }
@@ -772,8 +780,12 @@ static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n,
 		ReleaseRef(node.parent(), node.child_index());
 	}
 
-	ChildLoc GetLastInPath();
 	void AddToPath(ExecutionTree* node, int child_index);
+
+	void AddToNodeStack(const ChildLoc& current);
+	ChildLoc GetNextNodeInStack(int sub = 0);
+	void TruncateNodeStack(int index);
+
 	ExecutionTreePath* ComputePath(ChildLoc leaf_loc, ExecutionTreePath* path = NULL);
 	ExecutionTreePath* ComputeCurrentPath(ExecutionTreePath* path = NULL);
 	bool DoBacktrack(ChildLoc loc, BacktrackReason reason = SUCCESS) throw();
@@ -783,8 +795,6 @@ static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n,
 	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where) throw();
 
 	bool CheckCompletePath(ExecutionTreePath* path, ChildLoc first);
-
-	void PopulateLocations();
 
 	void SaveDotGraph(const char* filename);
 
@@ -806,7 +816,7 @@ private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(LockNode, lock_node)
 	DECL_FIELD_REF(StaticEndNode, end_node)
-	DECL_FIELD_REF(ChildLoc, current_node)
+	DECL_FIELD_GET_REF(ChildLoc, current_node) // no set method, use UpdateCurrentNode
 	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
 	DECL_FIELD(unsigned, num_paths)
 
@@ -817,6 +827,9 @@ private:
 	DECL_FIELD(ConditionVar, cv)
 
 	DECL_FIELD_REF(ExecutionTreePath, replay_path)
+
+	DECL_FIELD_REF(ExecutionTreePath, node_stack)
+	DECL_FIELD(int, stack_index)
 
 	DISALLOW_COPY_AND_ASSIGN(ExecutionTreeManager)
 };

@@ -131,7 +131,7 @@ Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, vo
 
 	// checks if the thread is expected next (!NULL), or if this is a new thread (NULL)
 	Coroutine* co = NULL;
-	if(is_replaying()) {
+	if(Config::KeepExecutionTree && is_replaying()) {
 		if(tid > MAIN_TID) {
 			// use tid to return coroutine
 			safe_assert(group_.HasMember(tid));
@@ -203,7 +203,7 @@ Coroutine* Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*= N
 
 void Scenario::JoinThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 	safe_assert(co != NULL);
-	if(is_replaying()) {
+	if(Config::KeepExecutionTree && is_replaying()) {
 		__pthread_errno__ = PTH_SUCCESS;
 
 		if(value_ptr != NULL) {
@@ -372,10 +372,7 @@ LOOP_DONE:
 /********************************************************************************/
 
 ConcurritException* Scenario::CollectExceptions() {
-	ExecutionTree* node = exec_tree_.GetLastInPath();
-	safe_assert(exec_tree_.IS_ENDNODE(node));
-	EndNode* end_node = ASINSTANCEOF(node, EndNode*);
-	return end_node->exception();
+	return safe_notnull(exec_tree_.end_node())->exception();
 }
 
 /********************************************************************************/
@@ -1257,6 +1254,8 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 /********************************************************************************/
 
 void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
+	if(!Config::KeepExecutionTree) return;
+
 	// evaluate other nodes in current_nodes_
 	std::vector<ChildLoc>* current_nodes = exec_tree_.current_nodes();
 	// do not touch the first one, which is the current one
@@ -1293,7 +1292,14 @@ void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
 	}
 	// populate reachable nodes after the transition
 	if(!pre_state) {
-		exec_tree_.PopulateLocations();
+		// evaluate other nodes in current_nodes_
+		for(int i = 0, sz = current_nodes->size(); i < sz; ++i) {
+			ChildLoc loc = (*current_nodes)[i];
+			ExecutionTree* parent = loc.parent();
+			safe_assert(parent != NULL); // TODO(elmas): this can be NULL?
+			// populate alternate paths
+			parent->PopulateLocations(loc.child_index(), current_nodes);
+		}
 	}
 }
 
@@ -1326,20 +1332,29 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 		// let's assume not consuming
 		tval = TPFALSE;
 
-		ExecutionTree* child = forall->child_by_tid(tid);
-		if(child == NULL || !child->covered()) {
-			// set the selected thread to current
-			*newnode = forall->set_selected_thread(current);
-			safe_assert(!newnode->empty());
+		// first check the stack
+		ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
+		int idx_in_stack = loc_in_stack.child_index();
+		safe_assert(idx_in_stack >= -1);
+		safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == forall);
+		safe_assert(BETWEEN(-1, idx_in_stack, int(forall->children()->size())-1));
+		if(idx_in_stack < 0 || (forall->var(idx_in_stack)->thread()->tid() == tid)) {
 
-			// check condition
-			if(forall->CanSelectThread(newnode->child_index())) {
-				// we are consuming this node, but we are not done, yet
-				tval = TPTRUE;
-				node->OnConsumed(current, newnode->child_index());
-			} else {
-				// clear selected thread
-				newnode->set_child_index(-1);
+			ExecutionTree* child = forall->child_by_tid(tid);
+			if(child == NULL || !child->covered()) {
+				// set the selected thread to current
+				*newnode = forall->set_selected_thread(current);
+				safe_assert(!newnode->empty());
+
+				// check condition
+				if(forall->CanSelectThread(newnode->child_index())) {
+					// we are consuming this node, but we are not done, yet
+					tval = TPTRUE;
+					node->OnConsumed(current, newnode->child_index());
+				} else {
+					// clear selected thread
+					newnode->set_child_index(-1);
+				}
 			}
 		}
 
@@ -1358,20 +1373,29 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 			// let's assume not consuming
 			tval = TPFALSE;
 
-			std::set<THREADID>* tids = exists->covered_tids();
-			if(tids->find(tid) == tids->end()) {
+			// first check the stack
+			ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
+			int idx_in_stack = loc_in_stack.child_index();
+			safe_assert(idx_in_stack >= -1);
+			safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == forall);
+			safe_assert(idx_in_stack == -1 || exists->selected_tid() >= 0); // seleted tid must ve valid if index is not -1
+			if(idx_in_stack == -1 || exists->selected_tid() == tid) {
 
-				*newnode = exists->set_selected_thread(current);
-				safe_assert(!newnode->empty());
+				std::set<THREADID>* tids = exists->covered_tids();
+				if(tids->find(tid) == tids->end()) {
 
-				// check condition
-				if(exists->CanSelectThread(newnode->child_index())) {
-					// we are consuming this node, but we are not done, yet
-					tval = TPTRUE;
-					node->OnConsumed(current, newnode->child_index());
-				} else {
-					// clear selected thread
-					*newnode = exists->clear_selected_thread();
+					*newnode = exists->set_selected_thread(current);
+					safe_assert(!newnode->empty());
+
+					// check condition
+					if(exists->CanSelectThread(newnode->child_index())) {
+						// we are consuming this node, but we are not done, yet
+						tval = TPTRUE;
+						node->OnConsumed(current, newnode->child_index());
+					} else {
+						// clear selected thread
+						*newnode = exists->clear_selected_thread();
+					}
 				}
 			}
 		}
@@ -1842,7 +1866,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 
 	//=======================================================
 
-	if(is_replaying()) {
+	if(Config::KeepExecutionTree && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
@@ -1851,7 +1875,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 		choice->set_message(message);
 
 		// update current node
-		exec_tree_.set_current_node(reploc);
+		exec_tree_.AddToNodeStack(reploc);
 
 		VLOG(2) << "Replaying path with choice node.";
 		return (reploc.child_index() == 1);
@@ -1863,9 +1887,8 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 	safe_assert(node == NULL);
 
 	ChoiceNode* choice = NULL;
-	node = exec_tree_.GetLastInPath();
+	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
-		safe_assert(exec_tree_.GetLastInPath().check(node));
 		choice = ASINSTANCEOF(node, ChoiceNode*);
 		if(choice == NULL || choice->covered()) {
 			safe_assert(choice != NULL || exec_tree_.IS_ENDNODE(node));
@@ -1883,14 +1906,19 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 	safe_assert(!choice->covered());
 
 	// 0: false, 1: true
-	int ret = -1;
-	bool cov_0 = choice->child_covered(0);
-	bool cov_1 = choice->child_covered(1);
+	ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
+	int ret = loc_in_stack.child_index();
+	safe_assert(BETWEEN(-1, ret, 1));
+	safe_assert((ret < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == choice);
+	if(ret < 0) {
+		bool cov_0 = choice->child_covered(0);
+		bool cov_1 = choice->child_covered(1);
 
-	if(!cov_0 && !cov_1) {
-		ret = (safe_notnull(choice->info())->nondet() ? (rand() % 2) : 1);
-	} else {
-		ret = !cov_0 ? 0 : 1;
+		if(!cov_0 && !cov_1) {
+			ret = (safe_notnull(choice->info())->nondet() ? (rand() % 2) : 1);
+		} else {
+			ret = !cov_0 ? 0 : 1;
+		}
 	}
 
 	choice->OnSubmitted();
@@ -1976,7 +2004,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 
 	//=======================================================
 
-	if(is_replaying()) {
+	if(Config::KeepExecutionTree && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		TransferUntilNode* trans = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
@@ -1984,7 +2012,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
 
 		// update current node
-		exec_tree_.set_current_node(reploc);
+		exec_tree_.AddToNodeStack(reploc);
 
 		VLOG(2) << "Replaying path with transfer until node.";
 		return;
@@ -2000,9 +2028,8 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	safe_assert(node == NULL);
 
 	TransferUntilNode* trans = NULL;
-	node = exec_tree_.GetLastInPath();
+	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
-		safe_assert(exec_tree_.GetLastInPath().check(node));
 		trans = ASINSTANCEOF(node, TransferUntilNode*);
 		if(trans == NULL || trans->covered()) {
 			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
@@ -2045,7 +2072,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 
 	ThreadVarPtr var;
 
-	if(is_replaying()) {
+	if(Config::KeepExecutionTree && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(reploc.parent() != NULL);
 		ForallThreadNode* select = ASINSTANCEOF(reploc.parent(), ForallThreadNode*);
@@ -2061,7 +2088,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 			safe_assert(var != NULL || !var->is_empty());
 
 			// update current node
-			exec_tree_.set_current_node(reploc);
+			exec_tree_.AddToNodeStack(reploc);
 
 			VLOG(2) << "Replaying path with forall thread node.";
 
@@ -2080,9 +2107,8 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	safe_assert(node == NULL);
 
 	ForallThreadNode* select = NULL;
-	node = exec_tree_.GetLastInPath();
+	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
-		safe_assert(exec_tree_.GetLastInPath().check(node));
 		select = ASINSTANCEOF(node, ForallThreadNode*);
 		if(select == NULL || select->covered()) {
 			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
@@ -2111,7 +2137,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	safe_assert(node == NULL);
 
 	// check if correctly consumed
-	ChildLoc last = exec_tree_.GetLastInPath();
+	ChildLoc last = exec_tree_.GetNextNodeInStack(-1);
 	safe_assert(select == ASINSTANCEOF(last.parent(), ForallThreadNode*));
 	int child_index = last.child_index();
 	safe_assert(child_index >= 0);
@@ -2133,7 +2159,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 
 	ThreadVarPtr var;
 
-	if(is_replaying()) {
+	if(Config::KeepExecutionTree && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(reploc.parent() != NULL);
 		ExistsThreadNode* select = ASINSTANCEOF(reploc.parent(), ExistsThreadNode*);
@@ -2148,7 +2174,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 			safe_assert(var != NULL || !var->is_empty());
 
 			// update current node
-			exec_tree_.set_current_node(reploc);
+			exec_tree_.AddToNodeStack(reploc);
 
 			VLOG(2) << "Replaying path with forall thread node.";
 			return var;
@@ -2166,9 +2192,8 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 	safe_assert(node == NULL);
 
 	ExistsThreadNode* select = NULL;
-	node = exec_tree_.GetLastInPath();
+	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
-		safe_assert(exec_tree_.GetLastInPath().check(node));
 		select = ASINSTANCEOF(node, ExistsThreadNode*);
 		if(select == NULL || select->covered()) {
 			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));

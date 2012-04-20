@@ -13,7 +13,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		WHILE_STAR
 		{
-			EXISTS(t, PTRUE, "t");
+			FORALL(t, PTRUE, "t");
 
 			RUN_UNTIL(STEP(t), READS(), __, "step...");
 		}
