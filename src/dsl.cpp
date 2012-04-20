@@ -326,7 +326,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long time
 	ExecutionTree* node = AcquireRef(mode, timeout_usec);
 	if(IS_ENDNODE(node)) {
 		// main has not ended the execution, so this must be due to an exception by another thread
-		safe_assert(current_node_.parent() == node);
+		safe_assert(GetLastNodeInStack().parent() == node);
 		safe_assert(static_cast<EndNode*>(node)->exception() != NULL);
 		TRIGGER_BACKTRACK(EXCEPTION);
 	}
@@ -449,22 +449,23 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 /*************************************************************************************/
 
 void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
-	safe_assert(!current_node_.empty());
-	safe_assert(node != NULL);
+	safe_assert(node != NULL && child_index >= 0);
 
-	ChildLoc loc = GetNextNodeInStack(-1);
-	ExecutionTree* last_node = loc.get();
+	ChildLoc loc = GetLastNodeInStack();
+	safe_assert(!loc.empty());
 	if(IS_ENDNODE(node)) {
+		ExecutionTree* last_node = loc.get();
 		safe_assert(last_node != NULL || stack_index_ == node_stack_.size());
 		if(last_node != NULL) {
 			// truncate the path since we are ending abruptly
-			const size_t sz = node_stack_.size();
+			const int sz = node_stack_.size();
 			if(stack_index_ < sz) {
 				VLOG(2) << "Truncating from " << (stack_index_+1) << " of size " << sz;
 				TruncateNodeStack(stack_index_+1);
 				safe_assert(!node_stack_.empty() && !node_stack_.back().empty());
 				safe_assert(loc.get() == node_stack_.back().parent());
-				current_node_ = loc = node_stack_.back();
+//				current_node_ =
+				loc = node_stack_.back();
 				last_node = loc.get();
 			}
 			// set old_root of end node
@@ -476,7 +477,11 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 		}
 	} else {
 		// if node is not end node, the we are either overwriting NULL or the same value
-		safe_assert(loc.check(NULL) || loc.check(node));
+		if(!loc.check(NULL) && !loc.check(node)) {
+			loc.parent()->ToStream(stderr);
+			loc.get()->ToStream(stderr);
+			safe_assert(false);
+		}
 	}
 	safe_assert(!loc.empty());
 	loc.set(node); // also sets node's parent
@@ -494,42 +499,40 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 // use stack_element if not -1
 void ExecutionTreeManager::AddToNodeStack(const ChildLoc& current) {
 	safe_assert(!current.empty());
-	safe_assert(BETWEEN(0, stack_index_, node_stack_.size()));
+	const int sz = node_stack_.size();
 
 	// if we are adding end node, then the stack must have been truncated
-	safe_assert(!IS_ENDNODE(current.parent()) || stack_index_ == node_stack_.size());
+	safe_assert(!IS_ENDNODE(current.parent()) || stack_index_ == sz);
 
-	const size_t sz = node_stack_.size();
-	if(stack_index_ < sz) {
-		ChildLoc& loc = node_stack_[stack_index_];
-		// sanity checks
-		safe_assert(loc.parent() == current.parent());
-		safe_assert(loc.child_index() == current.child_index());
-	} else {
-		safe_assert(stack_index_ == node_stack_.size());
+	if(stack_index_ == sz) {
 		node_stack_.push_back(current);
+	} else {
+		CHECK(BETWEEN(0, stack_index_, (sz-1)) && node_stack_[stack_index_] == current);
 	}
 	++stack_index_;
-	current_node_ = current;
+//	current_node_ = current;
 }
 
 /*************************************************************************************/
 
-ChildLoc ExecutionTreeManager::GetNextNodeInStack(int sub /*= 0*/) {
-	const int index = stack_index_ + sub;
-	VLOG(2) << "sub: " << sub << " GetNextNodeInStack: " << index << " size: " << node_stack_.size();
-	safe_assert(BETWEEN(0, index, node_stack_.size()));
-	ChildLoc loc = ChildLoc::EMPTY();
-	const size_t sz = node_stack_.size();
-	if(index < sz) {
-		// sanity checks
-		loc = node_stack_[index];
-		// sanity checks
+ChildLoc ExecutionTreeManager::GetNextNodeInStack() {
+	safe_assert(BETWEEN(0, stack_index_, node_stack_.size()));
+	if(stack_index_ < node_stack_.size()) {
+		ChildLoc loc = node_stack_[stack_index_];
 		safe_assert(!loc.empty());
-	} else if(sz > 0) {
-		safe_assert(!node_stack_.empty());
-		loc = {node_stack_.back().get(), -1};
+		return loc;
+	} else {
+		return {node_stack_.back().get(), -1};
 	}
+}
+
+/*************************************************************************************/
+
+ChildLoc ExecutionTreeManager::GetLastNodeInStack() {
+	const int index = stack_index_ - 1;
+	safe_assert(BETWEEN(0, index, node_stack_.size()-1));
+	ChildLoc loc = node_stack_[index];
+	safe_assert(!loc.empty());
 	return loc;
 }
 
@@ -576,12 +579,12 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTree
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= SUCCESS*/) throw() {
+bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) throw() {
 	safe_assert(reason != SEARCH_ENDS && reason != EXCEPTION && reason != UNKNOWN);
 
 //	ExecutionTreePath path;
 //	ComputePath(loc, &path);
-	safe_assert(CheckCompletePath(&node_stack_, loc));
+	safe_assert(CheckCompletePath(&node_stack_));
 
 	const int sz = node_stack_.size();
 	safe_assert(sz > 1);
@@ -638,9 +641,6 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= 
 	safe_assert(BETWEEN(0, highest_covered_index, int(node_stack_.size())-1));
 	TruncateNodeStack(highest_covered_index > 0 ? highest_covered_index-1 : 0);
 
-	// current_node_ must be pointing to the end node
-	safe_assert(current_node_.parent() == end_node && current_node_.child_index() == 0);
-
 	// check if the root is covered
 	return !root_node_.covered();
 }
@@ -648,18 +648,11 @@ bool ExecutionTreeManager::DoBacktrack(ChildLoc loc, BacktrackReason reason /*= 
 
 /*************************************************************************************/
 
-ExecutionTreePath* ExecutionTreeManager::ComputeCurrentPath(ExecutionTreePath* path /*= NULL*/) {
-	return ComputePath(current_node_, path);
-}
-
-/*************************************************************************************/
-
-
-bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path, ChildLoc first) {
-	const size_t sz = path->size();
+bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path) {
+	const int sz = path->size();
 	safe_assert(sz >= 2);
 	safe_assert((*path)[0].parent() == &root_node_);
-	safe_assert(path->back() == first);
+//	safe_assert(path->back() == first);
 	safe_assert(IS_ENDNODE(path->back().get()));
 	safe_assert(IS_ENDNODE(path->back().parent()));
 	safe_assert(IS_ENDNODE((*path)[sz-2].get()));
@@ -717,12 +710,13 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 
 	//================================================
 
-	EndNode* end_node = ASINSTANCEOF(current_node_.get(), EndNode*);
-
 	// check the last node in the path
-	ChildLoc last = GetNextNodeInStack(-1);
+	ChildLoc last = GetLastNodeInStack();
+	safe_assert(!last.empty());
 	ExecutionTree* last_parent = last.parent();
 	safe_assert(!IS_ENDNODE(last_parent));
+
+//	EndNode* end_node = ASINSTANCEOF(last.get(), EndNode*);
 
 	//===========================
 	// make the parent of last element (if SelectThreadNode) covered, because there is no way to cover it
@@ -745,6 +739,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	}
 
 	//===========================
+//	bool backtracked = false;
 	ExistsThreadNode* exists = ASINSTANCEOF(last_parent, ExistsThreadNode*);
 	if(exists != NULL && !exists->covered()) {
 		// update covered tid set
@@ -758,26 +753,24 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 
 		// locked, create a new end node and set it
 		// also adds to the path and set to ref
-		if(end_node == NULL) {
-			// locked, create a new end node and set it
-			end_node = &end_node_; // new EndNode();
-		} else {
-			safe_assert(end_node == &end_node_);
-		}
+//		if(end_node == NULL) {
+//			// locked, create a new end node and set it
+//			end_node = &end_node_; // new EndNode();
+//		} else {
+//			safe_assert(end_node == &end_node_);
+//		}
 		// add to the path and set to ref
-		AddToPath(end_node, 0);
-		safe_assert(current_node_.get() == end_node);
-		safe_assert(IS_ENDNODE(current_node_.get()));
+		AddToPath(&end_node_, 0);
+		safe_assert(IS_ENDNODE(GetLastNodeInStack().get()));
 
 		// compute coverage for the just-visited node
-		if(!DoBacktrack(current_node_, *reason)) {
+//		backtracked = true;
+		if(!DoBacktrack(*reason)) {
 			// root is covered, no need to continue
 			safe_assert(root_node_.covered());
 
-			safe_assert(current_node_.get() == end_node);
-			safe_assert(IS_ENDNODE(current_node_.get()));
 			// notify threads about the end of the controlled run
-			ReleaseRef(end_node); // this does not add the node to the path, it is already added
+			ReleaseRef(&end_node_); // this does not add the node to the path, it is already added
 			return false;
 		}
 	}
@@ -787,18 +780,14 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	// check alternate paths
 	safe_assert(Config::KeepExecutionTree || current_nodes_.empty());
 	if(current_nodes_.empty()) {
-		if(end_node == NULL) {
-			// this means end_node has not been added to the path, so use static end_node
-			safe_assert(!IS_ENDNODE(current_node_.get()));
-			end_node = &end_node_;
-			// update current_node to get end_node when calling GetLastInPath
-			AddToNodeStack({end_node, 0});
-		}
-		safe_assert(IS_ENDNODE(current_node_.parent()));
-		safe_assert(IS_ENDNODE(current_node_.get()));
+//		if(!backtracked) {
+//			// this means dobacktrack has not been run, and end_node has not been added to the path, so use static end_node
+//			safe_assert(!IS_ENDNODE(GetLastNodeInStack().get()));
+//			// update current_node to get end_node when calling GetLastInPath
+//			AddToNodeStack({&end_node_, 0});
+//		}
 		// notify threads about the end of the controlled run
-		ReleaseRef(end_node); // this does not add the node to the path, it is already added
-//		safe_assert(IS_ENDNODE(current_node_.get()));
+		ReleaseRef(&end_node_); // this does not add the node to the path, it is already added
 		return false;
 	}
 
@@ -852,35 +841,11 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 		safe_fail("Unexpected exception (possibly due to TIMEOUT)!");
 	}
 
-//	if(IS_ENDNODE(current_node_.parent())) {
-//		safe_assert(IS_ENDNODE(node));
-//		end_node = static_cast<EndNode*>(current_node_.parent());
-//
-//	} else if(IS_ENDNODE(node)) {
-//		safe_assert(IS_ENDNODE(current_node_.get()));
-//		safe_assert(current_node_.get() == node);
-//		end_node = static_cast<EndNode*>(node);
-//	} else {
-//		ExecutionTree* last = GetLastInPath().get();
-//		if(IS_ENDNODE(last)) {
-//			end_node = static_cast<EndNode*>(last);
-//		} else {
-//			// locked, create a new end node and set it
-//			end_node = &end_node_; // new EndNode();
-//		}
-//		// add to the path and set to ref
-//		ReleaseRef(end_node, 0);
-//	}
-
 	// add my exception to the end node
 	// do it before releasing the node to atomic_ref
 	end_node_.add_exception(exception, current, where);
 
-	safe_assert(!IS_ENDNODE(node) || (current_node_.parent() == node));
-
 	if(!IS_ENDNODE(node)) {
-		safe_assert(current_node_.parent() != node);
-		safe_assert(current_node_.get() != node);
 		// add to the path and set to ref
 		ReleaseRef(&end_node_, 0);
 	}

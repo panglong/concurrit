@@ -783,18 +783,18 @@ static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n,
 	void AddToPath(ExecutionTree* node, int child_index);
 
 	void AddToNodeStack(const ChildLoc& current);
-	ChildLoc GetNextNodeInStack(int sub = 0);
+	ChildLoc GetNextNodeInStack();
+	ChildLoc GetLastNodeInStack();
 	void TruncateNodeStack(int index);
 
 	ExecutionTreePath* ComputePath(ChildLoc leaf_loc, ExecutionTreePath* path = NULL);
-	ExecutionTreePath* ComputeCurrentPath(ExecutionTreePath* path = NULL);
-	bool DoBacktrack(ChildLoc loc, BacktrackReason reason = SUCCESS) throw();
+	bool DoBacktrack(BacktrackReason reason = SUCCESS) throw();
 
 	bool EndWithSuccess(BacktrackReason* reason) throw();
 	void EndWithException(Coroutine* current, std::exception* exception = NULL, const std::string& where = "<unknown>") throw();
 	void EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where) throw();
 
-	bool CheckCompletePath(ExecutionTreePath* path, ChildLoc first);
+	bool CheckCompletePath(ExecutionTreePath* path);
 
 	void SaveDotGraph(const char* filename);
 
@@ -816,7 +816,7 @@ private:
 	DECL_FIELD_REF(ExecutionTree, root_node)
 	DECL_FIELD_REF(LockNode, lock_node)
 	DECL_FIELD_REF(StaticEndNode, end_node)
-	DECL_FIELD_GET_REF(ChildLoc, current_node) // no set method, use UpdateCurrentNode
+//	DECL_FIELD_GET_REF(ChildLoc, current_node) // no set method, use UpdateCurrentNode
 	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
 	DECL_FIELD(unsigned, num_paths)
 

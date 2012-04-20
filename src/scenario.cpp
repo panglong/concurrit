@@ -2137,7 +2137,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	safe_assert(node == NULL);
 
 	// check if correctly consumed
-	ChildLoc last = exec_tree_.GetNextNodeInStack(-1);
+	ChildLoc last = exec_tree_.GetLastNodeInStack();
 	safe_assert(select == ASINSTANCEOF(last.parent(), ForallThreadNode*));
 	int child_index = last.child_index();
 	safe_assert(child_index >= 0);
