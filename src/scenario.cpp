@@ -1335,10 +1335,9 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 		// first check the stack
 		ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
 		int idx_in_stack = loc_in_stack.child_index();
-		safe_assert(idx_in_stack >= -1);
 		safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == forall);
 		safe_assert(BETWEEN(-1, idx_in_stack, int(forall->children()->size())-1));
-		if(idx_in_stack < 0 || (forall->var(idx_in_stack)->thread()->tid() == tid)) {
+		if(idx_in_stack == -1 || (forall->var(idx_in_stack)->thread()->tid() == tid)) {
 
 			ExecutionTree* child = forall->child_by_tid(tid);
 			if(child == NULL || !child->covered()) {
@@ -1376,8 +1375,8 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 			// first check the stack
 			ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
 			int idx_in_stack = loc_in_stack.child_index();
-			safe_assert(idx_in_stack >= -1);
-			safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == forall);
+			safe_assert(idx_in_stack == -1 || idx_in_stack == 0);
+			safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == exists);
 			safe_assert(idx_in_stack == -1 || exists->selected_tid() >= 0); // seleted tid must ve valid if index is not -1
 			if(idx_in_stack == -1 || exists->selected_tid() == tid) {
 
