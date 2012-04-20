@@ -592,15 +592,15 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	//===========================
 	// propagate coverage back in the path (skip the end node, which is already covered)
 	int highest_covered_index = sz-1;
-	for(int i = sz-2; i >= 0; --i) {
-		ChildLoc& element = node_stack_[i];
+	for(ExecutionTreePath::reverse_iterator itr = node_stack_.rbegin()+1; itr < node_stack_.rend(); ++itr) {
+		ChildLoc& element = (*itr); // node_stack_[i];
 		safe_assert(!element.empty());
-		safe_assert(element.check(node_stack_[i+1].parent()));
+		safe_assert(element.check(node_stack_[highest_covered_index].parent()));
 		ExecutionTree* node = element.parent();
 		if(!node->ComputeCoverage(false)) { //  do not recurse, only use immediate children
 			break;
 		}
-		highest_covered_index = i;
+		--highest_covered_index;
 	}
 
 
@@ -619,24 +619,24 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 		}
 	}
 
-
 	//===========================
 	// now delete the (largest) covered subtree
-	ExecutionTree* end_node = node_stack_.back().parent();
-	safe_assert(IS_ENDNODE(end_node));
+	safe_assert(IS_ENDNODE(node_stack_.back().parent()));
+	safe_assert(IS_ENDNODE(node_stack_.back().get()));
 	if((Config::DeleteCoveredSubtrees) && BETWEEN(1, highest_covered_index, sz-2)) {
 		ChildLoc parent_loc = node_stack_[highest_covered_index-1];
 		ExecutionTree* subtree_root = parent_loc.get();
 		safe_assert(subtree_root == node_stack_[highest_covered_index].parent());
 		// TODO(elmas): collect exceptions in the subtree and contain them in end_node
-		parent_loc.set(end_node); // shortcut parent to end_node
-		safe_assert(node_stack_[sz-2].parent() != end_node);
-		safe_assert(node_stack_[sz-2].get() == end_node);
-		node_stack_[1].set(NULL); // remove link to the end node, to avoid deleting it
+		parent_loc.set(&end_node_); // shortcut parent to end_node
+		safe_assert(node_stack_[sz-2].parent() != &end_node_);
+		safe_assert(node_stack_[sz-2].get() == &end_node_);
+		node_stack_[sz-2].set(NULL); // remove link to the end node, to avoid deleting it
 		// we can now delete the subtree
 		delete subtree_root;
 	}
 
+	//===========================
 	// truncate the stack
 	safe_assert(BETWEEN(0, highest_covered_index, (sz-1)));
 	TruncateNodeStack(highest_covered_index > 0 ? highest_covered_index-1 : 0);
