@@ -179,7 +179,7 @@ public:
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
 		if(tls->inst_enabled()
-				|| (rtn_addr == 0) // StartInstrument
+				|| (rtn_addr == ADDRINT(0)) // StartInstrument
 				|| (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end())) {
 			std::vector<ADDRINT>* call_stack = tls->call_stack();
 			call_stack->push_back(rtn_addr);
@@ -192,7 +192,7 @@ public:
 	static inline bool OnFuncReturn(const THREADID& threadid, const ADDRINT& rtn_addr) {
 		if(!pin_enabled) return false;
 
-		safe_assert(rtn_plt_addr != 0);
+		safe_assert(rtn_plt_addr != ADDRINT(0));
 		if(rtn_addr == rtn_plt_addr) return false;
 
 		// check callstack of current thread
@@ -203,9 +203,9 @@ public:
 			ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
 			safe_assert(rtn_addr == last_addr);
 
-			safe_assert(rtn_addr != 0 || tls->inst_enabled());
+			safe_assert(rtn_addr != ADDRINT(0) || tls->inst_enabled());
 			tls->set_inst_enabled(!call_stack->empty());
-			safe_assert(rtn_addr != 0 || !tls->inst_enabled());
+			safe_assert(rtn_addr != ADDRINT(0) || !tls->inst_enabled());
 			return true;
 		}
 		safe_assert(RTNIdsToInstrument.empty() || RTNIdsToInstrument.find(rtn_addr) == RTNIdsToInstrument.end());

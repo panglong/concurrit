@@ -38,17 +38,17 @@ namespace concurrit {
 
 boost::shared_ptr<AuxVar0<bool, false>> AuxState::Ends;
 
-boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> AuxState::Reads;
-boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> AuxState::Writes;
+boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, 0, 0>> AuxState::Reads;
+boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, 0, 0>> AuxState::Writes;
 
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsFrom;
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::CallsTo;
+boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> AuxState::CallsFrom;
+boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> AuxState::CallsTo;
 
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Enters;
-boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> AuxState::Returns;
+boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> AuxState::Enters;
+boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> AuxState::Returns;
 
-boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::InFunc;
-boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> AuxState::NumInFunc;
+boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> AuxState::InFunc;
+boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> AuxState::NumInFunc;
 
 boost::shared_ptr<AuxVar0<int, -1>> AuxState::Pc;
 
@@ -60,28 +60,28 @@ void AuxState::Init() {
 	boost::shared_ptr<AuxVar0<bool, false>> _ends(new StaticAuxVar0<bool, false>("Ends"));
 	AuxState::Ends = _ends;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _reads(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Reads"));
+	boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, 0, 0>> _reads(new StaticAuxVar1<ADDRINT, uint32_t, 0, false>("Reads"));
 	AuxState::Reads = _reads;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> _writes(new StaticAuxVar1<ADDRINT, uint32_t, -1, false>("Writes"));
+	boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, 0, 0>> _writes(new StaticAuxVar1<ADDRINT, uint32_t, 0, false>("Writes"));
 	AuxState::Writes = _writes;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsfrom(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsFrom"));
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> _callsfrom(new StaticAuxVar1<ADDRINT, bool, 0, false>("CallsFrom"));
 	AuxState::CallsFrom = _callsfrom;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _callsto(new StaticAuxVar1<ADDRINT, bool, -1, false>("CallsTo"));
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> _callsto(new StaticAuxVar1<ADDRINT, bool, 0, false>("CallsTo"));
 	AuxState::CallsTo = _callsto;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _enters(new StaticAuxVar1<ADDRINT, bool, -1, false>("Enters"));
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> _enters(new StaticAuxVar1<ADDRINT, bool, 0, false>("Enters"));
 	AuxState::Enters = _enters;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> _returns(new StaticAuxVar1<ADDRINT, bool, -1, false>("Returns"));
+	boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> _returns(new StaticAuxVar1<ADDRINT, bool, 0, false>("Returns"));
 	AuxState::Returns = _returns;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _infunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("InFunc"));
+	boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> _infunc(new StaticAuxVar1<ADDRINT, int, 0, 0>("InFunc"));
 	AuxState::InFunc = _infunc;
 
-	boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> _numinfunc(new StaticAuxVar1<ADDRINT, int, -1, 0>("NumInFunc"));
+	boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> _numinfunc(new StaticAuxVar1<ADDRINT, int, 0, 0>("NumInFunc"));
 	AuxState::NumInFunc = _numinfunc;
 
 	boost::shared_ptr<AuxVar0<int, -1>> _pc(new StaticAuxVar0<int, -1>("Pc"));

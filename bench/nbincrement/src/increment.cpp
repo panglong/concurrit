@@ -1,5 +1,6 @@
 
 #include "increment.h"
+#include "dummy.h"
 
 NBCounter::NBCounter(int k /*= 0*/) {
 	x = k;
@@ -13,19 +14,28 @@ NBCounter::~NBCounter() {
 
 void NBCounter::increment() {
 
+	StartInstrument();
+
 	while(true) {
 		int t = x;
 		int k = t + 1;
+
+		AtPc(42);
+
+		printf("---------------------- INCREMENT READS FROM X\n");
 
 		pthread_mutex_lock(&mutex);
 		if(x == t) {
 			x = k;
 			pthread_mutex_unlock(&mutex);
+			printf("---------------------- INCREMENT SUCCEEDS\n");
 			break;
 		}
 		pthread_mutex_unlock(&mutex);
+		printf("---------------------- INCREMENT RETRYING\n");
 	}
 
+	EndInstrument();
 }
 
 int NBCounter::get() {
@@ -34,5 +44,9 @@ int NBCounter::get() {
 
 void NBCounter::set(int k) {
 	x = k;
+}
+
+void* NBCounter::x_address() {
+	return (&x);
 }
 

@@ -738,7 +738,7 @@ public:
 			cn = new DotNode("NULL");
 		}
 		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, safe_notnull(var_.get())->ToString()));
+		g->AddEdge(new DotEdge(node, cn, var_.get() == NULL ? "-" : var_.get()->ToString()));
 		return node;
 	}
 };

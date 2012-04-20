@@ -9,9 +9,10 @@
 
 class NBCounter {
 private:
-	volatile int x;
 	pthread_mutex_t mutex;
 public:
+	int x;
+
 	NBCounter(int k = 0);
 	~NBCounter();
 
@@ -20,6 +21,8 @@ public:
 	int get();
 
 	void set(int k);
+
+	void* x_address();
 };
 
 

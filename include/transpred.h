@@ -745,17 +745,17 @@ public:
 	// auxiliary variables
 	static boost::shared_ptr<AuxVar0<bool, false>> Ends;
 
-	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> Reads;
-	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, -1, 0>> Writes;
+	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, 0, 0>> Reads;
+	static boost::shared_ptr<AuxVar1<ADDRINT, uint32_t, 0, 0>> Writes;
 
-	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsFrom;
-	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> CallsTo;
+	static boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> CallsFrom;
+	static boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> CallsTo;
 
-	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Enters;
-	static boost::shared_ptr<AuxVar1<ADDRINT, bool, -1, false>> Returns;
+	static boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> Enters;
+	static boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> Returns;
 
-	static boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> InFunc;
-	static boost::shared_ptr<AuxVar1<ADDRINT, int, -1, 0>> NumInFunc;
+	static boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> InFunc;
+	static boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> NumInFunc;
 
 	static boost::shared_ptr<AuxVar0<int, -1>> Pc;
 

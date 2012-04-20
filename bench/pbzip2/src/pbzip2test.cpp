@@ -29,8 +29,6 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		RUN_UNTIL(STEP(t_deleter), RETURNS(fd), __, "Deletes");
 
 		RUN_UNTIL(STEP(t_witness), RETURNS(fc), __, "Ending first consumer");
-
-
 	}
 
 CONCURRIT_END_TEST(MyScenario)

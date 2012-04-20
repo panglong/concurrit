@@ -1,4 +1,4 @@
-TARGET=inc
+TARGET=nbincrement
 SRCS=src/$(TARGET)test.cpp
 
 LIBSRCS=src/increment.cpp

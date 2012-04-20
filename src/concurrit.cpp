@@ -151,13 +151,22 @@ void Concurrit::LoadTestLibrary() {
 			safe_fail("Cannot load the test library %s!\n", Config::TestLibraryFile);
 		}
 		// find the driver main function, try next first, and fail if not found
-		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", handle, true);
-		safe_assert(Concurrit::driver_main_ != concurrit::__main__);
+		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", handle, false);
+		if(Concurrit::driver_main_ == NULL) {
+			// find the driver main function, try next first, and fail if not found
+			Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", false, true, true);
+			safe_assert(Concurrit::driver_main_ == concurrit::__main__);
+			VLOG(1) << ("Using default __main__.");
+		} else {
+			safe_assert(Concurrit::driver_main_ != concurrit::__main__);
+			VLOG(1) << ("Using __main__ from the loaded shared library.");
+		}
 		VLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
 	} else {
 		// find the driver main function, try next first, and fail if not found
 		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", false, true, true);
 		safe_assert(Concurrit::driver_main_ == concurrit::__main__);
+		VLOG(1) << ("Using default __main__.");
 		VLOG(1) << "Not loading a test library";
 	}
 }
