@@ -608,15 +608,18 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	//===========================
 	// after coverage computation:
 	// first remove alternate paths which become covered, since we will delete covered subtrees below
-	for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(); itr < current_nodes_.end(); ) {
-		ChildLoc loc = *itr;
-		safe_assert(!IS_ENDNODE(loc.parent()));
-		if(loc.parent()->covered()) {
-			// delete it
-			itr = current_nodes_.erase(itr);
-		} else {
-			// skip it
-			++itr;
+	safe_assert(Config::KeepExecutionTree || current_nodes_.empty());
+	if(Config::KeepExecutionTree) {
+		for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(); itr < current_nodes_.end(); ) {
+			ChildLoc loc = *itr;
+			safe_assert(!IS_ENDNODE(loc.parent()));
+			if(loc.parent()->covered()) {
+				// delete it
+				itr = current_nodes_.erase(itr);
+			} else {
+				// skip it
+				++itr;
+			}
 		}
 	}
 
