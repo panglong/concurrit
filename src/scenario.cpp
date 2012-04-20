@@ -372,7 +372,7 @@ LOOP_DONE:
 /********************************************************************************/
 
 ConcurritException* Scenario::CollectExceptions() {
-	return safe_notnull(exec_tree_.end_node())->exception();
+	return safe_notnull(exec_tree_.ENDNODE())->exception();
 }
 
 /********************************************************************************/
@@ -410,7 +410,7 @@ void Scenario::RunUncontrolled() {
 
 	// start waiting all to end
 	do {
-		if(exec_tree_.end_node()->exception()->get_non_backtrack() != NULL) {
+		if(exec_tree_.ENDNODE()->exception()->get_non_backtrack() != NULL) {
 			VLOG(1) << "There is a non-backtrack exception, so exiting without waiting threads!";
 			break;
 		}
@@ -508,7 +508,7 @@ void Scenario::RunTestCase() throw() {
 
 	//====================================
 	// after trying all alternate paths
-	safe_assert(exec_tree_.current_nodes()->empty() || exec_tree_.root_node()->covered());
+	safe_assert(exec_tree_.current_nodes()->empty() || exec_tree_.ROOTNODE()->covered());
 
 	if(reason != SUCCESS) {
 		if(be == NULL) {
@@ -1855,7 +1855,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 	VLOG(2) << "DoBacktrackPreemptive for reason: " << reason;
 
-	return !exec_tree_.root_node()->covered();
+	return !exec_tree_.ROOTNODE()->covered();
 }
 
 /********************************************************************************/

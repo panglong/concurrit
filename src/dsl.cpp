@@ -248,7 +248,7 @@ DotGraph* ExecutionTree::CreateDotGraph() {
 void ExecutionTreeManager::SaveDotGraph(const char* filename) {
 	safe_assert(filename != NULL);
 	DotGraph g("ExecutionTree");
-	DotNode* node = root_node_.UpdateDotGraph(&g);
+	DotNode* node = ROOTNODE()->UpdateDotGraph(&g);
 	node->set_label("Root");
 	g.WriteToFile(filename);
 	char buff[256];
@@ -260,12 +260,12 @@ void ExecutionTreeManager::SaveDotGraph(const char* filename) {
 /*************************************************************************************/
 
 ExecutionTreeManager::ExecutionTreeManager() {
-	root_node_.InitChildren(1);
-	lock_node_.InitChildren(0);
+	ROOTNODE()->InitChildren(1);
+	LOCKNODE()->InitChildren(0);
 
 	stack_index_ = 0;
 	safe_assert(node_stack_.empty());
-	node_stack_.push_back({&root_node_, 0}); // of root node
+	node_stack_.push_back({ROOTNODE(), 0}); // of root node
 
 	Restart();
 }
@@ -278,8 +278,8 @@ void ExecutionTreeManager::Restart() {
 	replay_path_.clear();
 
 	// clean end_node's exceptions etc
-	end_node_.clear_exceptions();
-//	safe_assert(end_node_.old_root() == NULL);
+	ENDNODE()->clear_exceptions();
+//	safe_assert(ENDNODE()->old_root() == NULL);
 
 	// reset semaphore value to 0
 	sem_ref_.Set(0);
@@ -287,7 +287,7 @@ void ExecutionTreeManager::Restart() {
 	RestartChildIndexStack();
 
 	if(Config::KeepExecutionTree) {
-		root_node_.PopulateLocations(0, &current_nodes_);
+		ROOTNODE()->PopulateLocations(0, &current_nodes_);
 	}
 
 	SetRef(NULL);
@@ -297,12 +297,12 @@ void ExecutionTreeManager::RestartChildIndexStack() {
 	if(Config::KeepExecutionTree) {
 		// reset stack, since we are not relying on the stack
 		node_stack_.clear();
-		node_stack_.push_back({&root_node_, 0}); // of root node
+		node_stack_.push_back({ROOTNODE(), 0}); // of root node
 	}
 
 	// sets root as the current parent, and adds it to the path
 	stack_index_ = 0;
-	AddToNodeStack({&root_node_, 0}); // this sees the pre-inserted index 0 and makes the index 1
+	AddToNodeStack({ROOTNODE(), 0}); // this sees the pre-inserted index 0 and makes the index 1
 	safe_assert(stack_index_ == 1);
 	safe_assert(!Config::KeepExecutionTree || node_stack_.size() == 1);
 }
@@ -343,10 +343,10 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 	}
 
 	while(true) {
-		ExecutionTree* node = ExchangeRef(&lock_node_);
+		ExecutionTree* node = ExchangeRef(LOCKNODE());
 		if(IS_LOCKNODE(node)) {
 			// noop
-			if(lock_node_.owner() == Coroutine::Current()) {
+			if(LOCKNODE()->owner() == Coroutine::Current()) {
 				if(mode == EXIT_ON_LOCK) {
 					// calling thread has the lock, so safe to return
 					return node;
@@ -363,13 +363,13 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 		}
 		else
 		if(mode == EXIT_ON_LOCK) {
-			lock_node_.OnLock();
+			LOCKNODE()->OnLock();
 			return node; //  can be null, but cannot be lock or end node
 		}
 		else {
 			if(IS_EMPTY(node)) {
 				if(mode == EXIT_ON_EMPTY) {
-					lock_node_.OnLock();
+					LOCKNODE()->OnLock();
 					// will process this
 					return NULL;
 				} else {
@@ -378,7 +378,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			}
 			else // FULL
 			if(mode == EXIT_ON_FULL) {
-				lock_node_.OnLock();
+				LOCKNODE()->OnLock();
 				// will process this
 				safe_assert(node != NULL);
 				return node;
@@ -427,7 +427,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 
 void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_index /*= -1*/) {
 	safe_assert(IS_LOCKNODE(GetRef(memory_order_relaxed)));
-	lock_node_.OnUnlock();
+	LOCKNODE()->OnUnlock();
 
 	if(child_index >= 0) {
 		safe_assert(node != NULL);
@@ -564,9 +564,9 @@ ExecutionTreePath* ExecutionTreeManager::ComputePath(ChildLoc loc, ExecutionTree
 		path->push_back(loc);
 		ExecutionTree* n = loc.parent();
 		ExecutionTree* p = n->parent();
-		safe_assert(p != NULL || n == &root_node_);
+		safe_assert(p != NULL || n == ROOTNODE());
 		if(p == NULL) {
-			safe_assert(n == &root_node_);
+			safe_assert(n == ROOTNODE());
 			break;
 		}
 		int i = p->index_of(n);
@@ -610,7 +610,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	// first remove alternate paths which become covered, since we will delete covered subtrees below
 	for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(); itr < current_nodes_.end(); ) {
 		ChildLoc loc = *itr;
-		safe_assert(loc.parent() != &end_node_);
+		safe_assert(!IS_ENDNODE(loc.parent()));
 		if(loc.parent()->covered()) {
 			// delete it
 			itr = current_nodes_.erase(itr);
@@ -624,15 +624,15 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	// now delete the (largest) covered subtree
 	safe_assert(IS_ENDNODE(node_stack_.back().parent()));
 	safe_assert(IS_ENDNODE(node_stack_.back().get()));
-	safe_assert(highest_covered_index > 1 || root_node_.covered()); // sanity check
+	safe_assert(highest_covered_index > 1 || ROOTNODE()->covered()); // sanity check
 	if((Config::DeleteCoveredSubtrees) && BETWEEN(1, highest_covered_index, sz-2)) {
 		ChildLoc parent_loc = node_stack_[highest_covered_index-1];
 		ExecutionTree* subtree_root = parent_loc.get();
 		safe_assert(subtree_root == node_stack_[highest_covered_index].parent());
 		// TODO(elmas): collect exceptions in the subtree and contain them in end_node
-		parent_loc.set(&end_node_); // shortcut parent to end_node
-		safe_assert(node_stack_[sz-2].parent() != &end_node_);
-		safe_assert(node_stack_[sz-2].get() == &end_node_);
+		parent_loc.set(ENDNODE()); // shortcut parent to end_node
+		safe_assert(node_stack_[sz-2].parent() != ENDNODE());
+		safe_assert(node_stack_[sz-2].get() == ENDNODE());
 		node_stack_[sz-2].set(NULL); // remove link to the end node, to avoid deleting it
 		// we can now delete the subtree
 		delete subtree_root;
@@ -644,7 +644,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	TruncateNodeStack(highest_covered_index > 0 ? highest_covered_index-1 : 0);
 
 	// check if the root is covered
-	return !root_node_.covered();
+	return !ROOTNODE()->covered();
 }
 
 
@@ -653,7 +653,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path) {
 	const int sz = path->size();
 	safe_assert(sz >= 2);
-	safe_assert((*path)[0].parent() == &root_node_);
+	safe_assert((*path)[0].parent() == ROOTNODE());
 //	safe_assert(path->back() == first);
 	safe_assert(IS_ENDNODE(path->back().get()));
 	safe_assert(IS_ENDNODE(path->back().parent()));
@@ -673,8 +673,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
 	if(*reason == THREADS_ALLENDED) {
 		// no other threads, do not wait on empty, just force-lock it
-		SetRef(&lock_node_);
-		lock_node_.OnLock();
+		SetRef(LOCKNODE());
+		LOCKNODE()->OnLock();
 	} else {
 		// try to first wait for empty, if we timeout, we remove it by waiting for full
 		try {
@@ -757,22 +757,22 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 		// also adds to the path and set to ref
 //		if(end_node == NULL) {
 //			// locked, create a new end node and set it
-//			end_node = &end_node_; // new EndNode();
+//			end_node = ENDNODE(); // new EndNode();
 //		} else {
-//			safe_assert(end_node == &end_node_);
+//			safe_assert(end_node == ENDNODE());
 //		}
 		// add to the path and set to ref
-		AddToPath(&end_node_, 0);
+		AddToPath(ENDNODE(), 0);
 		safe_assert(IS_ENDNODE(GetLastNodeInStack().get()));
 
 		// compute coverage for the just-visited node
 //		backtracked = true;
 		if(!DoBacktrack(*reason)) {
 			// root is covered, no need to continue
-			safe_assert(root_node_.covered());
+			safe_assert(ROOTNODE()->covered());
 
 			// notify threads about the end of the controlled run
-			ReleaseRef(&end_node_); // this does not add the node to the path, it is already added
+			ReleaseRef(ENDNODE()); // this does not add the node to the path, it is already added
 			return false;
 		}
 	}
@@ -786,10 +786,10 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 //			// this means dobacktrack has not been run, and end_node has not been added to the path, so use static end_node
 //			safe_assert(!IS_ENDNODE(GetLastNodeInStack().get()));
 //			// update current_node to get end_node when calling GetLastInPath
-//			AddToNodeStack({&end_node_, 0});
+//			AddToNodeStack({ENDNODE(), 0});
 //		}
 		// notify threads about the end of the controlled run
-		ReleaseRef(&end_node_); // this does not add the node to the path, it is already added
+		ReleaseRef(ENDNODE()); // this does not add the node to the path, it is already added
 		return false;
 	}
 
@@ -809,7 +809,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	ComputePath(next_loc, &replay_path_);
 
 	// remove root
-	safe_assert(replay_path_.back().parent() == &root_node_);
+	safe_assert(replay_path_.back().parent() == ROOTNODE());
 	safe_assert(replay_path_.back().child_index() == 0);
 	replay_path_.pop_back(); // remove root
 
@@ -845,11 +845,11 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 
 	// add my exception to the end node
 	// do it before releasing the node to atomic_ref
-	end_node_.add_exception(exception, current, where);
+	ENDNODE()->add_exception(exception, current, where);
 
 	if(!IS_ENDNODE(node)) {
 		// add to the path and set to ref
-		ReleaseRef(&end_node_, 0);
+		ReleaseRef(ENDNODE(), 0);
 	}
 
 	VLOG(2) << "Inserted end node to indicate exception.";

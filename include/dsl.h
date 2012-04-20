@@ -757,14 +757,18 @@ public:
 	void Restart();
 	void RestartChildIndexStack();
 
-static inline bool IS_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
-inline bool IS_FULL(ExecutionTree* n) { return !IS_EMPTY(n) && !IS_LOCKNODE(n); }
-inline bool IS_LOCKNODE(ExecutionTree* n) { return ((n) == (&lock_node_)); }
-inline bool IS_ENDNODE(ExecutionTree* n) { bool b = (INSTANCEOF(n, EndNode*)); safe_assert(!b || (n == &end_node_)); return b; }
-static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
-static inline bool IS_MULTITRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, MultiTransitionNode*)); }
-static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectionNode*)); }
-static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectThreadNode*)); }
+	inline ExecutionTree* ROOTNODE() { return &root_node_; }
+	inline EndNode* ENDNODE() { return &end_node_; }
+	inline LockNode* LOCKNODE() { return &lock_node_; }
+
+	static inline bool IS_EMPTY(ExecutionTree* n) { return ((n) == NULL); }
+	inline bool IS_FULL(ExecutionTree* n) { return !IS_EMPTY(n) && !IS_LOCKNODE(n); }
+	inline bool IS_LOCKNODE(ExecutionTree* n) { return ((n) == (LOCKNODE())); }
+	inline bool IS_ENDNODE(ExecutionTree* n) { bool b = (INSTANCEOF(n, EndNode*)); safe_assert(!b || (n == ENDNODE())); return b; }
+	static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
+	static inline bool IS_MULTITRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, MultiTransitionNode*)); }
+	static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectionNode*)); }
+	static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectThreadNode*)); }
 
 	// set atomic_ref to lock_node, and return the previous node according to mode
 	// if atomic_ref is end_node, returns it immediatelly
