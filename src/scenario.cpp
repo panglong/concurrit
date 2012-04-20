@@ -1890,20 +1890,21 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
 		choice = ASINSTANCEOF(node, ChoiceNode*);
-		if(choice == NULL || choice->covered()) {
-			safe_assert(choice != NULL || exec_tree_.IS_ENDNODE(node));
-			// release lock
-			exec_tree_.ReleaseRef(NULL);
-			// backtrack
-			TRIGGER_BACKTRACK(TREENODE_COVERED);
-		}
+		safe_assert(choice != NULL && !choice->covered());
+//		if(choice == NULL || choice->covered()) {
+//			safe_assert(choice != NULL || exec_tree_.IS_ENDNODE(node));
+//			// release lock
+//			exec_tree_.ReleaseRef(NULL);
+//			// backtrack
+//			TRIGGER_BACKTRACK(TREENODE_COVERED);
+//		}
 		choice->set_message(message);
 	} else {
 		choice = new ChoiceNode(static_info);
 		choice->set_message(message);
 	}
 
-	safe_assert(!choice->covered());
+	safe_assert(choice != NULL && !choice->covered());
 
 	// 0: false, 1: true
 	ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
@@ -2031,19 +2032,20 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
 		trans = ASINSTANCEOF(node, TransferUntilNode*);
-		if(trans == NULL || trans->covered()) {
-			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
-			// release lock
-			exec_tree_.ReleaseRef(NULL);
-			// backtrack
-			TRIGGER_BACKTRACK(TREENODE_COVERED);
-		}
+		safe_assert(trans != NULL && !trans->covered());
+//		if(trans == NULL || trans->covered()) {
+//			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
+//			// release lock
+//			exec_tree_.ReleaseRef(NULL);
+//			// backtrack
+//			TRIGGER_BACKTRACK(TREENODE_COVERED);
+//		}
 		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
 	} else {
 		trans = new TransferUntilNode(static_info, assertion, pred, var, trans_constraints_->Clone(), message);
 	}
 
-	safe_assert(!trans->covered());
+	safe_assert(trans != NULL && !trans->covered());
 
 	// not covered yet
 
@@ -2110,18 +2112,20 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
 		select = ASINSTANCEOF(node, ForallThreadNode*);
-		if(select == NULL || select->covered()) {
-			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
-			// release lock
-			exec_tree_.ReleaseRef(NULL);
-			// backtrack
-			TRIGGER_BACKTRACK(TREENODE_COVERED);
-		}
+		safe_assert(select != NULL && !select->covered());
+//		if(select == NULL || select->covered()) {
+//			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
+//			// release lock
+//			exec_tree_.ReleaseRef(NULL);
+//			// backtrack
+//			TRIGGER_BACKTRACK(TREENODE_COVERED);
+//		}
 		select->Update(pred, message);
 	} else {
 		select = new ForallThreadNode(static_info, pred, message);
 	}
-	safe_assert(!select->covered());
+
+	safe_assert(select != NULL && !select->covered());
 
 	// not covered yet
 
@@ -2195,18 +2199,20 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
 		select = ASINSTANCEOF(node, ExistsThreadNode*);
-		if(select == NULL || select->covered()) {
-			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
-			// release lock
-			exec_tree_.ReleaseRef(NULL);
-			// backtrack
-			TRIGGER_BACKTRACK(TREENODE_COVERED);
-		}
+		safe_assert(select != NULL && !select->covered());
+//		if(select == NULL || select->covered()) {
+//			safe_assert(select != NULL || exec_tree_.IS_ENDNODE(node));
+//			// release lock
+//			exec_tree_.ReleaseRef(NULL);
+//			// backtrack
+//			TRIGGER_BACKTRACK(TREENODE_COVERED);
+//		}
 		select->Update(pred, message);
 	} else {
 		select = new ExistsThreadNode(static_info, pred, message);
 	}
-	safe_assert(!select->covered());
+
+	safe_assert(select != NULL && !select->covered());
 
 	// not covered yet
 
