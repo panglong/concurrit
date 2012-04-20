@@ -602,6 +602,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 		}
 		--highest_covered_index;
 	}
+	safe_assert(BETWEEN(0, highest_covered_index, sz-1));
 
 
 	//===========================
@@ -623,6 +624,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	// now delete the (largest) covered subtree
 	safe_assert(IS_ENDNODE(node_stack_.back().parent()));
 	safe_assert(IS_ENDNODE(node_stack_.back().get()));
+	safe_assert(highest_covered_index > 1 || root_node_.covered()); // sanity check
 	if((Config::DeleteCoveredSubtrees) && BETWEEN(1, highest_covered_index, sz-2)) {
 		ChildLoc parent_loc = node_stack_[highest_covered_index-1];
 		ExecutionTree* subtree_root = parent_loc.get();
