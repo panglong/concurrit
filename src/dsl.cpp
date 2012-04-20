@@ -457,15 +457,17 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 		ExecutionTree* last_node = loc.get();
 		safe_assert(last_node != NULL || stack_index_ == node_stack_.size());
 		if(last_node != NULL) {
-			// truncate the path since we are ending abruptly
+			// truncate the path since we are adding end node in the middle
 			const int sz = node_stack_.size();
+			safe_assert(BETWEEN(0, stack_index_, sz));
 			if(stack_index_ < sz) {
-				VLOG(2) << "Truncating from " << (stack_index_+1) << " of size " << sz;
 				TruncateNodeStack(stack_index_+1);
+				safe_assert(stack_index_ == node_stack_.size());
 				safe_assert(!node_stack_.empty() && !node_stack_.back().empty());
 				safe_assert(loc.get() == node_stack_.back().parent());
 //				current_node_ =
-				loc = node_stack_.back();
+				loc = GetLastNodeInStack();
+				safe_assert(!loc.empty());
 				last_node = loc.get();
 			}
 			// set old_root of end node
@@ -477,12 +479,9 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 		}
 	} else {
 		// if node is not end node, the we are either overwriting NULL or the same value
-		if(!loc.check(NULL) && !loc.check(node)) {
-			loc.parent()->ToStream(stderr);
-			loc.get()->ToStream(stderr);
-			safe_assert(false);
-		}
+		safe_assert(loc.check(NULL) || loc.check(node));
 	}
+
 	safe_assert(!loc.empty());
 	loc.set(node); // also sets node's parent
 
@@ -502,7 +501,7 @@ void ExecutionTreeManager::AddToNodeStack(const ChildLoc& current) {
 	const int sz = node_stack_.size();
 
 	// if we are adding end node, then the stack must have been truncated
-	safe_assert(!IS_ENDNODE(current.parent()) || stack_index_ == sz);
+	CHECK(!IS_ENDNODE(current.parent()) || stack_index_ == sz);
 
 	if(stack_index_ == sz) {
 		node_stack_.push_back(current);
@@ -530,8 +529,9 @@ ChildLoc ExecutionTreeManager::GetNextNodeInStack() {
 
 ChildLoc ExecutionTreeManager::GetLastNodeInStack() {
 	const int index = stack_index_ - 1;
-	safe_assert(BETWEEN(0, index, node_stack_.size()-1));
-	ChildLoc loc = node_stack_[index];
+	const int sz = node_stack_.size();
+	safe_assert(BETWEEN(0, index, sz-1));
+	ChildLoc loc = (index == (sz-1)) ? node_stack_.back() : node_stack_[index];
 	safe_assert(!loc.empty());
 	return loc;
 }
@@ -638,7 +638,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	}
 
 	// truncate the stack
-	safe_assert(BETWEEN(0, highest_covered_index, int(node_stack_.size())-1));
+	safe_assert(BETWEEN(0, highest_covered_index, (sz-1)));
 	TruncateNodeStack(highest_covered_index > 0 ? highest_covered_index-1 : 0);
 
 	// check if the root is covered
