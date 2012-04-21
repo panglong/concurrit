@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 
+//extern int x;
 class NBCounter {
 private:
 	pthread_mutex_t mutex;
@@ -19,6 +20,9 @@ public:
 	void increment();
 
 	int get();
+
+	void lock();
+	void unlock();
 
 	void set(int k);
 

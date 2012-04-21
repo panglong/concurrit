@@ -2,6 +2,8 @@
 #include "increment.h"
 #include "dummy.h"
 
+//int x = 0;
+
 NBCounter::NBCounter(int k /*= 0*/) {
 	x = k;
 	int status = pthread_mutex_init(&mutex, NULL);
@@ -20,19 +22,18 @@ void NBCounter::increment() {
 		int t = x;
 		int k = t + 1;
 
-		AtPc(42);
-
 		printf("---------------------- INCREMENT READS FROM X\n");
 
-		pthread_mutex_lock(&mutex);
+		lock();
 		if(x == t) {
 			x = k;
-			pthread_mutex_unlock(&mutex);
+			unlock();
 			printf("---------------------- INCREMENT SUCCEEDS\n");
 			break;
 		}
-		pthread_mutex_unlock(&mutex);
+		unlock();
 		printf("---------------------- INCREMENT RETRYING\n");
+
 	}
 
 	EndInstrument();
@@ -48,5 +49,13 @@ void NBCounter::set(int k) {
 
 void* NBCounter::x_address() {
 	return (&x);
+}
+
+void NBCounter::lock() {
+	pthread_mutex_lock(&mutex);
+}
+
+void NBCounter::unlock() {
+	pthread_mutex_unlock(&mutex);
 }
 
