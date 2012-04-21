@@ -318,11 +318,11 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define READS2(t)		safe_notnull(AuxState::Reads.get())->TP0(AuxState::Reads, t)
 #define WRITES2(t)		safe_notnull(AuxState::Writes.get())->TP0(AuxState::Writes, t)
 
-#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, reinterpret_cast<ADDRINT>(x), TID)
-#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, reinterpret_cast<ADDRINT>(x), TID)
+#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, PTR2ADDRINT(x), TID)
+#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, PTR2ADDRINT(x), TID)
 
-#define READS_FROM2(x, t)	safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, reinterpret_cast<ADDRINT>(x), t)
-#define WRITES_TO2(x, t)	safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, reinterpret_cast<ADDRINT>(x), t)
+#define READS_FROM2(x, t)	safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, PTR2ADDRINT(x), t)
+#define WRITES_TO2(x, t)	safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, PTR2ADDRINT(x), t)
 
 /********************************************************************************/
 

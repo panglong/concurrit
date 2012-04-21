@@ -228,6 +228,9 @@ typedef int THREADID;
 typedef uintptr_t ADDRINT;
 #endif
 
+#define SIZEOF_ASSERT(e) typedef char __SIZEOF_ASSERT__[(e)?1:-1]
+SIZEOF_ASSERT(sizeof(ADDRINT) == sizeof(void*));
+
 #define PTR2ADDRINT(p)	(reinterpret_cast<ADDRINT>(p))
 #define ADDRINT2PTR(p)	(reinterpret_cast<void*>(p))
 
