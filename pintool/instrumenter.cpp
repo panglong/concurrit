@@ -808,7 +808,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 	if (INS_IsStackRead(ins) || INS_IsStackWrite(ins))
 		return;
 
-	bool is_access = INS_IsMemoryWrite(ins) || INS_HasMemoryRead2(ins) || INS_IsMemoryRead(ins);
+	bool is_access = INS_IsMemoryWrite(ins) || INS_HasMemoryRead2(ins) || (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins));
 	if(!is_access) return;
 	bool has_fallthrough = INS_HasFallThrough(ins);
 	bool is_branchorcall = INS_IsBranchOrCall(ins);
@@ -834,7 +834,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 	/* ==================== */
 
-	if (INS_IsMemoryRead(ins)) {
+	if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins)) {
 		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_PTR, loc, IARG_END);
