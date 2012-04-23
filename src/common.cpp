@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "common.h"
+#include "concurrit.h"
 
 namespace concurrit {
 
@@ -186,11 +186,10 @@ void my_fclose(FILE* file, bool exit_on_fail /*= true*/) {
 }
 
 /********************************************************************************/
-#include "MersenneTwister.h"
 
 bool generate_random_bool() {
 	static MTRand rn_gen;
-	return (rn_gen.randInt(uint32(1024)) > uint(512));
+	return (rn_gen.randInt(uint32_t(1024)) > uint32_t(512));
 }
 
 /********************************************************************************/

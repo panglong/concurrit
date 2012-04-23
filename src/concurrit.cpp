@@ -121,16 +121,16 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 void Concurrit::Destroy() {
 	safe_assert(IsInitialized());
 
+	do { // need a fence here
+		initialized_ = false;
+	} while(false);
+
 	CoroutineGroup::delete_main();
 
 	Thread::delete_tls_key();
 
 //	int pth_kill_result = pth_kill();
 //	safe_assert(pth_kill_result == TRUE);
-
-	do { // need a fence here
-		initialized_ = false;
-	} while(false);
 
 	VLOG(2) << "Finalized Concurrit.";
 }

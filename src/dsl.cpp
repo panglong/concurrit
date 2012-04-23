@@ -255,9 +255,6 @@ void ExecutionTreeManager::SaveDotGraph(const char* filename) {
 /*************************************************************************************/
 
 ExecutionTreeManager::ExecutionTreeManager() {
-	ROOTNODE()->InitChildren(1);
-	LOCKNODE()->InitChildren(0);
-
 	stack_index_ = 0;
 	safe_assert(node_stack_.empty());
 	node_stack_.push_back({ROOTNODE(), 0}); // of root node
@@ -389,8 +386,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				if(result == ETIMEDOUT) {
 					// fire timeout (backtrack)
 					ExecutionTree* cn = GetRef();
-					VLOG(2) << "AcquireRef: Node not consumed on time: " <<
-							(cn == NULL ? "NULL" : (cn->message() == NULL ? "NULL" : cn->message()));
+					VLOG(2) << "AcquireRef: Node not consumed on time: " << (cn == NULL ? "NULL" : cn->message());
 					TRIGGER_BACKTRACK(TIMEOUT);
 				}
 				safe_assert(result == PTH_SUCCESS);
@@ -407,8 +403,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			if(timer.getElapsedTimeInMicroSec() > timeout_usec) {
 				// fire timeout (backtrack)
 				ExecutionTree* cn = GetRef();
-				VLOG(2) << "AcquireRef: Node not consumed on time: " <<
-						(cn == NULL ? "NULL" : (cn->message() == NULL ? "NULL" : cn->message()));
+				VLOG(2) << "AcquireRef: Node not consumed on time: " << (cn == NULL ? "NULL" : cn->message());
 				TRIGGER_BACKTRACK(TIMEOUT);
 			}
 		}

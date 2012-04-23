@@ -1915,7 +1915,11 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 		bool cov_1 = choice->child_covered(1);
 
 		if(!cov_0 && !cov_1) {
-			ret = (safe_notnull(choice->info())->nondet() ? (generate_random_bool() ? 1 : 0) : 1);
+			if(safe_notnull(ASINSTANCEOF(choice->static_info(), StaticChoiceInfo*))->nondet()) {
+				ret = (generate_random_bool() ? 1 : 0);
+			} else {
+				ret = 1;
+			}
 		} else {
 			ret = !cov_0 ? 0 : 1;
 		}

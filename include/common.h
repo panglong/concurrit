@@ -53,6 +53,7 @@
 #include <iostream>
 #include <sstream>
 #include <limits.h>
+#include <climits>
 
 // std libraries
 #include <vector>

@@ -38,6 +38,7 @@
 #include "thread.h"
 #include "channel.h"
 #include "vc.h"
+#include "threadvar.h"
 
 namespace concurrit {
 

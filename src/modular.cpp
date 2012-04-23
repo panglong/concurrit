@@ -175,7 +175,9 @@ void ThreadModularScenario::TestCase() {
 	DISABLE_DPOR(); // disable dynamic partial order reduction
 
 	// add environment thread to the group
-	Coroutine* env_co = CREATE_THREAD(env_thread_function, &env_trace_);
+	ThreadVarPtr env_var = CREATE_THREAD(env_thread_function, &env_trace_);
+	safe_assert(env_var != NULL && !env_var->is_empty());
+	Coroutine* env_co = env_var->thread();
 
 	// add a choice point for choosing which member to run (or reuse it if already exists)
 	MemberChoicePoint* member_choice = NULL;

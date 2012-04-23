@@ -47,6 +47,9 @@ namespace concurrit {
 // boost libraries
 #include <boost/shared_ptr.hpp>
 
+// Mersenne Twister random number generator
+#include "MersenneTwister.h"
+
 // GNU portable threads library
 // #include "pth.h"
 

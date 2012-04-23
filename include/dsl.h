@@ -56,7 +56,7 @@ typedef std::vector<ExecutionTree*> ExecutionTreeList;
 
 class StaticDSLInfo {
 public:
-	StaticDSLInfo(SourceLocation* loc = NULL, const char* message = NULL) : srcloc_(loc), message_(message) {}
+	StaticDSLInfo(SourceLocation* loc = NULL, const char* message = NULL) : srcloc_(loc), message_(message == NULL ? "" : std::string(message)) {}
 	virtual ~StaticDSLInfo() {
 		safe_delete(srcloc_);
 	}
@@ -79,6 +79,7 @@ class ExecutionTree : public Writable {
 public:
 	ExecutionTree(StaticDSLInfo* static_info = NULL, ExecutionTree* parent = NULL, int num_children = 0)
 	: static_info_(static_info), parent_(parent), covered_(false) {
+		safe_assert(static_info_ != NULL);
 		InitChildren(num_children);
 		num_nodes_++;
 	}
@@ -111,18 +112,18 @@ public:
 	DotGraph* CreateDotGraph();
 
 	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
-		if(static_info_->message_ != NULL) {
-			VLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message_ << "]";
+		if(static_info_->message() != "") {
+			VLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 		}
 	}
 
 	virtual void OnSubmitted() {
-		if(static_info_->message_ != NULL) {
-			VLOG(1) << "Submitted: [ACTION: " << static_info_->message_ << "]";
+		if(static_info_->message_ != "") {
+			VLOG(1) << "Submitted: [ACTION: " << static_info_->message() << "]";
 		}
 	}
 
-	std::string& message() { return static_info_->message_; }
+	std::string& message() { return static_info_->message(); }
 
 private:
 	DECL_FIELD(StaticDSLInfo*, static_info)
@@ -156,8 +157,8 @@ public:
 			var_->set_thread(current);
 		}
 
-		if(static_info_->message_ != NULL) {
-			VLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message_ << "]";
+		if(static_info_->message() != "") {
+			VLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 		}
 	}
 
@@ -246,7 +247,7 @@ private:
 
 class EndNode : public ExecutionTree {
 public:
-	EndNode(ExecutionTree* parent = NULL) : ExecutionTree(NULL, "EndNode", parent, 1) {
+	EndNode(ExecutionTree* parent = NULL) : ExecutionTree(new StaticDSLInfo(NULL, "EndNode"), parent, 1) {
 		covered_ = true;
 		set_child(this); // points to itself
 		exception_ = NULL;
@@ -317,6 +318,8 @@ private:
 	DISALLOW_COPY_AND_ASSIGN(EndNode)
 };
 
+/********************************************************************************/
+
 class StaticEndNode : public EndNode {
 public:
 	StaticEndNode() : EndNode(NULL) {}
@@ -332,7 +335,7 @@ public:
 
 class LockNode : public ExecutionTree {
 public:
-	LockNode() : ExecutionTree(NULL, 0), owner_(NULL) {}
+	LockNode() : ExecutionTree(new StaticDSLInfo(NULL, "LockNode"), NULL, 0), owner_(NULL) {}
 	~LockNode(){}
 
 	void OnLock() {
@@ -347,6 +350,14 @@ public:
 
 private:
 	DECL_FIELD(Coroutine*, owner)
+};
+
+/********************************************************************************/
+
+class RootNode : public ExecutionTree {
+public:
+	RootNode() : ExecutionTree(new StaticDSLInfo(NULL, "RootNode"), NULL, 1) {}
+	~RootNode(){}
 };
 
 /********************************************************************************/
@@ -373,6 +384,8 @@ private:
 	DECL_FIELD(bool, nondet)
 	bool covered_[2];
 };
+
+/********************************************************************************/
 
 class ChoiceNode : public SelectionNode {
 public:
@@ -413,7 +426,7 @@ public:
 	// override
 	bool child_covered(int i = 0) {
 		safe_assert(i == 0 || i == 1);
-		return ExecutionTree::child_covered(i) || safe_notnull(ASINSTANCEOF(info_, StaticChoiceInfo*))->is_covered(i);
+		return ExecutionTree::child_covered(i) || safe_notnull(ASINSTANCEOF(static_info_, StaticChoiceInfo*))->is_covered(i);
 	}
 
 	// override
@@ -467,8 +480,8 @@ public:
 
 	ThreadVarPtr create_thread_var(Coroutine* current = NULL) {
 		std::stringstream s;
-		if(static_info_->message_ != NULL) {
-			s << static_info_->message_;
+		if(static_info_->message() != "") {
+			s << static_info_->message();
 		} else if(current != NULL) {
 			s << "THR-" << current->tid();
 		} else {
@@ -802,7 +815,7 @@ private:
 	}
 
 private:
-	DECL_FIELD_REF(ExecutionTree, root_node)
+	DECL_FIELD_REF(RootNode, root_node)
 	DECL_FIELD_REF(LockNode, lock_node)
 	DECL_FIELD_REF(StaticEndNode, end_node)
 //	DECL_FIELD_GET_REF(ChildLoc, current_node) // no set method, use UpdateCurrentNode

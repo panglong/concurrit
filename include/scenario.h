@@ -162,7 +162,7 @@ public:
 
 	/******************************************************************/
 
-	bool DSLChoice(StaticChoiceInfo* info, const char* message = NULL);
+	bool DSLChoice(StaticDSLInfo* static_info, const char* message = NULL);
 
 //	void DSLTransition(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 
