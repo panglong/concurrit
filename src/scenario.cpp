@@ -1860,7 +1860,10 @@ bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
 
 /********************************************************************************/
 
-bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= NULL*/) {
+bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NULL*/) {
+	safe_assert(static_info != NULL);
+	if(message != NULL) static_info->set_message(message);
+
 	VLOG(2) << "Adding DSLChoice";
 
 	//=======================================================
@@ -1868,10 +1871,9 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 	if(Config::KeepExecutionTree && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
+		safe_assert(BETWEEN(0, reploc.child_index(), 1));
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
 		safe_assert(choice != NULL);
-		safe_assert(choice->info() == static_info);
-		choice->set_message(message);
 
 		// update current node
 		exec_tree_.AddToNodeStack(reploc);
@@ -1897,10 +1899,8 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		choice->set_message(message);
 	} else {
 		choice = new ChoiceNode(static_info);
-		choice->set_message(message);
 	}
 
 	safe_assert(choice != NULL && !choice->covered());
@@ -1915,7 +1915,7 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 		bool cov_1 = choice->child_covered(1);
 
 		if(!cov_0 && !cov_1) {
-			ret = (safe_notnull(choice->info())->nondet() ? (rand() % 2) : 1);
+			ret = (safe_notnull(choice->info())->nondet() ? (generate_random_bool() ? 1 : 0) : 1);
 		} else {
 			ret = !cov_0 ? 0 : 1;
 		}
@@ -2000,6 +2000,9 @@ bool Scenario::DSLChoice(StaticChoiceInfo* static_info, const char* message /*= 
 /********************************************************************************/
 
 void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+	safe_assert(static_info != NULL);
+	if(message != NULL) static_info->set_message(message);
+
 	VLOG(2) << "Adding DSLTransferUntil";
 
 	//=======================================================
@@ -2007,9 +2010,10 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	if(Config::KeepExecutionTree && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
+		safe_assert(BETWEEN(0, reploc.child_index(), 1));
 		TransferUntilNode* trans = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
 		safe_assert(trans != NULL);
-		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
+		trans->Update(assertion, pred, var, trans_constraints_->Clone());
 
 		// update current node
 		exec_tree_.AddToNodeStack(reploc);
@@ -2039,9 +2043,9 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		trans->Update(assertion, pred, var, trans_constraints_->Clone(), message);
+		trans->Update(assertion, pred, var, trans_constraints_->Clone());
 	} else {
-		trans = new TransferUntilNode(static_info, assertion, pred, var, trans_constraints_->Clone(), message);
+		trans = new TransferUntilNode(static_info, assertion, pred, var, trans_constraints_->Clone());
 	}
 
 	safe_assert(trans != NULL && !trans->covered());
@@ -2067,6 +2071,9 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 /********************************************************************************/
 
 ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+	safe_assert(static_info != NULL);
+	if(message != NULL) static_info->set_message(message);
+
 	VLOG(2) << "Adding DSLForallThread";
 
 	//=======================================================
@@ -2078,12 +2085,13 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 		safe_assert(reploc.parent() != NULL);
 		ForallThreadNode* select = ASINSTANCEOF(reploc.parent(), ForallThreadNode*);
 		safe_assert(select != NULL);
+		safe_assert(BETWEEN(0, reploc.child_index(), int(select->children()->size())-1));
 
 		int child_index = reploc.child_index();
 		// if index is -1, then we should submit this select thread
 		if(child_index >= 0) {
 			// re-select the thread to update the associated thread variable
-			select->Update(pred, message);
+			select->Update(pred);
 			select->set_selected_thread(child_index);
 			var = select->var(child_index);
 			safe_assert(var != NULL || !var->is_empty());
@@ -2119,9 +2127,9 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Update(pred, message);
+		select->Update(pred);
 	} else {
-		select = new ForallThreadNode(static_info, pred, message);
+		select = new ForallThreadNode(static_info, pred);
 	}
 
 	safe_assert(select != NULL && !select->covered());
@@ -2156,6 +2164,9 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 /********************************************************************************/
 
 ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+	safe_assert(static_info != NULL);
+	if(message != NULL) static_info->set_message(message);
+
 	VLOG(2) << "Adding DSLExistsThread";
 
 	//=======================================================
@@ -2165,6 +2176,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 	if(Config::KeepExecutionTree && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(reploc.parent() != NULL);
+		safe_assert(BETWEEN(0, reploc.child_index(), 1));
 		ExistsThreadNode* select = ASINSTANCEOF(reploc.parent(), ExistsThreadNode*);
 		safe_assert(select != NULL);
 
@@ -2172,7 +2184,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 		// if index is -1, then we should submit this select thread
 		if(child_index >= 0) {
 			// re-select the thread to update the associated thread variable
-			select->Update(pred, message);
+			select->Update(pred);
 			var = select->var();
 			safe_assert(var != NULL || !var->is_empty());
 
@@ -2206,9 +2218,9 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Update(pred, message);
+		select->Update(pred);
 	} else {
-		select = new ExistsThreadNode(static_info, pred, message);
+		select = new ExistsThreadNode(static_info, pred);
 	}
 
 	safe_assert(select != NULL && !select->covered());

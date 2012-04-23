@@ -158,18 +158,13 @@ ExecutionTree* ExecutionTree::get_child(int i) {
 
 /*************************************************************************************/
 
-bool ExecutionTree::ComputeCoverage(bool recurse, bool call_parent /*= false*/) {
+bool ExecutionTree::ComputeCoverage(bool call_parent /*= false*/) {
 	if(!covered_) {
 		bool cov = true;
 		for_each_child(child) {
 			if(child != NULL) {
-				if(!child->covered_) {
-					if(recurse) {
-						child->ComputeCoverage(recurse);
-					}
-					cov = cov && child->covered_;
-					if(!cov) break;
-				}
+				cov = cov && child->covered_;
+				if(!cov) break;
 			} else {
 				cov = false; // NULL child means undiscovered-yet branch
 				break;
@@ -178,7 +173,7 @@ bool ExecutionTree::ComputeCoverage(bool recurse, bool call_parent /*= false*/) 
 		covered_ = cov;
 	}
 	if(covered_ && call_parent && parent_ != NULL) {
-		parent_->ComputeCoverage(recurse, true);
+		parent_->ComputeCoverage(/*call_parent=*/ true);
 	}
 	return covered_;
 }
@@ -597,7 +592,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 		safe_assert(!element.empty());
 		safe_assert(element.check(node_stack_[highest_covered_index].parent()));
 		ExecutionTree* node = element.parent();
-		if(!node->ComputeCoverage(false)) { //  do not recurse, only use immediate children
+		if(!node->ComputeCoverage()) { //  do not recurse, only use immediate children
 			break;
 		}
 		--highest_covered_index;
@@ -739,7 +734,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 		if(choice != NULL) {
 			// idx goes to the end of the script
 			int idx = last.child_index();
-			choice->info()->set_covered(idx, true);
+			safe_notnull(ASINSTANCEOF(choice->static_info(), StaticChoiceInfo*))->set_covered(idx, true);
 		}
 	}
 
@@ -861,14 +856,14 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 
 /*************************************************************************************/
 
-bool ForallThreadNode::ComputeCoverage(bool recurse, bool call_parent /*= false*/) {
+bool ForallThreadNode::ComputeCoverage(bool call_parent /*= false*/) {
 	Scenario* scenario = Scenario::Current();
 	safe_assert(scenario != NULL);
 	// this check is important, because we should not compute coverage at all if already covered
 	// since the computation below may turn already covered not covered
 	if(!covered_) {
 		covered_ = (children_.size() == scenario->group()->GetNumMembers())
-					&& ExecutionTree::ComputeCoverage(recurse, call_parent);
+					&& ExecutionTree::ComputeCoverage(call_parent);
 	}
 	return covered_;
 }

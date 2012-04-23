@@ -56,14 +56,16 @@ typedef std::vector<ExecutionTree*> ExecutionTreeList;
 
 class StaticDSLInfo {
 public:
-	StaticDSLInfo(SourceLocation* loc = NULL, const char* code = NULL) : srcloc_(loc), code_(code) {}
+	StaticDSLInfo(SourceLocation* loc = NULL, const char* message = NULL) : srcloc_(loc), message_(message) {}
 	virtual ~StaticDSLInfo() {
 		safe_delete(srcloc_);
 	}
 
 private:
 	DECL_FIELD(SourceLocation*, srcloc)
-	DECL_FIELD(std::string, code)
+	DECL_FIELD(std::string, message)
+
+	friend class ExecutionTree;
 };
 
 /********************************************************************************/
@@ -75,13 +77,10 @@ private:
 
 class ExecutionTree : public Writable {
 public:
-	ExecutionTree(StaticDSLInfo* static_info = NULL, const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
-	: static_info_(static_info), parent_(parent), covered_(false), message_(message) {
+	ExecutionTree(StaticDSLInfo* static_info = NULL, ExecutionTree* parent = NULL, int num_children = 0)
+	: static_info_(static_info), parent_(parent), covered_(false) {
 		InitChildren(num_children);
 		num_nodes_++;
-		if(message == NULL && static_info != NULL) {
-			message = static_info->code().c_str();
-		}
 	}
 
 	virtual ~ExecutionTree();
@@ -100,7 +99,7 @@ public:
 
 	virtual bool child_covered(int i = 0);
 
-	virtual bool ComputeCoverage(bool recurse, bool call_parent = false);
+	virtual bool ComputeCoverage(bool call_parent = false);
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
@@ -112,16 +111,18 @@ public:
 	DotGraph* CreateDotGraph();
 
 	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
-		if(message_ != NULL) {
-			VLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
+		if(static_info_->message_ != NULL) {
+			VLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message_ << "]";
 		}
 	}
 
 	virtual void OnSubmitted() {
-		if(message_ != NULL) {
-			VLOG(1) << "Submitted: [ACTION: " << message_ << "]";
+		if(static_info_->message_ != NULL) {
+			VLOG(1) << "Submitted: [ACTION: " << static_info_->message_ << "]";
 		}
 	}
+
+	std::string& message() { return static_info_->message_; }
 
 private:
 	DECL_FIELD(StaticDSLInfo*, static_info)
@@ -130,8 +131,6 @@ private:
 	DECL_FIELD(bool, covered)
 
 	DECL_STATIC_FIELD(int, num_nodes)
-
-	DECL_FIELD(const char*, message)
 
 	friend class ExecutionTreeManager;
 };
@@ -145,9 +144,8 @@ public:
 				   const TransitionPredicatePtr& pred,
 				   const ThreadVarPtr& var = ThreadVarPtr(),
 				   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
-				   const char* message = NULL,
 				   ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(static_info, message, parent, num_children), assertion_(assertion), pred_(pred), var_(var), constraints_(constraints) {}
+	: ExecutionTree(static_info, parent, num_children), assertion_(assertion), pred_(pred), var_(var), constraints_(constraints) {}
 	virtual ~TransitionNode(){}
 
 	virtual void OnTaken(Coroutine* current, int child_index = 0) {
@@ -158,21 +156,19 @@ public:
 			var_->set_thread(current);
 		}
 
-		if(message_ != NULL) {
-			VLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << message_ << "]";
+		if(static_info_->message_ != NULL) {
+			VLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message_ << "]";
 		}
 	}
 
 	void Update(const TransitionPredicatePtr& assertion,
 				const TransitionPredicatePtr& pred,
 			   const ThreadVarPtr& var = ThreadVarPtr(),
-			   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
-			   const char* message = NULL) {
+			   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr()) {
 		assertion_ = assertion;
 		pred_ = pred;
 		var_ = var;
 		constraints_ = constraints;
-		message_ = message;
 	}
 
 private:
@@ -184,8 +180,8 @@ private:
 
 class SelectionNode : public ExecutionTree {
 public:
-	SelectionNode(StaticDSLInfo* static_info = NULL, const char* message = NULL, ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(static_info, message, parent, num_children) {}
+	SelectionNode(StaticDSLInfo* static_info = NULL, ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(static_info, parent, num_children) {}
 	virtual ~SelectionNode(){}
 };
 
@@ -380,8 +376,8 @@ private:
 
 class ChoiceNode : public SelectionNode {
 public:
-	ChoiceNode(StaticChoiceInfo* info, const char* message = NULL, ExecutionTree* parent = NULL)
-	: SelectionNode(info, message, parent, 2), info_(info) {}
+	ChoiceNode(StaticDSLInfo* info, ExecutionTree* parent = NULL)
+	: SelectionNode(info, parent, 2) {}
 	~ChoiceNode() {}
 
 	virtual void ToStream(FILE* file) {
@@ -417,23 +413,19 @@ public:
 	// override
 	bool child_covered(int i = 0) {
 		safe_assert(i == 0 || i == 1);
-		return ExecutionTree::child_covered(i) || safe_notnull(info_)->is_covered(i);
+		return ExecutionTree::child_covered(i) || safe_notnull(ASINSTANCEOF(info_, StaticChoiceInfo*))->is_covered(i);
 	}
 
 	// override
-	bool ComputeCoverage(bool recurse, bool call_parent = false) {
+	bool ComputeCoverage(bool call_parent = false) {
 		if(!covered_) {
-			safe_assert(!recurse);
 			covered_ = child_covered(0) && child_covered(1);
 		}
 		if(covered_ && call_parent && parent_ != NULL) {
-			parent_->ComputeCoverage(recurse, true);
+			parent_->ComputeCoverage(true);
 		}
 		return covered_;
 	}
-
-private:
-	DECL_FIELD(StaticChoiceInfo*, info)
 };
 
 /********************************************************************************/
@@ -443,9 +435,8 @@ public:
 	typedef std::map<THREADID, int> TidToIdxMap;
 	SelectThreadNode(StaticDSLInfo* static_info = NULL,
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
-					 const char* message = NULL,
 					 ExecutionTree* parent = NULL, int num_children = 0)
-	: SelectionNode(static_info, message, parent, num_children), pred_(pred) {}
+	: SelectionNode(static_info, parent, num_children), pred_(pred) {}
 	virtual ~SelectThreadNode() {}
 
 	virtual bool is_exists() = 0;
@@ -456,10 +447,8 @@ public:
 		ExecutionTree::ToStream(file);
 	}
 
-	void Update(const TransitionPredicatePtr& pred,
-				const char* message = NULL) {
+	void Update(const TransitionPredicatePtr& pred) {
 		pred_ = pred;
-		message_ = message;
 	}
 
 	bool CanSelectThread(int child_index = 0) {
@@ -478,8 +467,8 @@ public:
 
 	ThreadVarPtr create_thread_var(Coroutine* current = NULL) {
 		std::stringstream s;
-		if(message_ != NULL) {
-			s << message_;
+		if(static_info_->message_ != NULL) {
+			s << static_info_->message_;
 		} else if(current != NULL) {
 			s << "THR-" << current->tid();
 		} else {
@@ -502,9 +491,8 @@ class ExistsThreadNode : public SelectThreadNode {
 public:
 	ExistsThreadNode(StaticDSLInfo* static_info = NULL,
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
-					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(static_info, pred, message, parent, 1), selected_tid_(-1), var_(create_thread_var()) {}
+	: SelectThreadNode(static_info, pred, parent, 1), selected_tid_(-1), var_(create_thread_var()) {}
 
 	~ExistsThreadNode() {}
 
@@ -565,16 +553,15 @@ class ForallThreadNode : public SelectThreadNode {
 public:
 	ForallThreadNode(StaticDSLInfo* static_info = NULL,
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
-					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(static_info, pred, message, parent, 0) {}
+	: SelectThreadNode(static_info, pred, parent, 0) {}
 
 	~ForallThreadNode() {}
 
 	bool is_exists() { return false; }
 
 	// override
-	bool ComputeCoverage(bool recurse, bool call_parent = false);
+	bool ComputeCoverage(bool call_parent = false);
 
 	ChildLoc set_selected_thread(Coroutine* co) {
 		int child_index = add_or_get_thread(co);
@@ -697,9 +684,8 @@ public:
 						 const TransitionPredicatePtr& pred,
 						 const ThreadVarPtr& var = ThreadVarPtr(),
 						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
-						 const char* message = NULL,
 						 ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(static_info, assertion, pred, var, constraints, message, parent, num_children) {}
+	: TransitionNode(static_info, assertion, pred, var, constraints, parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -716,9 +702,8 @@ public:
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
 					 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
-					 const char* message = NULL,
 					 ExecutionTree* parent = NULL)
-	: MultiTransitionNode(static_info, assertion, pred, var, constraints, message, parent, 1) {}
+	: MultiTransitionNode(static_info, assertion, pred, var, constraints, parent, 1) {}
 
 	~TransferUntilNode() {}
 

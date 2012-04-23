@@ -380,6 +380,7 @@ void* FuncAddressByName(const char* name, void* handle, bool fail_on_null = fals
 
 std::vector<std::string>* ReadLinesFromFile(const char* filename, std::vector<std::string>* lines = NULL, bool exit_on_fail = true, char comment = '#');
 
+bool generate_random_bool();
 
 /********************************************************************************/
 

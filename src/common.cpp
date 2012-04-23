@@ -186,6 +186,14 @@ void my_fclose(FILE* file, bool exit_on_fail /*= true*/) {
 }
 
 /********************************************************************************/
+#include "MersenneTwister.h"
+
+bool generate_random_bool() {
+	static MTRand rn_gen;
+	return (rn_gen.randInt(uint32(1024)) > uint(512));
+}
+
+/********************************************************************************/
 
 } // end namespace
 
