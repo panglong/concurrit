@@ -111,7 +111,19 @@ PinEnableDisable(UINT32 command);
 
 /* ===================================================================== */
 
-static ADDRINT rtn_plt_addr = 0;
+typedef tbb::concurrent_hash_map<ADDRINT,BOOL> PLTMapType;
+static PLTMapType rtn_plt_addr = 0;
+
+static bool IsPLT(ADDRINT addr) {
+	PLTMapType::const_accessor acc;
+	return rtn_plt_addr.find(acc, addr);
+}
+
+static void AddToPLT(ADDRINT addr) {
+	PLTMapType::accessor acc;
+	rtn_plt_addr.insert(acc, addr);
+	acc->second = true;
+}
 
 /* ===================================================================== */
 
@@ -173,39 +185,52 @@ public:
 	static inline bool OnFuncEnter(const THREADID& threadid, const ADDRINT& rtn_addr) {
 		if(!pin_enabled) return false;
 
-		safe_assert(rtn_addr != rtn_plt_addr);
+		if(IsPLT(rtn_addr)) return false;
 
 		// check callstack of current thread
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
-		if(tls->inst_enabled()
-				|| (rtn_addr == ADDRINT(0)) // StartInstrument
-				|| (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end())) {
+		const bool is_inst_enabled = tls->inst_enabled();
+		const bool is_inst_start = (rtn_addr == ADDRINT(0)) || (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end());
+		if(is_inst_start) {
+
+			// reset thread-local data structures
+			if(!is_inst_enabled) {
+				OnThreadRestart(threadid, true);
+			}
+
 			std::vector<ADDRINT>* call_stack = tls->call_stack();
 			call_stack->push_back(rtn_addr);
-			tls->set_inst_enabled(true);
+
 			return true;
 		}
-		return false;
+		return is_inst_enabled;
 	}
 
 	static inline bool OnFuncReturn(const THREADID& threadid, const ADDRINT& rtn_addr) {
 		if(!pin_enabled) return false;
 
-		safe_assert(rtn_plt_addr != ADDRINT(0));
-		if(rtn_addr == rtn_plt_addr) return false;
+		if(IsPLT(rtn_addr)) return false;
 
 		// check callstack of current thread
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
-		if(tls->inst_enabled()) {
+		const bool is_inst_enabled = tls->inst_enabled();
+		if(is_inst_enabled) {
 			std::vector<ADDRINT>* call_stack = tls->call_stack();
-			ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
-			safe_assert(rtn_addr == last_addr);
+			safe_assert(!call_stack->empty());
+			const bool is_inst_start = (rtn_addr == ADDRINT(0)) || (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end());
+			if(is_inst_start) {
+				ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
+				if(rtn_addr != last_addr) {
+					PIN_LockClient();
+					safe_fail("Addresses %lu and %lu are not equal, %s, %s!\n", rtn_addr, last_addr, RTN_Name(RTN_FindByAddress(rtn_addr)).c_str(), RTN_Name(RTN_FindByAddress(last_addr)).c_str());
+					PIN_UnlockClient();
+				}
+				safe_assert(rtn_addr == last_addr);
 
-			safe_assert(rtn_addr != ADDRINT(0) || tls->inst_enabled());
-			tls->set_inst_enabled(!call_stack->empty());
-			safe_assert(rtn_addr != ADDRINT(0) || !tls->inst_enabled());
+				tls->set_inst_enabled(!call_stack->empty());
+			}
 			return true;
 		}
 		safe_assert(RTNIdsToInstrument.empty() || RTNIdsToInstrument.find(rtn_addr) == RTNIdsToInstrument.end());
@@ -221,12 +246,12 @@ public:
 		return (tls->inst_enabled());
 	}
 
-	static inline void OnThreadRestart(const THREADID& threadid) {
+	static inline void OnThreadRestart(const THREADID& threadid, bool enable = false) {
 		// check callstack of current thread
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
 		tls->call_stack()->clear();
-		tls->set_inst_enabled(false);
+		tls->set_inst_enabled(enable);
 	}
 
 	static std::set< std::string > 	RTNNamesToInstrument;
@@ -257,11 +282,13 @@ ThreadRestart(THREADID threadid) {
 
 VOID PIN_FAST_ANALYSIS_CALL
 StartInstrument(THREADID threadid) {
+	safe_assert(!IsPLT(ADDRINT(0)));
 	InstParams::OnFuncEnter(threadid, ADDRINT(0));
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
 EndInstrument(THREADID threadid) {
+	safe_assert(!IsPLT(ADDRINT(0)));
 	InstParams::OnFuncReturn(threadid, ADDRINT(0));
 }
 
@@ -681,7 +708,7 @@ VOID Routine(RTN rtn, VOID *v)
 
 	// check plt routine
 	if(RTN_Name(rtn) == ".plt") {
-		rtn_plt_addr = RTN_Address(rtn);
+		AddToPLT(RTN_Address(rtn));
 		return;
 	}
 

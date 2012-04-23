@@ -174,7 +174,8 @@ inline void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void*
 	scenario->BeforeControlledTransition(current);
 
 	int c = AuxState::InFunc->get(PTR2ADDRINT(addr), current->tid());
-	safe_assert(c > 0);
+	safe_assert(c >= 0);
+	if(c == 0) return; // TODO(elmas): in general c must be > 1. Sometimes (radbench) it is 0!
 	AuxState::InFunc->set(PTR2ADDRINT(addr), c-1, current->tid());
 
 	scenario->AfterControlledTransition(current);

@@ -7,9 +7,9 @@
 #define JS_THREADSAFE
 #include "jsapi.h"
 
-#define THREADS 5
-#define MAX_CALLS 100
-#define MAX_GC 100
+#define THREADS 2
+#define MAX_CALLS 10
+#define MAX_GC 10
 
 static JSClass global_class = {
     "global", JSCLASS_GLOBAL_FLAGS,
