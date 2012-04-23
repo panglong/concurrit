@@ -28,5 +28,5 @@ cp -f $CONCURRIT_HOME/pintool/filtered_images.txt $CONCURRIT_HOME/work/
 # add bench's library path to arguments
 ARGS=( "${ARGS[@]}" "-l" "$BENCHDIR/lib/lib$BENCH.so" )
 
-make -C $BENCHDIR all
+make -C $BENCHDIR script
 make BENCH="$BENCH" BENCHDIR="$BENCHDIR" ARGS="${ARGS[*]} -- $BENCHARGS" -C $BENCHDIR pin

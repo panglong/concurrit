@@ -23,7 +23,7 @@ copyfiles:
 	cp -f $(BENCHDIR)/scripts/* $(RADBENCHDIR)/scripts/
 	cp -f $(BENCHDIR)/src/* $(RADBENCHDIR)/src/
 
-all: makedirs copyfiles shared $(BENCHDIR)/bin/$(TARGET)
+all: makedirs copyfiles shared script
 
 js:
 	$(RADBENCHDIR)/scripts/build-js.sh

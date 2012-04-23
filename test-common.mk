@@ -1,7 +1,7 @@
 include $(CONCURRIT_HOME)/common.mk
 
-# variables to set: TARGET, SRCS, optional: HEADERS
-# others set when running pin: BENCH, BENCHDIR
+# variables to set: BENCH, SRCS, optional: HEADERS
+# others set when running pin: BENCHDIR
 
 CC?=gcc
 
@@ -37,6 +37,8 @@ bin/$(TARGET): lib/$(TARGETLIB) $(SRCS) $(HEADERS)
 	ar rcs lib/$(TARGET).a obj/$(TARGET).o
 	chmod +x bin/$(TARGET)
 
+script: bin/$(TARGET)
+
 test: bin/$(TARGET)
 	bin/$(TARGET)
 	
@@ -54,4 +56,4 @@ LIBFLAGS+=-g -gdwarf-2 -O1 -w -fPIC -shared -ldummy -lpthread -fexceptions -I$(C
 lib/lib$(TARGET).so: $(LIBSRCS) $(LIBHEADERS)
 	$(CC) -I. -Isrc  $(LIBFLAGS) -o $@ $(LIBSRCS)
 
-all: makedirs shared bin/$(TARGET)
+all: makedirs shared script
