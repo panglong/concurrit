@@ -23,7 +23,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		MAX_WAIT_TIME(5*USECSPERSEC);
 
 		EXISTS(t_writer, IN_FUNC(fw), "Writer");
-		RUN_UNTIL(NOT(t_witness) && !IN_FUNC(fd), ENDS2(t_writer), __, "Ending writer");
+		RUN_UNTIL(NOT(t_witness) && !IN_FUNC(fd), ENDS(t_writer), __, "Ending writer");
 
 		EXISTS(t_deleter, IN_FUNC(fd), "Deleter");
 		RUN_UNTIL(STEP(t_deleter), RETURNS(fd), __, "Deletes");

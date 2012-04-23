@@ -307,37 +307,6 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define ENDS()			safe_notnull(AuxState::Ends.get())->TP1(AuxState::Ends, true, TID)
-#define ENDS2(t)		safe_notnull(AuxState::Ends.get())->TP1(AuxState::Ends, true, t)
-
-/********************************************************************************/
-
-#define READS()			safe_notnull(AuxState::Reads.get())->TP0(AuxState::Reads, TID)
-#define WRITES()		safe_notnull(AuxState::Writes.get())->TP0(AuxState::Writes, TID)
-
-#define READS2(t)		safe_notnull(AuxState::Reads.get())->TP0(AuxState::Reads, t)
-#define WRITES2(t)		safe_notnull(AuxState::Writes.get())->TP0(AuxState::Writes, t)
-
-#define READS_FROM(x)	safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, PTR2ADDRINT(x), TID)
-#define WRITES_TO(x)	safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, PTR2ADDRINT(x), TID)
-
-#define READS_FROM2(x, t)	safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, PTR2ADDRINT(x), t)
-#define WRITES_TO2(x, t)	safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, PTR2ADDRINT(x), t)
-
-/********************************************************************************/
-
-#define ENTERS(f)		safe_notnull(AuxState::Enters.get())->TP3(AuxState::Enters, f, true, TID)
-#define RETURNS(f)		safe_notnull(AuxState::Returns.get())->TP3(AuxState::Returns, f, true, TID)
-
-#define RETURNS2(f, t)	safe_notnull(AuxState::Returns.get())->TP3(AuxState::Returns, f, true, t)
-
-/********************************************************************************/
-
-#define IN_FUNC(f)		TPInFunc::create(f, TID)
-#define TIMES_IN_FUNC(f, k)	safe_notnull(AuxState::NumInFunc.get())->TP3(AuxState::NumInFunc, f, k, TID)
-
-/********************************************************************************/
-
 #define TID				(AuxState::Tid)
 #define __				(ThreadVarPtr())
 
@@ -349,9 +318,87 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define AT_PC(pc)		safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, TID)
+inline TransitionPredicatePtr _ENDS(ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Ends.get())->TP1(AuxState::Ends, true, t);
+}
 
-#define AT_PC2(pc, t)		safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, t)
+#define ENDS(...)		_ENDS(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _READS(void* x = NULL, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	if(x == NULL)
+		return safe_notnull(AuxState::Reads.get())->TP0(AuxState::Reads, t);
+	else
+		return safe_notnull(AuxState::Reads.get())->TP1(AuxState::Reads, PTR2ADDRINT(x), t);
+}
+
+#define READS(...)		_READS(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _WRITES(void* x = NULL, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	if(x == NULL)
+		return safe_notnull(AuxState::Writes.get())->TP0(AuxState::Writes, t);
+	else
+		return safe_notnull(AuxState::Writes.get())->TP1(AuxState::Writes, PTR2ADDRINT(x), t);
+}
+
+#define WRITES(...)		_WRITES(__VA_ARGS__)
+
+/********************************************************************************/
+
+#define TO_READ(...)	READS(__VA_ARGS__)
+#define TO_WRITES(...)	WRITES(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _ENTERS(ADDRINT f, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Enters.get())->TP3(AuxState::Enters, f, true, t);
+}
+
+#define ENTERS(...)		_ENTERS(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _RETURNS(ADDRINT f, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Returns.get())->TP3(AuxState::Returns, f, true, t);
+}
+
+#define RETURNS(...)	_RETURNS(__VA_ARGS__)
+
+/********************************************************************************/
+
+#define TO_ENTER(...)	ENTERS(__VA_ARGS__)
+#define TO_RETURN(...)	RETURNS(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _IN_FUNC(ADDRINT f, ThreadVarPtr t = ThreadVarPtr(), int k = 1) {
+	if(t == NULL) t = TID;
+	safe_assert(k >= 1);
+	if(k == 1) {
+		return TPInFunc::create(f, t);
+	} else {
+		return safe_notnull(AuxState::NumInFunc.get())->TP3(AuxState::NumInFunc, f, k, t);
+	}
+}
+
+#define IN_FUNC(...)	_IN_FUNC(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _AT_PC(int pc, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, t);
+}
+
+#define AT_PC(...)		_AT_PC(__VA_ARGS__)
 
 /********************************************************************************/
 
