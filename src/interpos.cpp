@@ -106,7 +106,8 @@ static int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *att
 
 	VLOG(2) << "Creating new thread via interpositioned pthread_create.";
 
-	Coroutine* co = safe_notnull(Scenario::Current())->CreatePThread(start_routine, arg, thread, attr);
+	ThreadVarPtr var = safe_notnull(Scenario::Current())->CreatePThread(start_routine, arg, thread, attr);
+	safe_assert(var != NULL && !var->is_empty());
 
 	return __pthread_errno__;
 }

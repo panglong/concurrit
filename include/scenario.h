@@ -75,7 +75,7 @@ public:
 
 	void LoadScheduleFromFile(const char* filename);
 
-	Coroutine* RunTestDriver();
+	ThreadVarPtr RunTestDriver();
 
 	/*
 	 * methods defining the test scenario, the initialization, termination, and the actual testcase
@@ -108,10 +108,10 @@ public:
 	/*
 	 * Methods to be used in testcases to control the test scenario
 	 */
-	Coroutine* CreateThread(THREADID tid, ThreadEntryFunction function, void* arg = NULL, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
-	Coroutine* CreateThread(ThreadEntryFunction function, void* arg = NULL, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
+	ThreadVarPtr CreateThread(THREADID tid, ThreadEntryFunction function, void* arg = NULL, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
+	ThreadVarPtr CreateThread(ThreadEntryFunction function, void* arg = NULL, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 
-	Coroutine* CreatePThread(ThreadEntryFunction function, void* arg = NULL, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
+	ThreadVarPtr CreatePThread(ThreadEntryFunction function, void* arg = NULL, pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 
 	void JoinThread(Coroutine* co, void ** value_ptr = NULL);
 	void JoinPThread(Coroutine* co, void ** value_ptr = NULL);

@@ -45,6 +45,9 @@ Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* ent
 	vc_clear(vc_);
 	exception_ = NULL;
 	current_node_ = NULL;
+
+	ThreadVarPtr p(new StaticThreadVar(this, "Self-ThreadVar"));
+	tvar_ = p;
 }
 
 /********************************************************************************/

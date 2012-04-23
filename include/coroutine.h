@@ -123,6 +123,8 @@ private:
 	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD_REF(Semaphore, sem_end)
 
+	DECL_FIELD(ThreadVarPtr, tvar)
+
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };
 

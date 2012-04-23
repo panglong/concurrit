@@ -104,27 +104,27 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 
 /********************************************************************************/
 
-Coroutine* Scenario::RunTestDriver() {
+ThreadVarPtr Scenario::RunTestDriver() {
 	// create a new thread to run the test driver
 	MainFuncType main_func = Concurrit::driver_main();
 	safe_assert(main_func != NULL);
 	if(main_func != concurrit::__main__) {
 		VLOG(2) << "Calling driver's main function.";
-		Coroutine* co = CreateThread(Concurrit::CallDriverMain, NULL);
-		safe_assert(co != NULL);
-		return co;
+		ThreadVarPtr var = CreateThread(Concurrit::CallDriverMain, NULL);
+		safe_assert(var != NULL && !var->is_empty());
+		return var;
 	}
 	VLOG(2) << "No test-supplied __main__function, skipping the driver thread.";
-	return NULL;
+	return ThreadVarPtr();
 }
 
 /********************************************************************************/
-Coroutine* Scenario::CreateThread(ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+ThreadVarPtr Scenario::CreateThread(ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	return CreateThread(-1, function, arg, pid, attr);
 }
 
 // create a new thread or fetch the existing one, and start it.
-Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+ThreadVarPtr Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	ScopeMutex smutex(group_.create_mutex());
 
 	CHECK(tid < 0 || tid > MAIN_TID) << "CreateThread is given invalid tid: " << tid;
@@ -141,7 +141,7 @@ Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, vo
 			co = group_.GetNthCreatedMember(0, tid);
 		}
 		safe_assert(co != NULL);
-		return co;
+		return co->tvar();
 	}
 
 	//================================================
@@ -165,13 +165,13 @@ Coroutine* Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, vo
 	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
 	co->Start(pid, attr);
 
-	return co;
+	return co->tvar();
 }
 
 /********************************************************************************/
 
 // create a new thread or fetch the existing one, and start it.
-Coroutine* Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
+ThreadVarPtr Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	ScopeMutex smutex(group_.create_mutex());
 
 	// checks if the thread is expected next (!NULL), or if this is a new thread (NULL)
@@ -196,7 +196,7 @@ Coroutine* Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*= N
 
 	VLOG(2) << SC_TITLE << "Created new pthread coroutine " << co->tid();
 
-	return co;
+	return co->tvar();
 }
 
 /********************************************************************************/
