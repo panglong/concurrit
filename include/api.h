@@ -318,6 +318,12 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
+// to be used in predicates defined below, when memory address accessed or function called is not important
+#define ANY_ADDR		NULL
+#define ANY_FUNC		NULL
+
+/********************************************************************************/
+
 inline TransitionPredicatePtr _ENDS(ThreadVarPtr t = ThreadVarPtr()) {
 	if(t == NULL) t = TID;
 	return safe_notnull(AuxState::Ends.get())->TP1(AuxState::Ends, true, t);
@@ -356,18 +362,24 @@ inline TransitionPredicatePtr _WRITES(void* x = NULL, ThreadVarPtr t = ThreadVar
 
 /********************************************************************************/
 
-inline TransitionPredicatePtr _ENTERS(ADDRINT f, ThreadVarPtr t = ThreadVarPtr()) {
+inline TransitionPredicatePtr _ENTERS(void* f = NULL, ThreadVarPtr t = ThreadVarPtr()) {
 	if(t == NULL) t = TID;
-	return safe_notnull(AuxState::Enters.get())->TP3(AuxState::Enters, f, true, t);
+	if(f == NULL)
+		return safe_notnull(AuxState::Enters.get())->TP0(AuxState::Enters, t);
+	else
+		return safe_notnull(AuxState::Enters.get())->TP3(AuxState::Enters, PTR2ADDRINT(f), true, t);
 }
 
 #define ENTERS(...)		_ENTERS(__VA_ARGS__)
 
 /********************************************************************************/
 
-inline TransitionPredicatePtr _RETURNS(ADDRINT f, ThreadVarPtr t = ThreadVarPtr()) {
+inline TransitionPredicatePtr _RETURNS(void* f = NULL, ThreadVarPtr t = ThreadVarPtr()) {
 	if(t == NULL) t = TID;
-	return safe_notnull(AuxState::Returns.get())->TP3(AuxState::Returns, f, true, t);
+	if(f == NULL)
+		return safe_notnull(AuxState::Returns.get())->TP0(AuxState::Returns, t);
+	else
+		return safe_notnull(AuxState::Returns.get())->TP3(AuxState::Returns, PTR2ADDRINT(f), true, t);
 }
 
 #define RETURNS(...)	_RETURNS(__VA_ARGS__)
@@ -379,13 +391,13 @@ inline TransitionPredicatePtr _RETURNS(ADDRINT f, ThreadVarPtr t = ThreadVarPtr(
 
 /********************************************************************************/
 
-inline TransitionPredicatePtr _IN_FUNC(ADDRINT f, ThreadVarPtr t = ThreadVarPtr(), int k = 1) {
+inline TransitionPredicatePtr _IN_FUNC(void* f, ThreadVarPtr t = ThreadVarPtr(), int k = 1) {
 	if(t == NULL) t = TID;
 	safe_assert(k >= 1);
 	if(k == 1) {
-		return TPInFunc::create(f, t);
+		return TPInFunc::create(PTR2ADDRINT(f), t);
 	} else {
-		return safe_notnull(AuxState::NumInFunc.get())->TP3(AuxState::NumInFunc, f, k, t);
+		return safe_notnull(AuxState::NumInFunc.get())->TP3(AuxState::NumInFunc, PTR2ADDRINT(f), k, t);
 	}
 }
 
