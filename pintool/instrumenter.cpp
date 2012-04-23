@@ -100,6 +100,10 @@ std::string CONCURRIT_HOME;
 
 /* ===================================================================== */
 
+#define TrackFuncCall	0
+
+/* ===================================================================== */
+
 static const char* NativePinEnableFunName = "EnablePinTool";
 static const char* NativePinDisableFunName = "DisablePinTool";
 static const char* NativeThreadRestartFunName = "ThreadRestart";
@@ -381,6 +385,7 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
+#if TrackFuncCall
 VOID PIN_FAST_ANALYSIS_CALL
 FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		ADDRINT target, ADDRINT arg0, ADDRINT arg1, ADDRINT rtn_addr) {
@@ -405,6 +410,7 @@ FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation
 
 	CallNativePinMonitor(ctxt, threadid, &info);
 }
+#endif
 
 /* ===================================================================== */
 
@@ -787,6 +793,7 @@ LOCALFUN VOID ImageUnload(IMG img, VOID *) {
 
 LOCALFUN INLINE
 VOID CallTrace(TRACE trace, INS ins) {
+#if TrackFuncCall
 	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
 		if (!INS_IsDirectBranchOrCall(ins)) {
 			// Indirect call
@@ -814,6 +821,7 @@ VOID CallTrace(TRACE trace, INS ins) {
 
 		}
 	} else
+#endif
 	if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
 		RTN rtn = TRACE_Rtn(trace);
 
