@@ -3,26 +3,32 @@ include $(CONCURRIT_HOME)/common.mk
 # variables to set: TARGET, SRCS, optional: HEADERS
 # others set when running pin: BENCH, BENCHDIR
 
-CC=gcc
+CC?=gcc
+
+BENCHDIR?=$(CONCURRIT_BENCHDIR)/$(BENCH)
+TARGET?=$(BENCH)
+SRCS?=src/$(TARGET)test.cpp
 
 TEST_FLAGS=$(CONCURRIT_TEST_INC_FLAGS) $(CONCURRIT_TEST_LIB_FLAGS) -I. -Isrc -L. -Llib -g -gdwarf-2 -O1 -w -fPIC -fexceptions $(CONCURRIT_C_STD)
 
-ifneq ($(wildcard lib/lib$(TARGET).so),)
+#ifneq ($(wildcard lib/lib$(TARGET).so),)
     TEST_FLAGS+=-l$(TARGET)
     TARGETLIB=lib$(TARGET).so
-else
-	TARGETLIB=
-endif
+#else
+#	TARGETLIB=
+#endif
 
-makedirs:
+TARGETLIBPATH?=$(BENCHDIR)/lib/$(TARGETLIB)
+
+makedirs::
 	mkdir -p bin
 	mkdir -p obj
 	mkdir -p lib
 
-clean:
+clean::
 	rm -f bin/* obj/* lib/*
 
-clean-test:
+clean-test::
 	rm -f bin/*
 
 bin/$(TARGET): lib/$(TARGETLIB) $(SRCS) $(HEADERS)
@@ -39,13 +45,13 @@ pin: lib/$(TARGETLIB) bin/$(TARGET)
 	PATH="$(BENCHDIR)/bin:$(PATH)" \
 	LD_LIBRARY_PATH="$(BENCHDIR)/lib:$(LD_LIBRARY_PATH)" \
 	DYLD_LIBRARY_PATH=="$(BENCHDIR)/lib:$(DYLD_LIBRARY_PATH)" \
-		$(CONCURRIT_HOME)/scripts/run_pintool.sh bin/$(TARGET) $(ARGS)
+		$(CONCURRIT_HOME)/scripts/run_pintool.sh $(BENCHDIR)/bin/$(TARGET) $(ARGS)
 
 shared: makedirs lib/lib$(TARGET).so
 
-LIBFLAGS+=-ldummy -lpthread -I$(CONCURRIT_INCDIR) -L$(CONCURRIT_LIBDIR)
+LIBFLAGS+=-g -gdwarf-2 -O1 -w -fPIC -shared -ldummy -lpthread -fexceptions -I$(CONCURRIT_INCDIR) -L$(CONCURRIT_LIBDIR)
 
 lib/lib$(TARGET).so: $(LIBSRCS) $(LIBHEADERS)
-	$(CC) -I. -Isrc -g -gdwarf-2 -O1 -w -fPIC $(LIBFLAGS) -shared -o $@ $(LIBSRCS)
+	$(CC) -I. -Isrc  $(LIBFLAGS) -o $@ $(LIBSRCS)
 
 all: makedirs shared bin/$(TARGET)

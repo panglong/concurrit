@@ -1,5 +1,4 @@
-TARGET=pbzip2
-SRCS=src/$(TARGET)test.cpp
+BENCH=pbzip2
 
 LIBSRCS=src/pbzip2.cpp 
 LIBFLAGS=-lbz2
