@@ -465,6 +465,8 @@ void Scenario::RunTestCase() throw() {
 
 			// run test case when RunUncontrolled flag is not set
 			if(!Config::RunUncontrolled) {
+				// put a single dot to indicate progress
+				fprintf(stderr, ".");
 				TestCase();
 			}
 
