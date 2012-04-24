@@ -1,5 +1,7 @@
 include $(CONCURRIT_HOME)/common.mk
 
+CC=g++
+
 TARGET=libconcurrit
 
 CONCURRIT_SRCS=$(wildcard $(CONCURRIT_SRCDIR)/*.cpp)

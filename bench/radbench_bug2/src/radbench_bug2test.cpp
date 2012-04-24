@@ -42,7 +42,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 //			RUN_UNTIL(BY(t), READS() || WRITES() || ENDS(), __, "Run t until ...");
 		}
 
-		RUN_UNTIL(BY(t_main), RETURNS(f_endrequest), __, "Run t_main until ...");
+		MAX_WAIT_TIME(0);
+		RUN_UNTIL(PTRUE, RETURNS(f_gc, t_main), __, "Run t_main until ...");
 }
 
 CONCURRIT_END_TEST(MyScenario)
