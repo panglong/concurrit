@@ -28,14 +28,14 @@ static void * testfunc(void *ignored) {
 
     for (int i = 0; i < MAX_CALLS; i++) {
         // Fastest way to cause a crash..
-        JS_SetContextThread(cx);
-        JS_ClearContextThread(cx);
+//        JS_SetContextThread(cx);
+//        JS_ClearContextThread(cx);
 
         // Slower to crash, but more realistic use case?
-//      JS_SetContextThread(cx);
-//      JS_BeginRequest(cx);
-//      JS_EndRequest(cx);
-//      JS_ClearContextThread(cx);
+      JS_SetContextThread(cx);
+      JS_BeginRequest(cx);
+      JS_EndRequest(cx);
+      JS_ClearContextThread(cx);
 
         // Avoiding Set/ClearContextThread does not cause any crash..
 //      JS_BeginRequest(cx);

@@ -74,7 +74,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	while ((c = getopt(argc, argv, "asl:uw:chf::d::")) != -1) {
 		switch(c) {
 		case 'a':
-			Config::KeepExecutionTree = true;
+//			Config::KeepExecutionTree = true;
 			Config::TrackAlternatePaths = true;
 			printf("Will track alternate paths!\n");
 			break;
@@ -101,7 +101,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			break;
 		case 's':
 			Config::KeepExecutionTree = false;
-			Config::TrackAlternatePaths = false;
+//			Config::TrackAlternatePaths = false;
 			printf("Will use stack rather than execution tree.\n");
 			break;
 		case 'u':
@@ -127,7 +127,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 		}
 	}
 
-	safe_assert(!Config::TrackAlternatePaths || Config::KeepExecutionTree);
+//	safe_assert(!Config::TrackAlternatePaths || Config::KeepExecutionTree);
 
 	return true;
 }

@@ -789,6 +789,9 @@ public:
 	ChildLoc GetLastNodeInStack();
 	void TruncateNodeStack(int index);
 
+	bool RestartForAlternatePath();
+	int GetIndexInNodesStack(ChildLoc& loc);
+
 	ExecutionTreePath* ComputePath(ChildLoc leaf_loc, ExecutionTreePath* path = NULL);
 	bool DoBacktrack(BacktrackReason reason = SUCCESS) throw();
 

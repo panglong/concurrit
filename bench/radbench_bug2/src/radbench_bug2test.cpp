@@ -22,28 +22,22 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 #define UNTIL_COND(f) 		(ENTERS(f) || RETURNS(f) || ENDS())
 #define FULL_UNTIL_COND		(UNTIL_COND(f_setcontextthread) || UNTIL_COND(f_clearcontextthread) || UNTIL_COND(f_beginrequest) || UNTIL_COND(f_gc) || UNTIL_COND(f_endrequest))
 
+
+#define READS_WRITES_OR_ENDS(t)		(READS(ANY_ADDR, t) || WRITES(ANY_ADDR, t) || ENDS(t))
+
 		TVAR(t_main);
 		RUN_UNTIL(PTRUE, ENTERS(f_gc), t_main, "Until GC");
 
 		MAX_WAIT_TIME(10*USECSPERSEC);
 
-//		WHILE_STAR {
-//			FORALL(t, NOT(t_main), "Select t");
-//			RUN_UNTIL(BY(t), FULL_UNTIL_COND, __, "Run t until ...");
-//
-//			RUN_UNTIL(BY(t_main), ENTERS(ANY_FUNC) || RETURNS(ANY_FUNC) || ENDS(), __, "Run t_main until ...");
-//		}
-
-
 		EXISTS(t, NOT(t_main), "Select t");
-//		WHILE_AND_STAR(!HAS_ENDED(t)) {
 		WHILE_STAR {
-			RUN_UNTIL(BY(t), ENTERS() || RETURNS() || ENDS(), __, "Run t until ...");
-//			RUN_UNTIL(BY(t), READS() || WRITES() || ENDS(), __, "Run t until ...");
-		}
+			WHILE_STAR {
+				RUN_UNTIL(BY(t), READS_WRITES_OR_ENDS(t), __, "Run t until ...");
+			}
 
-		MAX_WAIT_TIME(0);
-		RUN_UNTIL(PTRUE, RETURNS(f_gc, t_main), __, "Run t_main until ...");
+			RUN_UNTIL(PTRUE, READS_WRITES_OR_ENDS(t_main), __, "Run t_main until ...");
+		}
 }
 
 CONCURRIT_END_TEST(MyScenario)

@@ -594,7 +594,6 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	}
 	safe_assert(BETWEEN(0, highest_covered_index, sz-1));
 
-
 	//===========================
 	// after coverage computation:
 	// first remove alternate paths which become covered, since we will delete covered subtrees below
@@ -636,6 +635,7 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	safe_assert(BETWEEN(0, highest_covered_index, (sz-1)));
 	TruncateNodeStack(highest_covered_index > 0 ? highest_covered_index-1 : 0);
 
+	//===========================
 	// check if the root is covered
 	return !ROOTNODE()->covered();
 }
@@ -773,8 +773,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	//================================================
 
 	// check alternate paths
-	safe_assert(Config::KeepExecutionTree || current_nodes_.empty());
-	if(current_nodes_.empty()) {
+	safe_assert(Config::TrackAlternatePaths || current_nodes_.empty());
+	if(!Config::TrackAlternatePaths || !RestartForAlternatePath()) {
 //		if(!backtracked) {
 //			// this means dobacktrack has not been run, and end_node has not been added to the path, so use static end_node
 //			safe_assert(!IS_ENDNODE(GetLastNodeInStack().get()));
@@ -786,16 +786,36 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 		return false;
 	}
 
-	//================================================
+	return true;
+}
 
-	safe_assert(Config::KeepExecutionTree);
+/*************************************************************************************/
+
+bool ExecutionTreeManager::RestartForAlternatePath() {
+	int index_in_stack = -1;
+	ChildLoc next_loc = ChildLoc::EMPTY();
+	while(index_in_stack < 0 && !current_nodes_.empty()) {
+		// select the next one and replay
+		next_loc = current_nodes_.back(); current_nodes_.pop_back();
+
+		safe_assert(next_loc.parent() != NULL);
+		safe_assert(!next_loc.parent()->covered());
+		safe_assert(next_loc.empty() || next_loc.get() == NULL || !next_loc.get()->covered());
+
+		// truncate execution stack so that the last element is next_loc
+		index_in_stack = GetIndexInNodesStack(next_loc);
+	}
+
+	if(index_in_stack < 0) return false;
+
 	VLOG(2) << "Alternate path exists, will replay";
 
-	// select the next one and replay
-	ChildLoc next_loc = current_nodes_.back(); current_nodes_.pop_back();
 	safe_assert(next_loc.parent() != NULL);
 	safe_assert(!next_loc.parent()->covered());
 	safe_assert(next_loc.empty() || next_loc.get() == NULL || !next_loc.get()->covered());
+
+	// truncate stack after (including) next_loc
+	TruncateNodeStack(index_in_stack);
 
 	// compute the path to follow
 	replay_path_.clear();
@@ -812,12 +832,37 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	ReleaseRef(NULL); // nullify the atomic ref to continue
 
 	VLOG(2) << "Starting the replay";
-
 	return true;
 }
 
 /*************************************************************************************/
 
+int ExecutionTreeManager::GetIndexInNodesStack(ChildLoc& loc) {
+	const ExecutionTree* qparent = loc.parent();
+	const int sz = node_stack_.size();
+	safe_assert(sz > 1);
+
+	//===========================
+	// propagate coverage back in the path (skip the end node, which is already covered)
+	int index = sz-1;
+	for(ExecutionTreePath::reverse_iterator itr = node_stack_.rbegin(); itr < node_stack_.rend(); ++itr) {
+		ChildLoc& element = (*itr);
+		safe_assert(!element.empty());
+		safe_assert(index == sz-1 || element.check(node_stack_[index+1].parent()));
+		ExecutionTree* parent = element.parent();
+		if(parent == qparent) {
+			// loc must be pointing to a different child
+			safe_assert(element.child_index() != loc.child_index());
+			break;
+		}
+		--index;
+	}
+	safe_assert(BETWEEN(-1, index, sz-1));
+	safe_assert(index < 0 || (loc.parent() == node_stack_[index].parent()));
+	return index;
+}
+
+/*************************************************************************************/
 
 void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason reason, const std::string& where) throw() {
 	EndWithException(current, GetBacktrackException(reason), where);
