@@ -669,36 +669,39 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 		SetRef(LOCKNODE());
 		LOCKNODE()->OnLock();
 	} else {
-		// try to first wait for empty, if we timeout, we remove it by waiting for full
+		// try to remove the current ref by waiting for empty or full
 		try {
-			VLOG(2) << "AcquireRefEx-1 in EndWithSuccess.";
-			ExecutionTree* node = AcquireRefEx(EXIT_ON_EMPTY);
-			safe_assert(IS_EMPTY(node));
+			VLOG(2) << "AcquireRefEx in EndWithSuccess.";
+			ExecutionTree* node = AcquireRefEx(EXIT_ON_LOCK);
+			safe_assert(IS_EMPTY(node) || IS_FULL(node));
 		} catch(std::exception* e) {
 			BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 			safe_assert(be != NULL);
 			*reason = be->reason();
-			// reason may be EXCEPTION
-			if(*reason == EXCEPTION) {
-				// should terminate the search
-				safe_assert(IS_ENDNODE(GetRef()));
-				return false;
-			}
-			else if(*reason == TIMEOUT) {
-				// this should not timeout
-				try {
-					VLOG(2) << "AcquireRefEx-2 in EndWithSuccess.";
-					ExecutionTree* node = AcquireRefEx(EXIT_ON_LOCK);
-					safe_assert(IS_FULL(node));
-				} catch(std::exception* e) {
-					BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
-					safe_assert(be != NULL);
-					*reason = be->reason();
-					safe_assert(*reason == EXCEPTION);
-					safe_assert(IS_ENDNODE(GetRef()));
-					return false;
-				}
-			}
+			safe_assert(*reason == EXCEPTION);
+			safe_assert(IS_ENDNODE(GetRef()));
+			return false;
+//			// reason may be EXCEPTION
+//			if(*reason == EXCEPTION) {
+//				// should terminate the search
+//				safe_assert(IS_ENDNODE(GetRef()));
+//				return false;
+//			}
+//			else if(*reason == TIMEOUT) {
+//				// this should not timeout
+//				try {
+//					VLOG(2) << "AcquireRefEx-2 in EndWithSuccess.";
+//					ExecutionTree* node = AcquireRefEx(EXIT_ON_LOCK);
+//					safe_assert(IS_FULL(node));
+//				} catch(std::exception* e) {
+//					BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
+//					safe_assert(be != NULL);
+//					*reason = be->reason();
+//					safe_assert(*reason == EXCEPTION);
+//					safe_assert(IS_ENDNODE(GetRef()));
+//					return false;
+//				}
+//			}
 		}
 	}
 	safe_assert(IS_LOCKNODE(GetRef()) || IS_ENDNODE(GetRef()));
