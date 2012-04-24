@@ -47,7 +47,7 @@ class Coroutine;
 
 class FuncVar {
 public:
-	explicit FuncVar(void* addr) : addr_(PTR2ADDRINT(addr)) {}
+	explicit FuncVar(void* addr) : addr_(PTR2ADDRINT(safe_notnull(addr))) {}
 	~FuncVar() {}
 
 	operator ADDRINT() { return addr_; }

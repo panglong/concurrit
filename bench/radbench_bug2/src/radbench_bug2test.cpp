@@ -36,16 +36,14 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 
 		EXISTS(t, NOT(t_main), "Select t");
-		WHILE_AND_STAR(!HAS_ENDED(t)) {
+//		WHILE_AND_STAR(!HAS_ENDED(t)) {
+		WHILE_STAR {
 			RUN_UNTIL(BY(t), ENTERS() || RETURNS() || ENDS(), __, "Run t until ...");
 //			RUN_UNTIL(BY(t), READS() || WRITES() || ENDS(), __, "Run t until ...");
 		}
 
-		WHILE_AND_STAR(!HAS_ENDED(t_main)) {
-			RUN_UNTIL(BY(t_main), ENTERS() || RETURNS() || ENDS(), __, "Run t_main until ...");
-//			RUN_UNTIL(BY(t_main), READS() || WRITES() || ENDS(), __, "Run t_main until ...");
-		}
-	}
+		RUN_UNTIL(BY(t_main), RETURNS(f_endrequest), __, "Run t_main until ...");
+}
 
 CONCURRIT_END_TEST(MyScenario)
 
