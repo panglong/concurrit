@@ -45,18 +45,20 @@ bool Config::IsStarNondeterministic = false;
 bool Config::RunUncontrolled = false;
 char* Config::TestLibraryFile = NULL;
 bool Config::KeepExecutionTree = true;
+bool Config::TrackAlternatePaths = true;
 
 /********************************************************************************/
 
 static void usage() {
 	printf("-h: Show this help. (OnlyShowHelp)\n"
+			"-a: Track altenate paths (KeepExecutionTree && TrackAlternatePaths)"
+			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
+			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
 			"-e: Enable/Disable Pin instrumentation.(CanEnableDisablePinTool)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
-			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
-			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-l: Test program as shared (.so) library"
-			"-u: Run test program uncontrolled."
-			"-s: Use stack");
+			"-s: Use stack-based DFS (!KeepExecutionTree && !TrackAlternatePaths)"
+			"-u: Run test program uncontrolled.");
 }
 
 bool Config::ParseCommandLine(const main_args& args) {
@@ -69,8 +71,13 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "sl:uw:chf::d::")) != -1) {
+	while ((c = getopt(argc, argv, "asl:uw:chf::d::")) != -1) {
 		switch(c) {
+		case 'a':
+			Config::KeepExecutionTree = true;
+			Config::TrackAlternatePaths = true;
+			printf("Will track alternate paths!\n");
+			break;
 		case 'c':
 			Config::DeleteCoveredSubtrees = true;
 			printf("Will cut covered subtrees!\n");
@@ -94,6 +101,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			break;
 		case 's':
 			Config::KeepExecutionTree = false;
+			Config::TrackAlternatePaths = false;
 			printf("Will use stack rather than execution tree.\n");
 			break;
 		case 'u':
@@ -118,6 +126,9 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			break;
 		}
 	}
+
+	safe_assert(!Config::TrackAlternatePaths || Config::KeepExecutionTree);
+
 	return true;
 }
 

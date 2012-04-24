@@ -215,7 +215,7 @@ protected:
 	virtual void Start();
 	virtual void Finish(Result* result);
 
-	inline bool is_replaying() { return !exec_tree_.replay_path()->empty(); }
+	inline bool is_replaying() { bool r = !exec_tree_.replay_path()->empty(); safe_assert(Config::TrackAlternatePaths || !r); return r; }
 
 private:
 

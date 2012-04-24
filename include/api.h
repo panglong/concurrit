@@ -209,16 +209,22 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-#define STAR(nd, stmt, code) 		static StaticChoiceInfo STATIC_DSL_INFO_NAME((nd), (RECORD_SRCLOC()), (code)); stmt(DSLChoice(&STATIC_DSL_INFO_NAME))
+#define STAR(nd, stmt, cond, code) 	static StaticChoiceInfo STATIC_DSL_INFO_NAME((nd), (RECORD_SRCLOC()), (code)); stmt((cond) && DSLChoice(&STATIC_DSL_INFO_NAME))
 
-#define WHILE_STAR					STAR(Config::IsStarNondeterministic, while, "WHILE_STAR")
-#define IF_STAR						STAR(Config::IsStarNondeterministic, if, "IF_STAR")
+#define WHILE_AND_STAR(c)			STAR(Config::IsStarNondeterministic, while, (c), ("WHILE_AND_STAR(" #c ")"))
+#define IF_AND_STAR(c)				STAR(Config::IsStarNondeterministic, if, (c), ("IF_AND_STAR(" #c ")"))
 
-#define WHILE_DTSTAR				STAR(false, while, "WHILE_DTSTAR")
-#define IF_DTSTAR					STAR(false, if, "IF_DTSTAR")
+#define WHILE_STAR					STAR(Config::IsStarNondeterministic, while, true, "WHILE_STAR")
+#define IF_STAR						STAR(Config::IsStarNondeterministic, if, true, "IF_STAR")
 
-#define WHILE_NDSTAR				STAR(true, while, "WHILE_NDSTAR")
-#define IF_NDSTAR					STAR(true, if, "IF_NDSTAR")
+#define WHILE_STAR					STAR(Config::IsStarNondeterministic, while, true, "WHILE_STAR")
+#define IF_STAR						STAR(Config::IsStarNondeterministic, if, true, "IF_STAR")
+
+#define WHILE_DTSTAR				STAR(false, while, true, "WHILE_DTSTAR")
+#define IF_DTSTAR					STAR(false, if, true, "IF_DTSTAR")
+
+#define WHILE_NDSTAR				STAR(true, while, true, "WHILE_NDSTAR")
+#define IF_NDSTAR					STAR(true, if, true, "IF_NDSTAR")
 
 #define ELSE						else
 
@@ -420,6 +426,13 @@ inline TransitionPredicatePtr _AT_PC(int pc, ThreadVarPtr t = ThreadVarPtr()) {
 /********************************************************************************/
 
 #define MAX_WAIT_TIME(t)	Config::MaxWaitTimeUSecs = (t);
+
+/********************************************************************************/
+
+inline bool HAS_ENDED(ThreadVarPtr t) {
+	safe_assert(t != NULL && !t->is_empty());
+	return t->thread()->is_ended();
+}
 
 /********************************************************************************/
 

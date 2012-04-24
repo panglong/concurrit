@@ -278,7 +278,7 @@ void ExecutionTreeManager::Restart() {
 
 	RestartChildIndexStack();
 
-	if(Config::KeepExecutionTree) {
+	if(Config::TrackAlternatePaths) {
 		ROOTNODE()->PopulateLocations(0, &current_nodes_);
 	}
 
@@ -478,7 +478,7 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 	// put node to the path
 	AddToNodeStack({node, child_index});
 
-	if(Config::KeepExecutionTree) {
+	if(Config::TrackAlternatePaths) {
 		node->PopulateLocations(child_index, &current_nodes_);
 	}
 }
@@ -598,8 +598,8 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	//===========================
 	// after coverage computation:
 	// first remove alternate paths which become covered, since we will delete covered subtrees below
-	safe_assert(Config::KeepExecutionTree || current_nodes_.empty());
-	if(Config::KeepExecutionTree) {
+	safe_assert(Config::TrackAlternatePaths || current_nodes_.empty());
+	if(Config::TrackAlternatePaths) {
 		for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(); itr < current_nodes_.end(); ) {
 			ChildLoc loc = *itr;
 			safe_assert(!IS_ENDNODE(loc.parent()));

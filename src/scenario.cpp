@@ -131,7 +131,7 @@ ThreadVarPtr Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, 
 
 	// checks if the thread is expected next (!NULL), or if this is a new thread (NULL)
 	Coroutine* co = NULL;
-	if(Config::KeepExecutionTree && is_replaying()) {
+	if(Config::TrackAlternatePaths && is_replaying()) {
 		if(tid > MAIN_TID) {
 			// use tid to return coroutine
 			safe_assert(group_.HasMember(tid));
@@ -203,7 +203,7 @@ ThreadVarPtr Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*=
 
 void Scenario::JoinThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 	safe_assert(co != NULL);
-	if(Config::KeepExecutionTree && is_replaying()) {
+	if(Config::TrackAlternatePaths && is_replaying()) {
 		__pthread_errno__ = PTH_SUCCESS;
 
 		if(value_ptr != NULL) {
@@ -1254,7 +1254,7 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 /********************************************************************************/
 
 void Scenario::UpdateAlternateLocations(Coroutine* current, bool pre_state) {
-	if(!Config::KeepExecutionTree) return;
+	if(!Config::TrackAlternatePaths) return;
 
 	// evaluate other nodes in current_nodes_
 	std::vector<ChildLoc>* current_nodes = exec_tree_.current_nodes();
@@ -1868,7 +1868,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 
 	//=======================================================
 
-	if(Config::KeepExecutionTree && is_replaying()) {
+	if(Config::TrackAlternatePaths && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		safe_assert(BETWEEN(0, reploc.child_index(), 1));
@@ -2011,7 +2011,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 
 	//=======================================================
 
-	if(Config::KeepExecutionTree && is_replaying()) {
+	if(Config::TrackAlternatePaths && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(!reploc.empty());
 		safe_assert(BETWEEN(0, reploc.child_index(), 1));
@@ -2084,7 +2084,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 
 	ThreadVarPtr var;
 
-	if(Config::KeepExecutionTree && is_replaying()) {
+	if(Config::TrackAlternatePaths && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(reploc.parent() != NULL);
 		ForallThreadNode* select = ASINSTANCEOF(reploc.parent(), ForallThreadNode*);
@@ -2177,7 +2177,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 
 	ThreadVarPtr var;
 
-	if(Config::KeepExecutionTree && is_replaying()) {
+	if(Config::TrackAlternatePaths && is_replaying()) {
 		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
 		safe_assert(reploc.parent() != NULL);
 		safe_assert(BETWEEN(0, reploc.child_index(), 1));
