@@ -155,6 +155,9 @@ private:
 
 LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
 
+typedef std::set< std::string > RTNNamesToInstrumentType;
+typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToInstrumentType;
+
 class InstParams {
 private:
 	InstParams() {}
@@ -163,8 +166,11 @@ public:
 	static void ParseFile(const char* filename) {
 		safe_assert(filename != NULL);
 
+		RTNIdsToInstrumentType::accessor acc;
 		RTNIdsToInstrument.clear();
-		RTNIdsToInstrument.insert(ADDRINT(0)); // dummy id
+		RTNIdsToInstrument.insert(acc, ADDRINT(0)); // dummy id
+		acc->second = TRUE;
+		acc.release();
 
 		RTNNamesToInstrument.clear();
 		RTNNamesToInstrument.insert("StartEndInstrument"); // dummy name
@@ -181,9 +187,17 @@ public:
 		const std::string& name = RTN_Name(rtn);
 		if(RTNNamesToInstrument.find(name) != RTNNamesToInstrument.end()) {
 			// found
-			RTNIdsToInstrument.insert(addr);
 			log_file << "Detected routine to instrument: " << name << std::endl;
+			RTNIdsToInstrumentType::accessor acc;
+			RTNIdsToInstrument.insert(acc, addr);
+			acc->second = TRUE;
 		}
+	}
+
+	static inline bool IsStartRoutine(const ADDRINT& rtn_addr) {
+		if (rtn_addr == ADDRINT(0)) return true;
+		RTNIdsToInstrumentType::const_accessor c_acc;
+		return (RTNIdsToInstrument.find(c_acc, rtn_addr));
 	}
 
 	static inline bool OnFuncEnter(const THREADID& threadid, const ADDRINT& rtn_addr) {
@@ -195,7 +209,7 @@ public:
 		ThreadLocalState* tls = GetThreadLocalState(threadid);
 		safe_assert(tls != NULL && tls->tid() == threadid);
 		const bool is_inst_enabled = tls->inst_enabled();
-		const bool is_inst_start = (rtn_addr == ADDRINT(0)) || (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end());
+		const bool is_inst_start = IsStartRoutine(rtn_addr);
 		if(is_inst_start) {
 
 			// reset thread-local data structures
@@ -223,7 +237,7 @@ public:
 		if(is_inst_enabled) {
 			std::vector<ADDRINT>* call_stack = tls->call_stack();
 			safe_assert(!call_stack->empty());
-			const bool is_inst_start = (rtn_addr == ADDRINT(0)) || (!RTNIdsToInstrument.empty() && RTNIdsToInstrument.find(rtn_addr) != RTNIdsToInstrument.end());
+			const bool is_inst_start = IsStartRoutine(rtn_addr);
 			if(is_inst_start) {
 				ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
 				if(rtn_addr != last_addr) {
@@ -258,14 +272,15 @@ public:
 		tls->set_inst_enabled(enable);
 	}
 
-	static std::set< std::string > 	RTNNamesToInstrument;
-	static std::set< ADDRINT > 		RTNIdsToInstrument;
-	static volatile bool			pin_enabled;
+	static RTNNamesToInstrumentType RTNNamesToInstrument;
+	static RTNIdsToInstrumentType RTNIdsToInstrument;
+	static volatile bool pin_enabled;
 };
 
-std::set< std::string > InstParams::RTNNamesToInstrument;
-std::set< ADDRINT > 	InstParams::RTNIdsToInstrument;
-volatile bool			InstParams::pin_enabled = true;
+
+RTNNamesToInstrumentType InstParams::RTNNamesToInstrument;
+RTNIdsToInstrumentType InstParams::RTNIdsToInstrument;
+volatile bool InstParams::pin_enabled = true;
 
 /* ===================================================================== */
 
