@@ -373,6 +373,8 @@ void my_fclose(FILE* file, bool exit_on_fail = true);
 main_args StringToMainArgs(const std::string& s, bool add_program_name = false);
 main_args StringToMainArgs(const char* s, bool add_program_name = false);
 
+std::vector<std::string> TokenizeStringToVector(char* str, const char* tokens);
+
 main_args ArgVectorToMainArgs(const std::vector<char*>& args);
 
 void short_sleep(long nanoseconds, bool continue_on_signal);

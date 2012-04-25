@@ -30,8 +30,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(10*USECSPERSEC);
 
-		EXISTS(t, NOT(t_main), "Select t");
 		WHILE_STAR {
+			EXISTS(t, NOT(t_main), "Select t");
 			WHILE_STAR {
 				RUN_UNTIL(BY(t), READS_WRITES_OR_ENDS(t), __, "Run t until ...");
 			}

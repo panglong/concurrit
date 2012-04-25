@@ -100,7 +100,8 @@ std::string CONCURRIT_HOME;
 
 /* ===================================================================== */
 
-#define TrackFuncCall	0
+#define TRACK_FUNC_CALLS	0
+#define INSTR_ALL_TRACES	0
 
 /* ===================================================================== */
 
@@ -158,6 +159,10 @@ LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
 typedef std::set< std::string > RTNNamesToInstrumentType;
 typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToInstrumentType;
 
+#if INSTR_ALL_TRACES
+typedef std::vector< ADDRINT > RTNIdStackToInstrumentType;
+#endif
+
 class InstParams {
 private:
 	InstParams() {}
@@ -183,7 +188,7 @@ public:
 		}
 	}
 
-	static inline void CheckAndRecordRoutine(const RTN& rtn, const ADDRINT& addr) {
+	static inline bool CheckAndRecordRoutine(const RTN& rtn, const ADDRINT& addr) {
 		const std::string& name = RTN_Name(rtn);
 		if(RTNNamesToInstrument.find(name) != RTNNamesToInstrument.end()) {
 			// found
@@ -191,7 +196,9 @@ public:
 			RTNIdsToInstrumentType::accessor acc;
 			RTNIdsToInstrument.insert(acc, addr);
 			acc->second = TRUE;
+			return true;
 		}
+		return false;
 	}
 
 	static inline bool IsStartRoutine(const ADDRINT& rtn_addr) {
@@ -275,12 +282,18 @@ public:
 	static RTNNamesToInstrumentType RTNNamesToInstrument;
 	static RTNIdsToInstrumentType RTNIdsToInstrument;
 	static volatile bool pin_enabled;
+#if INSTR_ALL_TRACES
+	static RTNIdStackToInstrumentType RTNIdStackToInstrument;
+#endif
 };
 
 
 RTNNamesToInstrumentType InstParams::RTNNamesToInstrument;
 RTNIdsToInstrumentType InstParams::RTNIdsToInstrument;
 volatile bool InstParams::pin_enabled = true;
+#if INSTR_ALL_TRACES
+RTNIdStackToInstrumentType InstParams::RTNIdStackToInstrument;
+#endif
 
 /* ===================================================================== */
 
@@ -400,7 +413,7 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
-#if TrackFuncCall
+#if TRACK_FUNC_CALLS
 VOID PIN_FAST_ANALYSIS_CALL
 FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		ADDRINT target, ADDRINT arg0, ADDRINT arg1, ADDRINT rtn_addr) {
@@ -702,6 +715,8 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 	return FALSE;
 }
 
+/* ===================================================================== */
+
 INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
 	if(RTN_Valid(rtn)) {
 		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)));
@@ -709,122 +724,25 @@ INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
 	return TRUE;
 }
 
-INLINE LOCALFUN BOOL IsTraceFiltered(TRACE trace) {
-	return IsRoutineFiltered(TRACE_Rtn(trace));
-}
-
-/* ===================================================================== */
-
-VOID Routine(RTN rtn, VOID *v)
-{
-//	if(!pin_enabled) return;
-
-	// filter out standard libraries
-	// we treat this while loading, since Routine can be called before ImageLoad is called
-	if(IsRoutineFiltered(rtn, TRUE)) {
-		return;
-	}
-
-	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
-
-	// check plt routine
-	if(RTN_Name(rtn) == ".plt") {
-		AddToPLT(RTN_Address(rtn));
-		return;
-	}
-
-	RTN_Open(rtn);
-
-	PinSourceLocation* loc = PinSourceLocation::get(rtn);
-
-	// if this is a routine to forward to concurrit, then record its address
-	safe_assert(PTR2ADDRINT(loc->pointer()) == RTN_Address(rtn));
-	InstParams::CheckAndRecordRoutine(rtn, PTR2ADDRINT(loc->pointer()));
-
-	// check if start/end instrument
-	if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
-		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(StartInstrument), IARG_FAST_ANALYSIS_CALL,
-				IARG_THREAD_ID, IARG_END);
-
-	} else if(RTN_Name(rtn) == NativeEndInstrumentFunName) {
-		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(EndInstrument), IARG_FAST_ANALYSIS_CALL,
-				IARG_THREAD_ID, IARG_END);
-	} else {
-		// standard instrumentation
-		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
-			   IARG_CONTEXT,
-			   IARG_THREAD_ID, IARG_PTR, loc,
-			   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-			   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-			   IARG_END);
-	}
-
-	RTN_Close(rtn);
-}
-
-/* ===================================================================== */
-
-LOCALFUN VOID ImageLoad(IMG img, VOID *) {
-
-	// filter out standard libraries
-	// also updates filtered image ids
-	if(IsImageFiltered(img)) {
-		return;
-	}
-
-//	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
-//	{
-//		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
-//		{
-//			log_file << "\t+++ RTN +++ " << RTN_Name(rtn) << endl;
-//
-//			RTN_Open(rtn);
-//
-//			PinSourceLocation* loc = PinSourceLocation::get(rtn);
-//
-//			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
-//					   IARG_CONTEXT,
-//					   IARG_THREAD_ID, IARG_PTR, loc,
-//					   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-//					   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-//					   IARG_END);
-//
-//			RTN_Close(rtn);
-//		}
-//	}
-}
-
-/* ===================================================================== */
-
-LOCALFUN VOID ImageUnload(IMG img, VOID *) {
-	log_file << "Unloading image: " << IMG_Name(img) << endl;
-
-	// delete filtering info about this image
-	UINT32 img_id = IMG_Id(img);
-	FilteredImageIds.erase(img_id);
-}
-
 /* ===================================================================== */
 
 LOCALFUN INLINE
-VOID CallTrace(TRACE trace, INS ins) {
-#if TrackFuncCall
+VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
+#if TRACK_FUNC_CALLS
 	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
 		if (!INS_IsDirectBranchOrCall(ins)) {
 			// Indirect call
-			RTN rtn = TRACE_Rtn(trace);
-			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
+			PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
 			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
 					IARG_CONTEXT,
 					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
 					IARG_BRANCH_TARGET_ADDR,
-					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_ADDRINT, RTN_Address(rtn), IARG_END);
+					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_ADDRINT, rtn_addr, IARG_END);
 
 		} else if (INS_IsDirectBranchOrCall(ins)) {
 			// Direct call
-			RTN rtn = TRACE_Rtn(trace);
-			PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
+			PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
 			ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
 
@@ -832,14 +750,13 @@ VOID CallTrace(TRACE trace, INS ins) {
 					IARG_CONTEXT,
 					IARG_THREAD_ID, IARG_PTR, TRUE, IARG_PTR, loc,
 					IARG_ADDRINT, target,
-					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_ADDRINT, RTN_Address(rtn), IARG_END);
+					IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_ADDRINT, rtn_addr, IARG_END);
 
 		}
 	} else
 #endif
-	if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
-		RTN rtn = TRACE_Rtn(trace);
 
+	if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
 #if defined(TARGET_LINUX) && defined(TARGET_IA32)
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_runtime_resolve") return;
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_debug_state") return;
@@ -847,14 +764,14 @@ VOID CallTrace(TRACE trace, INS ins) {
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
-				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_ADDRINT, RTN_Address(rtn), IARG_END);
+				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_ADDRINT, rtn_addr, IARG_END);
 	}
 }
 
 /* ===================================================================== */
 
 LOCALFUN INLINE
-VOID MemoryTrace(TRACE trace, INS ins) {
+VOID MemoryTrace(INS ins, RTN rtn) {
 	if (INS_IsStackRead(ins) || INS_IsStackWrite(ins))
 		return;
 
@@ -864,7 +781,7 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 	bool is_branchorcall = INS_IsBranchOrCall(ins);
 	if(!has_fallthrough && !is_branchorcall) return;
 
-	PinSourceLocation* loc = PinSourceLocation::get(TRACE_Rtn(trace), INS_Address(ins));
+	PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
 	/* ==================== */
 
@@ -912,26 +829,140 @@ VOID MemoryTrace(TRACE trace, INS ins) {
 
 /* ===================================================================== */
 
-VOID Trace(TRACE trace, VOID *v) {
+LOCALFUN INLINE
+VOID Instruction(INS ins, RTN rtn, ADDRINT rtn_addr) {
+	if (INS_IsOriginal(ins)) {
 
-//	if(!pin_enabled) return;
+		MemoryTrace(ins, rtn);
+
+		CallTrace(ins, rtn, rtn_addr);
+	}
+}
+
+/* ===================================================================== */
+
+VOID Routine(RTN rtn, VOID *v) {
+
+	// filter out standard libraries
+	// we treat this while loading, since Routine can be called before ImageLoad is called
+	if(IsRoutineFiltered(rtn, TRUE)) {
+		return;
+	}
+
+	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
+
+	ADDRINT rtn_addr = RTN_Address(rtn);
+
+	// check plt routine
+	if(RTN_Name(rtn) == ".plt") {
+		AddToPLT(rtn_addr);
+		return;
+	}
+
+	PIN_LockClient();
+
+	RTN_Open(rtn);
+
+	PinSourceLocation* loc = PinSourceLocation::get(rtn);
+
+	// if this is a routine to forward to concurrit, then record its address
+	safe_assert(PTR2ADDRINT(loc->pointer()) == rtn_addr);
+	InstParams::CheckAndRecordRoutine(rtn, rtn_addr);
+
+	// check if start/end instrument
+	if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
+		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(StartInstrument), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
+
+	} else if(RTN_Name(rtn) == NativeEndInstrumentFunName) {
+		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(EndInstrument), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
+	} else {
+		// standard instrumentation
+		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
+			   IARG_CONTEXT,
+			   IARG_THREAD_ID, IARG_PTR, loc,
+			   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+			   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+			   IARG_END);
+
+
+#if INSTR_ALL_TRACES
+		bool is_inst_start = InstParams::IsStartRoutine(rtn_addr);
+		if(is_inst_start) {
+			for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
+			{
+				Instruction(ins, rtn, rtn_addr);
+			}
+		}
+#endif
+
+	}
+
+	RTN_Close(rtn);
+
+	PIN_UnlockClient();
+}
+
+/* ===================================================================== */
+
+LOCALFUN VOID ImageLoad(IMG img, VOID *) {
+
+	// filter out standard libraries
+	// also updates filtered image ids
+	if(IsImageFiltered(img)) {
+		return;
+	}
+
+//	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
+//	{
+//		for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
+//		{
+//			log_file << "\t+++ RTN +++ " << RTN_Name(rtn) << endl;
+//
+//			RTN_Open(rtn);
+//
+//			PinSourceLocation* loc = PinSourceLocation::get(rtn);
+//
+//			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
+//					   IARG_CONTEXT,
+//					   IARG_THREAD_ID, IARG_PTR, loc,
+//					   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+//					   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+//					   IARG_END);
+//
+//			RTN_Close(rtn);
+//		}
+//	}
+}
+
+/* ===================================================================== */
+
+LOCALFUN VOID ImageUnload(IMG img, VOID *) {
+	log_file << "Unloading image: " << IMG_Name(img) << endl;
+
+	// delete filtering info about this image
+	UINT32 img_id = IMG_Id(img);
+	FilteredImageIds.erase(img_id);
+}
+
+/* ===================================================================== */
+
+VOID Trace(TRACE trace, VOID *v) {
 
 	if (!filter.SelectTrace(trace))
 		return;
 
-	if (IsTraceFiltered(trace))
+	RTN rtn = TRACE_Rtn(trace);
+	if (IsRoutineFiltered(rtn))
 		return;
 
+	ADDRINT rtn_addr = RTN_Address(rtn);
 	for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
 	{
 			for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
 			{
-				if (INS_IsOriginal(ins)) {
-
-					MemoryTrace(trace, ins);
-
-					CallTrace(trace, ins);
-				}
+				Instruction(ins, rtn, rtn_addr);
 			}
 		}
 	}
@@ -950,42 +981,42 @@ VOID Fini(INT32 code, VOID *v) {
 
 /* ===================================================================== */
 
-LOCALFUN void OnSig(THREADID threadIndex, CONTEXT_CHANGE_REASON reason,
-		const CONTEXT *ctxtFrom, CONTEXT *ctxtTo, INT32 sig, VOID *v) {
-	if (ctxtFrom != 0) {
-		ADDRINT address = PIN_GetContextReg(ctxtFrom, REG_INST_PTR);
-		cerr << "SIG signal=" << sig << " on thread " << threadIndex
-				<< " at address " << hex << address << dec << " ";
-	}
-
-	switch (reason) {
-	case CONTEXT_CHANGE_REASON_FATALSIGNAL:
-		cerr << "FATALSIG" << sig;
-		break;
-	case CONTEXT_CHANGE_REASON_SIGNAL:
-		cerr << "SIGNAL " << sig;
-		break;
-	case CONTEXT_CHANGE_REASON_SIGRETURN:
-		cerr << "SIGRET";
-		break;
-
-	case CONTEXT_CHANGE_REASON_APC:
-		cerr << "APC";
-		break;
-
-	case CONTEXT_CHANGE_REASON_EXCEPTION:
-		cerr << "EXCEPTION";
-		break;
-
-	case CONTEXT_CHANGE_REASON_CALLBACK:
-		cerr << "CALLBACK";
-		break;
-
-	default:
-		break;
-	}
-	cerr << std::endl;
-}
+//LOCALFUN void OnSig(THREADID threadIndex, CONTEXT_CHANGE_REASON reason,
+//		const CONTEXT *ctxtFrom, CONTEXT *ctxtTo, INT32 sig, VOID *v) {
+//	if (ctxtFrom != 0) {
+//		ADDRINT address = PIN_GetContextReg(ctxtFrom, REG_INST_PTR);
+//		cerr << "SIG signal=" << sig << " on thread " << threadIndex
+//				<< " at address " << hex << address << dec << " ";
+//	}
+//
+//	switch (reason) {
+//	case CONTEXT_CHANGE_REASON_FATALSIGNAL:
+//		cerr << "FATALSIG" << sig;
+//		break;
+//	case CONTEXT_CHANGE_REASON_SIGNAL:
+//		cerr << "SIGNAL " << sig;
+//		break;
+//	case CONTEXT_CHANGE_REASON_SIGRETURN:
+//		cerr << "SIGRET";
+//		break;
+//
+//	case CONTEXT_CHANGE_REASON_APC:
+//		cerr << "APC";
+//		break;
+//
+//	case CONTEXT_CHANGE_REASON_EXCEPTION:
+//		cerr << "EXCEPTION";
+//		break;
+//
+//	case CONTEXT_CHANGE_REASON_CALLBACK:
+//		cerr << "CALLBACK";
+//		break;
+//
+//	default:
+//		break;
+//	}
+//	cerr << std::endl;
+//}
 
 /* ===================================================================== */
 
@@ -1025,19 +1056,6 @@ LOCALFUN VOID ThreadLocalDestruct(VOID* ptr) {
 
 /* ===================================================================== */
 
-std::vector<std::string> TokenizeStringToVector(char* str, const char* tokens) {
-	std::vector<std::string> strlist;
-	char * pch;
-	pch = strtok (str, tokens);
-	while (pch != NULL)
-	{
-		strlist.push_back(std::string(pch));
-		pch = strtok (NULL, tokens);
-	}
-	return strlist;
-}
-
-
 int main(int argc, CHAR *argv[]) {
 	PIN_InitSymbols();
 
@@ -1068,7 +1086,10 @@ int main(int argc, CHAR *argv[]) {
 
 	RTN_AddInstrumentFunction(Routine, 0);
 
+#if !INSTR_ALL_TRACES
 	TRACE_AddInstrumentFunction(Trace, 0);
+#endif
+
 //	PIN_AddContextChangeFunction(OnSig, 0);
 
 	filter.Activate();

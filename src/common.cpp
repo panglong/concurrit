@@ -194,6 +194,20 @@ bool generate_random_bool() {
 
 /********************************************************************************/
 
+std::vector<std::string> TokenizeStringToVector(char* str, const char* tokens) {
+	std::vector<std::string> strlist;
+	char * pch;
+	pch = strtok (str, tokens);
+	while (pch != NULL)
+	{
+		strlist.push_back(std::string(pch));
+		pch = strtok (NULL, tokens);
+	}
+	return strlist;
+}
+
+/********************************************************************************/
+
 } // end namespace
 
 
