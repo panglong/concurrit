@@ -159,10 +159,6 @@ LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
 typedef std::set< std::string > RTNNamesToInstrumentType;
 typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToInstrumentType;
 
-#if INSTR_ALL_TRACES
-typedef std::vector< ADDRINT > RTNIdStackToInstrumentType;
-#endif
-
 class InstParams {
 private:
 	InstParams() {}
@@ -282,18 +278,12 @@ public:
 	static RTNNamesToInstrumentType RTNNamesToInstrument;
 	static RTNIdsToInstrumentType RTNIdsToInstrument;
 	static volatile bool pin_enabled;
-#if INSTR_ALL_TRACES
-	static RTNIdStackToInstrumentType RTNIdStackToInstrument;
-#endif
 };
 
 
 RTNNamesToInstrumentType InstParams::RTNNamesToInstrument;
 RTNIdsToInstrumentType InstParams::RTNIdsToInstrument;
 volatile bool InstParams::pin_enabled = true;
-#if INSTR_ALL_TRACES
-RTNIdStackToInstrumentType InstParams::RTNIdStackToInstrument;
-#endif
 
 /* ===================================================================== */
 
@@ -887,15 +877,28 @@ VOID Routine(RTN rtn, VOID *v) {
 			   IARG_END);
 
 
-#if INSTR_ALL_TRACES
-		bool is_inst_start = InstParams::IsStartRoutine(rtn_addr);
-		if(is_inst_start) {
-			for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
-			{
-				Instruction(ins, rtn, rtn_addr);
-			}
-		}
-#endif
+//#if INSTR_ALL_TRACES
+//
+//		std::vector< ADDRINT > rtn_stack;
+//
+//
+//		bool is_inst_start = InstParams::IsStartRoutine(rtn_addr);
+//		if(is_inst_start) {
+//			for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
+//			{
+//				Instruction(ins, rtn, rtn_addr);
+//
+//				if (INS_IsOriginal(ins) && INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins) && INS_IsDirectBranchOrCall(ins)) {
+//					ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
+//					RTN rtn_target = RTN_FindByAddress(target);
+//					if(RTN_Valid(rtn_target)) {
+//
+//					}
+// 				}
+//
+//			}
+//		}
+//#endif
 
 	}
 
@@ -1086,9 +1089,9 @@ int main(int argc, CHAR *argv[]) {
 
 	RTN_AddInstrumentFunction(Routine, 0);
 
-#if !INSTR_ALL_TRACES
+//#if !INSTR_ALL_TRACES
 	TRACE_AddInstrumentFunction(Trace, 0);
-#endif
+//#endif
 
 //	PIN_AddContextChangeFunction(OnSig, 0);
 
