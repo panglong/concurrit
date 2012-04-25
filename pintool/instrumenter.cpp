@@ -254,7 +254,6 @@ public:
 			}
 			return true;
 		}
-		safe_assert(RTNIdsToInstrument.empty() || RTNIdsToInstrument.find(rtn_addr) == RTNIdsToInstrument.end());
 		return false;
 	}
 
