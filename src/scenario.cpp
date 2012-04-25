@@ -697,9 +697,9 @@ void Scenario::Finish(Result* result) {
 
 	// finish timer
 	timer("Search time").stop();
-	// print statistics
-	std::cerr << "********** Statistics **********" << std::endl;
-	std::cerr << statistics_.ToString() << std::endl;
+//	// print statistics
+//	std::cerr << "********** Statistics **********" << std::endl;
+//	std::cerr << statistics_.ToString() << std::endl;
 
 	safe_assert(Config::ExitOnFirstExecution >= 0 || result != NULL);
 	if(result != NULL) {
