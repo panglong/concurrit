@@ -963,12 +963,12 @@ VOID Trace(TRACE trace, VOID *v) {
 	ADDRINT rtn_addr = RTN_Address(rtn);
 	for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
 	{
-			for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
-			{
-				Instruction(ins, rtn, rtn_addr);
-			}
+		for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
+		{
+			Instruction(ins, rtn, rtn_addr);
 		}
 	}
+}
 
 /* ===================================================================== */
 
