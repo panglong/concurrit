@@ -1,5 +1,4 @@
-TARGET=nbincrement
-SRCS=src/$(TARGET)test.cpp
+BENCH=nbincrement
 
 LIBSRCS=src/increment.cpp
 LIBFLAGS=

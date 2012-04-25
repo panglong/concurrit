@@ -45,7 +45,7 @@ bool Config::IsStarNondeterministic = false;
 bool Config::RunUncontrolled = false;
 char* Config::TestLibraryFile = NULL;
 bool Config::KeepExecutionTree = true;
-bool Config::TrackAlternatePaths = true;
+bool Config::TrackAlternatePaths = false;
 
 /********************************************************************************/
 

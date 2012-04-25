@@ -437,6 +437,8 @@ public:
 		if(covered_ && call_parent && parent_ != NULL) {
 			parent_->ComputeCoverage(true);
 		}
+		safe_assert(!covered_ || (child_covered(0) && child_covered(1)));
+		safe_assert(covered_ || (!child_covered(0) || !child_covered(1)));
 		return covered_;
 	}
 };

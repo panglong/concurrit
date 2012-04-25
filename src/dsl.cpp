@@ -593,6 +593,8 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 		--highest_covered_index;
 	}
 	safe_assert(BETWEEN(0, highest_covered_index, sz-1));
+	safe_assert(node_stack_[highest_covered_index].parent()->covered());
+	safe_assert(highest_covered_index == 0 || !node_stack_[highest_covered_index-1].parent()->covered());
 
 	//===========================
 	// after coverage computation:

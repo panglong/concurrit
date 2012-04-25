@@ -1893,7 +1893,14 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
 		choice = ASINSTANCEOF(node, ChoiceNode*);
-		safe_assert(choice != NULL && !choice->covered());
+		safe_assert(choice != NULL);
+		// recompute coverage, since static info might be updated to set one of the branches covered
+		if(choice->ComputeCoverage()) {
+			// release lock
+			exec_tree_.ReleaseRef(NULL);
+			// backtrack
+			TRIGGER_BACKTRACK(TREENODE_COVERED);
+		}
 //		if(choice == NULL || choice->covered()) {
 //			safe_assert(choice != NULL || exec_tree_.IS_ENDNODE(node));
 //			// release lock
@@ -1915,6 +1922,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 	if(ret < 0) {
 		bool cov_0 = choice->child_covered(0);
 		bool cov_1 = choice->child_covered(1);
+		safe_assert(!cov_0 || !cov_1);
 
 		if(!cov_0 && !cov_1) {
 			if(safe_notnull(ASINSTANCEOF(choice->static_info(), StaticChoiceInfo*))->nondet()) {
@@ -1926,6 +1934,8 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 			ret = !cov_0 ? 0 : 1;
 		}
 	}
+
+	safe_assert(!choice->child_covered(ret));
 
 	choice->OnSubmitted();
 	choice->OnConsumed(Coroutine::Current(), ret);
