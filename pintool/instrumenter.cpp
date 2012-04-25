@@ -744,7 +744,7 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 			// Indirect call
 			PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
-			INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
 							IARG_THREAD_ID, IARG_END);
 
 			INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
@@ -776,7 +776,7 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
-		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncReturn), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncReturn), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_ADDRINT, rtn_addr, IARG_END);
 
 		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_FAST_ANALYSIS_CALL,
@@ -803,7 +803,7 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 	/* ==================== */
 
 	if (INS_IsMemoryWrite(ins)) {
-		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_END);
 
 		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemWrite), IARG_FAST_ANALYSIS_CALL,
@@ -814,7 +814,7 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 	/* ==================== */
 
 	if (INS_HasMemoryRead2(ins)) {
-		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_END);
 
 		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), IARG_FAST_ANALYSIS_CALL,
@@ -825,7 +825,7 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 	/* ==================== */
 
 	if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins)) {
-		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
 				IARG_THREAD_ID, IARG_END);
 
 		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), IARG_FAST_ANALYSIS_CALL,
@@ -835,7 +835,7 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 
 	/* ======================================== */
 
-	INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+	INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
 			IARG_THREAD_ID, IARG_END);
 
 	INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemAccessBefore), IARG_FAST_ANALYSIS_CALL,
@@ -845,7 +845,7 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 	/* ==================== */
 
 	if (has_fallthrough) {
-		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
 			IARG_THREAD_ID, IARG_END);
 
 		INS_InsertThenPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
@@ -853,7 +853,7 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 	}
 	if (is_branchorcall) {
-		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
 			IARG_THREAD_ID, IARG_END);
 
 		INS_InsertThenPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
