@@ -132,6 +132,8 @@ static void AddToPLT(ADDRINT addr) {
 
 /* ===================================================================== */
 
+typedef std::vector<ADDRINT> CallStackType;
+
 class ThreadLocalState {
 public:
 	ThreadLocalState(THREADID tid, bool inst_enabled = false) : tid_(tid), inst_enabled_(inst_enabled) {
@@ -148,7 +150,7 @@ public:
 
 private:
 	DECL_FIELD(THREADID, tid)
-	DECL_FIELD_REF(std::vector<ADDRINT>, call_stack)
+	DECL_FIELD_REF(CallStackType, call_stack)
 	DECL_FIELD(bool, inst_enabled)
 };
 
@@ -315,6 +317,25 @@ EndInstrument(THREADID threadid) {
 
 /* ===================================================================== */
 
+#define BOOL2ADDRINT(b)	((b) ? ADDRINT(1) : ADDRINT(0))
+
+ADDRINT PIN_FAST_ANALYSIS_CALL
+If_OnFuncEnter(THREADID threadid, ADDRINT rtn_addr) {
+	return BOOL2ADDRINT(InstParams::OnFuncEnter(threadid, rtn_addr));
+}
+
+ADDRINT PIN_FAST_ANALYSIS_CALL
+If_OnFuncReturn(THREADID threadid, ADDRINT rtn_addr) {
+	return BOOL2ADDRINT(InstParams::OnFuncReturn(threadid, rtn_addr));
+}
+
+ADDRINT PIN_FAST_ANALYSIS_CALL
+If_OnInstruction(THREADID threadid) {
+	return BOOL2ADDRINT(InstParams::OnInstruction(threadid));
+}
+
+/* ===================================================================== */
+
 typedef void (*NativePinMonitorFunType)(concurrit::PinMonitorCallInfo*);
 static AFUNPTR NativePinMonitorFunPtr = NULL;
 static const char* NativePinMonitorFunName = "CallPinMonitor"; // _ZN9concurrit14CallPinMonitorEPNS_18PinMonitorCallInfoE
@@ -407,9 +428,9 @@ VOID PIN_FAST_ANALYSIS_CALL
 FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		ADDRINT target, ADDRINT arg0, ADDRINT arg1, ADDRINT rtn_addr) {
 
-	if(!InstParams::OnInstruction(threadid)) {
-		return;
-	}
+//	if(!InstParams::OnInstruction(threadid)) {
+//		return;
+//	}
 	//===============================================================
 
 	PinSourceLocation* loc_target = PinSourceLocation::get(target);
@@ -459,9 +480,9 @@ FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDR
 
 //	log_file << threadid << " returning " << loc->funcname() << std::endl;
 
-	if(!InstParams::OnFuncReturn(threadid, rtn_addr)) {
-		return;
-	}
+//	if(!InstParams::OnFuncReturn(threadid, rtn_addr)) {
+//		return;
+//	}
 
 	//=======================================
 
@@ -494,9 +515,9 @@ INLINE VOID CaptureAddrSize(THREADID threadid, VOID * addr, UINT32 size) {
 VOID PIN_FAST_ANALYSIS_CALL
 MemAccessBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 
-	if(!InstParams::OnInstruction(threadid)) {
-		return;
-	}
+//	if(!InstParams::OnInstruction(threadid)) {
+//		return;
+//	}
 	//===============================================================
 
 //	CaptureAddrSize(threadid, addr, size);
@@ -512,9 +533,9 @@ MemAccessBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc)
 VOID PIN_FAST_ANALYSIS_CALL
 MemAccessAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) {
 
-	if(!InstParams::OnInstruction(threadid)) {
-		return;
-	}
+//	if(!InstParams::OnInstruction(threadid)) {
+//		return;
+//	}
 	//===============================================================
 
 //	VOID * addr = AddrSizePairs[threadid].addr;
@@ -533,9 +554,9 @@ MemAccessAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) 
 VOID PIN_FAST_ANALYSIS_CALL
 MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSourceLocation* loc) {
 
-	if(!InstParams::OnInstruction(threadid)) {
-		return;
-	}
+//	if(!InstParams::OnInstruction(threadid)) {
+//		return;
+//	}
 	//===============================================================
 
 	CaptureAddrSize(threadid, addr, size);
@@ -553,9 +574,9 @@ MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinS
 VOID PIN_FAST_ANALYSIS_CALL
 MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSourceLocation* loc) {
 
-	if(!InstParams::OnInstruction(threadid)) {
-		return;
-	}
+//	if(!InstParams::OnInstruction(threadid)) {
+//		return;
+//	}
 	//===============================================================
 
 	CaptureAddrSize(threadid, addr, size);
@@ -723,7 +744,10 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 			// Indirect call
 			PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
+			INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+							IARG_THREAD_ID, IARG_END);
+
+			INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(FuncCall), IARG_FAST_ANALYSIS_CALL,
 					IARG_CONTEXT,
 					IARG_THREAD_ID, IARG_BOOL, FALSE, IARG_PTR, loc,
 					IARG_BRANCH_TARGET_ADDR,
@@ -751,7 +775,11 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_debug_state") return;
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
-		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_FAST_ANALYSIS_CALL,
+
+		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncReturn), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_ADDRINT, rtn_addr, IARG_END);
+
+		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_PTR, loc, IARG_FUNCRET_EXITPOINT_VALUE, IARG_ADDRINT, rtn_addr, IARG_END);
 	}
@@ -775,7 +803,10 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 	/* ==================== */
 
 	if (INS_IsMemoryWrite(ins)) {
-		INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemWrite), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
+
+		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemWrite), IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_PTR, loc, IARG_END);
 	}
@@ -783,7 +814,10 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 	/* ==================== */
 
 	if (INS_HasMemoryRead2(ins)) {
-		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
+
+		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_PTR, loc, IARG_END);
 	}
@@ -791,26 +825,38 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 	/* ==================== */
 
 	if (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins)) {
-		INS_InsertPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
+
+		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemRead), IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
 				IARG_THREAD_ID, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_PTR, loc, IARG_END);
 	}
 
 	/* ======================================== */
 
-	INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(MemAccessBefore), IARG_FAST_ANALYSIS_CALL,
+	INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+			IARG_THREAD_ID, IARG_END);
+
+	INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(MemAccessBefore), IARG_FAST_ANALYSIS_CALL,
 			IARG_CONTEXT,
 			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 
 	/* ==================== */
 
 	if (has_fallthrough) {
-		INS_InsertPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+			IARG_THREAD_ID, IARG_END);
+
+		INS_InsertThenPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
 			IARG_CONTEXT,
 			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 	}
 	if (is_branchorcall) {
-		INS_InsertPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
+		INS_InsertIfCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+			IARG_THREAD_ID, IARG_END);
+
+		INS_InsertThenPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
 			IARG_CONTEXT,
 			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
 	}
