@@ -349,7 +349,8 @@ typedef void (*NativePinMonitorFunType)(concurrit::PinMonitorCallInfo*);
 static AFUNPTR NativePinMonitorFunPtr = NULL;
 static const char* NativePinMonitorFunName = "CallPinMonitor"; // _ZN9concurrit14CallPinMonitorEPNS_18PinMonitorCallInfoE
 
-LOCALFUN VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::PinMonitorCallInfo* info) {
+LOCALFUN INLINE
+VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::PinMonitorCallInfo* info) {
 	if(NativePinMonitorFunPtr != NULL) {
 
 //		reinterpret_cast<NativePinMonitorFunType>(NativePinMonitorFunPtr)(info);
@@ -463,6 +464,29 @@ FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation
 
 VOID PIN_FAST_ANALYSIS_CALL
 FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
+		ADDRINT arg0, ADDRINT arg1) {
+
+//	log_file << threadid << " entering " << loc->funcname() << std::endl;
+
+//	if(!InstParams::OnFuncEnter(threadid, PTR2ADDRINT(loc->pointer()))) {
+//		return;
+//	}
+
+	//=======================================
+
+	concurrit::PinMonitorCallInfo info;
+	info.type = concurrit::FuncEnter;
+	info.threadid = threadid;
+	info.addr = loc->pointer();
+	info.loc_src = loc;
+	info.arg0 = arg0;
+	info.arg1 = arg1;
+
+	CallNativePinMonitor(ctxt, threadid, &info);
+}
+
+VOID PIN_FAST_ANALYSIS_CALL
+FuncEnterEx(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 		ADDRINT arg0, ADDRINT arg1) {
 
 //	log_file << threadid << " entering " << loc->funcname() << std::endl;
@@ -785,8 +809,13 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
-		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncReturn), IARG_FAST_ANALYSIS_CALL,
-				IARG_THREAD_ID, IARG_ADDRINT, rtn_addr, IARG_END);
+		if(InstParams::IsStartRoutine(rtn_addr)) {
+			INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncReturn), IARG_FAST_ANALYSIS_CALL,
+					IARG_THREAD_ID, IARG_ADDRINT, rtn_addr, IARG_END);
+		} else {
+			INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+					IARG_THREAD_ID, IARG_END);
+		}
 
 		INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(FuncReturn), IARG_FAST_ANALYSIS_CALL,
 				IARG_CONTEXT,
@@ -903,7 +932,7 @@ VOID Routine(RTN rtn, VOID *v) {
 		return;
 	}
 
-	PIN_LockClient();
+//	PIN_LockClient();
 
 	RTN_Open(rtn);
 
@@ -923,12 +952,33 @@ VOID Routine(RTN rtn, VOID *v) {
 				IARG_THREAD_ID, IARG_END);
 	} else {
 		// standard instrumentation
-		RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
-			   IARG_CONTEXT,
-			   IARG_THREAD_ID, IARG_PTR, loc,
-			   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-			   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-			   IARG_END);
+		INS ins = RTN_InsHeadOnly(rtn);
+		if(INS_Valid(ins)) {
+
+			if(InstParams::IsStartRoutine(rtn_addr)) {
+				INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncEnter), IARG_FAST_ANALYSIS_CALL,
+						IARG_THREAD_ID, IARG_ADDRINT, rtn_addr, IARG_END);
+			} else {
+				INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+						IARG_THREAD_ID, IARG_END);
+			}
+
+			INS_InsertThenPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(FuncEnter), IARG_FAST_ANALYSIS_CALL,
+				   IARG_CONTEXT,
+				   IARG_THREAD_ID, IARG_PTR, loc,
+				   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+				   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+				   IARG_END);
+
+		} else {
+
+			RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(FuncEnterEx), IARG_FAST_ANALYSIS_CALL,
+						   IARG_CONTEXT,
+						   IARG_THREAD_ID, IARG_PTR, loc,
+						   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+						   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+						   IARG_END);
+		}
 
 
 //#if INSTR_ALL_TRACES
@@ -958,7 +1008,7 @@ VOID Routine(RTN rtn, VOID *v) {
 
 	RTN_Close(rtn);
 
-	PIN_UnlockClient();
+//	PIN_UnlockClient();
 }
 
 /* ===================================================================== */
