@@ -91,10 +91,10 @@ LOCALVAR ofstream log_file;
 LOCALVAR SKIPPER skipper;
 LOCALVAR TLS_KEY tls_key;
 
-LOCALVAR PIN_LOCK lock;
-#define GLB_LOCK_INIT()		InitLock(&lock)
-#define GLB_LOCK()			GetLock(&lock, 1)
-#define GLB_UNLOCK()		ReleaseLock(&lock)
+//LOCALVAR PIN_LOCK lock;
+//#define GLB_LOCK_INIT()		InitLock(&lock)
+//#define GLB_LOCK()			GetLock(&lock, 1)
+//#define GLB_UNLOCK()			ReleaseLock(&lock)
 
 std::string CONCURRIT_HOME;
 
@@ -134,29 +134,34 @@ static void AddToPLT(ADDRINT addr) {
 
 typedef std::vector<ADDRINT> CallStackType;
 
-class ThreadLocalState {
-public:
-	ThreadLocalState(THREADID tid, bool inst_enabled = false) : tid_(tid), inst_enabled_(inst_enabled) {
-		log_file << "Creating thread local state for tid " << tid_ << endl;
-
-		safe_assert(PIN_IsApplicationThread());
-		safe_assert(tid != INVALID_THREADID);
-		safe_assert(tid == PIN_ThreadId());
-	}
-
-	~ThreadLocalState() {
-		log_file << "Deleting thread local state for tid " << tid_ << endl;
-	}
-
-private:
-	DECL_FIELD(THREADID, tid)
-	DECL_FIELD_REF(CallStackType, call_stack)
-	DECL_FIELD(bool, inst_enabled)
-};
+//class ThreadLocalState {
+//public:
+//	ThreadLocalState(THREADID tid, bool inst_enabled = false) : tid_(tid), inst_enabled_(inst_enabled) {
+//		log_file << "Creating thread local state for tid " << tid_ << endl;
+//
+//		safe_assert(PIN_IsApplicationThread());
+//		safe_assert(tid != INVALID_THREADID);
+//		safe_assert(tid == PIN_ThreadId());
+//	}
+//
+//	~ThreadLocalState() {
+//		log_file << "Deleting thread local state for tid " << tid_ << endl;
+//	}
+//
+//private:
+//	DECL_FIELD(THREADID, tid)
+//	DECL_FIELD_REF(CallStackType, call_stack)
+//	DECL_FIELD(bool, inst_enabled)
+//};
 
 /* ===================================================================== */
 
-LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
+LOCALVAR bool ThreadLocalState_inst_enabled[PIN_MAX_THREADS];
+LOCALVAR CallStackType* ThreadLocalState_call_stack[PIN_MAX_THREADS];
+
+/* ===================================================================== */
+
+//LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
 
 typedef std::set< std::string > RTNNamesToInstrumentType;
 typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToInstrumentType;
@@ -211,9 +216,9 @@ public:
 		if(IsPLT(rtn_addr)) return false;
 
 		// check callstack of current thread
-		ThreadLocalState* tls = GetThreadLocalState(threadid);
-		safe_assert(tls != NULL && tls->tid() == threadid);
-		const bool is_inst_enabled = tls->inst_enabled();
+//		ThreadLocalState* tls = GetThreadLocalState(threadid);
+//		safe_assert(tls != NULL && tls->tid() == threadid);
+		const bool is_inst_enabled = ThreadLocalState_inst_enabled[threadid]; // tls->inst_enabled();
 		const bool is_inst_start = IsStartRoutine(rtn_addr);
 		if(is_inst_start) {
 
@@ -222,7 +227,8 @@ public:
 				OnThreadRestart(threadid, true);
 			}
 
-			std::vector<ADDRINT>* call_stack = tls->call_stack();
+			CallStackType* call_stack = ThreadLocalState_call_stack[threadid]; // tls->call_stack();
+			safe_assert(call_stack != NULL);
 			call_stack->push_back(rtn_addr);
 
 			return true;
@@ -236,11 +242,12 @@ public:
 		if(IsPLT(rtn_addr)) return false;
 
 		// check callstack of current thread
-		ThreadLocalState* tls = GetThreadLocalState(threadid);
-		safe_assert(tls != NULL && tls->tid() == threadid);
-		const bool is_inst_enabled = tls->inst_enabled();
+//		ThreadLocalState* tls = GetThreadLocalState(threadid);
+//		safe_assert(tls != NULL && tls->tid() == threadid);
+		const bool is_inst_enabled = ThreadLocalState_inst_enabled[threadid]; // tls->inst_enabled();
 		if(is_inst_enabled) {
-			std::vector<ADDRINT>* call_stack = tls->call_stack();
+			CallStackType* call_stack = ThreadLocalState_call_stack[threadid]; // tls->call_stack();
+			safe_assert(call_stack != NULL);
 			safe_assert(!call_stack->empty());
 			const bool is_inst_start = IsStartRoutine(rtn_addr);
 			if(is_inst_start) {
@@ -252,7 +259,7 @@ public:
 				}
 				safe_assert(rtn_addr == last_addr);
 
-				tls->set_inst_enabled(!call_stack->empty());
+				ThreadLocalState_inst_enabled[threadid] = (!call_stack->empty()); // tls->set_inst_enabled(!call_stack->empty());
 			}
 			return true;
 		}
@@ -263,17 +270,19 @@ public:
 		if(!pin_enabled) return false;
 
 		// check callstack of current thread
-		ThreadLocalState* tls = GetThreadLocalState(threadid);
-		safe_assert(tls != NULL && tls->tid() == threadid);
-		return (tls->inst_enabled());
+//		ThreadLocalState* tls = GetThreadLocalState(threadid);
+//		safe_assert(tls != NULL && tls->tid() == threadid);
+		return ThreadLocalState_inst_enabled[threadid]; // (tls->inst_enabled());
 	}
 
 	static inline void OnThreadRestart(const THREADID& threadid, bool enable = false) {
 		// check callstack of current thread
-		ThreadLocalState* tls = GetThreadLocalState(threadid);
-		safe_assert(tls != NULL && tls->tid() == threadid);
-		tls->call_stack()->clear();
-		tls->set_inst_enabled(enable);
+//		ThreadLocalState* tls = GetThreadLocalState(threadid);
+//		safe_assert(tls != NULL && tls->tid() == threadid);
+		CallStackType* call_stack = ThreadLocalState_call_stack[threadid];
+		safe_assert(call_stack != NULL);
+		call_stack->clear(); // tls->call_stack()->clear();
+		ThreadLocalState_inst_enabled[threadid] = enable; // tls->set_inst_enabled(enable);
 	}
 
 	static RTNNamesToInstrumentType RTNNamesToInstrument;
@@ -498,17 +507,17 @@ FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDR
 
 /* ===================================================================== */
 
-struct AddrSizePair {
-	VOID * addr;
-	UINT32 size;
-};
-
-LOCALVAR AddrSizePair AddrSizePairs[PIN_MAX_THREADS];
-
-INLINE VOID CaptureAddrSize(THREADID threadid, VOID * addr, UINT32 size) {
-	AddrSizePairs[threadid].addr = addr;
-	AddrSizePairs[threadid].size = size;
-}
+//struct AddrSizePair {
+//	VOID * addr;
+//	UINT32 size;
+//};
+//
+//LOCALVAR AddrSizePair AddrSizePairs[PIN_MAX_THREADS];
+//
+//INLINE VOID CaptureAddrSize(THREADID threadid, VOID * addr, UINT32 size) {
+//	AddrSizePairs[threadid].addr = addr;
+//	AddrSizePairs[threadid].size = size;
+//}
 
 /* ===================================================================== */
 
@@ -559,7 +568,7 @@ MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinS
 //	}
 	//===============================================================
 
-	CaptureAddrSize(threadid, addr, size);
+//	CaptureAddrSize(threadid, addr, size);
 
 	concurrit::PinMonitorCallInfo info;
 	info.type = concurrit::MemWrite;
@@ -579,7 +588,7 @@ MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSo
 //	}
 	//===============================================================
 
-	CaptureAddrSize(threadid, addr, size);
+//	CaptureAddrSize(threadid, addr, size);
 
 	concurrit::PinMonitorCallInfo info;
 	info.type = concurrit::MemRead;
@@ -1068,23 +1077,27 @@ VOID Fini(INT32 code, VOID *v) {
 
 /* ===================================================================== */
 
-LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid) {
-	safe_assert(tid == PIN_ThreadId());
-	VOID* ptr = PIN_GetThreadData(tls_key, tid);
-	safe_assert(ptr != NULL);
-	ThreadLocalState* tls = static_cast<ThreadLocalState*>(ptr);
-	safe_assert(tls->tid() == tid);
-	return tls;
-}
+//LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid) {
+//	safe_assert(tid == PIN_ThreadId());
+//	VOID* ptr = PIN_GetThreadData(tls_key, tid);
+//	safe_assert(ptr != NULL);
+//	ThreadLocalState* tls = static_cast<ThreadLocalState*>(ptr);
+//	safe_assert(tls->tid() == tid);
+//	return tls;
+//}
 
 LOCALFUN VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags,
 		VOID *v) {
 	safe_assert(threadid == PIN_ThreadId());
 	log_file << "Thread "<< threadid << " starting..." << endl;
 
-	GLB_LOCK();
-	PIN_SetThreadData(tls_key, new ThreadLocalState(threadid), threadid);
-	GLB_UNLOCK();
+//	GLB_LOCK();
+//	PIN_SetThreadData(tls_key, new ThreadLocalState(threadid), threadid);
+//	GLB_UNLOCK();
+
+	safe_assert(BETWEEN(0, threadid, PIN_MAX_THREADS));
+	ThreadLocalState_inst_enabled[threadid] = false;
+	ThreadLocalState_call_stack[threadid] = new CallStackType();
 }
 
 // This routine is executed every time a thread is destroyed.
@@ -1093,14 +1106,19 @@ LOCALFUN VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code,
 	safe_assert(threadid == PIN_ThreadId());
 
 	log_file << "Thread "<< threadid << " ending..." << endl;
+
+	safe_assert(BETWEEN(0, threadid, PIN_MAX_THREADS));
+	CallStackType* call_stack = ThreadLocalState_call_stack[threadid];
+	safe_assert(call_stack != NULL);
+	delete call_stack;
 }
 
-LOCALFUN VOID ThreadLocalDestruct(VOID* ptr) {
-	if (ptr != NULL) {
-		ThreadLocalState* o = static_cast<ThreadLocalState*>(ptr);
-		delete o;
-	}
-}
+//LOCALFUN VOID ThreadLocalDestruct(VOID* ptr) {
+//	if (ptr != NULL) {
+//		ThreadLocalState* o = static_cast<ThreadLocalState*>(ptr);
+//		delete o;
+//	}
+//}
 
 /* ===================================================================== */
 
@@ -1123,7 +1141,7 @@ int main(int argc, CHAR *argv[]) {
 
 	InitFilteredImages(KnobFilteredImagesFile.Value().c_str());
 
-	tls_key = PIN_CreateThreadDataKey(ThreadLocalDestruct);
+//	tls_key = PIN_CreateThreadDataKey(ThreadLocalDestruct);
 	PIN_AddThreadStartFunction(ThreadStart, 0);
 	PIN_AddThreadFiniFunction(ThreadFini, 0);
 
