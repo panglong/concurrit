@@ -167,6 +167,9 @@ LOCALVAR CallStackType* ThreadLocalState_call_stack[PIN_MAX_THREADS];
 typedef std::set< std::string > RTNNamesToInstrumentType;
 typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToInstrumentType;
 
+typedef std::set< std::string > RTNNamesToSkipType;
+typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToSkipType;
+
 class InstParams {
 private:
 	InstParams() {}
@@ -176,19 +179,24 @@ public:
 		safe_assert(filename != NULL);
 
 		RTNIdsToInstrumentType::accessor acc;
-		RTNIdsToInstrument.clear();
 		RTNIdsToInstrument.insert(acc, ADDRINT(0)); // dummy id
 		acc->second = TRUE;
 		acc.release();
 
-		RTNNamesToInstrument.clear();
 		RTNNamesToInstrument.insert("StartEndInstrument"); // dummy name
 
 		std::vector<std::string> lines;
 		concurrit::ReadLinesFromFile(filename, &lines, false, '#');
 		for(std::vector<std::string>::iterator itr = lines.begin(); itr < lines.end(); ++itr) {
-			log_file << "Adding function to instrument: " << (*itr) << std::endl;
-			RTNNamesToInstrument.insert(*itr);
+			std::string& s = (*itr);
+			if(s.at(0) == '-') {
+				s.erase(0,1);
+				log_file << "Adding function to skip: " << (s) << std::endl;
+				RTNNamesToSkip.insert(s);
+			} else {
+				log_file << "Adding function to instrument: " << (s) << std::endl;
+				RTNNamesToInstrument.insert(s);
+			}
 		}
 	}
 
@@ -201,6 +209,14 @@ public:
 			RTNIdsToInstrument.insert(acc, addr);
 			acc->second = TRUE;
 			return true;
+		} else
+		if(RTNNamesToSkip.find(name) != RTNNamesToSkip.end()) {
+			// found
+			log_file << "Detected routine to skip: " << name << std::endl;
+			RTNIdsToSkipType::accessor acc;
+			RTNIdsToSkip.insert(acc, addr);
+			acc->second = TRUE;
+			return true;
 		}
 		return false;
 	}
@@ -209,6 +225,12 @@ public:
 		if (rtn_addr == ADDRINT(0)) return true;
 		RTNIdsToInstrumentType::const_accessor c_acc;
 		return (RTNIdsToInstrument.find(c_acc, rtn_addr));
+	}
+
+	static inline bool IsRoutineToSkip(const ADDRINT& rtn_addr) {
+		if (rtn_addr == ADDRINT(0)) return true;
+		RTNIdsToSkipType::const_accessor c_acc;
+		return (RTNIdsToSkip.find(c_acc, rtn_addr));
 	}
 
 	static inline bool OnFuncEnter(const THREADID& threadid, const ADDRINT& rtn_addr) {
@@ -288,12 +310,16 @@ public:
 
 	static RTNNamesToInstrumentType RTNNamesToInstrument;
 	static RTNIdsToInstrumentType RTNIdsToInstrument;
+	static RTNNamesToSkipType RTNNamesToSkip;
+	static RTNIdsToSkipType RTNIdsToSkip;
 	static volatile bool pin_enabled;
 };
 
 
 RTNNamesToInstrumentType InstParams::RTNNamesToInstrument;
 RTNIdsToInstrumentType InstParams::RTNIdsToInstrument;
+RTNNamesToSkipType InstParams::RTNNamesToSkip;
+RTNIdsToSkipType InstParams::RTNIdsToSkip;
 volatile bool InstParams::pin_enabled = true;
 
 /* ===================================================================== */
@@ -779,9 +805,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
 	if(RTN_Valid(rtn)) {
 
-		if(RTN_Name(rtn) == "JS_ClearRegExpStatics") return TRUE;
-
-		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)));
+		return IsImageFiltered(SEC_Img(RTN_Sec(rtn))) || InstParams::IsRoutineToSkip(RTN_Address(rtn));
 	}
 	return TRUE;
 }
