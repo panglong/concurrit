@@ -497,6 +497,7 @@ public:
 	TransitionPredicatePtr TP1(const AuxVarPtr& var, const K& key, const ThreadVarPtr& tvar);
 	TransitionPredicatePtr TP2(const AuxVarPtr& var, const AuxKeyPtr& key, const ThreadVarPtr& tvar);
 	TransitionPredicatePtr TP3(const AuxVarPtr& var, const K& key, const T& value, const ThreadVarPtr& tvar);
+	TransitionPredicatePtr TP5(const AuxVarPtr& var, const K& key, const AuxValuePtr& value, const ThreadVarPtr& tvar);
 	TransitionPredicatePtr TP4(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar);
 
 	//================================================
@@ -729,6 +730,12 @@ TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP3(const AuxVarPtr
 }
 
 template<typename K, typename T, K undef_key_, T undef_value_>
+TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP5(const AuxVarPtr& var, const K& key, const AuxValuePtr& value, const ThreadVarPtr& tvar) {
+	AuxKeyConstPtr p(new AuxKeyConstType(key));
+	return this->TP4(var, p, value, tvar);
+}
+
+template<typename K, typename T, K undef_key_, T undef_value_>
 TransitionPredicatePtr AuxVar1<K,T,undef_key_,undef_value_>::TP4(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar) {
 	return AuxVar1Pre<K,T,undef_key_,undef_value_>::create(var, key, value, tvar);
 }
@@ -761,6 +768,8 @@ public:
 
 	static boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> InFunc;
 	static boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> NumInFunc;
+
+	static boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> Arg0;
 
 	static boost::shared_ptr<AuxVar0<int, -1>> Pc;
 

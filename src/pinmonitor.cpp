@@ -161,6 +161,8 @@ inline void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* 
 	safe_assert(c >= 0);
 	AuxState::NumInFunc->set(PTR2ADDRINT(addr), c+1, current->tid());
 
+	AuxState::Arg0->set(PTR2ADDRINT(addr), arg0, current->tid());
+
 	scenario->OnControlledTransition(current);
 }
 
@@ -177,6 +179,8 @@ inline void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void*
 	safe_assert(c >= 0);
 	if(c == 0) return; // TODO(elmas): in general c must be > 1. Sometimes (radbench) it is 0!
 	AuxState::InFunc->set(PTR2ADDRINT(addr), c-1, current->tid());
+
+	AuxState::Arg0->set(PTR2ADDRINT(addr), 0, current->tid());
 
 	scenario->AfterControlledTransition(current);
 }

@@ -420,6 +420,21 @@ inline TransitionPredicatePtr _AT_PC(int pc, ThreadVarPtr t = ThreadVarPtr()) {
 
 /********************************************************************************/
 
+typedef AuxConst0<ADDRINT, ADDRINT(0)> AuxVar0_ADDRINT;
+typedef boost::shared_ptr<AuxVar0_ADDRINT> AuxVar0_ADDRINT_PTR;
+#define AVAR(x)		AuxVar0_ADDRINT_PTR x(new AuxVar0_ADDRINT(ADDRINT(0)));
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _WITH_ARG0(void* f, const AuxVar0_ADDRINT_PTR& arg0, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Arg0.get())->TP5(AuxState::Arg0, PTR2ADDRINT(f), arg0, t);
+}
+
+#define WITH_ARG0(...)		_WITH_ARG0(__VA_ARGS__)
+
+/********************************************************************************/
+
 // allow to add command line arguments
 #define CONFIG(s)		static bool __config_##__LINE__ = Config::ParseCommandLine(StringToMainArgs((s), true));
 

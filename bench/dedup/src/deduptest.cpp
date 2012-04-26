@@ -43,11 +43,13 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		FUNC(dq, dequeue);
 
-		FORALL(t1, IN_FUNC(dq), "T1");
+		AVAR(qptr);
+
+		FORALL(t1, IN_FUNC(dq) && WITH_ARG0(dq, qptr), "T1");
 
 		RUN_UNTIL(PTRUE, AT_PC(42, t1) || RETURNS(dq, t1), __, "T1 reaches 42");
 
-		RUN_UNTIL(NOT(t1) && IN_FUNC(dq), RETURNS(dq), __, "Other threads");
+		RUN_UNTIL(NOT(t1) && IN_FUNC(dq) && WITH_ARG0(dq, qptr), RETURNS(dq), __, "Other threads");
 
 		if(IN_FUNC(dq, t1)) {
 			RUN_UNTIL(PTRUE, RETURNS(dq, t1), __, "T1 returning");

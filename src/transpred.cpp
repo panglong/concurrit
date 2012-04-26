@@ -50,6 +50,8 @@ boost::shared_ptr<AuxVar1<ADDRINT, bool, 0, false>> AuxState::Returns;
 boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> AuxState::InFunc;
 boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> AuxState::NumInFunc;
 
+boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> AuxState::Arg0;
+
 boost::shared_ptr<AuxVar0<int, -1>> AuxState::Pc;
 
 ThreadVarPtr AuxState::Tid;
@@ -83,6 +85,9 @@ void AuxState::Init() {
 
 	boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> _numinfunc(new StaticAuxVar1<ADDRINT, int, 0, 0>("NumInFunc"));
 	AuxState::NumInFunc = _numinfunc;
+
+	boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> _arg0(new StaticAuxVar1<ADDRINT, ADDRINT, 0, 0>("Arg0"));
+	AuxState::Arg0 = _arg0;
 
 	boost::shared_ptr<AuxVar0<int, -1>> _pc(new StaticAuxVar0<int, -1>("Pc"));
 	AuxState::Pc = _pc;
@@ -122,6 +127,8 @@ void AuxState::Clear() {
 
 	InFunc->clear();
 	NumInFunc->clear();
+
+	Arg0->clear();
 
 	Tid->clear_thread();
 }
