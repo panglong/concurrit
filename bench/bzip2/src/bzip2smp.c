@@ -58,6 +58,8 @@ static volatile int outChunksTail = -1; /* -1 means that the buffer is empty */
 static pthread_mutex_t inOutChunksAllocationMutex = PTHREAD_MUTEX_INITIALIZER;
 FILE * nullout = NULL;
 
+static volatile int done = 0;
+
 
 /* Wraps around a negative index within the ring buffer */
 int wrapChunkIndex( int idx )
@@ -76,14 +78,14 @@ void * allocMem( size_t size )
 
   if ( result == NULL )
   {
-    note( 0, "Failed to allocate %u bytes of memory\n", size );
+    printf("Failed to allocate %u bytes of memory\n", size );
     exit( 1 );
   }
 
   return result;
 }
 
-#define ERR1
+//#define ERR1
 
 /* The compressing threads' function */
 void * threadFunction()
@@ -91,7 +93,7 @@ void * threadFunction()
   int outChunk;
   bz_stream * strm;
 
-  for( ; ; )
+  for( ; !done ; )
   {
     /* Take the mutex to make the in-out chunk acquisition operation atomic */
 #ifdef ERR1
@@ -104,7 +106,7 @@ void * threadFunction()
 
     if ( inChunksTail == -1 )
     {
-      note( 2, "THREAD INPUT STARVATION_____________\n" );
+      printf("THREAD INPUT STARVATION_____________\n" );
       pthread_cond_wait( &inChunksAvailableCondition, &inChunksMutex );
     }
 
@@ -126,7 +128,7 @@ void * threadFunction()
 
     if ( outChunksHead == outChunksTail )
     {
-      note( 2, "THREAD OUTPUT STARVATION.............\n" );
+      printf("THREAD OUTPUT STARVATION.............\n" );
       /* No free chunk available, wait for one */
       pthread_cond_wait( &outChunksAvailableCondition, &outChunksMutex );
     }
@@ -134,7 +136,7 @@ void * threadFunction()
     if ( outChunksTail == -1 )
       outChunksTail = outChunksHead;
 
-    note( 2, "allocating outchunk %d\n", outChunksHead );
+    printf("allocating outchunk %d\n", outChunksHead );
 
     outChunk = outChunksHead++;
 
@@ -166,7 +168,7 @@ void * threadFunction()
 
     outChunks[ outChunk ] = strm;
 
-    note( 2, "finished outchunk %d, tail is %d\n", outChunk, outChunksTail );
+    printf("finished outchunk %d, tail is %d\n", outChunk, outChunksTail );
 
     if ( outChunk == outChunksTail ) {
         pthread_cond_signal( &outChunksFlushCondition );
@@ -186,14 +188,14 @@ void * writerThread()
 
   pthread_mutex_lock( &outChunksMutex );
 
-  for( ; ; )
+  for( ; !done ; )
   {
     if ( outChunksTail == -1 || ! outChunks[ outChunksTail ] )
       pthread_cond_wait( &outChunksFlushCondition, &outChunksMutex );
 
     pthread_mutex_unlock( &outChunksMutex );
 
-    note( 2, "flushing outchunk %d\n", outChunksTail );
+    printf("flushing outchunk %d\n", outChunksTail );
 
     strm = outChunks[ outChunksTail ];
 
@@ -209,7 +211,7 @@ void * writerThread()
 #ifdef NICKEDIT
     if ( blockSize && fwrite( buf, blockSize, 1, nullout) != 1 )
     {
-      note( 0, "Error writing to nullout\n" );
+      printf("Error writing to nullout\n" );
       exit( 1 );
     }
 
@@ -217,7 +219,7 @@ void * writerThread()
 
     if ( blockSize && fwrite( buf, blockSize, 1, stdout ) != 1 )
     {
-      note( 0, "Error writing to stdout\n" );
+      printf("Error writing to stdout\n" );
       exit( 1 );
     }
 
@@ -336,7 +338,7 @@ int main0( int argc, char *argv[] )
         {
           if ( sscanf( p, "%u", &threadsCount ) != 1 )
           {
-            note( 0, "Error parsing the number of threads passed: %s.\n",
+            printf("Error parsing the number of threads passed: %s.\n",
                   argv[ x ] + 2 );
 
             return 1;
@@ -358,7 +360,7 @@ int main0( int argc, char *argv[] )
 #ifdef NICKEDIT
     break;
 #endif
-    note( 0, "Unrecognized option %s passed.\n", argv[ x ] );
+    printf("Unrecognized option %s passed.\n", argv[ x ] );
 
     return 1;
   }
@@ -367,7 +369,7 @@ int main0( int argc, char *argv[] )
 #else
   if ( isatty ( fileno ( stdout ) ) )
   {
-    note( 0, "Won't write compressed data to a terminal. Use --help to get help.\n" );
+    printf("Won't write compressed data to a terminal. Use --help to get help.\n" );
     return 1;
   }
 #endif
@@ -378,7 +380,7 @@ int main0( int argc, char *argv[] )
 
     if ( x == -1 )
     {
-      note( 0, "Failed to get the number of processors in the system: %s",
+      printf("Failed to get the number of processors in the system: %s",
             strerror( errno ) );
   
       return 1;
@@ -392,10 +394,10 @@ int main0( int argc, char *argv[] )
     if ( hyperthreading )
       threadsCount /= 2;
   
-    note( 1, "CPUs detected: %d\n", threadsCount );
+    printf("CPUs detected: %d\n", threadsCount );
   }
 
-  note( 1, "Threads to use: %d\n", threadsCount );
+  printf("Threads to use: %d\n", threadsCount );
 
   /* Allocate the input chunks buffer. The actual input chunks are malloc()ed
   dynamically, since they are consumed randomly. The inChunksFree variable
@@ -421,7 +423,7 @@ int main0( int argc, char *argv[] )
   {
     if ( pthread_create( &dummy, NULL, &threadFunction, NULL ) )
     {
-      note( 0, "Failed to create compression thread(s).\n" );
+      printf("Failed to create compression thread(s).\n" );
       return 1;
     }
   }
@@ -430,7 +432,7 @@ int main0( int argc, char *argv[] )
   /* Start the writer thread */
   if ( pthread_create( &dummy, NULL, &writerThread, NULL ) )
   {
-    note( 0, "Failed to create writer thread.\n" );
+    printf("Failed to create writer thread.\n" );
     return 1;
   }
 
@@ -473,7 +475,7 @@ int main0( int argc, char *argv[] )
 
     if ( x != BZ_OK )
     {
-      note( 0, "bzip2 compress init returned error code %d\n", x );
+      printf("bzip2 compress init returned error code %d\n", x );
 
       exit( 1 );
     }
@@ -509,7 +511,7 @@ int main0( int argc, char *argv[] )
 
         if ( x != BZ_RUN_OK )
         {
-          note( 0, "bzip2 compressing routine (input) returned "
+          printf("bzip2 compressing routine (input) returned "
                    "error code %d\n", x );
           return 1;
         }
@@ -541,9 +543,9 @@ int main0( int argc, char *argv[] )
             /* 0 bytes read, and not on feof -- must be ferror */
 
 #ifdef NICKEDIT
-            note( 0, "error reading data from file\n" );
+            printf("error reading data from file\n" );
 #else
-            note( 0, "error reading data from stdin\n" );
+            printf("error reading data from stdin\n" );
 #endif
 
             return 1;
@@ -567,7 +569,7 @@ int main0( int argc, char *argv[] )
       x = BZ2_bzCompress( strm, BZ_FINISH|BZ_STOP_BEFORE_BLOCKSORT );
       if ( x != BZ_STOPPED_BEFORE_BLOCKSORT )
       {
-        note( 0, "Error: bzip2 compressing routine (finish) "
+        printf("Error: bzip2 compressing routine (finish) "
                  "returned error code %d\n", x );
         return 1;
       }
@@ -605,7 +607,7 @@ int main0( int argc, char *argv[] )
   /* Now that the data is all read, just wait until all in chunks are consumed
   and out chunks are written. */
 
-  note( 2, "waiting for jobs to finish\n" );
+  printf("waiting for jobs to finish\n" );
 
   pthread_mutex_lock( &inChunksMutex );
   while ( inChunksFree != inChunksCount )
@@ -621,6 +623,8 @@ int main0( int argc, char *argv[] )
 
   /* No further semantic cleanup is required.
   Don't care freeing up the resources, the OS must do it anyway. */
+
+  done = 1;
 
   return 0;
 }
