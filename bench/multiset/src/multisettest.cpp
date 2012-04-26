@@ -45,7 +45,7 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 
 	TESTCASE() {
 
-		MAX_WAIT_TIME(USECSPERSEC);
+		MAX_WAIT_TIME(3*USECSPERSEC);
 
 		FUNC(f_insertpair, multiset_insert_pair);
 		FUNC(f_allocate, multiset_allocate);
@@ -76,12 +76,24 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 //		}
 
 
+//		WHILE_STAR {
+//			FORALL(t, PTRUE);
+//			WHILE_STAR {
+//				RUN_UNTIL(BY(t), IN_FUNC(f_insertpair) && (READS() || WRITES() || ENDS()), __);
+//			}
+//		}
+
+
+		FORALL(t1, PTRUE);
 		WHILE_STAR {
-			FORALL(t, PTRUE);
-			WHILE_STAR {
-				RUN_UNTIL(BY(t), IN_FUNC(f_insertpair) && (READS() || WRITES() || ENDS()), __);
-			}
+			RUN_UNTIL(BY(t1), IN_FUNC(f_insertpair) && (READS() || WRITES() || ENDS()), __);
 		}
+
+		FORALL(t2, NOT(t1));
+		WHILE_STAR {
+			RUN_UNTIL(BY(t2), IN_FUNC(f_insertpair) && (READS() || WRITES() || ENDS()), __);
+		}
+
 	}
 
 CONCURRIT_END_TEST(INCScenario)

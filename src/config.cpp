@@ -46,6 +46,7 @@ bool Config::RunUncontrolled = false;
 char* Config::TestLibraryFile = NULL;
 bool Config::KeepExecutionTree = true;
 bool Config::TrackAlternatePaths = false;
+int Config::MaxTimeOutsBeforeDeadlock = 10;
 
 /********************************************************************************/
 

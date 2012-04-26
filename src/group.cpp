@@ -163,17 +163,21 @@ void CoroutineGroup::Finish() {
 
 /********************************************************************************/
 
-bool CoroutineGroup::WaitForAllEnd(long timeout) {
+// returns the number of timeouts when waiting for threads to end
+int CoroutineGroup::WaitForAllEnd(long timeout /*= -1*/) {
+	if(timeout == -1) timeout = (Config::RunUncontrolled ? 0 : Config::MaxWaitTimeUSecs);
+
+	int timed_out = 0;
 	for_each_member(co) {
 		if(co->status() > PASSIVE) {
 			if(!co->WaitForEnd(timeout)) {
-				return false;
+				++timed_out;
 			}
 		}
 	}
 
-	safe_assert(IsAllEnded());
-	return true;
+	safe_assert(timed_out == 0 || IsAllEnded());
+	return timed_out;
 }
 
 /********************************************************************************/

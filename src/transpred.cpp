@@ -300,6 +300,16 @@ bool ThreadVarPtr_compare::operator()(const ThreadVarPtr& tx, const ThreadVarPtr
 
 /********************************************************************************/
 
+ThreadVarPtr& operator << (ThreadVarPtr& to, const ThreadVarPtr& from) {
+	safe_assert(to != NULL);
+	safe_assert(from != NULL);
+
+	to->set_thread(from->thread());
+	return to;
+}
+
+/********************************************************************************/
+
 } // end namespace
 
 

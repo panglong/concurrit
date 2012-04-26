@@ -83,5 +83,6 @@ namespace concurrit {
 #include "dsl.h"
 #include "transpred.h"
 #include "interpos.h"
+#include "default.h"
 
 #endif /* COUNIT_H_ */

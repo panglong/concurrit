@@ -231,8 +231,22 @@ void Scenario::JoinPThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 
 /********************************************************************************/
 
-bool Scenario::JoinAllThreads(long timeout) {
-	return group_.WaitForAllEnd(timeout);
+void Scenario::JoinAllThreads(long timeout /*= -1*/) {
+	if(timeout == -1) timeout = (Config::RunUncontrolled ? 0 : Config::MaxWaitTimeUSecs);
+
+	int num_timed_out = -1; // set to -1 to start with 0 in the first iteration.
+	do {
+		if(exec_tree_.ENDNODE()->exception()->get_non_backtrack() != NULL) {
+			VLOG(1) << "There is a non-backtrack exception, so exiting without waiting threads!";
+			break;
+		}
+		++num_timed_out;
+		if(num_timed_out == Config::MaxTimeOutsBeforeDeadlock) {
+			VLOG(1) << "There is a deadlock, so exiting without waiting threads!";
+			exec_tree_.ENDNODE()->add_exception(new DeadlockException(), Coroutine::Current(), "JoinAllThreads");
+			break;
+		}
+	} while(group_.WaitForAllEnd(timeout) > 0);
 }
 
 /********************************************************************************/
@@ -409,12 +423,7 @@ void Scenario::RunUncontrolled() {
 	VLOG(2) << "Starting uncontrolled run";
 
 	// start waiting all to end
-	do {
-		if(exec_tree_.ENDNODE()->exception()->get_non_backtrack() != NULL) {
-			VLOG(1) << "There is a non-backtrack exception, so exiting without waiting threads!";
-			break;
-		}
-	} while(!JoinAllThreads(Config::RunUncontrolled ? 0 : Config::MaxWaitTimeUSecs));
+	JoinAllThreads();
 
 	VLOG(2) << "Ending uncontrolled run";
 }

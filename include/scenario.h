@@ -115,7 +115,7 @@ public:
 
 	void JoinThread(Coroutine* co, void ** value_ptr = NULL);
 	void JoinPThread(Coroutine* co, void ** value_ptr = NULL);
-	bool JoinAllThreads(long timeout = 0);
+	void JoinAllThreads(long timeout = -1);
 
 	/* returns the same scenario for concatenating calls */
 	Scenario* Until(UntilCondition* until);

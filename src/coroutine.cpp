@@ -127,7 +127,10 @@ void Coroutine::Finish() {
 
 /********************************************************************************/
 
-bool Coroutine::WaitForEnd(long timeout) {
+// returns true if waiting ends successfully before time-out
+bool Coroutine::WaitForEnd(long timeout /*= -1*/) {
+	if(timeout == -1) timeout = (Config::RunUncontrolled ? 0 : Config::MaxWaitTimeUSecs);
+
 	safe_assert(BETWEEN(ENABLED, status_, ENDED));
 	VLOG(2) << "Waiting for coroutine " << tid_ << " to end.";
 

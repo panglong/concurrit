@@ -127,8 +127,8 @@ public:
 		loc_ = loc;
 	}
 
-	~AssertionViolationException() throw() {
-		delete loc_;
+	virtual ~AssertionViolationException() throw() {
+		if(loc_ != NULL) delete loc_;
 	}
 
 	virtual const char* what() const throw()
@@ -141,6 +141,16 @@ public:
 private:
 	DECL_FIELD(std::string, condition)
 	DECL_FIELD(SourceLocation*, loc)
+};
+
+/********************************************************************************/
+
+class DeadlockException : public AssertionViolationException {
+public:
+	DeadlockException() throw()
+			: AssertionViolationException("DEADLOCK", NULL) {}
+
+	~DeadlockException() throw() {}
 };
 
 /********************************************************************************/
@@ -315,6 +325,10 @@ inline void TRIGGER_TERMINATE_SEARCH() {
 
 inline void TRIGGER_ASSERTION_VIOLATION(const char* expr, const char* filename, const char* funcname, int line) {
 	throw new AssertionViolationException(expr, new SourceLocation(filename, funcname, line));
+}
+
+inline void TRIGGER_DEADLOCK() {
+	throw new DeadlockException();
 }
 
 //inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {

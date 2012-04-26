@@ -90,7 +90,11 @@ public:
 bool operator==(const ThreadVar& tx, const ThreadVar& yx);
 bool operator!=(const ThreadVar& tx, const ThreadVar& ty);
 bool operator<(const ThreadVar& a, const ThreadVar& b);
+
 typedef boost::shared_ptr<ThreadVar> ThreadVarPtr;
+
+// thread variable assignment. do not use the standard assignment =
+ThreadVarPtr& operator << (ThreadVarPtr& to, const ThreadVarPtr& from);
 
 struct ThreadVarPtr_compare {
     bool operator()(const ThreadVarPtr& tx, const ThreadVarPtr& ty) const;

@@ -69,7 +69,7 @@ public:
 	virtual void* Run();
 
 	void Finish();
-	bool WaitForEnd(long timeout = 0);
+	bool WaitForEnd(long timeout = -1);
 
 	void StartMain();
 	void FinishMain();

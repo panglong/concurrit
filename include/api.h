@@ -436,6 +436,19 @@ inline bool HAS_ENDED(ThreadVarPtr t) {
 
 /********************************************************************************/
 
+// wait for all threads to end
+#define WAIT_FOR_ALL		JoinAllThreads
+
+// wait for a particular thread to end
+inline void _WAIT_FOR_END(ThreadVarPtr t, long timeout = -1) {
+	safe_assert(t != NULL && !t->is_empty());
+	t->thread()->WaitForEnd(timeout);
+}
+
+#define WAIT_FOR_END(...)	_WAIT_FOR_END(__VA_ARGS__)
+
+/********************************************************************************/
+
 } // end namespace
 
 #endif /* API_H_ */
