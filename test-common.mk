@@ -33,8 +33,8 @@ clean-test::
 
 bin/$(TARGET): lib/$(TARGETLIB) $(SRCS) $(HEADERS)
 	$(CC) $(TEST_FLAGS) -o $@ $(SRCS)
-	$(CC) $(TEST_FLAGS) -c -o obj/$(TARGET).o $(SRCS)
-	ar rcs lib/$(TARGET).a obj/$(TARGET).o
+#	$(CC) $(TEST_FLAGS) -c -o obj/$(TARGET).o $(SRCS)
+#	ar rcs lib/$(TARGET).a obj/$(TARGET).o
 	chmod +x bin/$(TARGET)
 
 script: bin/$(TARGET)

@@ -42,6 +42,7 @@ namespace concurrit {
 
 // scenario defining default search policies
 class DefaultScenario : public Scenario {
+public:
 	explicit DefaultScenario(const char* name) : Scenario(name) {}
 	virtual ~DefaultScenario() {}
 

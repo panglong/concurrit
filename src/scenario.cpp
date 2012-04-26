@@ -219,7 +219,7 @@ void Scenario::JoinThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 
 void Scenario::JoinPThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 	safe_assert(co != NULL);
-	co->WaitForEnd();
+	co->WaitForEnd(0); // timeout == 0 -- wait indefinitely
 	safe_assert(co->is_ended());
 
 	__pthread_errno__ = PTH_SUCCESS;

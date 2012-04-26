@@ -292,9 +292,9 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 #define CONCURRIT_BEGIN_TEST(test_name, test_desc) \
 		/* define scenario sub-class */ \
-		class test_name : public Scenario { \
+		class test_name : public DefaultScenario { \
 		public: \
-			test_name() : Scenario(test_desc) {} \
+			test_name() : DefaultScenario(test_desc) {} \
 			~test_name() {} \
 
 

@@ -74,6 +74,11 @@ public:
 	virtual std::string ToString() {
 		return ""; // TODO(elmas): implement
 	}
+
+	// evaluate immediatelly
+	operator bool () {
+		return TPTRUE == EvalPreState(NULL);
+	}
 };
 
 TransitionPredicatePtr operator ! (const TransitionPredicatePtr& pred);

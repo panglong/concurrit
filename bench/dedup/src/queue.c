@@ -47,6 +47,7 @@ int dequeue(struct queue * que, int * fetch_count, void ** to_buf) {
         pthread_cond_broadcast(&que->empty);
         pthread_mutex_unlock(&que->mutex);
 #endif
+        printf("Returning!!!");
         return -1;     
       }
 
@@ -60,7 +61,8 @@ int dequeue(struct queue * que, int * fetch_count, void ** to_buf) {
 
 #endif
 
-      AtPc(42); AtPc(43);
+      AtPc(42);
+      AtPc(43);
 
       pthread_mutex_lock(&que->mutex);
 #endif
