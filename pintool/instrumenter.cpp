@@ -105,6 +105,7 @@ std::string CONCURRIT_HOME;
 
 /* ===================================================================== */
 
+static const char* NativePinShutdownFunName = "ShutdownPinTool";
 static const char* NativePinEnableFunName = "EnablePinTool";
 static const char* NativePinDisableFunName = "DisablePinTool";
 static const char* NativeThreadRestartFunName = "ThreadRestart";
@@ -322,6 +323,11 @@ VOID PIN_FAST_ANALYSIS_CALL
 EndInstrument(THREADID threadid) {
 	safe_assert(!IsPLT(ADDRINT(0)));
 	InstParams::OnFuncReturn(threadid, ADDRINT(0));
+}
+
+VOID PIN_FAST_ANALYSIS_CALL
+PinShutdown() {
+	PIN_Detach();
 }
 
 /* ===================================================================== */
@@ -703,6 +709,16 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_Close(rtn);
 
 				log_file << "Detected callback to concurrit: " << NativeEndInstrumentFunName << endl;
+
+			} else if(RTN_Name(rtn) == NativePinShutdownFunName) {
+				RTN_Open(rtn);
+
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinShutdown), IARG_FAST_ANALYSIS_CALL,
+						IARG_END);
+
+				RTN_Close(rtn);
+
+				log_file << "Detected callback to concurrit: " << NativePinShutdownFunName << endl;
 			}
 		}
 	}
@@ -1046,6 +1062,7 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 /* ===================================================================== */
 
 LOCALFUN VOID ImageUnload(IMG img, VOID *) {
+
 	log_file << "Unloading image: " << IMG_Name(img) << endl;
 
 	// delete filtering info about this image

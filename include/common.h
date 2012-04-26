@@ -334,6 +334,8 @@ extern "C" void DisablePinTool();
 
 extern "C" void ThreadRestart();
 
+extern "C" void ShutdownPinTool();
+
 /********************************************************************************/
 
 #include "dummy.h"

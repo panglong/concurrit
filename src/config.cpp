@@ -106,6 +106,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			break;
 		case 'u':
 			Config::RunUncontrolled = true;
+			Config::ExitOnFirstExecution = 1;
 			printf("Will run the test in uncontrolled mode.\n");
 			break;
 		case 'w':

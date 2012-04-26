@@ -254,6 +254,8 @@ void DisablePinTool() { VLOG(2) << "Disabling pin instrumentation"; }
 
 void ThreadRestart() { VLOG(2) << "Restarting thread."; }
 
+void ShutdownPinTool() { VLOG(2) << "Shutting down pintool."; }
+
 /********************************************************************************/
 
 void StartInstrument() { VLOG(2) << "Starting instrumentation."; }
