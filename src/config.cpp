@@ -47,19 +47,22 @@ char* Config::TestLibraryFile = NULL;
 bool Config::KeepExecutionTree = true;
 bool Config::TrackAlternatePaths = false;
 int Config::MaxTimeOutsBeforeDeadlock = 10;
+bool Config::NoPinTool = false;
 
 /********************************************************************************/
 
 static void usage() {
-	printf("-h: Show this help. (OnlyShowHelp)\n"
-			"-a: Track altenate paths (KeepExecutionTree && TrackAlternatePaths)"
+	printf("-h: Show this help. (OnlyShowHelp)\n\n"
+			"-a: Track altenate paths (TrackAlternatePaths)"
 			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
-			"-e: Enable/Disable Pin instrumentation.(CanEnableDisablePinTool)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
 			"-l: Test program as shared (.so) library"
-			"-s: Use stack-based DFS (!KeepExecutionTree && !TrackAlternatePaths)"
-			"-u: Run test program uncontrolled.");
+			"-n: No Pin tool instrumentation (NoPinTool)"
+			"-s: Use stack-based DFS (!KeepExecutionTree"
+			"-u: Run test program uncontrolled (RunUncontrolled)"
+			"-vN: Verbosity level (N >= 0)"
+			"-wN: Maximum wait time (MaxWaitTimeUSecs).");
 }
 
 bool Config::ParseCommandLine(const main_args& args) {
@@ -72,7 +75,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "asl:uw:chf::d::")) != -1) {
+	while ((c = getopt(argc, argv, "acd::f::hl:nsuv:w:")) != -1) {
 		switch(c) {
 		case 'a':
 //			Config::KeepExecutionTree = true;
@@ -100,6 +103,10 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
 			break;
+		case 'n':
+			Config::NoPinTool = true;
+			printf("Will shut-down pin tool!\n");
+			break;
 		case 's':
 			Config::KeepExecutionTree = false;
 //			Config::TrackAlternatePaths = false;
@@ -122,6 +129,10 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			}
 			Config::TestLibraryFile = strdup(optarg);
 			printf("Will load the test program from the library %s.\n", Config::TestLibraryFile);
+			break;
+		case 'v':
+			setenv("GLOG_v", safe_notnull(optarg), 1);
+			printf("Verbosity level is %s.\n", optarg);
 			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");

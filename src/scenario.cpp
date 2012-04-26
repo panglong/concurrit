@@ -473,10 +473,7 @@ void Scenario::RunTestCase() throw() {
 			RunTestDriver();
 
 			// run test case when RunUncontrolled flag is not set
-			if(Config::RunUncontrolled) {
-				// shutdown pintool
-				ShutdownPinTool();
-			} else {
+			if(!Config::RunUncontrolled) {
 				// put a single dot to indicate progress
 				fprintf(stderr, ".");
 				TestCase();

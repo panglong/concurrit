@@ -60,6 +60,7 @@ public:
 	static MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
 	static SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);
 
+	static void Shutdown();
 	static void Enable();
 	static void Disable();
 

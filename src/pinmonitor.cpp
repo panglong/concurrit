@@ -98,6 +98,11 @@ void PinMonitor::Disable() {
 	}
 }
 
+void PinMonitor::Shutdown() {
+	PinMonitor::Disable();
+	ShutdownPinTool();
+}
+
 /******************************************************************************************/
 
 // callbacks

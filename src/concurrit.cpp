@@ -93,6 +93,12 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
+	if(Config::NoPinTool || Config::RunUncontrolled) {
+		PinMonitor::Shutdown();
+	}
+
+	//==========================================
+
 	LoadTestLibrary();
 
 	//==========================================
