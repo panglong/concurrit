@@ -127,6 +127,8 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 void Concurrit::Destroy() {
 	safe_assert(IsInitialized());
 
+	PinMonitor::Shutdown();
+
 	do { // need a fence here
 		initialized_ = false;
 	} while(false);

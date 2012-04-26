@@ -85,6 +85,7 @@ public:
 private:
 	static Coroutine* tid_to_coroutine_[MAX_THREADS];
 	static volatile bool enabled_;
+	static volatile bool down_;
 };
 
 typedef uint32_t PinMonitorCallType;

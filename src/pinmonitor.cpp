@@ -38,6 +38,7 @@ namespace concurrit {
 
 Coroutine* PinMonitor::tid_to_coroutine_[MAX_THREADS];
 volatile bool PinMonitor::enabled_ = false;
+volatile bool PinMonitor::down_ = false;
 
 /********************************************************************************/
 
@@ -84,14 +85,14 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 /******************************************************************************************/
 
 void PinMonitor::Enable() {
-	if(!Config::RunUncontrolled) {
+	if(!down_) {
 		VLOG(2) << ">>> Enabling Pin instrumentation.";
 		EnablePinTool();
 		enabled_ = true;
 	}
 }
 void PinMonitor::Disable() {
-	if(!Config::RunUncontrolled) {
+	if(!down_) {
 		VLOG(2) << ">>> Disabling Pin instrumentation.";
 		DisablePinTool();
 		enabled_ = false;
@@ -99,8 +100,11 @@ void PinMonitor::Disable() {
 }
 
 void PinMonitor::Shutdown() {
-	PinMonitor::Disable();
-	ShutdownPinTool();
+	if(!down_) {
+		PinMonitor::Disable();
+		ShutdownPinTool();
+		down_ = true;
+	}
 }
 
 /******************************************************************************************/
