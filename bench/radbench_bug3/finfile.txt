@@ -1,0 +1,7 @@
+#JS_SetContextThread
+#JS_ClearContextThread
+#JS_BeginRequest
+#JS_GC
+#JS_EndRequest
+-JS_ClearRegExpStatics
+-js_TraceContext

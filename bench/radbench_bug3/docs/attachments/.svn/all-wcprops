@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug3/docs/attachments
+END
+v1-attach1.patch
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug3/docs/attachments/v1-attach1.patch
+END
+bug-478336-for-SM1.8-v1-attach4.patch
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug3/docs/attachments/bug-478336-for-SM1.8-v1-attach4.patch
+END
+typescript-attach2
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug3/docs/attachments/typescript-attach2
+END
+doit-attach3.sh
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug3/docs/attachments/doit-attach3.sh
+END
