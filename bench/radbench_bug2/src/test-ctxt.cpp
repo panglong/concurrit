@@ -7,9 +7,9 @@
 #define JS_THREADSAFE
 #include "jsapi.h"
 
-#define THREADS 2
-#define MAX_CALLS 10
-#define MAX_GC 10
+#define THREADS 1
+#define MAX_CALLS 1
+#define MAX_GC 1
 
 static JSClass global_class = {
     "global", JSCLASS_GLOBAL_FLAGS,
@@ -27,6 +27,9 @@ static void * testfunc(void *ignored) {
         exit(1);
 
     for (int i = 0; i < MAX_CALLS; i++) {
+
+    	StartInstrument();
+
         // Fastest way to cause a crash..
 //        JS_SetContextThread(cx);
 //        JS_ClearContextThread(cx);
@@ -40,6 +43,8 @@ static void * testfunc(void *ignored) {
         // Avoiding Set/ClearContextThread does not cause any crash..
 //      JS_BeginRequest(cx);
 //      JS_EndRequest(cx);
+
+      EndInstrument();
     }
 }
 
@@ -70,6 +75,9 @@ int main0(int argc, char* argv[]) {
     }
 
     for (int i = 0; i < MAX_GC; i++) {
+
+    	StartInstrument();
+
         // Does an isolated JS_GC need to be wrapped in a request? The
         // API doesn't explicitly state so, but we get the same
         // behaviour regardless of whether or not we use
@@ -77,6 +85,8 @@ int main0(int argc, char* argv[]) {
         JS_BeginRequest(cx);
         JS_GC(cx);
         JS_EndRequest(cx);
+
+        EndInstrument();
     }
     for (int i = 0; i < THREADS; i++) {
         pthread_join(t[i], NULL);

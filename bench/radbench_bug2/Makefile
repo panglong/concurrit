@@ -33,4 +33,5 @@ testharness:
 	cp -f $(RADBENCHDIR)/src/runme.sh $(RADBENCHDIR)/bin/runme.sh
 
 shared: makedirs copyfiles js testharness
-	cp -f $(RADBENCHDIR)/bin/* $(BENCHDIR)/lib/
+
+driver: testharness

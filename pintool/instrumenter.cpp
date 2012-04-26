@@ -778,6 +778,9 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 
 INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
 	if(RTN_Valid(rtn)) {
+
+		if(RTN_Name(rtn) == "JS_ClearRegExpStatics") return TRUE;
+
 		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)));
 	}
 	return TRUE;

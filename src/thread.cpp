@@ -180,7 +180,7 @@ void Thread::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NUL
 	return_value_ = NULL;
 	__pthread_errno__ = Originals::pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
 	if(__pthread_errno__ != PTH_SUCCESS) {
-		printf("Create error: %s\n", PTHResultToString(__pthread_errno__));
+		safe_fail("Create error: %s\n", PTHResultToString(__pthread_errno__));
 	}
 	safe_assert(pthread_ != PTH_INVALID_THREAD);
 	if(pid != NULL) *pid = pthread_;
@@ -191,7 +191,7 @@ void Thread::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NUL
 void Thread::Join(void ** value_ptr /*= NULL*/) {
 	__pthread_errno__ = Originals::pthread_join(pthread_, value_ptr);
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
-		printf("Join error: %s\n", PTHResultToString(__pthread_errno__));
+		safe_fail("Join error: %s\n", PTHResultToString(__pthread_errno__));
 	}
 	if(__pthread_errno__ == PTH_SUCCESS && value_ptr != NULL) {
 		safe_assert(*value_ptr == return_value_);
@@ -203,7 +203,7 @@ void Thread::Join(void ** value_ptr /*= NULL*/) {
 void Thread::Cancel() {
 	__pthread_errno__ = Originals::pthread_cancel(pthread_);
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
-		printf("Cancel error: %s\n", PTHResultToString(__pthread_errno__));
+		safe_fail("Cancel error: %s\n", PTHResultToString(__pthread_errno__));
 	}
 }
 

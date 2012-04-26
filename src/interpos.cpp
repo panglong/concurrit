@@ -109,6 +109,11 @@ static int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *att
 	ThreadVarPtr var = safe_notnull(Scenario::Current())->CreatePThread(start_routine, arg, thread, attr);
 	safe_assert(var != NULL && !var->is_empty());
 
+	if(__pthread_errno__ != PTH_SUCCESS) {
+		safe_fail("Create error: %s\n", PTHResultToString(__pthread_errno__));
+	}
+	safe_assert(*thread != PTH_INVALID_THREAD);
+
 	return __pthread_errno__;
 }
 
