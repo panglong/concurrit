@@ -1,2 +1,4 @@
 multiset_insert_pair
 multiset_allocate
+-lock
+-unlock

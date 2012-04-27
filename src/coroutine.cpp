@@ -237,14 +237,17 @@ void* Coroutine::Run() {
 
 			VLOG(2) << CO_TITLE << "First transfer";
 
-			ThreadRestart(); // notifies pintool about the restart
+			// notifies pintool about the restart,
+			// to reset pin relared data structures
+			ThreadRestart();
 
 			try {
 				// run the actual function
 				return_value = call_function();
 
 				//---------------
-				concurritThreadEnd();
+				if(PinMonitor::IsEnabled())
+					PinMonitor::ThreadEnd(this, scenario);
 
 			} catch(std::exception* e) {
 				// first check if this is due to pthread_exit

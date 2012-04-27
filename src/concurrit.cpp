@@ -94,7 +94,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	if(Config::NoPinTool || Config::RunUncontrolled) {
+	if(Config::RunUncontrolled || !Config::PinInstrEnabled) {
 		PinMonitor::Shutdown();
 	}
 

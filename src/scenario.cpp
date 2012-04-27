@@ -1627,7 +1627,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 
 // program state should be updated before this point
 void Scenario::BeforeControlledTransition(Coroutine* current) {
-//	safe_assert(!current->trinfolist()->empty());
+	CHECK(!Config::RunUncontrolled) << "Hit a controlled transition in an uncontrolled run!";
 
 	// make thread blocked
 	if(current->status() != ENABLED) return;
@@ -1769,6 +1769,8 @@ SWITCH:
 }
 
 void Scenario::AfterControlledTransition(Coroutine* current) {
+	CHECK(!Config::RunUncontrolled) << "Hit a controlled transition in an uncontrolled run!";
+
 	if(current->status() != BLOCKED) return;
 
 	VLOG(2) << "After controlled transition by " << current->tid();

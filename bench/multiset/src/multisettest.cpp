@@ -12,8 +12,6 @@ void* insertpair_routine(void* arg)
 
   multiset_t * multiset = (multiset_t*) arg;
 
-  safe_assert(multiset != NULL);
-
   multiset_insert_pair(multiset, rand(), rand());
 
   return NULL;
@@ -35,6 +33,11 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 	SETUP() {
 		srand(time(NULL));
 		multiset_init(&multiset);
+
+		for (int i = 0; i < NUM_THREADS; i++)
+		{
+			CREATE_THREAD(i+1, insertpair_routine, (void*)&multiset);
+		}
 	}
 
 	//---------------------------------------------
@@ -49,13 +52,6 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 
 		FUNC(f_insertpair, multiset_insert_pair);
 		FUNC(f_allocate, multiset_allocate);
-
-		//-----------------------------------------
-
-		for (int i = 0; i < NUM_THREADS; i++)
-		{
-			CREATE_THREAD(i+1, insertpair_routine, (void*)&multiset);
-		}
 
 		//-----------------------------------------
 

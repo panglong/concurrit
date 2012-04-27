@@ -47,8 +47,8 @@ char* Config::TestLibraryFile = NULL;
 bool Config::KeepExecutionTree = true;
 bool Config::TrackAlternatePaths = false;
 int Config::MaxTimeOutsBeforeDeadlock = 10;
-bool Config::NoPinTool = false;
 bool Config::ManuelInstrEnabled = true;
+bool Config::PinInstrEnabled = true;
 
 /********************************************************************************/
 
@@ -60,7 +60,7 @@ static void usage() {
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
 			"-l: Test program as shared (.so) library.\n"
 			"-m: Enable manuel instrumentation (ManuelInstrEnabled)\n"
-			"-n: No Pin tool instrumentation (NoPinTool)\n"
+			"-p: Enable pin-tool instrumentation (PinInstrEnabled)\n"
 			"-s: Use stack-based DFS (!KeepExecutionTree)\n"
 			"-u: Run test program uncontrolled (RunUncontrolled)\n"
 			"-vN: Verbosity level (N >= 0)\n"
@@ -77,7 +77,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "acd::f::hl:m::nsuv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "acd::f::hl:m::p::suv:w:")) != -1) {
 		switch(c) {
 		case 'a':
 //			Config::KeepExecutionTree = true;
@@ -114,9 +114,14 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 				printf("Will disable manuel instrumentation!\n");
 			}
 			break;
-		case 'n':
-			Config::NoPinTool = true;
-			printf("Will shut-down pin tool!\n");
+		case 'p':
+			if(optarg == NULL || strncmp(optarg, "1", 1) == 0) {
+				Config::PinInstrEnabled = true;
+				printf("Will enable pin instrumentation!\n");
+			} else {
+				Config::PinInstrEnabled = false;
+				printf("Will disable pin instrumentation!\n");
+			}
 			break;
 		case 's':
 			Config::KeepExecutionTree = false;

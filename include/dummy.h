@@ -51,13 +51,15 @@ extern void AtPc(int pc);
 extern void concurritFuncEnter(void* addr);
 extern void concurritFuncReturn(void* addr);
 
-extern void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
-
 extern void concurritThreadEnd();
+
+extern void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
 
 /********************************************************************************/
 
 #define concurritAssert(b)	if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); TriggerAssert(#b, __FILE__, __FUNCTION__, __LINE__); }
+
+/********************************************************************************/
 
 #ifdef __cplusplus
 } // extern "C"

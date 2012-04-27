@@ -88,18 +88,19 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 
 void PinMonitor::Enable() {
 	if(!Config::RunUncontrolled) {
-		VLOG(2) << ">>> Enabling Pin instrumentation.";
-		EnablePinTool();
+		VLOG(2) << ">>> Enabling instrumentation.";
+		if(Config::PinInstrEnabled && !down_) EnablePinTool();
 		enabled_ = true;
 	}
 }
 void PinMonitor::Disable() {
 	if(!Config::RunUncontrolled) {
-		VLOG(2) << ">>> Disabling Pin instrumentation.";
-		DisablePinTool();
+		VLOG(2) << ">>> Disabling instrumentation.";
+		if(Config::PinInstrEnabled && !down_) DisablePinTool();
 		enabled_ = false;
 	}
 }
+/******************************************************************************************/
 
 // ! Do not disable pinmonitor, as the enabled_ flag is used other places
 void PinMonitor::Shutdown() {
@@ -276,51 +277,6 @@ void ThreadRestart() { VLOG(2) << "Restarting thread."; }
 void ShutdownPinTool() { VLOG(2) << "Shutting down pintool."; }
 
 /********************************************************************************/
-
-void StartInstrument() { VLOG(2) << "Starting instrumentation."; }
-void EndInstrument() {
-	VLOG(2) << "Ending instrumentation.";
-	// reset aux variables of current thread
-	Coroutine* co = safe_notnull(Coroutine::Current());
-	co->FinishControlledTransition();
-}
-
-void AtPc(int pc) {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
-
-	VLOG(2) << "Thread at pc " << pc;
-	// controlled transition
-	Coroutine* co = safe_notnull(Coroutine::Current());
-	AuxState::Pc->set(pc, co->tid());
-	safe_notnull(safe_notnull(co->group())->scenario())->OnControlledTransition(co);
-}
-
-void concurritFuncEnter(void* addr) {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
-
-	PinMonitor::FuncEnter(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0, 0);
-}
-
-void concurritFuncReturn(void* addr) {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
-
-	PinMonitor::FuncReturn(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0);
-}
-
-
-void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
-	VLOG(1) << "Triggering assertion violation!";
-	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
-}
-
-void concurritThreadEnd() {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
-
-	PinMonitor::ThreadEnd(Coroutine::Current(), Scenario::Current());
-}
-
-/********************************************************************************/
-
 
 } // end namespace
 

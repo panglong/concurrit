@@ -808,9 +808,10 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 
 INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr, BOOL loading = FALSE) {
 	if(RTN_Valid(rtn)) {
-
-		if(INST_TOP_LEVEL && !InstParams::IsRoutineToInstrument(rtn_addr)) return TRUE;
-		return IsImageFiltered(SEC_Img(RTN_Sec(rtn))) || InstParams::IsRoutineToSkip(rtn_addr);
+		// be careful to always call IsImageFiltered
+		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)))
+				|| InstParams::IsRoutineToSkip(rtn_addr)
+				|| (INST_TOP_LEVEL && !InstParams::IsRoutineToInstrument(rtn_addr));
 	}
 	return TRUE;
 }
