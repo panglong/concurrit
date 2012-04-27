@@ -48,21 +48,23 @@ bool Config::KeepExecutionTree = true;
 bool Config::TrackAlternatePaths = false;
 int Config::MaxTimeOutsBeforeDeadlock = 10;
 bool Config::NoPinTool = false;
+bool Config::ManuelInstrEnabled = true;
 
 /********************************************************************************/
 
 static void usage() {
 	printf("-h: Show this help. (OnlyShowHelp)\n\n"
-			"-a: Track altenate paths (TrackAlternatePaths)"
+			"-a: Track altenate paths (TrackAlternatePaths)\n"
 			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
-			"-l: Test program as shared (.so) library"
-			"-n: No Pin tool instrumentation (NoPinTool)"
-			"-s: Use stack-based DFS (!KeepExecutionTree"
-			"-u: Run test program uncontrolled (RunUncontrolled)"
-			"-vN: Verbosity level (N >= 0)"
-			"-wN: Maximum wait time (MaxWaitTimeUSecs).");
+			"-l: Test program as shared (.so) library.\n"
+			"-m: Enable manuel instrumentation (ManuelInstrEnabled)\n"
+			"-n: No Pin tool instrumentation (NoPinTool)\n"
+			"-s: Use stack-based DFS (!KeepExecutionTree)\n"
+			"-u: Run test program uncontrolled (RunUncontrolled)\n"
+			"-vN: Verbosity level (N >= 0)\n"
+			"-wN: Maximum wait time (MaxWaitTimeUSecs).\n");
 }
 
 bool Config::ParseCommandLine(const main_args& args) {
@@ -75,7 +77,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "acd::f::hl:nsuv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "acd::f::hl:m::nsuv:w:")) != -1) {
 		switch(c) {
 		case 'a':
 //			Config::KeepExecutionTree = true;
@@ -102,6 +104,15 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 				Config::SaveDotGraphToFile = strdup(const_cast<char*>(InWorkDir("exec_tree.dot")));
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
+			break;
+		case 'm':
+			if(optarg == NULL || strncmp(optarg, "1", 1) == 0) {
+				Config::ManuelInstrEnabled = true;
+				printf("Will enable manuel instrumentation!\n");
+			} else {
+				Config::ManuelInstrEnabled = false;
+				printf("Will disable manuel instrumentation!\n");
+			}
 			break;
 		case 'n':
 			Config::NoPinTool = true;
