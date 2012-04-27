@@ -66,6 +66,12 @@ KNOB<string> KnobFinFile(KNOB_MODE_WRITEONCE, "pintool", "finfile",
 KNOB<string> KnobFilteredImagesFile(KNOB_MODE_WRITEONCE, "pintool", "filtered_images_file",
 		"/home/elmas/concurrit/work/filtered_images.txt", "Specify names of images to filter out");
 
+KNOB<BOOL> KnobInstrumentTopLevel(KNOB_MODE_WRITEONCE, "pintool",
+    "inst_top_level", "0", "Instrument only top-level functions.");
+
+KNOB<BOOL> KnobTrackFuncCalls(KNOB_MODE_WRITEONCE, "pintool",
+    "track_func_calls", "0", "Track function calls.");
+
 /* ===================================================================== */
 
 INT32 Usage() {
@@ -98,9 +104,11 @@ LOCALVAR TLS_KEY tls_key;
 
 std::string CONCURRIT_HOME;
 
+LOCALVAR BOOL INST_TOP_LEVEL = FALSE;
+LOCALVAR BOOL TRACK_FUNC_CALLS = FALSE;
+
 /* ===================================================================== */
 
-#define TRACK_FUNC_CALLS	0
 #define INSTR_ALL_TRACES	0
 
 /* ===================================================================== */
@@ -221,7 +229,7 @@ public:
 		return false;
 	}
 
-	static inline bool IsStartRoutine(const ADDRINT& rtn_addr) {
+	static inline bool IsRoutineToInstrument(const ADDRINT& rtn_addr) {
 		if (rtn_addr == ADDRINT(0)) return true;
 		RTNIdsToInstrumentType::const_accessor c_acc;
 		return (RTNIdsToInstrument.find(c_acc, rtn_addr));
@@ -242,7 +250,7 @@ public:
 //		ThreadLocalState* tls = GetThreadLocalState(threadid);
 //		safe_assert(tls != NULL && tls->tid() == threadid);
 		const bool is_inst_enabled = ThreadLocalState_inst_enabled[threadid]; // tls->inst_enabled();
-		const bool is_inst_start = IsStartRoutine(rtn_addr);
+		const bool is_inst_start = IsRoutineToInstrument(rtn_addr);
 		if(is_inst_start) {
 
 			// reset thread-local data structures
@@ -272,7 +280,7 @@ public:
 			CallStackType* call_stack = ThreadLocalState_call_stack[threadid]; // tls->call_stack();
 			safe_assert(call_stack != NULL);
 			safe_assert(!call_stack->empty());
-			const bool is_inst_start = IsStartRoutine(rtn_addr);
+			const bool is_inst_start = IsRoutineToInstrument(rtn_addr);
 			if(is_inst_start) {
 				ADDRINT last_addr = call_stack->back(); call_stack->pop_back();
 				if(rtn_addr != last_addr) {
@@ -465,7 +473,6 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
-#if TRACK_FUNC_CALLS
 VOID PIN_FAST_ANALYSIS_CALL
 FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation* loc_src,
 		ADDRINT target, ADDRINT arg0, ADDRINT arg1, ADDRINT rtn_addr) {
@@ -490,7 +497,6 @@ FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation
 
 	CallNativePinMonitor(ctxt, threadid, &info);
 }
-#endif
 
 /* ===================================================================== */
 
@@ -523,9 +529,7 @@ FuncEnterEx(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 
 //	log_file << threadid << " entering " << loc->funcname() << std::endl;
 
-	if(!InstParams::OnFuncEnter(threadid, PTR2ADDRINT(loc->pointer()))) {
-		return;
-	}
+	if(!InstParams::OnFuncEnter(threadid, PTR2ADDRINT(loc->pointer()))) return;
 
 	//=======================================
 
@@ -802,10 +806,11 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 
 /* ===================================================================== */
 
-INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
+INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr, BOOL loading = FALSE) {
 	if(RTN_Valid(rtn)) {
 
-		return IsImageFiltered(SEC_Img(RTN_Sec(rtn))) || InstParams::IsRoutineToSkip(RTN_Address(rtn));
+		if(INST_TOP_LEVEL && !InstParams::IsRoutineToInstrument(rtn_addr)) return TRUE;
+		return IsImageFiltered(SEC_Img(RTN_Sec(rtn))) || InstParams::IsRoutineToSkip(rtn_addr);
 	}
 	return TRUE;
 }
@@ -814,8 +819,8 @@ INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, BOOL loading = FALSE) {
 
 LOCALFUN INLINE
 VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
-#if TRACK_FUNC_CALLS
-	if (INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
+
+	if (TRACK_FUNC_CALLS && INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
 		if (!INS_IsDirectBranchOrCall(ins)) {
 			// Indirect call
 			PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
@@ -843,8 +848,6 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 
 		}
 	} else
-#endif
-
 	if (INS_IsRet(ins) && !INS_IsSysret(ins)) {
 #if defined(TARGET_LINUX) && defined(TARGET_IA32)
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_runtime_resolve") return;
@@ -852,7 +855,7 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
-		if(InstParams::IsStartRoutine(rtn_addr)) {
+		if(InstParams::IsRoutineToInstrument(rtn_addr)) {
 			INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncReturn), IARG_FAST_ANALYSIS_CALL,
 					IARG_THREAD_ID, IARG_ADDRINT, rtn_addr, IARG_END);
 		} else {
@@ -870,8 +873,7 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 
 LOCALFUN INLINE
 VOID MemoryTrace(INS ins, RTN rtn) {
-	if (INS_IsStackRead(ins) || INS_IsStackWrite(ins))
-		return;
+	if (INS_IsStackRead(ins) || INS_IsStackWrite(ins)) return;
 
 	bool is_access = INS_IsMemoryWrite(ins) || INS_HasMemoryRead2(ins) || (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins));
 	if(!is_access) return;
@@ -959,15 +961,13 @@ VOID Instruction(INS ins, RTN rtn, ADDRINT rtn_addr) {
 
 VOID Routine(RTN rtn, VOID *v) {
 
+	ADDRINT rtn_addr = RTN_Address(rtn);
+
 	// filter out standard libraries
 	// we treat this while loading, since Routine can be called before ImageLoad is called
-	if(IsRoutineFiltered(rtn, TRUE)) {
-		return;
-	}
+	if(IsRoutineFiltered(rtn, rtn_addr, TRUE)) return;
 
 	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
-
-	ADDRINT rtn_addr = RTN_Address(rtn);
 
 	// check plt routine
 	if(RTN_Name(rtn) == ".plt") {
@@ -998,7 +998,7 @@ VOID Routine(RTN rtn, VOID *v) {
 		INS ins = RTN_InsHeadOnly(rtn);
 		if(INS_Valid(ins)) {
 
-			if(InstParams::IsStartRoutine(rtn_addr)) {
+			if(InstParams::IsRoutineToInstrument(rtn_addr)) {
 				INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnFuncEnter), IARG_FAST_ANALYSIS_CALL,
 						IARG_THREAD_ID, IARG_ADDRINT, rtn_addr, IARG_END);
 			} else {
@@ -1029,7 +1029,7 @@ VOID Routine(RTN rtn, VOID *v) {
 //		std::vector< ADDRINT > rtn_stack;
 //
 //
-//		bool is_inst_start = InstParams::IsStartRoutine(rtn_addr);
+//		bool is_inst_start = InstParams::IsRoutineToInstrument(rtn_addr);
 //		if(is_inst_start) {
 //			for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
 //			{
@@ -1060,9 +1060,7 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 
 	// filter out standard libraries
 	// also updates filtered image ids
-	if(IsImageFiltered(img)) {
-		return;
-	}
+	if(IsImageFiltered(img)) return;
 
 //	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
 //	{
@@ -1101,14 +1099,14 @@ LOCALFUN VOID ImageUnload(IMG img, VOID *) {
 
 VOID Trace(TRACE trace, VOID *v) {
 
-	if (!filter.SelectTrace(trace))
-		return;
+	if (!filter.SelectTrace(trace)) return;
 
 	RTN rtn = TRACE_Rtn(trace);
-	if (IsRoutineFiltered(rtn))
-		return;
+	if(!RTN_Valid(rtn)) return;
 
 	ADDRINT rtn_addr = RTN_Address(rtn);
+	if (IsRoutineFiltered(rtn, rtn_addr)) return;
+
 	for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
 	{
 		for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
@@ -1234,6 +1232,9 @@ int main(int argc, CHAR *argv[]) {
 	InstParams::ParseFile(KnobFinFile.Value().c_str());
 
 	InitFilteredImages(KnobFilteredImagesFile.Value().c_str());
+
+	INST_TOP_LEVEL = KnobInstrumentTopLevel.Value();
+	TRACK_FUNC_CALLS = KnobTrackFuncCalls.Value();
 
 //	tls_key = PIN_CreateThreadDataKey(ThreadLocalDestruct);
 	PIN_AddThreadStartFunction(ThreadStart, 0);
