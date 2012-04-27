@@ -176,7 +176,7 @@ int CoroutineGroup::WaitForAllEnd(long timeout /*= -1*/) {
 		}
 	}
 
-	safe_assert(timed_out == 0 || IsAllEnded());
+	safe_assert(timed_out > 0 || IsAllEnded());
 	return timed_out;
 }
 

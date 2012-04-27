@@ -7,15 +7,75 @@
 #include "concurrit.h"
 
 
-void* insertpair_routine(void* arg)
+void* insertpair_routine1(void* arg)
 {
 
   multiset_t * multiset = (multiset_t*) arg;
 
-  multiset_insert_pair(multiset, rand(), rand());
+  multiset_insert_pair(multiset, 1, 2);
 
   return NULL;
 }
+
+void* insertpair_routine2(void* arg)
+{
+
+  multiset_t * multiset = (multiset_t*) arg;
+
+  multiset_insert_pair(multiset, 3, 4);
+
+  return NULL;
+}
+
+void* insertpair_routine3(void* arg)
+{
+
+  multiset_t * multiset = (multiset_t*) arg;
+
+  multiset_insert_pair(multiset, 5, 6);
+
+  return NULL;
+}
+
+void* lookup_routine1(void* arg)
+{
+
+  multiset_t * multiset = (multiset_t*) arg;
+
+  int ret1 = multiset_lookup(multiset, 1);
+  int ret2 = multiset_lookup(multiset, 2);
+
+  concurritAssert(!ret1 || ret2);
+
+  return NULL;
+}
+
+void* lookup_routine2(void* arg)
+{
+
+  multiset_t * multiset = (multiset_t*) arg;
+
+  int ret1 = multiset_lookup(multiset, 3);
+  int ret2 = multiset_lookup(multiset, 4);
+
+  concurritAssert(!ret1 || ret2);
+
+  return NULL;
+}
+
+void* lookup_routine3(void* arg)
+{
+
+  multiset_t * multiset = (multiset_t*) arg;
+
+  int ret1 = multiset_lookup(multiset, 5);
+  int ret2 = multiset_lookup(multiset, 6);
+
+  concurritAssert(!ret1 || ret2);
+
+  return NULL;
+}
+
 
 
 CONCURRIT_BEGIN_MAIN()
@@ -43,14 +103,17 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 
 	TESTCASE() {
 
-		for (int i = 0; i < NUM_THREADS; i++)
-		{
-			CREATE_THREAD(i+1, insertpair_routine, (void*)&multiset);
-		}
+		ThreadVarPtr t_ip1 = CREATE_THREAD(insertpair_routine1, (void*)&multiset);
+		ThreadVarPtr t_ip2 = CREATE_THREAD(insertpair_routine2, (void*)&multiset);
+		ThreadVarPtr t_ip3 = CREATE_THREAD(insertpair_routine3, (void*)&multiset);
+
+		ThreadVarPtr t_lu1 = CREATE_THREAD(lookup_routine1, (void*)&multiset);
+//		ThreadVarPtr t_lu2 = CREATE_THREAD(lookup_routine2, (void*)&multiset);
+//		ThreadVarPtr t_lu3 = CREATE_THREAD(lookup_routine3, (void*)&multiset);
 
 		//-----------------------------------------
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
+		MAX_WAIT_TIME(USECSPERSEC);
 
 		FUNC(f_insertpair, multiset_insert_pair);
 		FUNC(f_allocate, multiset_allocate);
@@ -92,6 +155,10 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 		WHILE_STAR {
 			RUN_UNTIL(BY(t2), (AT_PC(1) || READS() || WRITES() || ENDS()), __);
 		}
+
+//		WAIT_FOR_ALL(0);
+//		concurritAssert(multiset.size <= 2*NUM_THREADS);
+//		concurritAssert(multiset.size%2 == 0);
 
 	}
 

@@ -17,6 +17,7 @@ typedef struct {
 
 typedef struct {
 	element_t elements[MS_SIZE];
+	int size;
 } multiset_t;
 
 
@@ -29,6 +30,8 @@ void lock(element_t* elt);
 void unlock(element_t* elt);
 
 void multiset_init(multiset_t* ms);
+
+int multiset_lookup(multiset_t* ms, int value);
 
 int multiset_allocate(multiset_t* ms, int value);
 

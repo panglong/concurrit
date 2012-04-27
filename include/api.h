@@ -455,7 +455,7 @@ inline bool HAS_ENDED(ThreadVarPtr t) {
 /********************************************************************************/
 
 // wait for all threads to end
-#define WAIT_FOR_ALL		JoinAllThreads
+#define WAIT_FOR_ALL(...)		JoinAllThreads(__VA_ARGS__)
 
 // wait for a particular thread to end
 inline void _WAIT_FOR_END(ThreadVarPtr t, long timeout = -1) {
