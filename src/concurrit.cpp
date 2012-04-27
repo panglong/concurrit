@@ -49,10 +49,6 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	// init work dir
 	CONCURRIT_HOME = getenv("CONCURRIT_HOME");
 
-	// init logging
-	google::InitGoogleLogging("concurrit");
-
-
 	//==========================================
 
 	SetupSignalHandler();
@@ -90,6 +86,11 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	}
 	Concurrit::driver_args_ = ArgVectorToMainArgs(args);
 	fprintf(stderr, "Driver arguments: %s\n", Concurrit::driver_args_ .ToString().c_str());
+
+	//==========================================
+
+	// init logging
+	google::InitGoogleLogging("concurrit");
 
 	//==========================================
 
@@ -136,6 +137,8 @@ void Concurrit::Destroy() {
 	CoroutineGroup::delete_main();
 
 	Thread::delete_tls_key();
+
+	google::ShutdownGoogleLogging();
 
 //	int pth_kill_result = pth_kill();
 //	safe_assert(pth_kill_result == TRUE);

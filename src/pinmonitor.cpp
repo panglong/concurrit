@@ -44,9 +44,11 @@ volatile bool PinMonitor::down_ = false;
 
 
 void PinMonitor::Init() {
-	// clean tid_to_coroutine
-	for(int i = 0; i < MAX_THREADS; ++i) {
-		tid_to_coroutine_[i] = NULL;
+	if(!down_) {
+		// clean tid_to_coroutine
+		for(int i = 0; i < MAX_THREADS; ++i) {
+			tid_to_coroutine_[i] = NULL;
+		}
 	}
 }
 
@@ -85,23 +87,24 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 /******************************************************************************************/
 
 void PinMonitor::Enable() {
-	if(!down_) {
+	if(!Config::RunUncontrolled) {
 		VLOG(2) << ">>> Enabling Pin instrumentation.";
 		EnablePinTool();
 		enabled_ = true;
 	}
 }
 void PinMonitor::Disable() {
-	if(!down_) {
+	if(!Config::RunUncontrolled) {
 		VLOG(2) << ">>> Disabling Pin instrumentation.";
 		DisablePinTool();
 		enabled_ = false;
 	}
 }
 
+// ! Do not disable pinmonitor, as the enabled_ flag is used other places
 void PinMonitor::Shutdown() {
 	if(!down_) {
-		PinMonitor::Disable();
+		VLOG(2) << ">>> Shutting down pintool.";
 		ShutdownPinTool();
 		down_ = true;
 	}
@@ -221,6 +224,7 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	if(!PinMonitor::IsEnabled()) {
 		return;
 	}
+	safe_assert(!PinMonitor::IsDown());
 
 	VLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
 

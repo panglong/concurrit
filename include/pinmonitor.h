@@ -65,6 +65,7 @@ public:
 	static void Disable();
 
 	static inline bool IsEnabled() { safe_assert(!enabled_ || Concurrit::IsInitialized()); return enabled_; }
+	static inline bool IsDown() { return down_; }
 
 	/******************************************************************************************/
 

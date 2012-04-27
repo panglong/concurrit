@@ -118,7 +118,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			printf("Will run the test in uncontrolled mode.\n");
 			break;
 		case 'w':
-			CHECK(optarg != NULL) << "Argument is missing, long value is required!";
+			safe_assert(optarg != NULL);
 			Config::MaxWaitTimeUSecs = atol(optarg);
 			safe_assert(Config::MaxWaitTimeUSecs > 0);
 			printf("MaxWaitTimeUSecs is %l.\n", Config::MaxWaitTimeUSecs);
@@ -131,8 +131,13 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			printf("Will load the test program from the library %s.\n", Config::TestLibraryFile);
 			break;
 		case 'v':
-			setenv("GLOG_v", safe_notnull(optarg), 1);
-			printf("Verbosity level is %s.\n", optarg);
+			safe_assert(optarg != NULL);
+//			char buff[8];
+//			snprintf(buff, 8, "GLOG_v=%s", optarg);
+//			putenv(buff);
+			setenv("GLOG_v", optarg, 1);
+			safe_assert(getenv("GLOG_v") != NULL);
+			printf("Verbosity level is %s.\n", getenv("GLOG_v"));
 			break;
 		case '?':
 			fprintf(stderr, "Unrecognized option");
