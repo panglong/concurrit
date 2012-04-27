@@ -10,5 +10,5 @@ js_ClearContextThread
 js_BeginRequest
 js_GC
 js_EndRequest
--JS_ClearRegExpStatics
--js_TraceContext
+
+

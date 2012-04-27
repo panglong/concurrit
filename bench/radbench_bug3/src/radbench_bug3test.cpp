@@ -11,12 +11,12 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
 
-		FUNC(f_newcontext, JS_NewContext);
-		FUNC(f_setcontextthread, JS_SetContextThread);
-		FUNC(f_clearcontextthread, JS_ClearContextThread);
-		FUNC(f_beginrequest, JS_BeginRequest);
-		FUNC(f_gc, JS_GC);
-		FUNC(f_endrequest, JS_EndRequest);
+		FUNC(f_newcontext, js_NewContext);
+		FUNC(f_setcontextthread, js_SetContextThread);
+		FUNC(f_clearcontextthread, js_ClearContextThread);
+//		FUNC(f_beginrequest, js_BeginRequest);
+		FUNC(f_gc, js_GC);
+//		FUNC(f_endrequest, js_EndRequest);
 
 		MAX_WAIT_TIME(0);
 
