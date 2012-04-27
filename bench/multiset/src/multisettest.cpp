@@ -33,11 +33,6 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 	SETUP() {
 		srand(time(NULL));
 		multiset_init(&multiset);
-
-		for (int i = 0; i < NUM_THREADS; i++)
-		{
-			CREATE_THREAD(i+1, insertpair_routine, (void*)&multiset);
-		}
 	}
 
 	//---------------------------------------------
@@ -47,6 +42,13 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 	}
 
 	TESTCASE() {
+
+		for (int i = 0; i < NUM_THREADS; i++)
+		{
+			CREATE_THREAD(i+1, insertpair_routine, (void*)&multiset);
+		}
+
+		//-----------------------------------------
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
@@ -81,13 +83,14 @@ CONCURRIT_BEGIN_TEST(INCScenario, "Multiset scenario")
 
 
 		FORALL(t1, PTRUE);
+		FORALL(t2, NOT(t1));
+
 		WHILE_STAR {
-			RUN_UNTIL(BY(t1), IN_FUNC(f_insertpair) && (READS() || WRITES() || ENDS()), __);
+			RUN_UNTIL(BY(t1), (AT_PC(1) || READS() || WRITES() || ENDS()), __);
 		}
 
-		FORALL(t2, NOT(t1));
 		WHILE_STAR {
-			RUN_UNTIL(BY(t2), IN_FUNC(f_insertpair) && (READS() || WRITES() || ENDS()), __);
+			RUN_UNTIL(BY(t2), (AT_PC(1) || READS() || WRITES() || ENDS()), __);
 		}
 
 	}

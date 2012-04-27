@@ -411,9 +411,12 @@ inline TransitionPredicatePtr _IN_FUNC(void* f, ThreadVarPtr t = ThreadVarPtr(),
 
 /********************************************************************************/
 
-inline TransitionPredicatePtr _AT_PC(int pc, ThreadVarPtr t = ThreadVarPtr()) {
+inline TransitionPredicatePtr _AT_PC(int pc = -1, ThreadVarPtr t = ThreadVarPtr()) {
 	if(t == NULL) t = TID;
-	return safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, t);
+	if(pc < 0)
+		return safe_notnull(AuxState::Pc.get())->TP0(AuxState::Pc, t);
+	else
+		return safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, t);
 }
 
 #define AT_PC(...)		_AT_PC(__VA_ARGS__)

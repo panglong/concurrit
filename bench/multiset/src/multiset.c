@@ -39,19 +39,25 @@ int multiset_insert_pair(multiset_t* ms, int value1, int value2) {
 
 	index1 = multiset_allocate(ms, value1);
 	if(index1 < 0) {
+		AtPc(1);
 		return 0;
 	}
+
+	AtPc(1);
 
 	//----------------------------------------
 
 	index2 = multiset_allocate(ms, value2);
 	if(index2 < 0) {
+		AtPc(1);
 		lock(&ms->elements[index1]);
 			concurritAssert(ms->elements[index1].valid == 0);
 			ms->elements[index1].value = -1;
 		unlock(&ms->elements[index1]);
 		return 0;
 	}
+
+	AtPc(1);
 
 	//----------------------------------------
 
