@@ -57,7 +57,7 @@ void EndInstrument() {
 /********************************************************************************/
 
 void AtPc(int pc) {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	VLOG(2) << "Thread at pc " << pc;
 	// controlled transition
@@ -69,7 +69,7 @@ void AtPc(int pc) {
 /********************************************************************************/
 
 void concurritFuncEnter(void* addr) {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	PinMonitor::FuncEnter(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0, 0);
 }
@@ -77,7 +77,7 @@ void concurritFuncEnter(void* addr) {
 /********************************************************************************/
 
 void concurritFuncReturn(void* addr) {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	PinMonitor::FuncReturn(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0);
 }
@@ -92,7 +92,7 @@ void TriggerAssert(const char* expr, const char* filename, const char* funcname,
 /********************************************************************************/
 
 void concurritThreadEnd() {
-	if(!PinMonitor::IsEnabled() || !Config::ManuelInstrEnabled) return;
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	PinMonitor::ThreadEnd(Coroutine::Current(), Scenario::Current());
 }

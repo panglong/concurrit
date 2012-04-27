@@ -47,7 +47,7 @@ char* Config::TestLibraryFile = NULL;
 bool Config::KeepExecutionTree = true;
 bool Config::TrackAlternatePaths = false;
 int Config::MaxTimeOutsBeforeDeadlock = 10;
-bool Config::ManuelInstrEnabled = true;
+bool Config::ManualInstrEnabled = true;
 bool Config::PinInstrEnabled = true;
 
 /********************************************************************************/
@@ -59,7 +59,7 @@ static void usage() {
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
 			"-l: Test program as shared (.so) library.\n"
-			"-m: Enable manuel instrumentation (ManuelInstrEnabled)\n"
+			"-m: Enable manual instrumentation (ManuelInstrEnabled)\n"
 			"-p: Enable pin-tool instrumentation (PinInstrEnabled)\n"
 			"-s: Use stack-based DFS (!KeepExecutionTree)\n"
 			"-u: Run test program uncontrolled (RunUncontrolled)\n"
@@ -107,10 +107,10 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			break;
 		case 'm':
 			if(optarg == NULL || strncmp(optarg, "1", 1) == 0) {
-				Config::ManuelInstrEnabled = true;
+				Config::ManualInstrEnabled = true;
 				printf("Will enable manuel instrumentation!\n");
 			} else {
-				Config::ManuelInstrEnabled = false;
+				Config::ManualInstrEnabled = false;
 				printf("Will disable manuel instrumentation!\n");
 			}
 			break;
