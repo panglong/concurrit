@@ -339,6 +339,10 @@ extern "C" void ThreadRestart();
 
 extern "C" void ShutdownPinTool();
 
+extern "C" void StartInstrument();
+extern "C" void EndInstrument();
+
+
 /********************************************************************************/
 
 #include "dummy.h"

@@ -34,6 +34,8 @@
 
 #include "concurrit.h"
 
+#include "dummy.h"
+
 // functions implementing manual instrumentation routines
 // these functions overwrite functions in libdummy.so when concurrit is preloaded
 
@@ -41,14 +43,15 @@ namespace concurrit {
 
 /********************************************************************************/
 
-void StartInstrument() {
-	VLOG(2) << "Starting instrumentation.";
+void concurritStartInstrument() {
+	StartInstrument(); // notify pintool
 }
 
 /********************************************************************************/
 
-void EndInstrument() {
-	VLOG(2) << "Ending instrumentation.";
+void concurritEndInstrument() {
+	EndInstrument(); // notify pintool
+
 	// reset aux variables of current thread
 	Coroutine* co = safe_notnull(Coroutine::Current());
 	co->FinishControlledTransition();
@@ -56,7 +59,7 @@ void EndInstrument() {
 
 /********************************************************************************/
 
-void AtPc(int pc) {
+void concurritAtPc(int pc) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	VLOG(2) << "Thread at pc " << pc;

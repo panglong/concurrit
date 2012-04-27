@@ -45,11 +45,11 @@ extern "C" {
 						fflush(stderr); \
 						exit(EXIT_FAILURE);
 
-void StartInstrument() {dummy_error();}
+void concurritStartInstrument() {dummy_error();}
 
-void EndInstrument() {dummy_error();}
+void concurritEndInstrument() {dummy_error();}
 
-void AtPc(int pc) {dummy_error();}
+void concurritAtPc(int pc) {dummy_error();}
 
 void concurritFuncEnter(void* addr) {dummy_error();}
 void concurritFuncReturn(void* addr) {dummy_error();}

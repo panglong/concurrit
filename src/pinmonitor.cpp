@@ -276,6 +276,9 @@ void ThreadRestart() { VLOG(2) << "Restarting thread."; }
 
 void ShutdownPinTool() { VLOG(2) << "Shutting down pintool."; }
 
+void StartInstrument() { VLOG(2) << "Starting an instrumented function."; }
+void EndInstrument() { VLOG(2) << "Ending an instrumented function."; }
+
 /********************************************************************************/
 
 } // end namespace

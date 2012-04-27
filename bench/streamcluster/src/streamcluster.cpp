@@ -1573,9 +1573,9 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
 
   while(1) {
 	  printf("%d AT 42!!!\n", pid);
-	  AtPc(42);
+	  concurritAtPc(42);
 	  printf("%d AT 44!!!\n", pid);
-	  AtPc(44);
+	  concurritAtPc(44);
 
 
     /* first get a rough estimate on the FL solution */
@@ -1613,7 +1613,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
 	break;
       }
     printf("%d AT 43!!!\n", pid);
-    AtPc(43);
+    concurritAtPc(43);
 #ifdef ENABLE_THREADS
     pthread_barrier_wait(barrier);
 #endif
@@ -1627,7 +1627,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
   }
 
   printf("%d ENDING!!!\n", pid);
-  AtPc(45);
+  concurritAtPc(45);
 
   return cost;
 }

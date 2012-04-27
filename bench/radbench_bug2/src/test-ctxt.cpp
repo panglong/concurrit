@@ -28,7 +28,7 @@ static void * testfunc(void *ignored) {
 
     for (int i = 0; i < MAX_CALLS; i++) {
 
-    	StartInstrument();
+    	concurritStartInstrument();
 
         // Fastest way to cause a crash..
 //        JS_SetContextThread(cx);
@@ -44,7 +44,7 @@ static void * testfunc(void *ignored) {
 //      JS_BeginRequest(cx);
 //      JS_EndRequest(cx);
 
-      EndInstrument();
+      concurritEndInstrument();
     }
 }
 
@@ -76,7 +76,7 @@ int main0(int argc, char* argv[]) {
 
     for (int i = 0; i < MAX_GC; i++) {
 
-    	StartInstrument();
+    	concurritStartInstrument();
 
         // Does an isolated JS_GC need to be wrapped in a request? The
         // API doesn't explicitly state so, but we get the same
@@ -86,7 +86,7 @@ int main0(int argc, char* argv[]) {
         JS_GC(cx);
         JS_EndRequest(cx);
 
-        EndInstrument();
+        concurritEndInstrument();
     }
     for (int i = 0; i < THREADS; i++) {
         pthread_join(t[i], NULL);

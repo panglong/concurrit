@@ -902,7 +902,7 @@ void *consumer (void *q)
 
 	for (;;)
 	{
-		AtPc(42); AtPc(43);
+		concurritAtPc(42); concurritAtPc(43);
 		concurritAssert(fifo->mut != NULL);
 		pthread_mutex_lock(fifo->mut);
 		while (fifo->empty)

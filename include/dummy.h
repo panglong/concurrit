@@ -43,10 +43,10 @@ extern "C" {
 
 /********************************************************************************/
 
-extern void StartInstrument();
-extern void EndInstrument();
+extern void concurritStartInstrument();
+extern void concurritEndInstrument();
 
-extern void AtPc(int pc);
+extern void concurritAtPc(int pc);
 
 extern void concurritFuncEnter(void* addr);
 extern void concurritFuncReturn(void* addr);

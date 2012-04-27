@@ -16,7 +16,7 @@ NBCounter::~NBCounter() {
 
 void NBCounter::increment() {
 
-	StartInstrument();
+	concurritStartInstrument();
 
 	while(true) {
 		int t = x;
@@ -36,7 +36,7 @@ void NBCounter::increment() {
 
 	}
 
-	EndInstrument();
+	concurritEndInstrument();
 }
 
 int NBCounter::get() {
