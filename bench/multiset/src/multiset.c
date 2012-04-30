@@ -23,6 +23,7 @@ void multiset_init(multiset_t* ms) {
 int multiset_lookup(multiset_t* ms, int value) {
 	int i = 0;
 	concurritFuncEnter(multiset_lookup);
+
 	for(i = 0; i < MS_SIZE; ++i) {
 		lock(&ms->elements[i]);
 		if(ms->elements[i].value == value && ms->elements[i].valid == 1) {
@@ -32,6 +33,7 @@ int multiset_lookup(multiset_t* ms, int value) {
 		}
 		unlock(&ms->elements[i]);
 	}
+
 	concurritFuncReturn(multiset_lookup);
 	return 0;
 }
@@ -39,6 +41,7 @@ int multiset_lookup(multiset_t* ms, int value) {
 int multiset_allocate(multiset_t* ms, int value) {
 	int i = 0;
 	concurritFuncEnter(multiset_allocate);
+
 	for(i = 0; i < MS_SIZE; ++i) {
 		lock(&ms->elements[i]);
 		if(ms->elements[i].value == -1 && ms->elements[i].valid == 0) {
@@ -51,6 +54,7 @@ int multiset_allocate(multiset_t* ms, int value) {
 		unlock(&ms->elements[i]);
 		concurritAtPc(1);
 	}
+
 	concurritFuncReturn(multiset_allocate);
 	return -1;
 }
@@ -85,42 +89,50 @@ int multiset_insert_pair(multiset_t* ms, int value1, int value2) {
 
 	concurritAtPc(1);
 
-	//----------------------------------------
+	concurritAssert(index1 != index2);
 
-	lock(&ms->elements[index1]);
-	lock(&ms->elements[index2]);
-
-		concurritAssert(ms->elements[index1].value != -1);
-		concurritAssert(ms->elements[index1].valid == 0);
-		ms->elements[index1].valid = 1;
-		ms->size++;
-
-		concurritAssert(ms->elements[index2].value != -1);
-		concurritAssert(ms->elements[index2].valid == 0);
-		ms->elements[index2].valid = 1;
-		ms->size++;
-
-	unlock(&ms->elements[index1]);
-	unlock(&ms->elements[index2]);
+	// ensure index1< index2 to avoid deadlock
+	if(index2 < index1) {
+		int tmp = index2;
+		index2 = index1;
+		index1 = tmp;
+	}
 
 	//----------------------------------------
 
-//	concurritAssert(index1 != index2);
 //	lock(&ms->elements[index1]);
+//	lock(&ms->elements[index2]);
+//
 //		concurritAssert(ms->elements[index1].value != -1);
 //		concurritAssert(ms->elements[index1].valid == 0);
 //		ms->elements[index1].valid = 1;
 //		ms->size++;
-//	unlock(&ms->elements[index1]);
 //
-//	AtPc(1);
-//
-//	lock(&ms->elements[index2]);
 //		concurritAssert(ms->elements[index2].value != -1);
 //		concurritAssert(ms->elements[index2].valid == 0);
 //		ms->elements[index2].valid = 1;
 //		ms->size++;
+//
+//	unlock(&ms->elements[index1]);
 //	unlock(&ms->elements[index2]);
+
+	//----------------------------------------
+
+	lock(&ms->elements[index1]);
+		concurritAssert(ms->elements[index1].value != -1);
+		concurritAssert(ms->elements[index1].valid == 0);
+		ms->elements[index1].valid = 1;
+		ms->size++;
+	unlock(&ms->elements[index1]);
+
+	concurritAtPc(1);
+
+	lock(&ms->elements[index2]);
+		concurritAssert(ms->elements[index2].value != -1);
+		concurritAssert(ms->elements[index2].valid == 0);
+		ms->elements[index2].valid = 1;
+		ms->size++;
+	unlock(&ms->elements[index2]);
 
 	concurritFuncReturn(multiset_insert_pair);
 	return 1;

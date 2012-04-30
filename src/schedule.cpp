@@ -157,7 +157,7 @@ void TransferPoint::Reset() {
 	safe_assert(BETWEEN(1, rem_count_, yield_->count_));
 	next_ = NULL;
 	// NOTE: do not reset other fields, they need to be preserved across executions
-	VLOG(2) << "Reset done for transfer point: " << ToString();
+	MYLOG(2) << "Reset done for transfer point: " << ToString();
 }
 
 /********************************************************************************/
@@ -179,24 +179,24 @@ void TransferPoint::ConsumeAll() {
 
 /********************************************************************************/
 void TransferPoint::Load(Serializer* serializer) {
-	VLOG(2) << "Loading point from file...";
+	MYLOG(2) << "Loading point from file...";
 	yield_->source_ = reinterpret_cast<Coroutine*>(new std::string(serializer->Load<std::string>()));
 	target_ = reinterpret_cast<Coroutine*>(new std::string(serializer->Load<std::string>()));
 	yield_->label_ = serializer->Load<std::string>();
 	yield_->count_ = serializer->Load<int>();
-	VLOG(2) << "Loaded point from file...";
+	MYLOG(2) << "Loaded point from file...";
 }
 
 /********************************************************************************/
 
 void TransferPoint::Store(Serializer* serializer) {
-	VLOG(2) << "Storing point to file...";
+	MYLOG(2) << "Storing point to file...";
 	safe_assert(IsResolved());
 	serializer->Store<ADDRINT>(yield_->source_->tid());
 	serializer->Store<ADDRINT>(target_->tid());
 	serializer->Store<std::string>(yield_->label_);
 	serializer->Store<int>(yield_->count_);
-	VLOG(2) << "Stored point to file...";
+	MYLOG(2) << "Stored point to file...";
 }
 
 /********************************************************************************/
@@ -418,20 +418,20 @@ void Schedule::ClearUntakenPoints() {
 			SchedulePoint* point = *itr;
 			safe_assert(point != NULL);
 			if(point->IsTransfer()) {
-				VLOG(2) << __FUNCTION__ << " Resetting transfer point";
+				MYLOG(2) << __FUNCTION__ << " Resetting transfer point";
 				safe_notnull(point->AsTransfer())->Reset();
 				++itr;
 			} else if(point->IsChoice()) {
-				VLOG(2) << __FUNCTION__ << " Skipping choice point";
+				MYLOG(2) << __FUNCTION__ << " Skipping choice point";
 				++itr; // go past it
 			} else { // yield point
-				VLOG(2) << __FUNCTION__ << " Removing yield point";
+				MYLOG(2) << __FUNCTION__ << " Removing yield point";
 				//delete point; // TODO(elmas): this causes a segmentation fault!
 				itr = points_.erase(itr);
 			}
 		}
 	}
-	VLOG(2) << __FUNCTION__ << " Cleared untaken points.";
+	MYLOG(2) << __FUNCTION__ << " Cleared untaken points.";
 }
 
 /********************************************************************************/
@@ -497,13 +497,13 @@ void Schedule::extend_points(Schedule* that) {
 
 void Schedule::Load(Serializer* serializer) {
 	size_t len = serializer->Load<size_t>();
-	VLOG(2) << "Will read " << len << " transfer points.";
+	MYLOG(2) << "Will read " << len << " transfer points.";
 	for(size_t i = 0; i < len; ++i) {
 		try {
 			safe_assert(serializer->HasMore());
 			TransferPoint* point = new TransferPoint();
 			point->Load(serializer);
-			VLOG(2) << "Loaded" << point->ToString() << " from file...";
+			MYLOG(2) << "Loaded" << point->ToString() << " from file...";
 			// add point to our list
 			this->AddLast(point);
 		} catch(EOFException* eof) {
@@ -522,7 +522,7 @@ void Schedule::Store(Serializer* serializer) {
 	serializer->Store<size_t>(Size());
 	for (std::vector<SchedulePoint*>::iterator itr = points_.begin() ; itr < points_.end(); ++itr) {
 		SchedulePoint* point = *itr;
-		VLOG(2) << "Saving " << point->ToString() << " to file...";
+		MYLOG(2) << "Saving " << point->ToString() << " to file...";
 		point->Store(serializer);
 	}
 }

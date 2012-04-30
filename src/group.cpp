@@ -93,7 +93,7 @@ void CoroutineGroup::AddMember(Coroutine* member) {
 	member_tidseq_.push_back(tid);
 	++next_idx_;
 
-	VLOG(2) << "Added new member to group. Tid: " << tid << " next_idx_: " << next_idx_;
+	MYLOG(2) << "Added new member to group. Tid: " << tid << " next_idx_: " << next_idx_;
 }
 
 /********************************************************************************/

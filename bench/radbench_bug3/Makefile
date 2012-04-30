@@ -15,7 +15,7 @@ makedirs::
 	mkdir -p $(RADBENCHDIR)/lib
 
 clean::
-	#$(RADBENCHDIR)/scripts/clean.sh
+	$(RADBENCHDIR)/scripts/clean.sh
 	rm -f $(RADBENCHDIR)/bin/*
 	rm -f $(RADBENCHDIR)/obj/*
 

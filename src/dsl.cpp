@@ -75,7 +75,7 @@ int ExecutionTree::num_nodes_ = 0;
 /*************************************************************************************/
 
 ExecutionTree::~ExecutionTree(){
-	VLOG(2) << "Deleting execution tree!";
+	MYLOG(2) << "Deleting execution tree!";
 	for_each_child(child) {
 		if(child != NULL && !INSTANCEOF(child, EndNode*)) {
 			delete child;
@@ -386,7 +386,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 				if(result == ETIMEDOUT) {
 					// fire timeout (backtrack)
 					ExecutionTree* cn = GetRef();
-					VLOG(2) << "AcquireRef: Node not consumed on time: " << (cn == NULL ? "NULL" : cn->message());
+					MYLOG(2) << "AcquireRef: Node not consumed on time: " << (cn == NULL ? "NULL" : cn->message());
 					TRIGGER_BACKTRACK(TIMEOUT);
 				}
 				safe_assert(result == PTH_SUCCESS);
@@ -403,7 +403,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			if(timer.getElapsedTimeInMicroSec() > timeout_usec) {
 				// fire timeout (backtrack)
 				ExecutionTree* cn = GetRef();
-				VLOG(2) << "AcquireRef: Node not consumed on time: " << (cn == NULL ? "NULL" : cn->message());
+				MYLOG(2) << "AcquireRef: Node not consumed on time: " << (cn == NULL ? "NULL" : cn->message());
 				TRIGGER_BACKTRACK(TIMEOUT);
 			}
 		}
@@ -662,7 +662,7 @@ bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path) {
 /*************************************************************************************/
 
 bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
-	VLOG(2) << "Ending with success " << reason;
+	MYLOG(2) << "Ending with success " << reason;
 	// wait until the last node is consumed (or an end node is inserted)
 	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack
@@ -673,7 +673,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	} else {
 		// try to remove the current ref by waiting for empty or full
 		try {
-			VLOG(2) << "AcquireRefEx in EndWithSuccess.";
+			MYLOG(2) << "AcquireRefEx in EndWithSuccess.";
 			ExecutionTree* node = AcquireRefEx(EXIT_ON_LOCK);
 			safe_assert(IS_EMPTY(node) || IS_FULL(node));
 		} catch(std::exception* e) {
@@ -692,7 +692,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 //			else if(*reason == TIMEOUT) {
 //				// this should not timeout
 //				try {
-//					VLOG(2) << "AcquireRefEx-2 in EndWithSuccess.";
+//					MYLOG(2) << "AcquireRefEx-2 in EndWithSuccess.";
 //					ExecutionTree* node = AcquireRefEx(EXIT_ON_LOCK);
 //					safe_assert(IS_FULL(node));
 //				} catch(std::exception* e) {
@@ -748,7 +748,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 		tids->insert(exists->var()->thread()->tid());
 		// do not backtrack, just leave it there
 		// this will be covered only when it cannot be consumed
-		VLOG(2) << "Adding tid to covered tids";
+		MYLOG(2) << "Adding tid to covered tids";
 	} else {
 
 		// locked, create a new end node and set it
@@ -813,7 +813,7 @@ bool ExecutionTreeManager::RestartForAlternatePath() {
 
 	if(index_in_stack < 0) return false;
 
-	VLOG(2) << "Alternate path exists, will replay";
+	MYLOG(2) << "Alternate path exists, will replay";
 
 	safe_assert(next_loc.parent() != NULL);
 	safe_assert(!next_loc.parent()->covered());
@@ -836,7 +836,7 @@ bool ExecutionTreeManager::RestartForAlternatePath() {
 
 	ReleaseRef(NULL); // nullify the atomic ref to continue
 
-	VLOG(2) << "Starting the replay";
+	MYLOG(2) << "Starting the replay";
 	return true;
 }
 
@@ -877,7 +877,7 @@ void ExecutionTreeManager::EndWithBacktrack(Coroutine* current, BacktrackReason 
 
 // (do not use AcquireRefEx here)
 void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* exception, const std::string& where /*= "<unknown>"*/) throw() {
-	VLOG(2) << "Inserting end node to indicate exception.";
+	MYLOG(2) << "Inserting end node to indicate exception.";
 	// wait until we lock the atomic_ref, but the old node can be null or any other node
 	ExecutionTree* node = NULL;
 	try {
@@ -895,7 +895,7 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 		ReleaseRef(ENDNODE(), 0);
 	}
 
-	VLOG(2) << "Inserted end node to indicate exception.";
+	MYLOG(2) << "Inserted end node to indicate exception.";
 }
 
 

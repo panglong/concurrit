@@ -185,10 +185,10 @@ public:
 		Coroutine* co1 = tvar1_->thread();
 		Coroutine* co2 = tvar2_->thread();
 		if(co1 == NULL || co2 == NULL) {
-			VLOG(2) << "Evaluating TPThreadVarsEqual, one of them is NULL";
+			MYLOG(2) << "Evaluating TPThreadVarsEqual, one of them is NULL";
 			return true;
 		}
-		VLOG(2) << "Evaluating TPThreadVarsEqual for " << co1->tid() << " and " << co2->tid();
+		MYLOG(2) << "Evaluating TPThreadVarsEqual for " << co1->tid() << " and " << co2->tid();
 		return co1->tid() == co2->tid();
 	}
 
@@ -212,10 +212,10 @@ public:
 		Coroutine* co1 = tvar1_->thread();
 		Coroutine* co2 = tvar2_->thread();
 		if(co1 == NULL || co2 == NULL) {
-			VLOG(2) << "Evaluating TPThreadVarsEqual, one of them is NULL";
+			MYLOG(2) << "Evaluating TPThreadVarsEqual, one of them is NULL";
 			return true;
 		}
-		VLOG(2) << "Evaluating TPThreadVarsEqual for " << co1->tid() << " and " << co2->tid();
+		MYLOG(2) << "Evaluating TPThreadVarsEqual for " << co1->tid() << " and " << co2->tid();
 		return co1->tid() != co2->tid();
 	}
 

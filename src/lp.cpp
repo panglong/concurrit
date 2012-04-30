@@ -114,7 +114,7 @@ void VCTracker::UpdateBacktrackSets(SchedulePoint* currentPoint) {
 					// we update the backtrack set of the previous transfer here
 					TransferPoint* transfer = point->AsYield()->prev();
 					if(transfer != NULL && transfer->AsYield()->free_target()) {
-						VLOG(2) << "VCTracker: Adding backtrack point";
+						MYLOG(2) << "VCTracker: Adding backtrack point";
 						CoroutinePtrSet* enabled = transfer->enabled();
 						if(enabled->find(currentSource) != enabled->end()) {
 							// add only currentSource to backtrack
@@ -134,7 +134,7 @@ void VCTracker::UpdateBacktrackSets(SchedulePoint* currentPoint) {
 
 void VCTracker::HandleImmediateRace(SchedulePoint* point, SchedulePoint* currentPoint, Coverage* coverage) {
 
-	VLOG(2) << "Immediate race between "
+	MYLOG(2) << "Immediate race between "
 			<< point->AsYield()->access()->ToString() << " and "
 			<< currentPoint->AsYield()->access()->ToString();
 

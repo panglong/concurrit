@@ -122,7 +122,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 		initialized_ = true;
 	} while(false);
 
-	VLOG(2) << "Initialized Concurrit.";
+	MYLOG(2) << "Initialized Concurrit.";
 }
 
 void Concurrit::Destroy() {
@@ -143,7 +143,7 @@ void Concurrit::Destroy() {
 //	int pth_kill_result = pth_kill();
 //	safe_assert(pth_kill_result == TRUE);
 
-	VLOG(2) << "Finalized Concurrit.";
+	MYLOG(2) << "Finalized Concurrit.";
 }
 
 /********************************************************************************/
@@ -167,18 +167,18 @@ void Concurrit::LoadTestLibrary() {
 			// find the driver main function, try next first, and fail if not found
 			Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", false, true, true);
 			safe_assert(Concurrit::driver_main_ == concurrit::__main__);
-			VLOG(1) << ("Using default __main__.");
+			MYLOG(1) << ("Using default __main__.");
 		} else {
 			safe_assert(Concurrit::driver_main_ != concurrit::__main__);
-			VLOG(1) << ("Using __main__ from the loaded shared library.");
+			MYLOG(1) << ("Using __main__ from the loaded shared library.");
 		}
-		VLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
+		MYLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
 	} else {
 		// find the driver main function, try next first, and fail if not found
 		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", false, true, true);
 		safe_assert(Concurrit::driver_main_ == concurrit::__main__);
-		VLOG(1) << ("Using default __main__.");
-		VLOG(1) << "Not loading a test library";
+		MYLOG(1) << ("Using default __main__.");
+		MYLOG(1) << "Not loading a test library";
 	}
 }
 
@@ -204,7 +204,7 @@ int __main__(int argc, char* argv[]) {
 
 // default, empty implementation of test driver
 int __main__ (int, char**) {
-	VLOG(2) << "Running default test-driver main function.";
+	MYLOG(2) << "Running default test-driver main function.";
 	safe_fail("Default __main__ implementation should not be called!");
 }
 

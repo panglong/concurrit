@@ -58,7 +58,7 @@ public:
 	~UntilLabelCondition(){}
 
 	virtual bool Check(SchedulePoint* point) {
-		VLOG(2) << "Checking labels " << this->label_ << " and " << point->AsYield()->label();
+		MYLOG(2) << "Checking labels " << this->label_ << " and " << point->AsYield()->label();
 		return this->label_ == point->AsYield()->label();
 	}
 
@@ -82,7 +82,7 @@ public:
 	~UntilStarCondition(){}
 
 	virtual bool Check(SchedulePoint* point) {
-		VLOG(2) << "Checking Until STAR!";
+		MYLOG(2) << "Checking Until STAR!";
 		return point->IsTransfer() || point->AsYield()->label() == ENDING_LABEL ;
 	}
 };
@@ -95,7 +95,7 @@ public:
 	~UntilFirstCondition(){}
 
 	bool Check(SchedulePoint* point) {
-		VLOG(2) << "Checking Until FIRST!";
+		MYLOG(2) << "Checking Until FIRST!";
 		return true;
 	}
 };

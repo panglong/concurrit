@@ -1,4 +1,5 @@
 multiset_insert_pair
-#multiset_allocate
+-multiset_allocate
+-multiset_lookup
 -lock
 -unlock

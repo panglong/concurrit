@@ -97,9 +97,9 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
 	}
-	VLOG(2) << SC_TITLE << "Loading schedule from file " << filename;
+	MYLOG(2) << SC_TITLE << "Loading schedule from file " << filename;
 	schedule_->LoadFromFile(filename);
-	VLOG(2) << SC_TITLE << "Loaded schedule from file " << filename;
+	MYLOG(2) << SC_TITLE << "Loaded schedule from file " << filename;
 }
 
 /********************************************************************************/
@@ -109,12 +109,12 @@ ThreadVarPtr Scenario::RunTestDriver() {
 	MainFuncType main_func = Concurrit::driver_main();
 	safe_assert(main_func != NULL);
 	if(main_func != concurrit::__main__) {
-		VLOG(2) << "Calling driver's main function.";
+		MYLOG(2) << "Calling driver's main function.";
 		ThreadVarPtr var = CreateThread(Concurrit::CallDriverMain, NULL);
 		safe_assert(var != NULL && !var->is_empty());
 		return var;
 	}
-	VLOG(2) << "No test-supplied __main__function, skipping the driver thread.";
+	MYLOG(2) << "No test-supplied __main__function, skipping the driver thread.";
 	return ThreadVarPtr();
 }
 
@@ -150,12 +150,12 @@ ThreadVarPtr Scenario::CreateThread(THREADID tid, ThreadEntryFunction function, 
 
 	if(co == NULL) {
 		// create a new thread
-		VLOG(2) << SC_TITLE << "Creating new coroutine " << tid;
+		MYLOG(2) << SC_TITLE << "Creating new coroutine " << tid;
 		// create and add new thread
 		co = new Coroutine(tid, function, arg);
 		group_.AddMember(co); // also sets the tid
 	} else {
-		VLOG(2) << SC_TITLE << "Re-creating and restarting coroutine " << tid;
+		MYLOG(2) << SC_TITLE << "Re-creating and restarting coroutine " << tid;
 		safe_assert(co->status() > PASSIVE);
 		// update the function and arguments
 		co->set_entry_function(function);
@@ -179,12 +179,12 @@ ThreadVarPtr Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*=
 
 	if(co == NULL) {
 		// create a new thread
-		VLOG(2) << SC_TITLE << "Creating new pthread coroutine.";
+		MYLOG(2) << SC_TITLE << "Creating new pthread coroutine.";
 		// create and add new thread
 		co = new Coroutine(-1, function, arg);
 		group_.AddMember(co); // also sets the tid
 	} else {
-		VLOG(2) << SC_TITLE << "Re-creating and restarting pthread coroutine " << co->tid();
+		MYLOG(2) << SC_TITLE << "Re-creating and restarting pthread coroutine " << co->tid();
 		safe_assert(co->status() > PASSIVE);
 		// update the function and arguments
 		co->set_entry_function(function);
@@ -194,7 +194,7 @@ ThreadVarPtr Scenario::CreatePThread(ThreadEntryFunction function, void* arg /*=
 	// start it. in the usual case, waits until a transfer happens, or starts immediatelly depending ont he argument transfer_on_start
 	co->Start(pid, attr);
 
-	VLOG(2) << SC_TITLE << "Created new pthread coroutine " << co->tid();
+	MYLOG(2) << SC_TITLE << "Created new pthread coroutine " << co->tid();
 
 	return co->tvar();
 }
@@ -237,12 +237,12 @@ void Scenario::JoinAllThreads(long timeout /*= -1*/) {
 	int num_timed_out = -1; // set to -1 to start with 0 in the first iteration.
 	do {
 		if(exec_tree_.ENDNODE()->exception()->get_non_backtrack() != NULL) {
-			VLOG(1) << "There is a non-backtrack exception, so exiting without waiting threads!";
+			MYLOG(1) << "There is a non-backtrack exception, so exiting without waiting threads!";
 			break;
 		}
 		++num_timed_out;
 		if(num_timed_out == Config::MaxTimeOutsBeforeDeadlock) {
-			VLOG(1) << "There is a deadlock, so exiting without waiting threads!";
+			MYLOG(1) << "There is a deadlock, so exiting without waiting threads!";
 			exec_tree_.ENDNODE()->add_exception(new DeadlockException(), Coroutine::Current(), "JoinAllThreads");
 			break;
 		}
@@ -281,15 +281,15 @@ Result* Scenario::Explore() {
 		for(;true;) {
 			try {
 
-				VLOG(1) << "Exploring new execution...";
+				MYLOG(1) << "Exploring new execution...";
 
-				VLOG(2) << SC_TITLE << "Starting path " << unsigned(counter("Num paths explored"));
+				MYLOG(2) << SC_TITLE << "Starting path " << unsigned(counter("Num paths explored"));
 
 				ConcurritException* exc = RunOnce();
 
 				// RunOnce should not throw an exception, so throw it here
 				if(exc != NULL) {
-					VLOG(2) << "Throwing exception from RunOnce: " << exc->what();
+					MYLOG(2) << "Throwing exception from RunOnce: " << exc->what();
 					throw exc;
 				}
 
@@ -304,7 +304,7 @@ Result* Scenario::Explore() {
 					}
 
 					ASINSTANCEOF(result, ForallResult*)->AddSchedule(schedule_->Clone());
-					VLOG(2) << "Found one path for forall search.";
+					MYLOG(2) << "Found one path for forall search.";
 					TRIGGER_BACKTRACK(SUCCESS, true);
 				}
 
@@ -315,19 +315,19 @@ Result* Scenario::Explore() {
 
 				// check the contents of ce, check backtrack last
 				if((ae = ce->get_assertion_violation()) != NULL){
-					VLOG(2) << SC_TITLE << "Assertion is violated!";
-					VLOG(2) << ae->what();
+					MYLOG(2) << SC_TITLE << "Assertion is violated!";
+					MYLOG(2) << ae->what();
 
 					result = new AssertionViolationResult(ae, schedule_->Clone());
 
 				} else if((ie = ce->get_internal()) != NULL){
-					VLOG(2) << SC_TITLE << "Internal exception thrown!";
-					VLOG(2) << ie->what();
+					MYLOG(2) << SC_TITLE << "Internal exception thrown!";
+					MYLOG(2) << ie->what();
 
 					throw ie;
 
 				} else if((be = ce->get_backtrack()) == NULL){
-					VLOG(2) << SC_TITLE << "Exception caught: " << be->what();
+					MYLOG(2) << SC_TITLE << "Exception caught: " << be->what();
 
 					result = new RuntimeExceptionResult(be, schedule_->Clone());
 				} else {
@@ -335,7 +335,7 @@ Result* Scenario::Explore() {
 					// Backtrack exception!!!
 					safe_assert(be->reason() != UNKNOWN);
 
-					VLOG(2) << SC_TITLE << "Backtracking: " << be->what();
+					MYLOG(2) << SC_TITLE << "Backtracking: " << be->what();
 
 					// is backtrack is for terminating the search, exit the search loop
 					if((--Config::ExitOnFirstExecution == 0) || be->reason() == SEARCH_ENDS) {
@@ -347,10 +347,10 @@ Result* Scenario::Explore() {
 						continue;
 					} else {
 						if(result == NULL) {
-							VLOG(2) << SC_TITLE << "No feasible execution!!!";
+							MYLOG(2) << SC_TITLE << "No feasible execution!!!";
 							result = new NoFeasibleExecutionResult(schedule_->Clone());
 						} else {
-							VLOG(2) << SC_TITLE << "No more feasible execution!!!";
+							MYLOG(2) << SC_TITLE << "No more feasible execution!!!";
 							safe_assert(result != NULL && INSTANCEOF(result, ForallResult*));
 						}
 						goto LOOP_DONE; // break the outermost loop
@@ -420,12 +420,12 @@ void Scenario::RunUncontrolled() {
 
 	Thread::Yield(true);
 
-	VLOG(2) << "Starting uncontrolled run";
+	MYLOG(2) << "Starting uncontrolled run";
 
 	// start waiting all to end
 	JoinAllThreads();
 
-	VLOG(2) << "Ending uncontrolled run";
+	MYLOG(2) << "Ending uncontrolled run";
 }
 
 /********************************************************************************/
@@ -468,7 +468,7 @@ void Scenario::RunTestCase() throw() {
 		reason = SUCCESS;
 		try {
 
-			VLOG(1) << "(Re)Running test case...";
+			MYLOG(1) << "(Re)Running test case...";
 
 			RunTestDriver();
 
@@ -484,20 +484,20 @@ void Scenario::RunTestCase() throw() {
 			// EndWithSuccess may ignore some backtracks and choose to replay
 			be = ASINSTANCEOF(e, BacktrackException*);
 			if(be == NULL) {
-				VLOG(1) << "Test execution ended with non-backtrack exception: " << safe_notnull(e->what());
+				MYLOG(1) << "Test execution ended with non-backtrack exception: " << safe_notnull(e->what());
 
 				// mark the end of the path with end node and the corresponding exception
 				exec_tree_.EndWithException(group_.main(), e);
 				return;
 			}
-			VLOG(2) << "RunTestCase throw backtrack exception, handling...";
+			MYLOG(2) << "RunTestCase throw backtrack exception, handling...";
 			reason = be->reason();
 			safe_assert(reason != SUCCESS);
 			// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
 			// then change the backtrack type to THREADS_ALLENDED
 			if(reason == TIMEOUT && group_.IsAllEnded()) {
 				reason = THREADS_ALLENDED;
-				VLOG(2) << "Replacing TIMEOUT with THREADS_ALLENDED; all threads have ended.";
+				MYLOG(2) << "Replacing TIMEOUT with THREADS_ALLENDED; all threads have ended.";
 			}
 			if(reason == TIMEOUT ||
 				reason == TREENODE_COVERED ||
@@ -511,11 +511,11 @@ void Scenario::RunTestCase() throw() {
 			safe_fail("Exceptions other than std::exception in TestCase are not allowed!!!\n");
 		}
 
-		VLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
+		MYLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
 
 	} while(exec_tree_.EndWithSuccess(&reason));
 
-	VLOG(2) << "Handled all paths or there is an exception, exiting RunTestCase...";
+	MYLOG(2) << "Handled all paths or there is an exception, exiting RunTestCase...";
 
 	//====================================
 	// after trying all alternate paths
@@ -527,7 +527,7 @@ void Scenario::RunTestCase() throw() {
 		} else {
 			be->set_reason(reason);
 		}
-		VLOG(1) << "Test execution ended with backtrack exception: " << BacktrackException::ReasonToString(reason);
+		MYLOG(1) << "Test execution ended with backtrack exception: " << BacktrackException::ReasonToString(reason);
 
 		// mark the end of the path with end node and the corresponding exception
 		exec_tree_.EndWithException(group_.main(), be);
@@ -564,7 +564,7 @@ void Scenario::ResolvePoint(SchedulePoint* point) {
 /********************************************************************************/
 
 bool Scenario::Backtrack(BacktrackReason reason) {
-	VLOG(2) << "Trying to backtrack...";
+	MYLOG(2) << "Trying to backtrack...";
 	if(ConcurritExecutionMode == COOPERATIVE) {
 		return DoBacktrackCooperative(reason);
 	} else {
@@ -575,7 +575,7 @@ bool Scenario::Backtrack(BacktrackReason reason) {
 /********************************************************************************/
 
 bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
-	VLOG(2) << "Start schedule: " << schedule_->ToString();
+	MYLOG(2) << "Start schedule: " << schedule_->ToString();
 
 	// remove all points after current (inclusively).
 	schedule_->RemoveCurrentAndBeyond();
@@ -586,7 +586,7 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 			if(point->AsChoice()->ChooseNext()) {
 				schedule_->AddLast(point);
 
-				VLOG(2) << "End schedule: " << schedule_->ToString();
+				MYLOG(2) << "End schedule: " << schedule_->ToString();
 				return true;
 			}
 		}
@@ -603,7 +603,7 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 						transfer->yield()->set_count(count);
 						schedule_->AddLast(transfer);
 
-						VLOG(2) << "End schedule: " << schedule_->ToString();
+						MYLOG(2) << "End schedule: " << schedule_->ToString();
 						return true;
 					}
 				}
@@ -615,7 +615,7 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 					transfer->make_backtrack_point();
 					schedule_->AddLast(transfer);
 
-					VLOG(2) << "End schedule: " << schedule_->ToString();
+					MYLOG(2) << "End schedule: " << schedule_->ToString();
 					return true;
 				}
 			}
@@ -638,7 +638,7 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 			return true;
 		}
 		// delete the thrown-away yield point
-		VLOG(2) << "Throwing away yield point: " << point->ToString();
+		MYLOG(2) << "Throwing away yield point: " << point->ToString();
 		delete point;
 	} // end loop
 	return false; // no feasible execution
@@ -727,7 +727,7 @@ void Scenario::Finish(Result* result) {
 
 TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 
-	VLOG(2) << SC_TITLE << "OnYield starting";
+	MYLOG(2) << SC_TITLE << "OnYield starting";
 
 	YieldPoint* point = spoint->AsYield();
 	Coroutine* source = point->source();
@@ -759,7 +759,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 			goto DONE;
 		}
 
-		VLOG(2) << SC_TITLE << "Processing transfer from the log: " << transfer->ToString();
+		MYLOG(2) << SC_TITLE << "Processing transfer from the log: " << transfer->ToString();
 
 		ResolvePoint(transfer);
 		safe_assert(transfer->IsResolved());
@@ -774,7 +774,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 		safe_assert(target != source);
 
 		if(from_main) {
-			VLOG(2) << SC_TITLE << "From main";
+			MYLOG(2) << SC_TITLE << "From main";
 			safe_assert(target != main);
 			safe_assert(point->label() == MAIN_LABEL);
 
@@ -796,7 +796,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 			safe_assert(target != NULL);
 			transfer->set_target(target);
 		} else {
-			VLOG(2) << SC_TITLE << "From non-main";
+			MYLOG(2) << SC_TITLE << "From non-main";
 			safe_assert(target != NULL);
 			CHECK(target == main); // this holds for now but, may be relaxed later
 			safe_assert(point->label() != MAIN_LABEL);
@@ -820,7 +820,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
 		}
 
-		VLOG(2) << SC_TITLE << "Consuming transfer.";
+		MYLOG(2) << SC_TITLE << "Consuming transfer.";
 		if(!transfer->ConsumeOnce()) {
 			// do not yield yet if not consumed all
 			transfer = NULL;
@@ -837,7 +837,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 	} else {
 		// no more points in the schedule, so create the next new one
 
-		VLOG(2) << SC_TITLE << "Generating a new transfer";
+		MYLOG(2) << SC_TITLE << "Generating a new transfer";
 
 		if(from_main) {
 			if(target == NULL) {
@@ -875,7 +875,7 @@ TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
 DONE:
 	// after this point, transfer does not change from non-null to null
 
-	VLOG(2) << "DONE. Scenario::OnYield chose " << ((transfer != NULL) ? transfer->ToString() : "NULL");
+	MYLOG(2) << "DONE. Scenario::OnYield chose " << ((transfer != NULL) ? transfer->ToString() : "NULL");
 	if(transfer == NULL) { // no transfer, this may be because the current point is a choice point
 		// if yield of source is a transfer point, then we should not be here
 		safe_assert(!source->yield_point()->IsTransfer());
@@ -887,7 +887,7 @@ DONE:
 
 		// update schedule to add this yield point
 		if(schedule_->GetCurrent() != point) {
-			VLOG(2) << SC_TITLE << "Adding yield point " << point->ToString() << " to schedule";
+			MYLOG(2) << SC_TITLE << "Adding yield point " << point->ToString() << " to schedule";
 			schedule_->AddCurrent(point, true);
 		}
 
@@ -987,7 +987,7 @@ SchedulePoint* Scenario::TransferStar(SourceLocation* loc) {
 // when this begins, we have a particular target to transfer
 // all nondeterminism about transfer is resolved in transfer star
 SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
-	VLOG(2) << SC_TITLE << "Transfer request to " << ((target != NULL) ? to_string(target->tid()) : "star");
+	MYLOG(2) << SC_TITLE << "Transfer request to " << ((target != NULL) ? to_string(target->tid()) : "star");
 
 	CoroutineGroup group = group_;
 
@@ -1094,7 +1094,7 @@ void Scenario::OnAccess(Coroutine* current, SharedAccess* access) {
 	safe_assert(access != NULL);
 	safe_assert(access == current->yield_point()->AsYield()->access()); // access must be the last access of current
 
-	VLOG(2) << SC_TITLE << "Access by " << current->tid() << ": " << access->ToString();
+	MYLOG(2) << SC_TITLE << "Access by " << current->tid() << ": " << access->ToString();
 
 	// notify vc tracker
 	vcTracker_.OnAccess(current->yield_point(), schedule_->coverage());
@@ -1122,9 +1122,9 @@ SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAcc
 
 	// give warning if access is null
 	if(access == NULL && strcmp(safe_notnull(label), ENDING_LABEL) != 0) {
-		VLOG(2) << "YIELD without a shared variable access.";
+		MYLOG(2) << "YIELD without a shared variable access.";
 		if(loc != NULL) {
-			VLOG(2) << "Related location: " << loc->ToString();
+			MYLOG(2) << "Related location: " << loc->ToString();
 		}
 	}
 
@@ -1215,7 +1215,7 @@ void Scenario::RunSavedSchedule(const char* filename) {
 /********************************************************************************/
 
 SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
-	VLOG(2) << "Scenario::Yield (default implementation)";
+	MYLOG(2) << "Scenario::Yield (default implementation)";
 
 	CHECK(scenario == this);
 
@@ -1225,7 +1225,7 @@ SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Corout
 	safe_assert(scenario == group->scenario());
 	safe_assert(group == scenario->group());
 
-	VLOG(2) << "Yield request from " << current->tid();
+	MYLOG(2) << "Yield request from " << current->tid();
 
 	// update backtrack set before taking the transition
 	this->UpdateBacktrackSets();
@@ -1331,7 +1331,7 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 
 	ForallThreadNode* forall = ASINSTANCEOF(node, ForallThreadNode*);
 	if(forall != NULL) {
-		VLOG(2) << "Evaluating forall-thread node";
+		MYLOG(2) << "Evaluating forall-thread node";
 
 		// if select is covered, we should not be reaching this
 		safe_assert(!forall->covered());
@@ -1371,7 +1371,7 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 	} else { //=======================================================
 		ExistsThreadNode* exists = ASINSTANCEOF(node, ExistsThreadNode*);
 		if(exists != NULL) {
-			VLOG(2) << "Evaluating exists-thread node";
+			MYLOG(2) << "Evaluating exists-thread node";
 
 			// if select is covered, we should not be reaching this
 			safe_assert(!exists->covered());
@@ -1463,7 +1463,7 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 //				tval = pred->EvalPreState(current);
 //
 //				if(tval == TPTRUE) {
-//					VLOG(2) << "Will consume the current transition";
+//					MYLOG(2) << "Will consume the current transition";
 //					*newnode = {trans, 0}; // newnode is the next of node
 //				}
 //			}
@@ -1515,7 +1515,7 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 						tval = TPUNKNOWN;
 					}
 					else if(tval == TPTRUE) {
-						VLOG(2) << "Will consume the current transfer-until";
+						MYLOG(2) << "Will consume the current transfer-until";
 						*newnode = {truntil, 0}; // newnode is the next of node
 					}
 				}
@@ -1564,7 +1564,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 //
 //			tval = (ret ? TPTRUE : TPFALSE);
 //			if(tval == TPTRUE) {
-//				VLOG(2) << "Will consume the current transition";
+//				MYLOG(2) << "Will consume the current transition";
 //				*newnode = {trans, 0}; // newnode is the next of node
 //			}
 //		}
@@ -1599,7 +1599,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 					tval = TPUNKNOWN;
 				}
 				else if(tval == TPTRUE) {
-					VLOG(2) << "Will consume the current transfer-until";
+					MYLOG(2) << "Will consume the current transfer-until";
 					*newnode = {truntil, 0}; // newnode is the next of node
 				}
 			}
@@ -1634,7 +1634,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 
 	current->set_status(BLOCKED);
 
-	VLOG(2) << "Before controlled transition by " << current->tid();
+	MYLOG(2) << "Before controlled transition by " << current->tid();
 
 	// to continue waiting or exit?
 	bool done = true;
@@ -1665,13 +1665,13 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		safe_assert(current->current_node() == NULL);
 
 		//=================================================================
-		VLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
+		MYLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
 		// get the node
 		ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_FULL);
 
 		// if end_node, exit immediatelly
 		if(exec_tree_.IS_ENDNODE(node)) {
-			VLOG(2) << "Detected end node, exiting handling code";
+			MYLOG(2) << "Detected end node, exiting handling code";
 			// uncontrolled mode, but the mode is set by main, so just ignore the rest
 			// no need to release node, because AcquireRef does not overwrite end nodes.
 			current->set_current_node(node); // this is to inform AfterControlledTransition for the ending
@@ -1684,16 +1684,16 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 		// if previously unsatisfied node, then retry
 		if(node == prev_unsat_node) {
 
-			VLOG(2) << "Detected same unsatisfied node, will retry";
+			MYLOG(2) << "Detected same unsatisfied node, will retry";
 			tval = TPFALSE; // indicates that node was unsatisfied (will retry for another node)
 
 		} else {
 			//=================================================================
-			VLOG(2) << "Checking execution tree node type";
+			MYLOG(2) << "Checking execution tree node type";
 			// get the node
 			TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 			if(trans != NULL) {
-				VLOG(2) << "Evaluating transition node";
+				MYLOG(2) << "Evaluating transition node";
 
 				tval = EvalPreState(current, trans, &newnode);
 
@@ -1702,7 +1702,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 //			} else { //=======================================================
 //				TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
 //				if(truntil != NULL) {
-//					VLOG(2) << "Evaluating transfer-until predicate";
+//					MYLOG(2) << "Evaluating transfer-until predicate";
 //
 //					tval = EvalPreState(current, truntil, &newnode);
 //
@@ -1711,7 +1711,7 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 				} else { //=======================================================
 					SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
 					if(select != NULL) {
-						VLOG(2) << "Evaluating select-thread node";
+						MYLOG(2) << "Evaluating select-thread node";
 
 						tval = EvalSelectThread(current, select, &newnode);
 
@@ -1729,11 +1729,11 @@ void Scenario::BeforeControlledTransition(Coroutine* current) {
 SWITCH:
 
 		//=================================================================
-		VLOG(2) << "Switching on three-valued variable";
+		MYLOG(2) << "Switching on three-valued variable";
 		// take action depending on tval
 		switch(tval) {
 		case TPTRUE: // consume the transition
-			VLOG(2) << "Consuming transition";
+			MYLOG(2) << "Consuming transition";
 			// in this case, we insert a new node to the path represented by newnode
 			safe_assert(!newnode.empty());
 			safe_assert(!exec_tree_.IS_TRANSNODE(node));
@@ -1742,7 +1742,7 @@ SWITCH:
 			break;
 
 		case TPFALSE: // release the transition and wait
-			VLOG(2) << "Releasing transition back";
+			MYLOG(2) << "Releasing transition back";
 			exec_tree_.ReleaseRef(node);
 
 			prev_unsat_node = node; // update previously unsatisfied node
@@ -1750,7 +1750,7 @@ SWITCH:
 			break; // do not exit method
 
 		case TPUNKNOWN: // take the transition and decide after the transition
-			VLOG(2) << "Unknown, to be decided after the transition";
+			MYLOG(2) << "Unknown, to be decided after the transition";
 			current->set_current_node(node);
 			safe_assert(done);
 			UpdateAlternateLocations(current, true);
@@ -1773,7 +1773,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 
 	if(current->status() != BLOCKED) return;
 
-	VLOG(2) << "After controlled transition by " << current->tid();
+	MYLOG(2) << "After controlled transition by " << current->tid();
 
 	// value determining what to with the transition
 	// TPTRUE: consume the transition and continue as normal
@@ -1789,7 +1789,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 
 		// if end_node, exit immediatelly
 		if(exec_tree_.IS_ENDNODE(node)) {
-			VLOG(2) << "Detected end node, exiting handling code";
+			MYLOG(2) << "Detected end node, exiting handling code";
 			current->FinishControlledTransition();
 			return;
 		}
@@ -1797,18 +1797,18 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 		// new element to be used when the current node is consumed
 		ChildLoc newnode = {NULL, -1};
 
-		VLOG(2) << "Checking execution tree node type";
+		MYLOG(2) << "Checking execution tree node type";
 		safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
 
 		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
 		if(trans != NULL) {
-			VLOG(2) << "Evaluating transition node";
+			MYLOG(2) << "Evaluating transition node";
 
 			tval = EvalPostState(current, trans, &newnode);
 
 //		} else {//=======================================================
 //			safe_assert(!ASINSTANCEOF(node, SelectThreadNode*));
-//			VLOG(2) << "Evaluating transfer-until predicate";
+//			MYLOG(2) << "Evaluating transfer-until predicate";
 //			TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
 //			if(truntil != NULL) {
 //
@@ -1821,12 +1821,12 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 //		}
 
 		//=================================================================
-		VLOG(2) << "Switching on three-valued variable";
+		MYLOG(2) << "Switching on three-valued variable";
 		safe_assert(exec_tree_.IS_TRANSNODE(node));
 		// take action depending on tval
 		switch(tval) {
 		case TPTRUE: // consume the transition if node is not null, otherwise, there was no node to handle
-			VLOG(2) << "Consuming transition";
+			MYLOG(2) << "Consuming transition";
 			safe_assert(node != NULL);
 			// in this case, we insert a new node to the path represented by newnode
 			safe_assert(newnode.parent() != NULL && newnode.child_index() >= 0);
@@ -1835,14 +1835,14 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 			break;
 
 		case TPFALSE: // trigger backtrack
-			VLOG(2) << "Transition not satisfied, will release transition back and backtrack";
+			MYLOG(2) << "Transition not satisfied, will release transition back and backtrack";
 			exec_tree_.ReleaseRef(node);
 			// trigger backtrack, causes current execution to end
 			exec_tree_.EndWithBacktrack(current, SPEC_UNSATISFIED, "AfterControlledTransition");
 			break;
 
 		case TPUNKNOWN: // continue holding the transition node
-			VLOG(2) << "Unknown, with the same transition";
+			MYLOG(2) << "Unknown, with the same transition";
 			safe_assert(exec_tree_.IS_MULTITRANSNODE(node));
 			safe_assert(current->current_node() == node);
 			UpdateAlternateLocations(current, false);
@@ -1866,7 +1866,7 @@ void Scenario::AfterControlledTransition(Coroutine* current) {
 /********************************************************************************/
 
 bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
-	VLOG(2) << "DoBacktrackPreemptive for reason: " << reason;
+	MYLOG(2) << "DoBacktrackPreemptive for reason: " << reason;
 
 	return !exec_tree_.ROOTNODE()->covered();
 }
@@ -1877,7 +1877,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
-	VLOG(2) << "Adding DSLChoice";
+	MYLOG(2) << "Adding DSLChoice";
 
 	//=======================================================
 
@@ -1891,7 +1891,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 		// update current node
 		exec_tree_.AddToNodeStack(reploc);
 
-		VLOG(2) << "Replaying path with choice node.";
+		MYLOG(2) << "Replaying path with choice node.";
 		return (reploc.child_index() == 1);
 	}
 
@@ -1953,7 +1953,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 
 	exec_tree_.ReleaseRef(choice, ret);
 
-	VLOG(2) << "DSLChoice returns " << ret;
+	MYLOG(2) << "DSLChoice returns " << ret;
 
 	return (ret == 1);
 }
@@ -1961,7 +1961,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 /********************************************************************************/
 
 //void Scenario::DSLTransition(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
-//	VLOG(2) << "Adding DSLTransition";
+//	MYLOG(2) << "Adding DSLTransition";
 //
 //	//=======================================================
 //
@@ -1975,7 +1975,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 //		// update current node
 //		exec_tree_.set_current_node(reploc);
 //
-//		VLOG(2) << "Replaying path with single transition node.";
+//		MYLOG(2) << "Replaying path with single transition node.";
 //		return;
 //	}
 //
@@ -2021,7 +2021,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 //	safe_assert(node == NULL);
 //	exec_tree_.ReleaseRef(NULL);
 //
-//	VLOG(2) << "Added DSLTransition.";
+//	MYLOG(2) << "Added DSLTransition.";
 //}
 
 /********************************************************************************/
@@ -2030,7 +2030,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
-	VLOG(2) << "Adding DSLTransferUntil";
+	MYLOG(2) << "Adding DSLTransferUntil";
 
 	//=======================================================
 
@@ -2045,7 +2045,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 		// update current node
 		exec_tree_.AddToNodeStack(reploc);
 
-		VLOG(2) << "Replaying path with transfer until node.";
+		MYLOG(2) << "Replaying path with transfer until node.";
 		return;
 	}
 
@@ -2091,7 +2091,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	safe_assert(node == NULL);
 	exec_tree_.ReleaseRef(NULL);
 
-	VLOG(2) << "Added DSLTransferUntil.";
+	MYLOG(2) << "Added DSLTransferUntil.";
 }
 
 
@@ -2101,7 +2101,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
-	VLOG(2) << "Adding DSLForallThread";
+	MYLOG(2) << "Adding DSLForallThread";
 
 	//=======================================================
 
@@ -2126,7 +2126,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 			// update current node
 			exec_tree_.AddToNodeStack(reploc);
 
-			VLOG(2) << "Replaying path with forall thread node.";
+			MYLOG(2) << "Replaying path with forall thread node.";
 
 			return var;
 		}
@@ -2184,7 +2184,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	exec_tree_.ReleaseRef(NULL);
 
 	safe_assert(var != NULL || !var->is_empty());
-	VLOG(2) << "Added DSLForallThread: " << var->thread()->tid();
+	MYLOG(2) << "Added DSLForallThread: " << var->thread()->tid();
 	return var;
 }
 
@@ -2194,7 +2194,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
-	VLOG(2) << "Adding DSLExistsThread";
+	MYLOG(2) << "Adding DSLExistsThread";
 
 	//=======================================================
 
@@ -2218,7 +2218,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 			// update current node
 			exec_tree_.AddToNodeStack(reploc);
 
-			VLOG(2) << "Replaying path with forall thread node.";
+			MYLOG(2) << "Replaying path with forall thread node.";
 			return var;
 		}
 		safe_assert(exec_tree_.replay_path()->empty());
@@ -2272,7 +2272,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 
 
 	safe_assert(var != NULL || !var->is_empty());
-	VLOG(2) << "Added DSLExistsThread: " << var->thread()->tid();
+	MYLOG(2) << "Added DSLExistsThread: " << var->thread()->tid();
 
 	return var;
 }

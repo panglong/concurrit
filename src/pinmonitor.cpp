@@ -88,14 +88,14 @@ SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell)
 
 void PinMonitor::Enable() {
 	if(!Config::RunUncontrolled) {
-		VLOG(2) << ">>> Enabling instrumentation.";
+		MYLOG(2) << ">>> Enabling instrumentation.";
 		if(Config::PinInstrEnabled && !down_) EnablePinTool();
 		enabled_ = true;
 	}
 }
 void PinMonitor::Disable() {
 	if(!Config::RunUncontrolled) {
-		VLOG(2) << ">>> Disabling instrumentation.";
+		MYLOG(2) << ">>> Disabling instrumentation.";
 		if(Config::PinInstrEnabled && !down_) DisablePinTool();
 		enabled_ = false;
 	}
@@ -105,7 +105,7 @@ void PinMonitor::Disable() {
 // ! Do not disable pinmonitor, as the enabled_ flag is used other places
 void PinMonitor::Shutdown() {
 	if(!down_) {
-		VLOG(2) << ">>> Shutting down pintool.";
+		MYLOG(2) << ">>> Shutting down pintool.";
 		ShutdownPinTool();
 		down_ = true;
 	}
@@ -227,7 +227,7 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	}
 	safe_assert(!PinMonitor::IsDown());
 
-	VLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
+	MYLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
 
 	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(info->threadid));
 	safe_assert(!current->IsMain());
@@ -269,15 +269,15 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 
 // functions whose first instructions to be instrumented by pin tool
 
-void EnablePinTool() { VLOG(2) << "Enabling pin instrumentation"; }
-void DisablePinTool() { VLOG(2) << "Disabling pin instrumentation"; }
+void EnablePinTool() { MYLOG(2) << "Enabling pin instrumentation"; }
+void DisablePinTool() { MYLOG(2) << "Disabling pin instrumentation"; }
 
-void ThreadRestart() { VLOG(2) << "Restarting thread."; }
+void ThreadRestart() { MYLOG(2) << "Restarting thread."; }
 
-void ShutdownPinTool() { VLOG(2) << "Shutting down pintool."; }
+void ShutdownPinTool() { MYLOG(2) << "Shutting down pintool."; }
 
-void StartInstrument() { VLOG(2) << "Starting an instrumented function."; }
-void EndInstrument() { VLOG(2) << "Ending an instrumented function."; }
+void StartInstrument() { MYLOG(2) << "Starting an instrumented function."; }
+void EndInstrument() { MYLOG(2) << "Ending an instrumented function."; }
 
 /********************************************************************************/
 

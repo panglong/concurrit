@@ -239,6 +239,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 									// try only default, and fail if not found
 #define FUNC(v, f)					static FuncVar v(FuncAddressByName(#f, true, false, true));
+#define FVAR(v, f)					FUNC(v, f)
 
 /********************************************************************************/
 

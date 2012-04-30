@@ -806,7 +806,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 
 /* ===================================================================== */
 
-INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr, BOOL loading = FALSE) {
+INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr) {
 	if(RTN_Valid(rtn)) {
 		// be careful to always call IsImageFiltered
 		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)))
@@ -962,13 +962,9 @@ VOID Instruction(INS ins, RTN rtn, ADDRINT rtn_addr) {
 
 VOID Routine(RTN rtn, VOID *v) {
 
+	if(!RTN_Valid(rtn)) return;
+
 	ADDRINT rtn_addr = RTN_Address(rtn);
-
-	// filter out standard libraries
-	// we treat this while loading, since Routine can be called before ImageLoad is called
-	if(IsRoutineFiltered(rtn, rtn_addr, TRUE)) return;
-
-	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
 
 	// check plt routine
 	if(RTN_Name(rtn) == ".plt") {
@@ -976,15 +972,21 @@ VOID Routine(RTN rtn, VOID *v) {
 		return;
 	}
 
+	// if this is a routine to forward to concurrit, then record its address
+	InstParams::CheckAndRecordRoutine(rtn, rtn_addr);
+
+	// filter out standard libraries
+	// we treat this while loading, since Routine can be called before ImageLoad is called
+	if(IsRoutineFiltered(rtn, rtn_addr)) return;
+
 //	PIN_LockClient();
 
 	RTN_Open(rtn);
 
 	PinSourceLocation* loc = PinSourceLocation::get(rtn);
-
-	// if this is a routine to forward to concurrit, then record its address
 	safe_assert(PTR2ADDRINT(loc->pointer()) == rtn_addr);
-	InstParams::CheckAndRecordRoutine(rtn, rtn_addr);
+
+	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
 
 	// check if start/end instrument
 	if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
@@ -1023,31 +1025,6 @@ VOID Routine(RTN rtn, VOID *v) {
 						   IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 						   IARG_END);
 		}
-
-
-//#if INSTR_ALL_TRACES
-//
-//		std::vector< ADDRINT > rtn_stack;
-//
-//
-//		bool is_inst_start = InstParams::IsRoutineToInstrument(rtn_addr);
-//		if(is_inst_start) {
-//			for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
-//			{
-//				Instruction(ins, rtn, rtn_addr);
-//
-//				if (INS_IsOriginal(ins) && INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins) && INS_IsDirectBranchOrCall(ins)) {
-//					ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
-//					RTN rtn_target = RTN_FindByAddress(target);
-//					if(RTN_Valid(rtn_target)) {
-//
-//					}
-// 				}
-//
-//			}
-//		}
-//#endif
-
 	}
 
 	RTN_Close(rtn);

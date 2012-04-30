@@ -311,7 +311,7 @@ inline BacktrackException* GetBacktrackException(BacktrackReason reason = UNKNOW
 
 inline void TRIGGER_BACKTRACK(BacktrackReason reason = UNKNOWN, bool wrap = false) {
 	BacktrackException* e = GetBacktrackException(reason);
-	VLOG(2) << "TRIGGER_BACKTRACK: " << e->what();
+	MYLOG(2) << "TRIGGER_BACKTRACK: " << e->what();
 	if(wrap) {
 		throw new ConcurritException(e);
 	} else {
@@ -332,7 +332,7 @@ inline void TRIGGER_DEADLOCK() {
 }
 
 //inline std::exception* WRAP_EXCEPTION(const std::string& m, std::exception* e) {
-//	VLOG(2) << "WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what();
+//	MYLOG(2) << "WRAPPED_EXCEPTION: " << (m) << " : " << (e)->what();
 //	__concurrit_exception__->set_where(m);
 //	__concurrit_exception__->set_cause(e);
 //	__concurrit_exception__->set_next(NULL);
@@ -348,7 +348,7 @@ inline void TRIGGER_DEADLOCK() {
 //}
 
 inline void TRIGGER_INTERNAL_EXCEPTION(const std::string& m) {
-	VLOG(2) << "TRIGGER_INTERNAL_EXCEPTION: " << (m);
+	MYLOG(2) << "TRIGGER_INTERNAL_EXCEPTION: " << (m);
 	throw new InternalException(m, RECORD_SRCLOC());
 }
 

@@ -113,13 +113,13 @@ public:
 
 	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
 		if(static_info_->message() != "") {
-			VLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
+			MYLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 		}
 	}
 
 	virtual void OnSubmitted() {
 		if(static_info_->message_ != "") {
-			VLOG(1) << "Submitted: [ACTION: " << static_info_->message() << "]";
+			MYLOG(1) << "Submitted: [ACTION: " << static_info_->message() << "]";
 		}
 	}
 
@@ -158,7 +158,7 @@ public:
 		}
 
 		if(static_info_->message() != "") {
-			VLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
+			MYLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 		}
 	}
 

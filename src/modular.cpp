@@ -79,7 +79,7 @@ void* env_thread_function(void* p) {
 	EnvTrace* env_trace = static_cast<EnvTrace*>(p);
 	EnvNodePtr current_node = env_trace->current_node();
 	for(;true;) {
-		VLOG(2) << "Running env thread context";
+		MYLOG(2) << "Running env thread context";
 
 		Coroutine* current = Coroutine::Current();
 		safe_assert(!current->IsMain());
@@ -103,13 +103,13 @@ void* env_thread_function(void* p) {
 //				access = point->AsYield()->access();
 //			}
 
-			VLOG(2) << "env_trace is taking a step";
+			MYLOG(2) << "env_trace is taking a step";
 
 			// add a choice point for choosing which member to run (or reuse it if already exists)
 			EnvChoicePoint* env_choice = NULL;
 			ChoicePoint* choice_point = ChoicePoint::GetCurrent();
 			if(choice_point != NULL) {
-				VLOG(2) << "Reusing env choice point";
+				MYLOG(2) << "Reusing env choice point";
 
 				env_choice = ASINSTANCEOF(choice_point, EnvChoicePoint*);
 				EnvNodePtr root_node = env_choice->root_node();
@@ -127,7 +127,7 @@ void* env_thread_function(void* p) {
 				// set the next current node of the trace
 				env_trace->SetNext(next_node);
 			} else {
-				VLOG(2) << "Creating new env choice point";
+				MYLOG(2) << "Creating new env choice point";
 
 				EnvNodePtr root_node = env_trace->current_node();
 
@@ -159,7 +159,7 @@ void* env_thread_function(void* p) {
 
 		// force yield after each step
 		// TODO(elmas): use the last accesses of env instead of NULL
-		VLOG(2) << "Yielding from env";
+		MYLOG(2) << "Yielding from env";
 		FORCE_YIELD("ENV", NULL);
 
 	} // end while
@@ -183,11 +183,11 @@ void ThreadModularScenario::TestCase() {
 	MemberChoicePoint* member_choice = NULL;
 	ChoicePoint* choice_point = ChoicePoint::GetCurrent();
 	if(choice_point != NULL) {
-		VLOG(2) << SC_TITLE << "Reusing member choice point";
+		MYLOG(2) << SC_TITLE << "Reusing member choice point";
 
 		member_choice = ASINSTANCEOF(choice_point, MemberChoicePoint*);
 	} else {
-		VLOG(2) << SC_TITLE << "Creating new member choice point";
+		MYLOG(2) << SC_TITLE << "Creating new member choice point";
 
 		CoroutinePtrSet members;
 		group_.GetMemberSet(&members);
@@ -199,7 +199,7 @@ void ThreadModularScenario::TestCase() {
 
 	Coroutine* co = member_choice->GetNext();
 	if(co == NULL) {
-		VLOG(2) << SC_TITLE << "All members were used, so backtracking";
+		MYLOG(2) << SC_TITLE << "All members were used, so backtracking";
 		// no more members, so backtrack (and end the execution)
 		TRIGGER_BACKTRACK();
 	}
@@ -208,7 +208,7 @@ void ThreadModularScenario::TestCase() {
 	member_choice->SetAndConsumeCurrent();
 
 	// run one member at a time concurrently with env_thread
-	VLOG(2) << SC_TITLE << "Modular check with coroutine " << co->tid();
+	MYLOG(2) << SC_TITLE << "Modular check with coroutine " << co->tid();
 
 	{ WITH(env_co, co);
 		UNTIL_ALL_END {
@@ -240,14 +240,14 @@ void EnvTrace::SetNext(EnvNodePtr next_node) {
 /********************************************************************************/
 
 EnvNodePtr EnvTrace::Step(EnvChoicePoint* point) {
-	VLOG(2) << "Next step in env trace.";
+	MYLOG(2) << "Next step in env trace.";
 	safe_assert(point != NULL);
 
 	EnvNodePtr next_node = ChooseNext(point);
 	safe_assert(next_node != NULL || point->GetNext() == NULL);
 
-	VLOG(0) << "Root node is: " << point->root_node()->ToString(false);
-	VLOG(0) << "Current node is: " << (next_node == NULL ? "NULL" : next_node->ToString(false));
+	MYLOG(0) << "Root node is: " << point->root_node()->ToString(false);
+	MYLOG(0) << "Current node is: " << (next_node == NULL ? "NULL" : next_node->ToString(false));
 
 	if(next_node != NULL) {
 		// update the currently-tracked state
@@ -261,7 +261,7 @@ EnvNodePtr EnvTrace::Step(EnvChoicePoint* point) {
 
 // this is called by EnvChoicePoint to find out the next following target of current_node
 EnvNodePtr EnvTrace::ChooseNext(EnvChoicePoint* point) {
-	VLOG(2) << "Choosing next target for env choice point.";
+	MYLOG(2) << "Choosing next target for env choice point.";
 
 //	EnvNodePtrSet* gray_nodes = point->gray_nodes();
 	EnvNodePtrSet* black_nodes = point->black_nodes();

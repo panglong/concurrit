@@ -44,12 +44,16 @@ namespace concurrit {
 /********************************************************************************/
 
 void concurritStartInstrument() {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
 	StartInstrument(); // notify pintool
 }
 
 /********************************************************************************/
 
 void concurritEndInstrument() {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
 	EndInstrument(); // notify pintool
 
 	// reset aux variables of current thread
@@ -62,7 +66,7 @@ void concurritEndInstrument() {
 void concurritAtPc(int pc) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
-	VLOG(2) << "Thread at pc " << pc;
+	MYLOG(2) << "Thread at pc " << pc;
 	// controlled transition
 	Coroutine* co = safe_notnull(Coroutine::Current());
 	AuxState::Pc->set(pc, co->tid());
@@ -88,7 +92,7 @@ void concurritFuncReturn(void* addr) {
 /********************************************************************************/
 
 void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
-	VLOG(1) << "Triggering assertion violation!";
+	MYLOG(1) << "Triggering assertion violation!";
 	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
 }
 

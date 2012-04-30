@@ -108,15 +108,15 @@ void Coroutine::Finish() {
 	if(status_ < TERMINATED) { // if terminated, we are done
 		if(status_ == ENDED || status_ == WAITING) {
 			// send the finish message
-			VLOG(2) << CO_TITLE << "Sending finish signal";
+			MYLOG(2) << CO_TITLE << "Sending finish signal";
 			this->channel_.SendNoWait(MSG_TERMINATE);
 			this->Join();
-			VLOG(2) << CO_TITLE << "Joined the thread";
+			MYLOG(2) << CO_TITLE << "Joined the thread";
 		} else {
 			fprintf(stderr, "Killing thread %d...", tid_);
-			VLOG(2) << CO_TITLE << "Cancelling the thread";
+			MYLOG(2) << CO_TITLE << "Cancelling the thread";
 			this->Cancel();
-			VLOG(2) << CO_TITLE << "Waiting for the thread";
+			MYLOG(2) << CO_TITLE << "Waiting for the thread";
 			this->Join();
 			fprintf(stderr, "Done.\n");
 		}
@@ -132,7 +132,7 @@ bool Coroutine::WaitForEnd(long timeout /*= -1*/) {
 	if(timeout == -1) timeout = (Config::RunUncontrolled ? 0 : Config::MaxWaitTimeUSecs);
 
 	safe_assert(BETWEEN(ENABLED, status_, ENDED));
-	VLOG(2) << "Waiting for coroutine " << tid_ << " to end.";
+	MYLOG(2) << "Waiting for coroutine " << tid_ << " to end.";
 
 	// wait for the semaphore twice
 	sem_end_.Wait(); // taken first token
@@ -142,7 +142,7 @@ bool Coroutine::WaitForEnd(long timeout /*= -1*/) {
 	} else {
 		int result = sem_end_.WaitTimed(timeout); // take second token
 		if(result == ETIMEDOUT) {
-			VLOG(2) << "Waiting coroutine " << tid_ << " has timed out.";
+			MYLOG(2) << "Waiting coroutine " << tid_ << " has timed out.";
 			sem_end_.Signal(); // put back the token taken above
 			return false;
 		}
@@ -152,7 +152,7 @@ bool Coroutine::WaitForEnd(long timeout /*= -1*/) {
 	// then give back both signals
  	sem_end_.Signal(2);
 
-	VLOG(2) << "Detected coroutine " << tid_ << " has ended.";
+	MYLOG(2) << "Detected coroutine " << tid_ << " has ended.";
 	safe_assert(status_ == ENDED);
 
 	return true;
@@ -175,27 +175,27 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 	CHANNEL_BEGIN_ATOMIC();
 
 	if(status_ == PASSIVE || status_ == TERMINATED) {
-		VLOG(2) << CO_TITLE << "Starting new thread";
+		MYLOG(2) << CO_TITLE << "Starting new thread";
 		Thread::Start(pid, attr);
 	} else if(status_ == WAITING || status_ == ENDED) {
 		return_value_ = NULL;
 		if(pid != NULL) *pid = pthread_;
 		// send the restart message
-		VLOG(2) << CO_TITLE << "Sending restart message";
+		MYLOG(2) << CO_TITLE << "Sending restart message";
 		channel_.SendNoWait(MSG_RESTART);
 	} else {
 		// kill the thread and restart
 		unreachable();
-//		VLOG(2) << CO_TITLE << "Cancelling and restarting the thread";
+//		MYLOG(2) << CO_TITLE << "Cancelling and restarting the thread";
 //		this->Finish();
 //		Thread::Start(pid, attr);
 	}
 
 	// wait for started message
-	VLOG(2) << CO_TITLE << "Waiting the thread to start";
+	MYLOG(2) << CO_TITLE << "Waiting the thread to start";
 	MessageType msg = channel_.WaitReceive();
 	CHECK(msg == MSG_STARTED) << "Expected a started message from " << this->tid();
-	VLOG(2) << CO_TITLE << "Got start signal from the thread";
+	MYLOG(2) << CO_TITLE << "Got start signal from the thread";
 
 	// first signal
 	sem_end_.Set(0);
@@ -232,10 +232,10 @@ void* Coroutine::Run() {
 			Scenario* scenario = safe_notnull(group->scenario());
 
 			// notify main about out startup
-			VLOG(2) << CO_TITLE << "Sending started message and waiting for a transfer.";
+			MYLOG(2) << CO_TITLE << "Sending started message and waiting for a transfer.";
 			Transfer(&channel_, MSG_STARTED);
 
-			VLOG(2) << CO_TITLE << "First transfer";
+			MYLOG(2) << CO_TITLE << "First transfer";
 
 			// notifies pintool about the restart,
 			// to reset pin relared data structures
@@ -253,11 +253,11 @@ void* Coroutine::Run() {
 				// first check if this is due to pthread_exit
 				BacktrackException* be = ASINSTANCEOF(e, BacktrackException*);
 				if(be != NULL && be->reason() == PTH_EXIT) {
-					VLOG(2) << CO_TITLE << "Simulating exit due to pthread_exit.";
+					MYLOG(2) << CO_TITLE << "Simulating exit due to pthread_exit.";
 					return_value = return_value_;
 				} else { //==================================================
 					// other kinds of errors
-					VLOG(2) << CO_TITLE << " threw an exception...";
+					MYLOG(2) << CO_TITLE << " threw an exception...";
 					// record the exception in scenario
 					safe_assert(!INSTANCEOF(e, ConcurritException*));
 					exception_ = e;
@@ -266,7 +266,7 @@ void* Coroutine::Run() {
 						this->Transfer(group->main(), MSG_EXCEPTION);
 					} else {
 						// (immediatelly) notify all others that there is an exception
-						VLOG(1) << "Coroutine threw exception, calling EndWithException...";
+						MYLOG(1) << "Coroutine threw exception, calling EndWithException...";
 						scenario->exec_tree()->EndWithException(this, exception_);
 					}
 				}
@@ -275,7 +275,7 @@ void* Coroutine::Run() {
 			//---------------
 			CHANNEL_BEGIN_ATOMIC();
 
-			VLOG(2) << CO_TITLE << " is ending...";
+			MYLOG(2) << CO_TITLE << " is ending...";
 			status_ = ENDED;
 
 			// second signal
@@ -295,10 +295,10 @@ void* Coroutine::Run() {
 		} catch(MessageType& m) {
 			// only terminate and restart messages are thrown
 			if(m == MSG_TERMINATE) {
-				VLOG(2) << CO_TITLE << "terminating";
+				MYLOG(2) << CO_TITLE << "terminating";
 				break; // terminate
 			} else if(m == MSG_RESTART) {
-				VLOG(2) << CO_TITLE << "restarting";
+				MYLOG(2) << CO_TITLE << "restarting";
 				continue;
 			} else {
 				bool invalid_message_type = false;
@@ -317,7 +317,7 @@ void* Coroutine::Run() {
 void Coroutine::Transfer(Coroutine* target, MessageType msg /*=MSG_TRANSFER*/) {
 	safe_assert(target != NULL && target != this);
 
-	VLOG(2) << CO_TITLE << "Transferring to " << target->tid();
+	MYLOG(2) << CO_TITLE << "Transferring to " << target->tid();
 
 	// note: this may be main
 	// check current coroutine
@@ -355,7 +355,7 @@ void Coroutine::Transfer(Channel<MessageType>* channel, MessageType msg /*=MSG_T
 /********************************************************************************/
 
 void Coroutine::HandleMessage(MessageType msg) {
-	VLOG(2) << CO_TITLE << "Handling message:" << msg;
+	MYLOG(2) << CO_TITLE << "Handling message:" << msg;
 
 	if(msg == MSG_TRANSFER) {
 //		BeginStrand(name_.c_str()); // this is to notify the PIN tool
@@ -405,15 +405,15 @@ SchedulePoint* Coroutine::OnYield(Coroutine* target, std::string& label, SourceL
 	if(target == NULL) {
 		safe_assert(this->IsMain());
 		// we need a new yield point
-		VLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
+		MYLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
 		point = new YieldPoint(this, label, 1, loc, access, true /*free_target*/, true /*free_count*/);
 	} else if(target->IsMain()) {
 		safe_assert(!this->IsMain());
 		// we need a new yield point
-		VLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
+		MYLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
 		point = new YieldPoint(this, label, 1, loc, access, false /*free_target*/, true /*free_count*/);
 	} else {
-		VLOG(2) << CO_TITLE << "OnYield generating a new transfer point with label " << label;
+		MYLOG(2) << CO_TITLE << "OnYield generating a new transfer point with label " << label;
 		point = new TransferPoint(new YieldPoint(this, label, 1, loc, access, false /*free_target*/, true /*free_count*/), target);
 	}
 
