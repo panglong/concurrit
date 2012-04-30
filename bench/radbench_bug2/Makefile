@@ -5,7 +5,7 @@ include $(CONCURRIT_HOME)/test-common.mk
 
 RADBENCHDIR=$(RADBENCH_HOME)/bug2
 
-TEST_FLAGS+=-L$(RADBENCHDIR)/src/js/src/Linux_All_DBG.OBJ
+TEST_FLAGS+=-L $(RADBENCHDIR)/src/js/src/*.OBJ/ -I $(RADBENCHDIR)/src/js/src/ -I $(RADBENCHDIR)/src/js/src/*.OBJ/ -I $(RADBENCHDIR)/bin/install/include/nspr/ -DXP_UNIX -DJS_THREADSAFE
 LD_LIBRARY_PATH:=$(RADBENCHDIR)/lib:$(RADBENCHDIR)/src/js/src/Linux_All_DBG.OBJ:$(LD_LIBRARY_PATH)
 DYLD_LIBRARY_PATH:=$(RADBENCHDIR)/lib:$(RADBENCHDIR)/src/js/src/Linux_All_DBG.OBJ:$(DYLD_LIBRARY_PATH)
 
@@ -34,4 +34,4 @@ testharness:
 
 shared: makedirs copyfiles js testharness
 
-driver: testharness
+driver: copyfiles testharness

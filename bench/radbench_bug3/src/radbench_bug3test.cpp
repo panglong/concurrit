@@ -2,6 +2,9 @@
 
 #include "concurrit.h"
 
+#include "jsapi.h"
+#include "jscntxt.h"
+
 CONCURRIT_BEGIN_MAIN()
 
 //============================================================//
@@ -20,23 +23,21 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(0);
 
-#define READS_WRITES_OR_ENDS(t)		(READS(ANY_ADDR, t) || WRITES(ANY_ADDR, t) || ENDS(t))
+#define READS_WRITES_OR_ENDS(x, t)		(READS(x, t) || WRITES(x, t) || ENDS(t) || ENTERS(ANY_FUNC, t) || RETURNS(ANY_FUNC, t))
 
 		EXISTS(t1, IN_FUNC(f_newcontext), "Select t1");
-
 		EXISTS(t2, NOT(t1) && IN_FUNC(f_newcontext), "Select t2");
+		EXISTS(t3, NOT(t1) && NOT(t2) && IN_FUNC(f_newcontext), "Select t3");
 
-		MAX_WAIT_TIME(USECSPERSEC);
+		JSRuntime* rt = static_cast<JSRuntime*>(ADDRINT2PTR(AuxState::Arg0->get(f_newcontext, t1->tid())));
+		safe_assert(rt != NULL);
+
+		MAX_WAIT_TIME(3*USECSPERSEC);
 
 		WHILE_STAR {
-			RUN_UNTIL(BY(t1), READS_WRITES_OR_ENDS(t1), __, "Run t1 until ...");
+			FORALL(t, BY(t1) || BY(t2) || BY(t3));
+			RUN_UNTIL(BY(t), READS_WRITES_OR_ENDS(&rt->state, t), __, "Run t until ...");
 		}
-
-		WHILE_STAR {
-			RUN_UNTIL(BY(t2), READS_WRITES_OR_ENDS(t2), __, "Run t2 until ...");
-		}
-
-		RUN_UNTIL(BY(t1), ENDS(t1), __, "Run t1 until ends");
 }
 
 CONCURRIT_END_TEST(MyScenario)

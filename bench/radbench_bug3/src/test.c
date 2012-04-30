@@ -7,7 +7,7 @@
 
 static JSRuntime *rt;
 
-#define THREADS 2
+#define THREADS 3
 
 static void * testfunc(void *ignored) {
 	concurritStartInstrument();

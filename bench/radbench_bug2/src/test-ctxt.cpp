@@ -7,7 +7,7 @@
 #define JS_THREADSAFE
 #include "jsapi.h"
 
-#define THREADS 1
+#define THREADS 2
 #define MAX_CALLS 1
 #define MAX_GC 1
 

@@ -70,6 +70,8 @@ public:
 	inline void clear_thread() { thread_ = NULL; }
 	inline bool is_empty() { return thread_ == NULL; }
 
+	THREADID tid();
+
 private:
 	DECL_FIELD(std::string, name)
 	DECL_FIELD(Coroutine*, thread)

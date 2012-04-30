@@ -1,3 +1,6 @@
+https://bugzilla.mozilla.org/show_bug.cgi?id=546828
+https://bugzilla.mozilla.org/show_bug.cgi?id=477021	
+
 - WAIT FOR ALL'da end node koy ya da TEARDOWN'da assertion violation exception'a izin ver (su an exceptiona izin verilmiyor)
 
 - static variable koy, ayni dslxxx'den olusturmak icin.

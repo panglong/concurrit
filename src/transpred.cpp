@@ -317,6 +317,13 @@ ThreadVarPtr& operator << (ThreadVarPtr& to, const ThreadVarPtr& from) {
 
 /********************************************************************************/
 
+THREADID ThreadVar::tid() {
+	safe_assert(!is_empty());
+	return thread_->tid();
+}
+
+/********************************************************************************/
+
 } // end namespace
 
 
