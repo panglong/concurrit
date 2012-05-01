@@ -107,11 +107,11 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 ThreadVarPtr Scenario::RunTestDriver() {
 	// create a new thread to run the test driver
 	MainFuncType main_func = Concurrit::driver_main();
-	safe_assert(main_func != NULL);
-	if(main_func != concurrit::__main__) {
+	if(main_func != NULL) {
 		MYLOG(2) << "Calling driver's main function.";
 		ThreadVarPtr var = CreateThread(Concurrit::CallDriverMain, NULL);
 		safe_assert(var != NULL && !var->is_empty());
+		var->thread()->set_is_driver_thread(true);
 		return var;
 	}
 	MYLOG(2) << "No test-supplied __main__function, skipping the driver thread.";

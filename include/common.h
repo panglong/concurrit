@@ -255,7 +255,6 @@ const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
 /********************************************************************************/
 
 typedef int (*MainFuncType) (int, char**);
-extern "C" int __main__ (int, char**);
 
 /********************************************************************************/
 
@@ -315,10 +314,13 @@ public:
 	static void SetupSignalHandler();
 	static void SignalHandler(int sig_num, siginfo_t * info, void * ucontext);
 	static void LoadTestLibrary();
+	static void LoadTestFunction(MainFuncType* func_addr, const char* func_name, void* handle);
 private:
 	static volatile bool initialized_;
 	DECL_STATIC_FIELD_REF(main_args, driver_args)
 	DECL_STATIC_FIELD(MainFuncType, driver_main)
+	DECL_STATIC_FIELD(MainFuncType, driver_init)
+	DECL_STATIC_FIELD(MainFuncType, driver_fini)
 };
 
 /********************************************************************************/

@@ -126,6 +126,8 @@ private:
 
 	DECL_FIELD(ThreadVarPtr, tvar)
 
+	DECL_FIELD(bool, is_driver_thread)
+
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };
 
