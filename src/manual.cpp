@@ -70,6 +70,7 @@ void concurritAtPc(int pc) {
 	// controlled transition
 	Coroutine* co = safe_notnull(Coroutine::Current());
 	AuxState::Pc->set(pc, co->tid());
+	AuxState::AtPc->set(true, co->tid());
 	safe_notnull(safe_notnull(co->group())->scenario())->OnControlledTransition(co);
 }
 

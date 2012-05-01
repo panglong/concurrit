@@ -333,8 +333,9 @@ inline void* _FUNC(const char* func_name) {
 /********************************************************************************/
 
 // to be used in predicates defined below, when memory address accessed or function called is not important
-#define ANY_ADDR		NULL
-#define ANY_FUNC		NULL
+#define ANY_ADDR		(NULL)
+#define ANY_FUNC		(NULL)
+#define ANY_PC			(-1)
 
 /********************************************************************************/
 
@@ -428,6 +429,19 @@ inline TransitionPredicatePtr _AT_PC(int pc = -1, ThreadVarPtr t = ThreadVarPtr(
 }
 
 #define AT_PC(...)		_AT_PC(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _HITS_PC(int pc = -1, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	if(pc < 0)
+		return safe_notnull(AuxState::AtPc.get())->TP0(AuxState::AtPc, t);
+	else
+		return safe_notnull(AuxState::AtPc.get())->TP0(AuxState::AtPc, t)
+			&& safe_notnull(AuxState::AtPc.get())->TP1(AuxState::AtPc, pc, t);
+}
+
+#define HITS_PC(...)	_HITS_PC(__VA_ARGS__)
 
 /********************************************************************************/
 

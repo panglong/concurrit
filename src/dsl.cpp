@@ -799,6 +799,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 /*************************************************************************************/
 
 bool ExecutionTreeManager::RestartForAlternatePath() {
+	Scenario::Current()->counter("Num alternate paths collected").increment(current_nodes_.size());
+
 	int index_in_stack = -1;
 	ChildLoc next_loc = ChildLoc::EMPTY();
 	while(index_in_stack < 0 && !current_nodes_.empty()) {

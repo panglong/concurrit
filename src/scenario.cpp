@@ -2031,6 +2031,12 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 
 /********************************************************************************/
 
+void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+	DSLTransferUntil(static_info, assertion, pred, ThreadVarPtr(), message);
+}
+
+/********************************************************************************/
+
 void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);

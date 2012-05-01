@@ -87,8 +87,8 @@ public:
 	Counter(std::string name = "") : name_(name), value_(0) {}
 	~Counter() {}
 
-	void increment() {
-		++value_;
+	void increment(int k = 1) {
+		value_ += k;
 	}
 	void reset(std::string name = "") {
 		if(name != "") {

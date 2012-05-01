@@ -111,10 +111,10 @@ public:
 		s << SuccessResult::ToString() << "\n";
 		s << "Found successful execution.\n";
 
-		schedule_->ToStream(InWorkDir("schedule.out"));
-		s << "Schedule saved to schedule.out.\n";
-
-		s << "Total coverage:\n" << coverage_.ToString() << "\n";
+//		schedule_->ToStream(InWorkDir("schedule.out"));
+//		s << "Schedule saved to schedule.out.\n";
+//
+//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
 
 		return s.str();
 	}
@@ -149,17 +149,16 @@ public:
 		std::stringstream s;
 		s << SuccessResult::ToString() << "\n";
 		s << "Found " << num_all_schedules_ << " successful executions.\n";
-		s << "Found " << schedules_.size() << " coverage-increasing executions.\n";
 
-		bool append = false;
-		for(std::vector<Schedule*>::iterator itr = schedules_.begin(); itr < schedules_.end(); ++itr) {
-			Schedule* schedule = (*itr);
-			schedule->ToStream(InWorkDir("schedule.out"), append); append = true;
-		}
-
-		s << "Schedules saved to schedule.out.\n";
-
-		s << "Total coverage:\n" << coverage_.ToString() << "\n";
+//		s << "Found " << schedules_.size() << " coverage-increasing executions.\n";
+//		bool append = false;
+//		for(std::vector<Schedule*>::iterator itr = schedules_.begin(); itr < schedules_.end(); ++itr) {
+//			Schedule* schedule = (*itr);
+//			schedule->ToStream(InWorkDir("schedule.out"), append); append = true;
+//		}
+//		s << "Schedules saved to schedule.out.\n";
+//
+//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
 
 		return s.str();
 	}
@@ -196,10 +195,10 @@ public:
 		s << "Assertion Failure.\n";
 		s << cause_->what();
 
-		schedule_->ToStream(InWorkDir("schedule.out"));
-		s << "Schedule saved to schedule.out.\n";
-
-		s << "Total coverage:\n" << coverage_.ToString() << "\n";
+//		schedule_->ToStream(InWorkDir("schedule.out"));
+//		s << "Schedule saved to schedule.out.\n";
+//
+//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
 
 		return s.str();
 	}
@@ -236,10 +235,10 @@ public:
 		s << "Runtime Exception.";
 		s << cause_->what();
 
-		schedule_->ToStream(InWorkDir("schedule.out"));
-		s << "Schedule saved to schedule.out.\n";
-
-		s << "Total coverage:\n" << coverage_.ToString() << "\n";
+//		schedule_->ToStream(InWorkDir("schedule.out"));
+//		s << "Schedule saved to schedule.out.\n";
+//
+//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
 
 		return s.str();
 	}
@@ -270,10 +269,10 @@ public:
 		s << FailureResult::ToString() << "\n";
 		s << "No feasible execution found!\n";
 
-		schedule_->ToStream(InWorkDir("schedule.out"));
-		s << "Schedule saved to schedule.out.\n";
-
-		s << "Total coverage:\n" << coverage_.ToString() << "\n";
+//		schedule_->ToStream(InWorkDir("schedule.out"));
+//		s << "Schedule saved to schedule.out.\n";
+//
+//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
 
 		return s.str();
 	}

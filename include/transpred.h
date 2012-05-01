@@ -772,6 +772,7 @@ public:
 	static boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> Arg0;
 
 	static boost::shared_ptr<AuxVar0<int, -1>> Pc;
+	static boost::shared_ptr<AuxVar0<bool, false>> AtPc;
 
 	// current thread variable updated at each transition
 	static ThreadVarPtr Tid;

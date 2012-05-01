@@ -21,7 +21,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		{
 			FORALL(t, BY(t1) || BY(t2), "Select t");
 
-			RUN_UNTIL(BY(t), READS() || WRITES(), __, "Step t");
+			RUN_UNTIL(BY(t), READS() || WRITES(), "Step t");
 		}
 	}
 
