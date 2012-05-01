@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/ssg/spi/st/mt-testing/!svn/ver/106/Benchmarks/bug4/src
+END
+runme.sh
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/ssg/spi/st/mt-testing/!svn/ver/106/Benchmarks/bug4/src/runme.sh
+END
+localtime.patch
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug4/src/localtime.patch
+END
+threads.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug4/src/threads.c
+END
+nspr-4.6.4.tar.gz
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug4/src/nspr-4.6.4.tar.gz
+END
