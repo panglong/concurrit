@@ -105,6 +105,18 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 /********************************************************************************/
 
 ThreadVarPtr Scenario::RunTestDriver() {
+	// try to unload and load the driver
+	void* handle = Concurrit::driver_handle();
+	if(Config::ReloadTestLibraryOnRestart && handle != NULL) {
+		Concurrit::UnloadTestLibrary();
+		handle = NULL;
+	}
+	if(handle == NULL) {
+		Concurrit::LoadTestLibrary();
+	}
+
+	//-------------------------------------------------------
+
 	// create a new thread to run the test driver
 	MainFuncType main_func = Concurrit::driver_main();
 	if(main_func != NULL) {
@@ -114,7 +126,7 @@ ThreadVarPtr Scenario::RunTestDriver() {
 		var->thread()->set_is_driver_thread(true);
 		return var;
 	}
-	MYLOG(2) << "No test-supplied __main__function, skipping the driver thread.";
+	MYLOG(2) << "No test-supplied __main__ function, skipping the driver thread.";
 	return ThreadVarPtr();
 }
 

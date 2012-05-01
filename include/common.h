@@ -299,6 +299,7 @@ public:
 	static int MaxTimeOutsBeforeDeadlock;
 	static bool ManualInstrEnabled;
 	static bool PinInstrEnabled;
+	static bool ReloadTestLibraryOnRestart;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);
 };
@@ -314,10 +315,12 @@ public:
 	static void SetupSignalHandler();
 	static void SignalHandler(int sig_num, siginfo_t * info, void * ucontext);
 	static void LoadTestLibrary();
+	static void UnloadTestLibrary();
 	static void LoadTestFunction(MainFuncType* func_addr, const char* func_name, void* handle);
 private:
 	static volatile bool initialized_;
 	DECL_STATIC_FIELD_REF(main_args, driver_args)
+	DECL_STATIC_FIELD(void*, driver_handle)
 	DECL_STATIC_FIELD(MainFuncType, driver_main)
 	DECL_STATIC_FIELD(MainFuncType, driver_init)
 	DECL_STATIC_FIELD(MainFuncType, driver_fini)

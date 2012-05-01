@@ -49,6 +49,7 @@ bool Config::TrackAlternatePaths = false;
 int Config::MaxTimeOutsBeforeDeadlock = 10;
 bool Config::ManualInstrEnabled = true;
 bool Config::PinInstrEnabled = true;
+bool Config::ReloadTestLibraryOnRestart = false;
 
 /********************************************************************************/
 
@@ -61,6 +62,7 @@ static void usage() {
 			"-l: Test program as shared (.so) library.\n"
 			"-m: Enable manual instrumentation (ManuelInstrEnabled)\n"
 			"-p: Enable pin-tool instrumentation (PinInstrEnabled)\n"
+			"-r: Reload test library after each restart (ReloadTestLibraryOnRestart)"
 			"-s: Use stack-based DFS (!KeepExecutionTree)\n"
 			"-u: Run test program uncontrolled (RunUncontrolled)\n"
 			"-vN: Verbosity level (N >= 0)\n"
@@ -77,7 +79,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "acd::f::hl:m::p::suv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "acd::f::hl:m::p::rsuv:w:")) != -1) {
 		switch(c) {
 		case 'a':
 //			Config::KeepExecutionTree = true;
@@ -122,6 +124,10 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 				Config::PinInstrEnabled = false;
 				printf("Will disable pin instrumentation!\n");
 			}
+			break;
+		case 'r':
+			Config::ReloadTestLibraryOnRestart = true;
+			printf("Will reload test library after each restart.\n");
 			break;
 		case 's':
 			Config::KeepExecutionTree = false;

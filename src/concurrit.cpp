@@ -41,6 +41,7 @@ const char* CONCURRIT_HOME = NULL;
 
 volatile bool Concurrit::initialized_ = false;
 main_args Concurrit::driver_args_;
+void* Concurrit::driver_handle_ = NULL;
 MainFuncType Concurrit::driver_main_ = NULL;
 MainFuncType Concurrit::driver_init_ = NULL;
 MainFuncType Concurrit::driver_fini_ = NULL;
@@ -102,7 +103,11 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	LoadTestLibrary();
+	// init test library. the library is to be loaded by RunTestDriver
+	Concurrit::driver_handle_ = NULL;
+	Concurrit::driver_main_ = NULL;
+	Concurrit::driver_init_ = NULL;
+	Concurrit::driver_fini_ = NULL;
 
 	//==========================================
 
@@ -163,17 +168,33 @@ void Concurrit::LoadTestLibrary() {
 		if(handle == NULL) {
 			safe_fail("Cannot load the test library %s!\n", Config::TestLibraryFile);
 		}
+		Concurrit::driver_handle_ = handle;
 		LoadTestFunction(&Concurrit::driver_main_, "__main__", handle);
 		LoadTestFunction(&Concurrit::driver_init_, "__init__", handle);
 		LoadTestFunction(&Concurrit::driver_fini_, "__fini__", handle);
 		MYLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
 	} else {
+		Concurrit::driver_handle_ = NULL;
 		Concurrit::driver_main_ = NULL;
 		Concurrit::driver_init_ = NULL;
 		Concurrit::driver_fini_ = NULL;
-		MYLOG(1) << ("Using default __main__.");
 		MYLOG(1) << "Not loading a test library";
 	}
+}
+
+/********************************************************************************/
+
+void Concurrit::UnloadTestLibrary() {
+	safe_assert(Concurrit::driver_handle_ != NULL);
+
+	if(dlclose(Concurrit::driver_handle_)) {
+		safe_fail("Cannot unload the test library %s!\n", Config::TestLibraryFile);
+	}
+
+	Concurrit::driver_handle_ = NULL;
+	Concurrit::driver_main_ = NULL;
+	Concurrit::driver_init_ = NULL;
+	Concurrit::driver_fini_ = NULL;
 }
 
 /********************************************************************************/
