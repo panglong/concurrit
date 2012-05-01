@@ -44,8 +44,10 @@ public:
     Timer(std::string name = "");
     ~Timer();
 
+    void   reset();
     void   start();
     void   stop();
+    void   recordElapsedTime();
     timeval getElapsedTime();
     double getElapsedTimeInSec();
     double getElapsedTimeInMilliSec();
@@ -64,6 +66,7 @@ protected:
     static std::string timeval_to_string_(timeval* tv);
 
 private:
+    bool    started;
     bool    stopped;
     timeval startTime;
     timeval endTime;

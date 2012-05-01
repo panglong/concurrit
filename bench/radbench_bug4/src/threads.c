@@ -105,9 +105,6 @@ int main0(int argc, char **argv) {
 
     CreateThreads(PR_GLOBAL_THREAD, PR_GLOBAL_THREAD);
     
-    printf("Done...");
-    fflush(stdout);
-
     return 0;
 }
 
@@ -120,7 +117,6 @@ __attribute__((constructor))
 void __init__() {
 	PR_STDIO_INIT();
 	PR_Init(PR_USER_THREAD, PR_PRIORITY_HIGH, 0);
-	printf("__init__\n");
 }
 
 __attribute__((destructor))
@@ -130,5 +126,4 @@ void __fini__() {
 		printf("ERROR in Cleanup!\n");
 		exit(-1);
 	}
-	printf("__fini__\n");
 }

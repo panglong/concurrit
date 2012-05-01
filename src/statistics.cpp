@@ -38,10 +38,18 @@ namespace concurrit {
 /********************************************************************************/
 
 Timer::Timer(std::string name) {
-	startTime.tv_sec = startTime.tv_usec = 0;
-	endTime.tv_sec = endTime.tv_usec = 0;
-	stopped = false;
 	this->name = name;
+	reset();
+}
+
+/********************************************************************************/
+void Timer::reset() {
+	startTime.tv_sec = startTime.tv_usec = 0;
+	endTime = startTime;
+	elapsedTime = startTime;
+
+	started = false;
+	stopped = false;
 
 	elapsedTimeInHours = -1;
 	elapsedTimeInMinutes = -1;
@@ -51,6 +59,7 @@ Timer::Timer(std::string name) {
 }
 
 /********************************************************************************/
+
 Timer::~Timer() {
 }
 
@@ -58,21 +67,19 @@ Timer::~Timer() {
 
 void Timer::gettimeofday_(timeval* t) {
 	if (gettimeofday(t, NULL)) {
-		printf("Failed to get the end time!");
-		exit(-1);
+		safe_fail("Failed to get the end time!");
 	}
 }
 
 /********************************************************************************/
 
 void Timer::start() {
-	elapsedTimeInHours = -1;
-	elapsedTimeInMinutes = -1;
-	elapsedTimeInSeconds = -1;
-	elapsedTimeInMilliSec = -1;
-	elapsedTimeInMicroSec = -1;
-
-	stopped = false; // reset stop flag
+	if(started) {
+		safe_assert(!stopped);
+		reset();
+	}
+	safe_assert(!stopped);
+	started = true;
 	gettimeofday_(&startTime);
 	endTime = startTime;
 }
@@ -80,7 +87,15 @@ void Timer::start() {
 /********************************************************************************/
 
 void Timer::stop() {
-	stopped = true; // set timer stopped flag
+	safe_assert(started && !stopped);
+	stopped = true;
+	recordElapsedTime();
+}
+
+/********************************************************************************/
+
+void Timer::recordElapsedTime() {
+	safe_assert(started);
 	gettimeofday_(&endTime);
 	bool is_positive = (timeval_subtract_(&elapsedTime, &endTime, &startTime) == 0);
 	safe_assert(is_positive);
@@ -89,6 +104,7 @@ void Timer::stop() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMicroSec() {
+	safe_assert(started);
 	if(!stopped || elapsedTimeInMicroSec < 0.0f) {
 		timeval diff = getElapsedTime();
 		elapsedTimeInMicroSec = (diff.tv_sec * (1000000.0f)) + diff.tv_usec;
@@ -100,6 +116,7 @@ double Timer::getElapsedTimeInMicroSec() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMilliSec() {
+	safe_assert(started);
 	if(!stopped || elapsedTimeInMilliSec < 0.0f) {
 		elapsedTimeInMilliSec = this->getElapsedTimeInMicroSec() * (0.001f);
 		safe_assert(elapsedTimeInMilliSec >= 0.0f);
@@ -110,6 +127,7 @@ double Timer::getElapsedTimeInMilliSec() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInSec() {
+	safe_assert(started);
 	if(!stopped || elapsedTimeInSeconds < 0.0f) {
 		elapsedTimeInSeconds = this->getElapsedTimeInMicroSec() * (0.000001f);
 		safe_assert(elapsedTimeInSeconds >= 0.0f);
@@ -120,6 +138,7 @@ double Timer::getElapsedTimeInSec() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMin() {
+	safe_assert(started);
 	if(!stopped || elapsedTimeInMinutes < 0.0f) {
 		elapsedTimeInMinutes = this->getElapsedTimeInSec() * (0.0166666667f);
 		safe_assert(elapsedTimeInMinutes >= 0.0f);
@@ -130,6 +149,7 @@ double Timer::getElapsedTimeInMin() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInHours() {
+	safe_assert(started);
 	if(!stopped || elapsedTimeInHours < 0.0f) {
 		elapsedTimeInHours = this->getElapsedTimeInMin() * (0.0166666667f);
 		safe_assert(elapsedTimeInHours >= 0.0f);
@@ -140,16 +160,16 @@ double Timer::getElapsedTimeInHours() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInDays() {
+	safe_assert(started);
 	return this->getElapsedTimeInHours() * (0.0416666667f);
 }
 
 /********************************************************************************/
 
 timeval Timer::getElapsedTime() {
+	safe_assert(started);
 	if (!stopped) {
-		gettimeofday_(&endTime);
-		bool is_positive = (timeval_subtract_(&elapsedTime, &endTime, &startTime) == 0);
-		safe_assert(is_positive);
+		recordElapsedTime();
 	}
 	return elapsedTime;
 }
@@ -157,16 +177,19 @@ timeval Timer::getElapsedTime() {
 /********************************************************************************/
 
 std::string Timer::StartTimeToString() {
+	safe_assert(started);
 	return timeval_to_string_(&startTime);
 }
 
 std::string Timer::EndTimeToString() {
+	safe_assert(started && stopped);
 	return timeval_to_string_(&endTime);
 }
 
 /********************************************************************************/
 
 std::string Timer::ElapsedTimeToString() {
+	safe_assert(started);
 	char buff[256];
 	int h = getElapsedTimeInHours();
 	int m = getElapsedTimeInMin() - (h * 60);
