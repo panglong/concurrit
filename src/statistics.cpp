@@ -173,7 +173,14 @@ std::string Timer::ElapsedTimeToString() {
 	int s = getElapsedTimeInSec() - (m * 60);
 	int ml = getElapsedTimeInMilliSec() - (s * 1000);
 	int mc = getElapsedTimeInMicroSec() - (ml * 1000);
-	snprintf(buff, 256, "%d H | %d M | %d S | %d MS | %d MC", h, m, s, ml, mc);
+	snprintf(buff, 256,
+			"%d H | %d M | %d S | %d MS | %d MC\n"
+			"Total in MilliSecs: %lu\n"
+			"Total in MicroSecs: %lu",
+			h, m, s, ml, mc,
+			(long int)getElapsedTimeInMilliSec(),
+			(long int)getElapsedTimeInMicroSec());
+
 	return std::string(buff);
 }
 

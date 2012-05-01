@@ -300,6 +300,7 @@ public:
 	static bool ManualInstrEnabled;
 	static bool PinInstrEnabled;
 	static bool ReloadTestLibraryOnRestart;
+	static bool MarkEndingBranchesCovered;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);
 };

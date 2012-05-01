@@ -730,11 +730,13 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	// if last one is choice and one of the branches goes to the end of the script
 	// then we make all of the instances created at the same line as covered
 	if(*reason == SUCCESS) {
-		ChoiceNode* choice = ASINSTANCEOF(last_parent, ChoiceNode*);
-		if(choice != NULL) {
-			// idx goes to the end of the script
-			int idx = last.child_index();
-			safe_notnull(ASINSTANCEOF(choice->static_info(), StaticChoiceInfo*))->set_covered(idx, true);
+		if(Config::MarkEndingBranchesCovered) {
+			ChoiceNode* choice = ASINSTANCEOF(last_parent, ChoiceNode*);
+			if(choice != NULL) {
+				// idx goes to the end of the script
+				int idx = last.child_index();
+				safe_notnull(ASINSTANCEOF(choice->static_info(), StaticChoiceInfo*))->set_covered(idx, true);
+			}
 		}
 	}
 

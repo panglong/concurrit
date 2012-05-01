@@ -50,6 +50,7 @@ int Config::MaxTimeOutsBeforeDeadlock = 10;
 bool Config::ManualInstrEnabled = true;
 bool Config::PinInstrEnabled = true;
 bool Config::ReloadTestLibraryOnRestart = false;
+bool Config::MarkEndingBranchesCovered = true;
 
 /********************************************************************************/
 
@@ -84,6 +85,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 		case 'a':
 //			Config::KeepExecutionTree = true;
 			Config::TrackAlternatePaths = true;
+			Config::MarkEndingBranchesCovered = false; // alternate paths handle this
 			printf("Will track alternate paths!\n");
 			break;
 		case 'c':

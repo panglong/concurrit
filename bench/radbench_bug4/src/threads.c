@@ -105,6 +105,9 @@ int main0(int argc, char **argv) {
 
     CreateThreads(PR_GLOBAL_THREAD, PR_GLOBAL_THREAD);
     
+    printf("Done...");
+    fflush(stdout);
+
     return 0;
 }
 
@@ -113,24 +116,19 @@ int __main__(int argc, char* argv[]) {
 	return main0(argc, argv);
 }
 
-int __init__(int argc, char* argv[]) {
+__attribute__((constructor))
+void __init__() {
 	PR_STDIO_INIT();
-	PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+	PR_Init(PR_USER_THREAD, PR_PRIORITY_HIGH, 0);
+	printf("__init__\n");
 }
 
-int __fini__(int argc, char* argv[]) {
+__attribute__((destructor))
+void __fini__() {
+	printf("finishing\n");
 	if(PR_Cleanup() != PR_SUCCESS) {
 		printf("ERROR in Cleanup!\n");
 		exit(-1);
 	}
+	printf("__fini__\n");
 }
-
-//__attribute__((constructor))
-//static void initme() {
-//  printf("INIT!!!!!!!\n");
-//}
-//
-//__attribute__((destructor))
-//static void finime() {
-//	printf("FINI!!!!!!!\n");
-//}
