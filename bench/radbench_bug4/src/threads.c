@@ -53,8 +53,8 @@ void
 PR_CALLBACK
 DumbThread(void *arg)
 {
-    
-    /* Nick - Time Action */
+
+	/* Nick - Time Action */
     PRTime t = 1234567890;
     PRExplodedTime et;
     PR_ExplodeTime(t, PR_LocalTimeParameters, &et);
