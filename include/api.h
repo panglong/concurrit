@@ -235,10 +235,17 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
-//#define FUNC(v, f)				static FuncVar v(reinterpret_cast<void*>(f));
+inline void* _FUNC(const char* func_name) {
+	void* handle = Concurrit::driver_handle();
+	if(handle == NULL) {
+		handle = RTLD_DEFAULT;
+	}
+	void* f = FuncAddressByName(func_name, handle, true);
+	safe_assert(f != NULL);
+	return f;
+}
 
-									// try only default, and fail if not found
-#define FUNC(v, f)					static FuncVar v(FuncAddressByName(#f, true, false, true));
+#define FUNC(v, f)					static FuncVar v(_FUNC(#f));
 #define FVAR(v, f)					FUNC(v, f)
 
 /********************************************************************************/

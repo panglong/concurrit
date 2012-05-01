@@ -105,25 +105,16 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 /********************************************************************************/
 
 ThreadVarPtr Scenario::RunTestDriver() {
-	// try to unload and load the driver
-	void* handle = Concurrit::driver_handle();
-	if(Config::ReloadTestLibraryOnRestart && handle != NULL) {
-		Concurrit::UnloadTestLibrary();
-		handle = NULL;
-	}
-	if(handle == NULL) {
-		Concurrit::LoadTestLibrary();
-	}
-
-	//-------------------------------------------------------
-
-	// create a new thread to run the test driver
-	MainFuncType main_func = Concurrit::driver_main();
-	if(main_func != NULL) {
+	if(Config::TestLibraryFile != NULL) {
 		MYLOG(2) << "Calling driver's main function.";
+
 		ThreadVarPtr var = CreateThread(Concurrit::CallDriverMain, NULL);
 		safe_assert(var != NULL && !var->is_empty());
 		var->thread()->set_is_driver_thread(true);
+
+		// wait for the loading of the test library
+		Concurrit::sem_driver_load()->Wait();
+
 		return var;
 	}
 	MYLOG(2) << "No test-supplied __main__ function, skipping the driver thread.";

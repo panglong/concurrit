@@ -107,21 +107,19 @@ void print_stack_trace() {
 /********************************************************************************/
 
 void* FuncAddressByName(const char* name, bool default_first /*= true*/, bool try_other /*= false*/, bool fail_on_null /*= false*/) {
-	bool next_first = !default_first;
-	void* addr = reinterpret_cast<void*>(dlsym(next_first ? RTLD_NEXT : RTLD_DEFAULT, name));
-	if(addr == NULL) {
-		fprintf(stderr, "%s init of %s failed.\n", (next_first ? "RTLD_NEXT" : "RTLD_DEFAULT"), name);
-		if(try_other) {
-			addr = reinterpret_cast<void*>(dlsym(next_first ? RTLD_DEFAULT : RTLD_NEXT, name));
-			if(addr == NULL) fprintf(stderr, "%s init of %s failed.\n", (next_first ? "RTLD_DEFAULT": "RTLD_NEXT"), name);
-		}
-	}
-	if(addr == NULL && fail_on_null) {
-		safe_fail("%s could not been found!\n", name);
+	void* first_handle = default_first ? RTLD_DEFAULT : RTLD_NEXT;
+	void* addr = FuncAddressByName(name, first_handle, try_other ? false : fail_on_null);
+
+	if(addr == NULL && try_other) {
+		void* second_handle = default_first ? RTLD_NEXT : RTLD_DEFAULT;
+		addr = FuncAddressByName(name, second_handle, fail_on_null);
 	}
 
+	safe_assert(addr != NULL || !fail_on_null);
 	return addr;
 }
+
+/********************************************************************************/
 
 void* FuncAddressByName(const char* name, void* handle, bool fail_on_null /*= false*/) {
 	void* addr = reinterpret_cast<void*>(dlsym(handle, name));

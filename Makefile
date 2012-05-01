@@ -9,12 +9,10 @@ CONCURRIT_OBJS=$(patsubst %.cpp, %.o, $(subst $(CONCURRIT_SRCDIR), $(CONCURRIT_O
 CONCURRIT_HEADERS=$(wildcard $(CONCURRIT_INCDIR)/*.h)
 
 DEFINES=-DDPOR
-FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions \
+FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions -rdynamic \
 		$(CONCURRIT_C_STD) \
 		-w -Werror=uninitialized -Werror=unused -Werror=return-type -Werror=parentheses
 		# -Wall -Winline 
-
-CC?=g++
 
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux

@@ -45,6 +45,7 @@ void* Concurrit::driver_handle_ = NULL;
 MainFuncType Concurrit::driver_main_ = NULL;
 MainFuncType Concurrit::driver_init_ = NULL;
 MainFuncType Concurrit::driver_fini_ = NULL;
+Semaphore* Concurrit::sem_driver_load_;
 
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
@@ -54,7 +55,13 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	SetupSignalHandler();
+	// init logging
+	google::InitGoogleLogging("concurrit");
+
+	//==========================================
+
+	// set up signal handler from google
+	google::InstallFailureSignalHandler();
 
 	//==========================================
 	// separate arguments into two: 1 -- 2
@@ -92,16 +99,13 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	// init logging
-	google::InitGoogleLogging("concurrit");
-
-	//==========================================
-
 	if(Config::RunUncontrolled || !Config::PinInstrEnabled) {
 		PinMonitor::Shutdown();
 	}
 
 	//==========================================
+
+	Concurrit::sem_driver_load_ = new Semaphore(0);
 
 	// init test library. the library is to be loaded by RunTestDriver
 	Concurrit::driver_handle_ = NULL;
@@ -141,6 +145,8 @@ void Concurrit::Destroy() {
 		initialized_ = false;
 	} while(false);
 
+	safe_delete(Concurrit::sem_driver_load_);
+
 	CoroutineGroup::delete_main();
 
 	Thread::delete_tls_key();
@@ -162,16 +168,17 @@ volatile bool Concurrit::IsInitialized() {
 /********************************************************************************/
 
 void Concurrit::LoadTestLibrary() {
+	safe_assert(Concurrit::driver_handle_ == NULL);
 	void* handle = NULL;
 	if(Config::TestLibraryFile != NULL) {
-		handle = dlopen(Config::TestLibraryFile, RTLD_LAZY | RTLD_GLOBAL);
+		handle = dlopen(Config::TestLibraryFile, RTLD_LAZY | RTLD_LOCAL);
 		if(handle == NULL) {
 			safe_fail("Cannot load the test library %s!\n", Config::TestLibraryFile);
 		}
 		Concurrit::driver_handle_ = handle;
-		LoadTestFunction(&Concurrit::driver_main_, "__main__", handle);
-		LoadTestFunction(&Concurrit::driver_init_, "__init__", handle);
-		LoadTestFunction(&Concurrit::driver_fini_, "__fini__", handle);
+		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", handle, true);
+		Concurrit::driver_init_ = (MainFuncType) FuncAddressByName("__init__", handle, false);
+		Concurrit::driver_fini_ = (MainFuncType) FuncAddressByName("__fini__", handle, false);
 		MYLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
 		dlerror(); // Clear any existing error
 	} else {
@@ -201,21 +208,6 @@ void Concurrit::UnloadTestLibrary() {
 
 /********************************************************************************/
 
-void Concurrit::LoadTestFunction(MainFuncType* func_addr, const char* func_name, void* handle) {
-	// find the func_name function, try next first, and fail if not found
-	*func_addr = (MainFuncType) FuncAddressByName(func_name, handle, false);
-	if(*func_addr == NULL) {
-		// find the driver main function, try next first, and fail if not found
-		*func_addr = (MainFuncType) FuncAddressByName(func_name, false, true, true);
-		safe_assert(*func_addr == NULL);
-		MYLOG(1) << "Using default " << func_name;
-	} else {
-		MYLOG(1) << "Using " << func_name << " from the loaded shared library.";
-	}
-}
-
-/********************************************************************************/
-
 //============================================
 
 // code to add to benchmarks
@@ -234,7 +226,21 @@ int __main__(int argc, char* argv[]) {
 */
 //============================================
 
+// run by a new thread created by the script before calling TestCase
 void* Concurrit::CallDriverMain(void*) {
+	// try to unload and load the driver
+	void* handle = Concurrit::driver_handle();
+	if(Config::ReloadTestLibraryOnRestart && handle != NULL) {
+		Concurrit::UnloadTestLibrary();
+		handle = NULL;
+	}
+	if(handle == NULL) {
+		Concurrit::LoadTestLibrary();
+	}
+	Concurrit::sem_driver_load()->Signal();
+
+	//------------------------------------------------
+
 	MainFuncType main_func = Concurrit::driver_main();
 	safe_assert(main_func != NULL);
 	if(main_func == NULL) {
@@ -255,54 +261,5 @@ void* Concurrit::CallDriverMain(void*) {
 }
 
 /********************************************************************************/
-
-void Concurrit::SetupSignalHandler() {
-	// first set the signal handler
-	struct sigaction sigact;
-
-	sigact.sa_sigaction = Concurrit::SignalHandler;
-	sigact.sa_flags = 0;
-	sigemptyset (&sigact.sa_mask);
-
-	if (sigaction(SIGSEGV, &sigact, (struct sigaction *)NULL) != 0) {
-		safe_fail("error setting signal handler for %d (%s)\n",
-				SIGSEGV, strsignal(SIGSEGV));
-	}
-
-//	if (sigaction(SIGINT, &sigact, (struct sigaction *)NULL) != 0) {
-//		fprintf(stderr, "error setting signal handler for %d (%s)\n",
-//				SIGINT, strsignal(SIGINT));
-//		fflush(stderr);
-//		_Exit(UNRECOVERABLE_ERROR);
-//	}
-}
-
-void Concurrit::SignalHandler(int sig_num, siginfo_t * info, void * ucontext) {
-	fprintf(stderr, "Got signal %d: %s!\n", sig_num, strsignal(sig_num));
-	switch(sig_num) {
-	case SIGSEGV:
-		safe_fail("Segmentation fault!");
-		break;
-//	case SIGINT:
-//		Scenario* scenario = Scenario::Current();
-//		if(scenario == NULL){
-//			fprintf(stderr, "Scenario is null when signal is handled!");
-//			fflush(stderr);
-//			raise(sig_num);
-//		}
-//		// send backtrack exception
-//		TestStatus status = scenario->test_status();
-//		if(BETWEEN(TEST_SETUP, status, TEST_TEARDOWN)) {
-//			scenario->exec_tree()->EndWithBacktrack(Coroutine::Current(), SEARCH_ENDS, "SIGINT");
-//			return;
-//		} else {
-//			fprintf(stderr, "Signal sent when not running the test, calling the default handler!");
-//			fflush(stderr);
-//			raise(sig_num);
-//		}
-//		break;
-	}
-	unreachable();
-}
 
 } // end namespace

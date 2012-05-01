@@ -12,7 +12,7 @@ SRCS?=src/$(TARGET)test.cpp
 TEST_FLAGS=$(CONCURRIT_TEST_INC_FLAGS) $(CONCURRIT_TEST_LIB_FLAGS) -I. -Isrc -L. -Llib -g -gdwarf-2 -O1 -w -fPIC -fexceptions $(CONCURRIT_C_STD)
 
 #ifneq ($(wildcard lib/lib$(TARGET).so),)
-    TEST_FLAGS+=-l$(TARGET)
+#    TEST_FLAGS+=-l$(TARGET)
     TARGETLIB=lib$(TARGET).so
 #else
 #	TARGETLIB=

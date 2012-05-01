@@ -305,6 +305,7 @@ public:
 };
 
 /********************************************************************************/
+class Semaphore;
 
 class Concurrit {
 public:
@@ -312,11 +313,8 @@ public:
 	static void Destroy();
 	static volatile bool IsInitialized();
 	static void* CallDriverMain(void*);
-	static void SetupSignalHandler();
-	static void SignalHandler(int sig_num, siginfo_t * info, void * ucontext);
 	static void LoadTestLibrary();
 	static void UnloadTestLibrary();
-	static void LoadTestFunction(MainFuncType* func_addr, const char* func_name, void* handle);
 private:
 	static volatile bool initialized_;
 	DECL_STATIC_FIELD_REF(main_args, driver_args)
@@ -324,6 +322,7 @@ private:
 	DECL_STATIC_FIELD(MainFuncType, driver_main)
 	DECL_STATIC_FIELD(MainFuncType, driver_init)
 	DECL_STATIC_FIELD(MainFuncType, driver_fini)
+	DECL_STATIC_FIELD(Semaphore*, sem_driver_load)
 };
 
 /********************************************************************************/

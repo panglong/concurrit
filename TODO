@@ -1,4 +1,5 @@
-move load/unload to CallDriverMain
+move test library loading calling to TestDriver class
+
 https://bugzilla.mozilla.org/show_bug.cgi?id=546828
 https://bugzilla.mozilla.org/show_bug.cgi?id=477021	
 
