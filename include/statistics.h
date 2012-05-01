@@ -69,6 +69,12 @@ private:
     timeval endTime;
     timeval elapsedTime;
     std::string name;
+
+    double elapsedTimeInHours;
+    double elapsedTimeInMinutes;
+    double elapsedTimeInSeconds;
+    double elapsedTimeInMilliSec;
+    double elapsedTimeInMicroSec;
 };
 
 /********************************************************************************/

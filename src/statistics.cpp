@@ -42,6 +42,12 @@ Timer::Timer(std::string name) {
 	endTime.tv_sec = endTime.tv_usec = 0;
 	stopped = false;
 	this->name = name;
+
+	elapsedTimeInHours = -1;
+	elapsedTimeInMinutes = -1;
+	elapsedTimeInSeconds = -1;
+	elapsedTimeInMilliSec = -1;
+	elapsedTimeInMicroSec = -1;
 }
 
 /********************************************************************************/
@@ -60,6 +66,12 @@ void Timer::gettimeofday_(timeval* t) {
 /********************************************************************************/
 
 void Timer::start() {
+	elapsedTimeInHours = -1;
+	elapsedTimeInMinutes = -1;
+	elapsedTimeInSeconds = -1;
+	elapsedTimeInMilliSec = -1;
+	elapsedTimeInMicroSec = -1;
+
 	stopped = false; // reset stop flag
 	gettimeofday_(&startTime);
 	endTime = startTime;
@@ -77,39 +89,58 @@ void Timer::stop() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMicroSec() {
-	timeval diff = getElapsedTime();
-
-	return (diff.tv_sec * 1000000.0) + diff.tv_usec;
+	if(elapsedTimeInMicroSec < 0.0f) {
+		timeval diff = getElapsedTime();
+		elapsedTimeInMicroSec = (diff.tv_sec * (1000000.0f)) + diff.tv_usec;
+		safe_assert(elapsedTimeInMicroSec >= 0.0f);
+	}
+	return elapsedTimeInMicroSec;
 }
 
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMilliSec() {
-	return this->getElapsedTimeInMicroSec() * 0.001;
+	if(elapsedTimeInMilliSec < 0.0f) {
+		elapsedTimeInMilliSec = this->getElapsedTimeInMicroSec() * (0.001f);
+		safe_assert(elapsedTimeInMilliSec >= 0.0f);
+	}
+	return elapsedTimeInMilliSec;
 }
 
 /********************************************************************************/
 
 double Timer::getElapsedTimeInSec() {
-	return this->getElapsedTimeInMicroSec() * 0.000001;
+	if(elapsedTimeInSeconds < 0.0f) {
+		elapsedTimeInSeconds = this->getElapsedTimeInMicroSec() * (0.000001f);
+		safe_assert(elapsedTimeInSeconds >= 0.0f);
+	}
+	return elapsedTimeInSeconds;
 }
 
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMin() {
-	return this->getElapsedTimeInSec() * (0.0166666667);
+	if(elapsedTimeInMinutes < 0.0f) {
+		elapsedTimeInMinutes = this->getElapsedTimeInSec() * (0.0166666667f);
+		safe_assert(elapsedTimeInMinutes >= 0.0f);
+	}
+	return elapsedTimeInMinutes;
 }
 
 /********************************************************************************/
 
 double Timer::getElapsedTimeInHours() {
-	return this->getElapsedTimeInMin() * (0.0166666667);
+	if(elapsedTimeInHours < 0.0f) {
+		elapsedTimeInHours = this->getElapsedTimeInMin() * (0.0166666667f);
+		safe_assert(elapsedTimeInHours >= 0.0f);
+	}
+	return elapsedTimeInHours;
 }
 
 /********************************************************************************/
 
 double Timer::getElapsedTimeInDays() {
-	return this->getElapsedTimeInHours() * (0.0416666667);
+	return this->getElapsedTimeInHours() * (0.0416666667f);
 }
 
 /********************************************************************************/
@@ -137,12 +168,12 @@ std::string Timer::EndTimeToString() {
 
 std::string Timer::ElapsedTimeToString() {
 	char buff[256];
-	double h = getElapsedTimeInHours();
-	double m = getElapsedTimeInMin() - (h * 60.0);
-	double s = getElapsedTimeInSec() - (m * 60.0);
-	double ml = getElapsedTimeInMilliSec() - (s * 1000.0);
-	double mc = getElapsedTimeInMicroSec() - (ml * 1000.0);
-	snprintf(buff, 256, "%.2f h:%.2f m:%.2f s:%.2f ml:%.2f mc", h, m, s, ml, mc);
+	int h = getElapsedTimeInHours();
+	int m = getElapsedTimeInMin() - (h * 60);
+	int s = getElapsedTimeInSec() - (m * 60);
+	int ml = getElapsedTimeInMilliSec() - (s * 1000);
+	int mc = getElapsedTimeInMicroSec() - (ml * 1000);
+	snprintf(buff, 256, "%d H | %d M | %d S | %d MS | %d MC", h, m, s, ml, mc);
 	return std::string(buff);
 }
 

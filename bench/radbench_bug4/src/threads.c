@@ -45,9 +45,9 @@
 #include <assert.h>
 
 
-PRMonitor *mon;
+//PRMonitor *mon;
 #define THREAD_COUNT 2
-PRInt32 alive;
+//PRInt32 alive;
 
 void
 PR_CALLBACK
@@ -60,18 +60,18 @@ DumbThread(void *arg)
     PR_ExplodeTime(t, PR_LocalTimeParameters, &et);
     /* Nick - Done */
 
-    PR_EnterMonitor(mon);
-    alive--;
-    PR_Notify(mon);
-    PR_ExitMonitor(mon);
+//    PR_EnterMonitor(mon);
+//    alive--;
+//    PR_Notify(mon);
+//    PR_ExitMonitor(mon);
 }
 
 static void CreateThreads(PRThreadScope scope1, PRThreadScope scope2)
 {
     PRThread *thr[THREAD_COUNT];
     
-    alive = THREAD_COUNT;
-    mon = PR_NewMonitor();
+//    alive = THREAD_COUNT;
+//    mon = PR_NewMonitor();
     
     int n;
     for (n = 0; n < THREAD_COUNT; n++) {
@@ -83,22 +83,21 @@ static void CreateThreads(PRThreadScope scope1, PRThreadScope scope2)
                               PR_JOINABLE_THREAD,
                               0);
         assert(thr[n] != 0);
-        PR_Sleep(0);
+//        PR_Sleep(0);
     }
 
-//    for (n = 0; n < THREAD_COUNT; n++) {
-//		PR_JoinThread(thr[n]);
-////        PR_Sleep(0);
-//	}
+    for (n = 0; n < THREAD_COUNT; n++) {
+		PR_JoinThread(thr[n]);
+	}
 
     /* Wait for all threads to exit */
-    PR_EnterMonitor(mon);
-    while (alive) {
-        PR_Wait(mon, PR_INTERVAL_NO_TIMEOUT);
-    }
-
-    PR_ExitMonitor(mon);
-    PR_DestroyMonitor(mon);
+//    PR_EnterMonitor(mon);
+//    while (alive) {
+//        PR_Wait(mon, PR_INTERVAL_NO_TIMEOUT);
+//    }
+//
+//    PR_ExitMonitor(mon);
+//    PR_DestroyMonitor(mon);
 }
 
 static
