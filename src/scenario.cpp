@@ -40,6 +40,8 @@ namespace concurrit {
  * Scenario
  */
 
+FILE* Scenario::trace_file_ = NULL;
+
 UntilStarCondition TransferCriteria::until_star_;
 UntilFirstCondition TransferCriteria::until_first_;
 UntilEndCondition TransferCriteria::until_end_;
@@ -689,6 +691,15 @@ void Scenario::Start() {
 	transfer_criteria_.Reset();
 
 	trans_constraints_->clear();
+
+	// open trace file
+	static const char* trace_file_name = InWorkDir("trace.txt");
+	if(trace_file_ == NULL) {
+		trace_file_ = my_fopen(trace_file_name, "w", EXIT_ON_FAIL);
+	} else {
+		trace_file_ = my_freopen(trace_file_name, "w", trace_file_, EXIT_ON_FAIL);
+	}
+	safe_assert(trace_file_ != NULL);
 }
 
 /********************************************************************************/
@@ -724,6 +735,12 @@ void Scenario::Finish(Result* result) {
 	if(Config::SaveDotGraphToFile != NULL) {
 		std::cerr << "Saving dot file of the execution graph to: " << Config::SaveDotGraphToFile << std::endl;
 		exec_tree_.SaveDotGraph(Config::SaveDotGraphToFile);
+	}
+
+	// close trace file
+	if(trace_file_ != NULL) {
+		my_fclose(trace_file_, EXIT_ON_FAIL);
+		trace_file_ = NULL;
 	}
 }
 

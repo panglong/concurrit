@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 
+#include "dummy.h"
 
 typedef struct bounded_buf_tag
 {
@@ -188,6 +189,9 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
 
 #ifdef ERR1
   status = pthread_mutex_unlock(&bbuf->mutex);
+
+  concurritAtPc(1);
+
   status = pthread_mutex_lock(&bbuf->mutex);
 #endif
 

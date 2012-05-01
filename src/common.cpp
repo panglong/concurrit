@@ -177,6 +177,17 @@ FILE* my_fopen(const char * filename, const char * mode, bool exit_on_fail /*= t
 
 /********************************************************************************/
 
+FILE* my_freopen(const char * filename, const char * mode, FILE* file, bool exit_on_fail /*= true*/) {
+	FILE* new_file = freopen(filename, mode, file);
+	if(new_file == NULL && exit_on_fail) {
+		safe_fail("File could not be re-opened: %s\n", filename);
+	}
+	safe_assert(new_file == file);
+	return new_file;
+}
+
+/********************************************************************************/
+
 void my_fclose(FILE* file, bool exit_on_fail /*= true*/) {
 	if(fclose(file) && exit_on_fail) {
 		safe_fail("File could not be closed\n");

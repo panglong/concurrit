@@ -386,8 +386,12 @@ std::string vector_to_string(const std::vector<T>& v) {
 
 /********************************************************************************/
 
+#define EXIT_ON_FAIL	(true)
+#define SKIP_ON_FAIL	(false)
+
 FILE* my_fopen(const char * filename, const char * mode, bool exit_on_fail = true);
 void my_fclose(FILE* file, bool exit_on_fail = true);
+FILE* my_freopen(const char * filename, const char * mode, FILE* file, bool exit_on_fail = true);
 
 main_args StringToMainArgs(const std::string& s, bool add_program_name = false);
 main_args StringToMainArgs(const char* s, bool add_program_name = false);
