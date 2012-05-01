@@ -839,6 +839,9 @@ bool ExecutionTreeManager::RestartForAlternatePath() {
 	ReleaseRef(NULL); // nullify the atomic ref to continue
 
 	MYLOG(2) << "Starting the replay";
+
+	Scenario::Current()->counter("Num alternate paths explored");
+
 	return true;
 }
 

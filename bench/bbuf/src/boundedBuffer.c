@@ -329,7 +329,7 @@ void * consumer_routine(void * arg)
 
 
 static
-int main(int argc, char ** argv)
+int main0(int argc, char ** argv)
 {
   thread_t producers[PRODUCER_SUM];
   thread_t consumers[CONSUMER_SUM];    
@@ -369,7 +369,7 @@ int main(int argc, char ** argv)
 extern "C" {
 #endif
 int __main__(int argc, char* argv[]) {
-	return main(argc, argv);
+	return main0(argc, argv);
 }
 #ifdef __cplusplus
 } // extern "C"

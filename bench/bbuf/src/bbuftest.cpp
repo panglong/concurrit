@@ -11,11 +11,17 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 	TESTCASE() {
 
+		FVAR(f_get, bounded_buf_get);
+		FVAR(f_put, bounded_buf_put);
+
+		EXISTS(t1, IN_FUNC(f_get), "Select t1");
+		EXISTS(t2, IN_FUNC(f_get), "Select t2");
+
 		WHILE_STAR
 		{
-			FORALL(t, PTRUE, "t");
+			FORALL(t, BY(t1) || BY(t2), "Select t");
 
-			RUN_UNTIL(STEP(t), READS(), __, "step...");
+			RUN_UNTIL(BY(t), READS() || WRITES(), __, "Step t");
 		}
 	}
 

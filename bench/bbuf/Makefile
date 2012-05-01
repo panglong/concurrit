@@ -1,9 +1,7 @@
-TARGET=bbuf
-SRCS=src/$(TARGET)test.cpp
+BENCH=bbuf
 
 LIBSRCS=src/boundedBuffer.c
 LIBFLAGS=
-
-CC=gcc
+#LIBFLAGS=-DERR1
 
 include $(CONCURRIT_HOME)/test-common.mk

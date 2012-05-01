@@ -121,7 +121,6 @@ void __init__() {
 
 __attribute__((destructor))
 void __fini__() {
-	printf("finishing\n");
 	if(PR_Cleanup() != PR_SUCCESS) {
 		printf("ERROR in Cleanup!\n");
 		exit(-1);

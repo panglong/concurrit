@@ -286,9 +286,9 @@ Result* Scenario::Explore() {
 
 				MYLOG(1) << "Exploring new execution...";
 
-				MYLOG(2) << SC_TITLE << "Starting path " << unsigned(counter("Num paths explored"));
-
 				ConcurritException* exc = RunOnce();
+
+				counter("Num executions explored").increment();
 
 				// RunOnce should not throw an exception, so throw it here
 				if(exc != NULL) {
@@ -296,7 +296,7 @@ Result* Scenario::Explore() {
 					throw exc;
 				}
 
-				counter("Num paths explored").increment();
+				counter("Num successful executions explored").increment();
 
 				if(explore_type_ == EXISTS) {
 					result = new ExistsResult(schedule_->Clone());
@@ -348,7 +348,6 @@ Result* Scenario::Explore() {
 					// if uncontrolled run, then do not check backtracking
 					if(Config::RunUncontrolled) break;
 
-					counter("Num backtracks").increment();
 					if(Backtrack(be->reason())) {
 						continue;
 					} else {
