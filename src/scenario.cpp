@@ -341,9 +341,12 @@ Result* Scenario::Explore() {
 					MYLOG(2) << SC_TITLE << "Backtracking: " << be->what();
 
 					// is backtrack is for terminating the search, exit the search loop
-					if((--Config::ExitOnFirstExecution == 0) || be->reason() == SEARCH_ENDS) {
+					if(((--Config::ExitOnFirstExecution) <= 0) || be->reason() == SEARCH_ENDS) {
 						goto LOOP_DONE; // break the outermost loop
 					}
+
+					// if uncontrolled run, then do not check backtracking
+					if(Config::RunUncontrolled) break;
 
 					counter("Num backtracks").increment();
 					if(Backtrack(be->reason())) {

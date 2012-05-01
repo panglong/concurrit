@@ -60,10 +60,10 @@ DumbThread(void *arg)
     PR_ExplodeTime(t, PR_LocalTimeParameters, &et);
     /* Nick - Done */
 
-//    PR_EnterMonitor(mon);
-//    alive--;
-//    PR_Notify(mon);
-//    PR_ExitMonitor(mon);
+    PR_EnterMonitor(mon);
+    alive--;
+    PR_Notify(mon);
+    PR_ExitMonitor(mon);
 }
 
 static void CreateThreads(PRThreadScope scope1, PRThreadScope scope2)
@@ -83,22 +83,22 @@ static void CreateThreads(PRThreadScope scope1, PRThreadScope scope2)
                               PR_JOINABLE_THREAD,
                               0);
         assert(thr[n] != 0);
-//        PR_Sleep(0);
+        PR_Sleep(0);
     }
 
-    for (n = 0; n < THREAD_COUNT; n++) {
-		PR_JoinThread(thr[n]);
-//        PR_Sleep(0);
-	}
+//    for (n = 0; n < THREAD_COUNT; n++) {
+//		PR_JoinThread(thr[n]);
+////        PR_Sleep(0);
+//	}
 
-//    /* Wait for all threads to exit */
-//    PR_EnterMonitor(mon);
-//    while (alive) {
-//        PR_Wait(mon, PR_INTERVAL_NO_TIMEOUT);
-//    }
-//
-//    PR_ExitMonitor(mon);
-//    PR_DestroyMonitor(mon);
+    /* Wait for all threads to exit */
+    PR_EnterMonitor(mon);
+    while (alive) {
+        PR_Wait(mon, PR_INTERVAL_NO_TIMEOUT);
+    }
+
+    PR_ExitMonitor(mon);
+    PR_DestroyMonitor(mon);
 }
 
 static
@@ -126,12 +126,12 @@ int __fini__(int argc, char* argv[]) {
 	}
 }
 
-__attribute__((constructor))
-static void initme() {
-  printf("INIT!!!!!!!\n");
-}
-
-__attribute__((destructor))
-static void finime() {
-	printf("FINI!!!!!!!\n");
-}
+//__attribute__((constructor))
+//static void initme() {
+//  printf("INIT!!!!!!!\n");
+//}
+//
+//__attribute__((destructor))
+//static void finime() {
+//	printf("FINI!!!!!!!\n");
+//}
