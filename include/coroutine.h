@@ -128,6 +128,8 @@ private:
 
 //	DECL_FIELD(bool, is_driver_thread)
 
+	DECL_FIELD(SourceLocation*, srcloc)
+
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };
 

@@ -119,6 +119,7 @@ void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceL
 	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
+	current->set_srcloc(loc);
 	scenario->BeforeControlledTransition(current);
 }
 
@@ -126,6 +127,7 @@ void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLo
 	safe_assert(current != NULL && scenario != NULL);
 	safe_assert(loc != NULL);
 
+	current->set_srcloc(loc);
 	scenario->AfterControlledTransition(current);
 }
 
@@ -137,6 +139,8 @@ void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, void* addr, ui
 
 	// update auxstate
 	AuxState::Writes->set(PTR2ADDRINT(addr), size, current->tid());
+
+	current->set_srcloc(loc);
 }
 
 void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
@@ -145,6 +149,8 @@ void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, void* addr, uin
 
 	// update auxstate
 	AuxState::Reads->set(PTR2ADDRINT(addr), size, current->tid());
+
+	current->set_srcloc(loc);
 }
 
 /********************************************************************************/
@@ -156,6 +162,7 @@ void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, void* addr_src
 	AuxState::CallsFrom->set(PTR2ADDRINT(addr_src), current->tid());
 	AuxState::CallsTo->set(PTR2ADDRINT(addr_target), current->tid());
 
+	current->set_srcloc(loc_src);
 	scenario->OnControlledTransition(current);
 }
 
@@ -176,6 +183,7 @@ void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, void* addr, S
 
 	AuxState::Arg0->set(PTR2ADDRINT(addr), arg0, current->tid());
 
+	current->set_srcloc(loc);
 	scenario->OnControlledTransition(current);
 }
 
@@ -186,6 +194,7 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, 
 	// update auxstate
 	AuxState::Returns->set(PTR2ADDRINT(addr), true, current->tid());
 
+	current->set_srcloc(loc);
 	scenario->BeforeControlledTransition(current);
 
 	int c = AuxState::InFunc->get(PTR2ADDRINT(addr), current->tid());

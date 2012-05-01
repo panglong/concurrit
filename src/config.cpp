@@ -51,11 +51,15 @@ bool Config::ManualInstrEnabled = true;
 bool Config::PinInstrEnabled = true;
 bool Config::ReloadTestLibraryOnRestart = false;
 bool Config::MarkEndingBranchesCovered = true;
+bool Config::SaveExecutionTraceToFile = false;
 
 /********************************************************************************/
 
 static void usage() {
-	printf("-h: Show this help. (OnlyShowHelp)\n\n"
+	printf("\n=============================================\n"
+
+			"-h: Show this help. (OnlyShowHelp)\n\n"
+
 			"-a: Track altenate paths (TrackAlternatePaths)\n"
 			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
@@ -63,11 +67,14 @@ static void usage() {
 			"-l: Test program as shared (.so) library.\n"
 			"-m: Enable manual instrumentation (ManuelInstrEnabled)\n"
 			"-p: Enable pin-tool instrumentation (PinInstrEnabled)\n"
-			"-r: Reload test library after each restart (ReloadTestLibraryOnRestart)"
+			"-r: Reload test library after each restart (ReloadTestLibraryOnRestart)\n"
 			"-s: Use stack-based DFS (!KeepExecutionTree)\n"
+			"-t: Save execution trace to file (SaveExecutionTraceToFile)\n"
 			"-u: Run test program uncontrolled (RunUncontrolled)\n"
 			"-vN: Verbosity level (N >= 0)\n"
-			"-wN: Maximum wait time (MaxWaitTimeUSecs).\n");
+			"-wN: Maximum wait time (MaxWaitTimeUSecs).\n"
+
+			"=============================================\n");
 }
 
 bool Config::ParseCommandLine(const main_args& args) {
@@ -80,7 +87,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "acd::f::hl:m::p::rsuv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "acd::f::hl:m::p::rstuv:w:")) != -1) {
 		switch(c) {
 		case 'a':
 //			Config::KeepExecutionTree = true;
@@ -135,6 +142,10 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			Config::KeepExecutionTree = false;
 //			Config::TrackAlternatePaths = false;
 			printf("Will use stack rather than execution tree.\n");
+			break;
+		case 't':
+			Config::SaveExecutionTraceToFile = true;
+			printf("Will save execution trace to file.\n");
 			break;
 		case 'u':
 			Config::RunUncontrolled = true;

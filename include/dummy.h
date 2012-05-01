@@ -43,21 +43,33 @@ extern "C" {
 
 /********************************************************************************/
 
-extern void concurritStartInstrument();
-extern void concurritEndInstrument();
+extern void concurritStartInstrumentEx(const char* filename, const char* funcname, int line);
+extern void concurritEndInstrumentEx(const char* filename, const char* funcname, int line);
 
-extern void concurritAtPc(int pc);
+extern void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line);
 
-extern void concurritFuncEnter(void* addr);
-extern void concurritFuncReturn(void* addr);
+extern void concurritFuncEnterEx(void* addr, const char* filename, const char* funcname, int line);
+extern void concurritFuncReturnEx(void* addr, const char* filename, const char* funcname, int line);
 
-extern void concurritThreadEnd();
+extern void concurritThreadEndEx(const char* filename, const char* funcname, int line);
 
 extern void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
 
 /********************************************************************************/
 
-#define concurritAssert(b)	if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); TriggerAssert(#b, __FILE__, __FUNCTION__, __LINE__); }
+#define concurritStartInstrument()	concurritStartInstrumentEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritEndInstrument()	concurritEndInstrumentEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)
+
+#define concurritAtPc(c)			concurritAtPcEx(c, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+
+#define concurritFuncEnter(a)		concurritFuncEnterEx(a, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritFuncReturn(a)		concurritFuncReturnEx(a, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+
+#define concurritThreadEnd()		concurritThreadEndEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)
+
+/********************************************************************************/
+
+#define concurritAssert(b)	if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); TriggerAssert(#b, __FILE__, __PRETTY_FUNCTION__, __LINE__); }
 
 /********************************************************************************/
 

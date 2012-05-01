@@ -166,11 +166,14 @@ private:
 class SourceLocation : public Writable {
 public:
 
-	SourceLocation(const char* filename, const char* funcname, int line, int column = 0, const char* imgname = "<unknown>")
-	: filename_(filename), funcname_(funcname), column_(column), line_(line), imgname_(imgname)
+	SourceLocation(const char* filename, const char* funcname, int line, int column = 0, const char* imgname = "")
+	: filename_(filename != NULL ? filename : ""),
+	  funcname_(funcname != NULL ? funcname : ""),
+	  column_(column), line_(line),
+	  imgname_(imgname != NULL ? imgname : "")
 	{}
 
-	SourceLocation(std::string filename, std::string funcname, int line, int column = 0, const char* imgname = "<unknown>")
+	SourceLocation(std::string filename, std::string funcname, int line, int column = 0, std::string imgname = "")
 	: filename_(filename), funcname_(funcname), column_(column), line_(line), imgname_(imgname)
 	{}
 
@@ -196,10 +199,7 @@ public:
 	}
 
 	bool IsUnknown() {
-		bool r = (line_ == 0);
-		safe_assert(!r || column_ == 0);
-		safe_assert(!r || filename_ == "" || filename_ == "<unknown>");
-		return r;
+		return (filename_ == "" || filename_ == "<unknown>");
 	}
 
 	bool operator ==(const SourceLocation& loc) const {

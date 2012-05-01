@@ -693,13 +693,15 @@ void Scenario::Start() {
 	trans_constraints_->clear();
 
 	// open trace file
-	if(trace_file_ != NULL) {
-		my_fclose(trace_file_, EXIT_ON_FAIL);
-		trace_file_ = NULL;
+	if(Config::SaveExecutionTraceToFile) {
+		if(trace_file_ != NULL) {
+			my_fclose(trace_file_, EXIT_ON_FAIL);
+			trace_file_ = NULL;
+		}
+		static std::string trace_file_name = InWorkDir("trace.txt");
+		trace_file_ = my_fopen(safe_notnull(trace_file_name.c_str()), "w", EXIT_ON_FAIL);
+		safe_assert(trace_file_ != NULL);
 	}
-	static std::string trace_file_name = InWorkDir("trace.txt");
-	trace_file_ = my_fopen(safe_notnull(trace_file_name.c_str()), "w", EXIT_ON_FAIL);
-	safe_assert(trace_file_ != NULL);
 }
 
 /********************************************************************************/
@@ -738,9 +740,11 @@ void Scenario::Finish(Result* result) {
 	}
 
 	// close trace file
-	if(trace_file_ != NULL) {
-		my_fclose(trace_file_, EXIT_ON_FAIL);
-		trace_file_ = NULL;
+	if(Config::SaveExecutionTraceToFile) {
+		if(trace_file_ != NULL) {
+			my_fclose(trace_file_, EXIT_ON_FAIL);
+			trace_file_ = NULL;
+		}
 	}
 }
 

@@ -43,51 +43,66 @@ namespace concurrit {
 
 /********************************************************************************/
 
-void concurritStartInstrument() {
+void concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	if(filename != NULL) current->set_srcloc(new SourceLocation(filename, funcname, line));
 
 	StartInstrument(); // notify pintool
 }
 
 /********************************************************************************/
 
-void concurritEndInstrument() {
+void concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	if(filename != NULL) current->set_srcloc(new SourceLocation(filename, funcname, line));
 
 	EndInstrument(); // notify pintool
 
 	// reset aux variables of current thread
-	Coroutine* co = safe_notnull(Coroutine::Current());
-	co->FinishControlledTransition();
+	current->FinishControlledTransition();
 }
 
 /********************************************************************************/
 
-void concurritAtPc(int pc) {
+void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	MYLOG(2) << "Thread at pc " << pc;
-	// controlled transition
-	Coroutine* co = safe_notnull(Coroutine::Current());
-	AuxState::Pc->set(pc, co->tid());
-	AuxState::AtPc->set(true, co->tid());
-	safe_notnull(safe_notnull(co->group())->scenario())->OnControlledTransition(co);
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+	if(filename != NULL) current->set_srcloc(new SourceLocation(filename, funcname, line));
+
+	AuxState::Pc->set(pc, current->tid());
+	AuxState::AtPc->set(true, current->tid());
+
+	scenario->OnControlledTransition(current);
 }
 
 /********************************************************************************/
 
-void concurritFuncEnter(void* addr) {
+void concurritFuncEnterEx(void* addr, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
-	PinMonitor::FuncEnter(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0, 0);
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+
+	PinMonitor::FuncEnter(current, scenario, addr, new SourceLocation(filename, funcname, line), 0, 0);
 }
 
 /********************************************************************************/
 
-void concurritFuncReturn(void* addr) {
+void concurritFuncReturnEx(void* addr, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
-	PinMonitor::FuncReturn(Coroutine::Current(), Scenario::Current(), addr, RECORD_SRCLOC(), 0);
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+
+	PinMonitor::FuncReturn(current, scenario, addr, new SourceLocation(filename, funcname, line), 0);
 }
 
 /********************************************************************************/
@@ -99,10 +114,14 @@ void TriggerAssert(const char* expr, const char* filename, const char* funcname,
 
 /********************************************************************************/
 
-void concurritThreadEnd() {
+void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
-	PinMonitor::ThreadEnd(Coroutine::Current(), Scenario::Current());
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+	if(filename != NULL) current->set_srcloc(new SourceLocation(filename, funcname, line));
+
+	PinMonitor::ThreadEnd(current, scenario);
 }
 
 /********************************************************************************/

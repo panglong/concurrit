@@ -192,19 +192,18 @@ void print_stack_trace();
 
 #define safe_exit(c)	fprintf(stderr, "Terminating with exit-code: %s.\n", #c); _Exit(c)
 #define safe_fail(...) 	fprintf(stderr, __VA_ARGS__); fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); raise(SIGTERM);
-//						concurrit::print_stack_trace(); \
-//						fflush(stderr); \
-//						_Exit(UNRECOVERABLE_ERROR); \
 
 #ifdef SAFE_ASSERT
 #define NDEBUG
 #define MYLOG(c)			VLOG(c)
+#define MYLOG_IF(c, p)		VLOG_IF(c, p)
 #define safe_notnull(o) 	(CHECK_NOTNULL(o))
 #define safe_assert(cond) 	if (!(cond))  { safe_fail("\nCounit: safe assert fail: safe_assert(%s):", #cond); }
 #else
 #undef NDEBUG
 #define GOOGLE_STRIP_LOG	1
 #define MYLOG(c)			DLOG(INFO)
+#define MYLOG_IF(c, p)		DLOG_IF(c, p)
 #define safe_notnull(o) 	(o)
 #define safe_assert(cond) /* noop */
 #endif
@@ -301,6 +300,7 @@ public:
 	static bool PinInstrEnabled;
 	static bool ReloadTestLibraryOnRestart;
 	static bool MarkEndingBranchesCovered;
+	static bool SaveExecutionTraceToFile;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);
 };

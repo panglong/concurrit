@@ -240,6 +240,39 @@ DotGraph* ExecutionTree::CreateDotGraph() {
 
 /*************************************************************************************/
 
+void ExecutionTree::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
+	if(static_info_->message() != "") {
+		MYLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
+	}
+
+	if(Config::SaveExecutionTraceToFile) {
+		SourceLocation* srcloc = current->srcloc();
+		fprintf(safe_notnull(Scenario::trace_file()), "C TID:%2d: [%s] -- [%s]\n", current->tid(), static_info_->message().c_str(), (srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()));
+	}
+}
+
+/*************************************************************************************/
+
+void TransitionNode::OnTaken(Coroutine* current, int child_index /*= 0*/) {
+	safe_assert(current != NULL);
+	safe_assert(BETWEEN(0, child_index, children_.size()-1));
+	// update var if not null
+	if(var_ != NULL) {
+		var_->set_thread(current);
+	}
+
+	if(static_info_->message() != "") {
+		MYLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
+	}
+
+	if(Config::SaveExecutionTraceToFile) {
+		SourceLocation* srcloc = current->srcloc();
+		fprintf(safe_notnull(Scenario::trace_file()), "T TID:%2d: [%s] -- [%s]\n", current->tid(), static_info_->message().c_str(), (srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()));
+	}
+}
+
+/*************************************************************************************/
+
 void ExecutionTreeManager::SaveDotGraph(const char* filename) {
 	safe_assert(filename != NULL);
 	DotGraph g("ExecutionTree");

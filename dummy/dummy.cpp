@@ -45,18 +45,18 @@ extern "C" {
 						fflush(stderr); \
 						exit(EXIT_FAILURE);
 
-void concurritStartInstrument() {dummy_error();}
+void concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {dummy_error();}
 
-void concurritEndInstrument() {dummy_error();}
+void concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {dummy_error();}
 
-void concurritAtPc(int pc) {dummy_error();}
+void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {dummy_error();}
 
-void concurritFuncEnter(void* addr) {dummy_error();}
-void concurritFuncReturn(void* addr) {dummy_error();}
+void concurritFuncEnterEx(void* addr, const char* filename, const char* funcname, int line) {dummy_error();}
+void concurritFuncReturnEx(void* addr, const char* filename, const char* funcname, int line) {dummy_error();}
 
 void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}
 
-void concurritThreadEnd()  {dummy_error();}
+void concurritThreadEndEx(const char* filename, const char* funcname, int line)  {dummy_error();}
 
 /********************************************************************************/
 

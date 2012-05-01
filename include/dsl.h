@@ -111,11 +111,7 @@ public:
 	virtual DotNode* UpdateDotGraph(DotGraph* g);
 	DotGraph* CreateDotGraph();
 
-	virtual void OnConsumed(Coroutine* current, int child_index = 0) {
-		if(static_info_->message() != "") {
-			MYLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
-		}
-	}
+	virtual void OnConsumed(Coroutine* current, int child_index = 0);
 
 	virtual void OnSubmitted() {
 		if(static_info_->message_ != "") {
@@ -149,18 +145,7 @@ public:
 	: ExecutionTree(static_info, parent, num_children), assertion_(assertion), pred_(pred), var_(var), constraints_(constraints) {}
 	virtual ~TransitionNode(){}
 
-	virtual void OnTaken(Coroutine* current, int child_index = 0) {
-		safe_assert(current != NULL);
-		safe_assert(BETWEEN(0, child_index, children_.size()-1));
-		// update var if not null
-		if(var_ != NULL) {
-			var_->set_thread(current);
-		}
-
-		if(static_info_->message() != "") {
-			MYLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
-		}
-	}
+	virtual void OnTaken(Coroutine* current, int child_index = 0);
 
 	void Update(const TransitionPredicatePtr& assertion,
 				const TransitionPredicatePtr& pred,
