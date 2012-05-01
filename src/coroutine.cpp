@@ -45,7 +45,7 @@ Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* ent
 	vc_clear(vc_);
 	exception_ = NULL;
 	current_node_ = NULL;
-	is_driver_thread_ = false;
+//	is_driver_thread_ = false;
 
 	ThreadVarPtr p(new StaticThreadVar(this, "Self-ThreadVar"));
 	tvar_ = p;
@@ -310,15 +310,15 @@ void* Coroutine::Run() {
 
 	//------------------------------------------------------------
 	// call driver __fini__ if this is the driver thread
-	if(is_driver_thread_) {
-		MYLOG(1) << "Calling driver __fini__ function.";
-		MainFuncType fini_func = Concurrit::driver_fini();
-		if(fini_func != NULL) {
-			main_args* args = Concurrit::driver_args();
-			fini_func(args->argc_, args->argv_);
-			Concurrit::set_driver_fini(NULL); // since we are calling it once
-		}
-	}
+//	if(is_driver_thread_) {
+//		MYLOG(1) << "Calling driver __fini__ function.";
+//		MainFuncType fini_func = Concurrit::driver_fini();
+//		if(fini_func != NULL) {
+//			main_args* args = Concurrit::driver_args();
+//			fini_func(args->argc_, args->argv_);
+//			Concurrit::set_driver_fini(NULL); // since we are calling it once
+//		}
+//	}
 
 	//------------------------------------------------------------
 	status_ = TERMINATED;

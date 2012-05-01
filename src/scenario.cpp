@@ -110,7 +110,7 @@ ThreadVarPtr Scenario::RunTestDriver() {
 
 		ThreadVarPtr var = CreateThread(Concurrit::CallDriverMain, NULL);
 		safe_assert(var != NULL && !var->is_empty());
-		var->thread()->set_is_driver_thread(true);
+//		var->thread()->set_is_driver_thread(true);
 
 		// wait for the loading of the test library
 		Concurrit::sem_driver_load()->Wait();

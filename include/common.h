@@ -320,8 +320,8 @@ private:
 	DECL_STATIC_FIELD_REF(main_args, driver_args)
 	DECL_STATIC_FIELD(void*, driver_handle)
 	DECL_STATIC_FIELD(MainFuncType, driver_main)
-	DECL_STATIC_FIELD(MainFuncType, driver_init)
-	DECL_STATIC_FIELD(MainFuncType, driver_fini)
+//	DECL_STATIC_FIELD(MainFuncType, driver_init)
+//	DECL_STATIC_FIELD(MainFuncType, driver_fini)
 	DECL_STATIC_FIELD(Semaphore*, sem_driver_load)
 };
 

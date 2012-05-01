@@ -43,8 +43,8 @@ volatile bool Concurrit::initialized_ = false;
 main_args Concurrit::driver_args_;
 void* Concurrit::driver_handle_ = NULL;
 MainFuncType Concurrit::driver_main_ = NULL;
-MainFuncType Concurrit::driver_init_ = NULL;
-MainFuncType Concurrit::driver_fini_ = NULL;
+//MainFuncType Concurrit::driver_init_ = NULL;
+//MainFuncType Concurrit::driver_fini_ = NULL;
 Semaphore* Concurrit::sem_driver_load_;
 
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
@@ -110,8 +110,8 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	// init test library. the library is to be loaded by RunTestDriver
 	Concurrit::driver_handle_ = NULL;
 	Concurrit::driver_main_ = NULL;
-	Concurrit::driver_init_ = NULL;
-	Concurrit::driver_fini_ = NULL;
+//	Concurrit::driver_init_ = NULL;
+//	Concurrit::driver_fini_ = NULL;
 
 	//==========================================
 
@@ -177,15 +177,15 @@ void Concurrit::LoadTestLibrary() {
 		}
 		Concurrit::driver_handle_ = handle;
 		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", handle, true);
-		Concurrit::driver_init_ = (MainFuncType) FuncAddressByName("__init__", handle, false);
-		Concurrit::driver_fini_ = (MainFuncType) FuncAddressByName("__fini__", handle, false);
+//		Concurrit::driver_init_ = (MainFuncType) FuncAddressByName("__init__", handle, false);
+//		Concurrit::driver_fini_ = (MainFuncType) FuncAddressByName("__fini__", handle, false);
 		MYLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
 		dlerror(); // Clear any existing error
 	} else {
 		Concurrit::driver_handle_ = NULL;
 		Concurrit::driver_main_ = NULL;
-		Concurrit::driver_init_ = NULL;
-		Concurrit::driver_fini_ = NULL;
+//		Concurrit::driver_init_ = NULL;
+//		Concurrit::driver_fini_ = NULL;
 		MYLOG(1) << "Not loading a test library";
 	}
 }
@@ -202,8 +202,8 @@ void Concurrit::UnloadTestLibrary() {
 
 	Concurrit::driver_handle_ = NULL;
 	Concurrit::driver_main_ = NULL;
-	Concurrit::driver_init_ = NULL;
-	Concurrit::driver_fini_ = NULL;
+//	Concurrit::driver_init_ = NULL;
+//	Concurrit::driver_fini_ = NULL;
 }
 
 /********************************************************************************/
@@ -249,12 +249,12 @@ void* Concurrit::CallDriverMain(void*) {
 
 	safe_assert(driver_args_.check());
 
-	MainFuncType init_func = Concurrit::driver_init();
-	if(init_func != NULL) {
-		MYLOG(1) << "Calling driver __init__ function.";
-		init_func(driver_args_.argc_, driver_args_.argv_);
-		Concurrit::set_driver_init(NULL); // since we are calling it once
-	}
+//	MainFuncType init_func = Concurrit::driver_init();
+//	if(init_func != NULL) {
+//		MYLOG(1) << "Calling driver __init__ function.";
+//		init_func(driver_args_.argc_, driver_args_.argv_);
+//		Concurrit::set_driver_init(NULL); // since we are calling it once
+//	}
 
 	// call the driver
 	main_func(driver_args_.argc_, driver_args_.argv_);
