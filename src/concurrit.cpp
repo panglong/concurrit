@@ -173,6 +173,7 @@ void Concurrit::LoadTestLibrary() {
 		LoadTestFunction(&Concurrit::driver_init_, "__init__", handle);
 		LoadTestFunction(&Concurrit::driver_fini_, "__fini__", handle);
 		MYLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
+		dlerror(); // Clear any existing error
 	} else {
 		Concurrit::driver_handle_ = NULL;
 		Concurrit::driver_main_ = NULL;
@@ -190,6 +191,7 @@ void Concurrit::UnloadTestLibrary() {
 	if(dlclose(Concurrit::driver_handle_)) {
 		safe_fail("Cannot unload the test library %s!\n", Config::TestLibraryFile);
 	}
+	dlerror(); // Clear any existing error
 
 	Concurrit::driver_handle_ = NULL;
 	Concurrit::driver_main_ = NULL;
