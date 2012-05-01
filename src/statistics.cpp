@@ -89,7 +89,7 @@ void Timer::stop() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMicroSec() {
-	if(elapsedTimeInMicroSec < 0.0f) {
+	if(!stopped || elapsedTimeInMicroSec < 0.0f) {
 		timeval diff = getElapsedTime();
 		elapsedTimeInMicroSec = (diff.tv_sec * (1000000.0f)) + diff.tv_usec;
 		safe_assert(elapsedTimeInMicroSec >= 0.0f);
@@ -100,7 +100,7 @@ double Timer::getElapsedTimeInMicroSec() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMilliSec() {
-	if(elapsedTimeInMilliSec < 0.0f) {
+	if(!stopped || elapsedTimeInMilliSec < 0.0f) {
 		elapsedTimeInMilliSec = this->getElapsedTimeInMicroSec() * (0.001f);
 		safe_assert(elapsedTimeInMilliSec >= 0.0f);
 	}
@@ -110,7 +110,7 @@ double Timer::getElapsedTimeInMilliSec() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInSec() {
-	if(elapsedTimeInSeconds < 0.0f) {
+	if(!stopped || elapsedTimeInSeconds < 0.0f) {
 		elapsedTimeInSeconds = this->getElapsedTimeInMicroSec() * (0.000001f);
 		safe_assert(elapsedTimeInSeconds >= 0.0f);
 	}
@@ -120,7 +120,7 @@ double Timer::getElapsedTimeInSec() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInMin() {
-	if(elapsedTimeInMinutes < 0.0f) {
+	if(!stopped || elapsedTimeInMinutes < 0.0f) {
 		elapsedTimeInMinutes = this->getElapsedTimeInSec() * (0.0166666667f);
 		safe_assert(elapsedTimeInMinutes >= 0.0f);
 	}
@@ -130,7 +130,7 @@ double Timer::getElapsedTimeInMin() {
 /********************************************************************************/
 
 double Timer::getElapsedTimeInHours() {
-	if(elapsedTimeInHours < 0.0f) {
+	if(!stopped || elapsedTimeInHours < 0.0f) {
 		elapsedTimeInHours = this->getElapsedTimeInMin() * (0.0166666667f);
 		safe_assert(elapsedTimeInHours >= 0.0f);
 	}

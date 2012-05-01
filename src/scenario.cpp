@@ -341,7 +341,7 @@ Result* Scenario::Explore() {
 					MYLOG(2) << SC_TITLE << "Backtracking: " << be->what();
 
 					// is backtrack is for terminating the search, exit the search loop
-					if(((--Config::ExitOnFirstExecution) <= 0) || be->reason() == SEARCH_ENDS) {
+					if((Config::ExitOnFirstExecution == 0) || ((--Config::ExitOnFirstExecution) == 0) || (be->reason() == SEARCH_ENDS)) {
 						goto LOOP_DONE; // break the outermost loop
 					}
 
@@ -2046,7 +2046,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 		safe_assert(BETWEEN(0, reploc.child_index(), 1));
 		TransferUntilNode* trans = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
 		safe_assert(trans != NULL);
-//		trans->Update(assertion, pred, var, trans_constraints_->Clone());
+		trans->Update(assertion, pred, var, trans_constraints_->Clone());
 
 		// update current node
 		exec_tree_.AddToNodeStack(reploc);
@@ -2124,7 +2124,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 		// if index is -1, then we should submit this select thread
 		if(child_index >= 0) {
 			// re-select the thread to update the associated thread variable
-//			select->Update(pred);
+			select->Update(pred);
 			select->set_selected_thread(child_index);
 			var = select->var(child_index);
 			safe_assert(var != NULL || !var->is_empty());
@@ -2217,7 +2217,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 		// if index is -1, then we should submit this select thread
 		if(child_index >= 0) {
 			// re-select the thread to update the associated thread variable
-//			select->Update(pred);
+			select->Update(pred);
 			var = select->var();
 			safe_assert(var != NULL || !var->is_empty());
 
