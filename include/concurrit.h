@@ -37,9 +37,9 @@
 #include "common.h"
 
 namespace concurrit {
-	extern const char* CONCURRIT_HOME;
+	extern std::string CONCURRIT_HOME;
 }
-#define InWorkDir(f)	((std::string(safe_notnull(CONCURRIT_HOME)) + "/work/" + (f)).c_str())
+#define InWorkDir(f)	(CONCURRIT_HOME + "/work/" + f)
 
 // google libraries
 #include <glog/logging.h>

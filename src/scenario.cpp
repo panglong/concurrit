@@ -693,12 +693,12 @@ void Scenario::Start() {
 	trans_constraints_->clear();
 
 	// open trace file
-	static const char* trace_file_name = InWorkDir("trace.txt");
-	if(trace_file_ == NULL) {
-		trace_file_ = my_fopen(trace_file_name, "w", EXIT_ON_FAIL);
-	} else {
-		trace_file_ = my_freopen(trace_file_name, "w", trace_file_, EXIT_ON_FAIL);
+	if(trace_file_ != NULL) {
+		my_fclose(trace_file_, EXIT_ON_FAIL);
+		trace_file_ = NULL;
 	}
+	static std::string trace_file_name = InWorkDir("trace.txt");
+	trace_file_ = my_fopen(safe_notnull(trace_file_name.c_str()), "w", EXIT_ON_FAIL);
 	safe_assert(trace_file_ != NULL);
 }
 

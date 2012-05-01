@@ -190,11 +190,11 @@ namespace concurrit {
 #include <execinfo.h>
 void print_stack_trace();
 
-#define safe_exit(c)	fprintf(stderr, "Terminating with exit-code: %s.\n", #c); exit(c)
-#define safe_fail(...) 	fprintf(stderr, __VA_ARGS__); fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
-						concurrit::print_stack_trace(); \
-						fflush(stderr); \
-						_Exit(UNRECOVERABLE_ERROR); \
+#define safe_exit(c)	fprintf(stderr, "Terminating with exit-code: %s.\n", #c); _Exit(c)
+#define safe_fail(...) 	fprintf(stderr, __VA_ARGS__); fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); raise(SIGTERM);
+//						concurrit::print_stack_trace(); \
+//						fflush(stderr); \
+//						_Exit(UNRECOVERABLE_ERROR); \
 
 #ifdef SAFE_ASSERT
 #define NDEBUG
@@ -391,7 +391,6 @@ std::string vector_to_string(const std::vector<T>& v) {
 
 FILE* my_fopen(const char * filename, const char * mode, bool exit_on_fail = true);
 void my_fclose(FILE* file, bool exit_on_fail = true);
-FILE* my_freopen(const char * filename, const char * mode, FILE* file, bool exit_on_fail = true);
 
 main_args StringToMainArgs(const std::string& s, bool add_program_name = false);
 main_args StringToMainArgs(const char* s, bool add_program_name = false);

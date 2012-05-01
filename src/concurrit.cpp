@@ -37,7 +37,7 @@ namespace concurrit {
 
 /********************************************************************************/
 
-const char* CONCURRIT_HOME = NULL;
+std::string CONCURRIT_HOME;
 
 volatile bool Concurrit::initialized_ = false;
 main_args Concurrit::driver_args_;
@@ -51,7 +51,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
 
 	// init work dir
-	CONCURRIT_HOME = getenv("CONCURRIT_HOME");
+	CONCURRIT_HOME = std::string(safe_notnull(getenv("CONCURRIT_HOME")));
 
 	//==========================================
 

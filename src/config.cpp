@@ -105,7 +105,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			if(optarg != NULL) {
 				Config::SaveDotGraphToFile = strdup(optarg);
 			} else {
-				Config::SaveDotGraphToFile = strdup(const_cast<char*>(InWorkDir("exec_tree.dot")));
+				Config::SaveDotGraphToFile = strdup(const_cast<char*>(InWorkDir("exec_tree.dot").c_str()));
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
 			break;
