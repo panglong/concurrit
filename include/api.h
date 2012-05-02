@@ -102,7 +102,6 @@ namespace concurrit {
 /********************************************************************************/
 
 // for loops until some condition (e.g., all coroutines end)
-#define DO				do
 #define ALL_ENDED		(AllEnded())
 #define UNTIL_ALL_END	while(!ALL_ENDED)
 #define UNTIL_ENDS(c)	while(!(c)->is_ended())
@@ -227,6 +226,7 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define IF_NDSTAR					STAR(true, if, true, "IF_NDSTAR")
 
 #define ELSE						else
+#define DO							do
 
 /********************************************************************************/
 
@@ -403,6 +403,18 @@ inline TransitionPredicatePtr _RETURNS(void* f = NULL, ThreadVarPtr t = ThreadVa
 
 #define TO_ENTER(...)	ENTERS(__VA_ARGS__)
 #define TO_RETURN(...)	RETURNS(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _CALLS(void* f = NULL, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	if(f == NULL)
+		return safe_notnull(AuxState::CallsTo.get())->TP0(AuxState::CallsTo, t);
+	else
+		return safe_notnull(AuxState::CallsTo.get())->TP3(AuxState::CallsTo, PTR2ADDRINT(f), true, t);
+}
+
+#define CALLS(...)		_CALLS(__VA_ARGS__)
 
 /********************************************************************************/
 

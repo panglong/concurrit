@@ -15,9 +15,9 @@
 
 #include "dummy.h" // concurrit
 
-#ifdef ERR1
-void thrilleAssertC(int);
-#endif
+//#ifdef ERR1
+//void thrilleAssertC(int);
+//#endif
 
 #ifndef _RADIXSORT_H
 #define _RADIXSORT_H
@@ -478,9 +478,9 @@ void radixsort_check(long q,
 	      "ERROR: q:%ld lSorted[%6ld] > lSorted[%6ld] (%6d,%6d)\n",
 	      q,i-1,i,lSorted[i-1],lSorted[i]);
 #ifdef ERR1
-      thrilleAssertC(0);
-#endif
+//      thrilleAssertC(0);
       concurritAssert(0);
+#endif
     }
 }
 
@@ -1442,7 +1442,8 @@ void SWARM_Init(int *argc, char* **argv)
     SWARM_outfile  = stdout;
     SWARM_outfilename = NULL;
     
-    moreargs = SWARM_read_arguments (*argc, *argv);
+    moreargs = 0; // SWARM_read_arguments (*argc, *argv);
+    THREADS = 2;
 
 #if INFO
     fprintf(SWARM_outfile,"THREADS: %d\n", THREADS);
@@ -2207,7 +2208,7 @@ static void *swarmtest(THREADED)
 }
 
 static
-int main(int argc, char **argv) 
+int main0(int argc, char **argv)
 {
   SWARM_Init(&argc,&argv);
   SWARM_Run((void *)swarmtest);
@@ -2221,7 +2222,7 @@ int main(int argc, char **argv)
 extern "C" {
 #endif
 int __main__(int argc, char* argv[]) {
-	return main(argc, argv);
+	return main0(argc, argv);
 }
 #ifdef __cplusplus
 } // extern "C"

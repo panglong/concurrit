@@ -1,3 +1,7 @@
+Notes:
+some effect: force program to a specific condition that will make some threads to contend.
+
+
 move test library loading calling to TestDriver class
 
 https://bugzilla.mozilla.org/show_bug.cgi?id=546828
