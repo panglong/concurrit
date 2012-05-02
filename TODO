@@ -1,6 +1,10 @@
 Notes:
 some effect: force program to a specific condition that will make some threads to contend.
-
+While() {...} yerine do while daha iyi olabilir, yoksa ilk unsatisfied olunca infinite loop olusuyor.
+RUN_UNTIL(BY(t), (READS() || WRITES() || ENDS() || CALLS()), "Run t until ...");
+WHILE_STAR {
+	RUN_UNTIL(BY(t), (READS() || WRITES() || ENDS() || CALLS()), "Run t until ...");
+}
 
 move test library loading calling to TestDriver class
 

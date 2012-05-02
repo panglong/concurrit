@@ -236,7 +236,7 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 	}
 	safe_assert(!PinMonitor::IsDown());
 
-	MYLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr;
+	MYLOG(2) << "Calling pinmonitor method " << info->type << " threadid " << info->threadid << " addr " << info->addr << " target addr " << info->addr_target;
 
 	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(info->threadid));
 	safe_assert(!current->IsMain());

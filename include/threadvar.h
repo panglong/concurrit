@@ -47,7 +47,9 @@ class Coroutine;
 
 class FuncVar {
 public:
-	explicit FuncVar(void* addr) : addr_(PTR2ADDRINT(safe_notnull(addr))) {}
+	explicit FuncVar(void* addr) : addr_(PTR2ADDRINT(safe_notnull(addr))) {
+		MYLOG(1) << "Creating function variable for " << addr;
+	}
 	~FuncVar() {}
 
 	operator ADDRINT() { return addr_; }
