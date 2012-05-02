@@ -1,10 +1,17 @@
+
 Notes:
-some effect: force program to a specific condition that will make some threads to contend.
+some effect: force program to a specific condition that will make some threads to contend. It will not lead to the bug, but help to reach a buggy situation
 While() {...} yerine do while daha iyi olabilir, yoksa ilk unsatisfied olunca infinite loop olusuyor.
 RUN_UNTIL(BY(t), (READS() || WRITES() || ENDS() || CALLS()), "Run t until ...");
 WHILE_STAR {
 	RUN_UNTIL(BY(t), (READS() || WRITES() || ENDS() || CALLS()), "Run t until ...");
 }
+
+hepsini ayni yere toplama
+RUN_UNTIL(NOT(tm), HITS_PC(42), t1, "until t1 enters");
+RUN_UNTIL(NOT(tm) && NOT(t1), HITS_PC(42), t2, "until t2 enters");
+RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), HITS_PC(42), t3, "until t3 enters");
+
 
 move test library loading calling to TestDriver class
 

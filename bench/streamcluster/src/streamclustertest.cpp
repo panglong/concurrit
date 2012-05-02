@@ -11,32 +11,54 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
 
-		MAX_WAIT_TIME(60*USECSPERSEC);
+		MAX_WAIT_TIME(0);
 
 		FUNC(ls, localSearch);
 		FUNC(lss, localSearchSub);
+		FUNC(median, pkmedian);
+		FUNC(barrier, my_pthread_barrier_wait);
 
 		EXISTS(tm, IN_FUNC(ls), "Main");
+		RUN_UNTIL(BY(tm), HITS_PC(1), "Main creates threads");
 
 		//---------------------------------
 
 		TVAR(t1);
-		RUN_UNTIL(PTRUE, ENTERS(lss), t1, "until t1 enters");
-
 		TVAR(t2);
-		RUN_UNTIL(NOT(t1), ENTERS(lss), t2, "until t2 enters");
-
 		TVAR(t3);
-		RUN_UNTIL(NOT(t1) && NOT(t2), ENTERS(lss), t3, "until t3 enters");
+
+		RUN_UNTIL(NOT(tm), HITS_PC(42), t1, "until t1 enters");
+		RUN_UNTIL(NOT(tm) && NOT(t1), HITS_PC(42), t2, "until t2 enters");
+		RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), HITS_PC(42), t3, "until t3 enters");
 
 		//---------------------------------
 
-#define BRK1(t)	 (AT_PC2(42, t) || AT_PC2(45, t) || ENDS2(t))
-#define BRK2(t)	 (AT_PC2(43, t) || AT_PC2(45, t) || ENDS2(t))
 
-		WHILE_STAR {
-			RUN_UNTIL(NOT(tm) && !AT_PC(44), BRK1(t1) && BRK1(t2) && BRK1(t3), __, "Run until 42");
-			RUN_UNTIL(NOT(tm), BRK2(t1), __, "Run until 43");
+#define BY_ANY()			 (BY(t1) || BY(t2) || BY(t3))
+#define ENTERS_BARRIER(t)	 (ENTERS(barrier, t) || RETURNS(median, t))
+#define EXITS_BARRIER(t)	 (RETURNS(barrier, t) || RETURNS(median, t))
+
+#define COND()	 (READS() || WRITES() || CALLS() || BRK(TID))
+
+		MAX_WAIT_TIME(3*USECSPERSEC);
+
+		RUN_UNTIL(NOT(tm), ENTERS_BARRIER(TID), t1, "until t1 enters");
+		RUN_UNTIL(NOT(tm) && NOT(t1), ENTERS_BARRIER(TID), t2, "until t2 enters");
+		RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), ENTERS_BARRIER(TID), t3, "until t3 enters");
+
+		WHILE_STAR // each phase
+		{
+			RUN_UNTIL(NOT(tm), EXITS_BARRIER(TID), t1, "until t1 enters");
+			RUN_UNTIL(NOT(tm) && NOT(t1), EXITS_BARRIER(TID), t2, "until t2 enters");
+			RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), EXITS_BARRIER(TID), t3, "until t3 enters");
+
+			FORALL(tt1, BY_ANY(), "Select tt1");
+			FORALL(tt2, BY_ANY() && NOT(tt1), "Select tt1");
+			FORALL(tt3, BY_ANY() && NOT(tt1) && NOT(tt2), "Select tt1");
+
+			RUN_UNTIL(BY(tt1), ENTERS_BARRIER(tt1), "Run tt1 until ...");
+			RUN_UNTIL(BY(tt2), ENTERS_BARRIER(tt2), "Run tt2 until ...");
+			RUN_UNTIL(BY(tt3), ENTERS_BARRIER(tt3), "Run tt3 until ...");
 		}
 
 

@@ -1,5 +1,4 @@
-TARGET=streamcluster
-SRCS=src/$(TARGET)test.cpp
+BENCH=streamcluster
 
 LIBSRCS=src/streamcluster.cpp
 LIBFLAGS=-DENABLE_THREADS -DERR1

@@ -37,10 +37,24 @@ using namespace tbb;
 
 #include "dummy.h"
 
-#ifdef ERR1
+extern "C" int my_pthread_barrier_wait(pthread_barrier_t *barrier);
+
+int my_pthread_barrier_wait(pthread_barrier_t *barrier) {
+	concurritFuncEnter(reinterpret_cast<void*>(my_pthread_barrier_wait));
+	concurritControl();
+
+	pthread_barrier_wait(barrier);
+
+	concurritFuncReturn(reinterpret_cast<void*>(my_pthread_barrier_wait));
+	concurritControl();
+}
+
+
+
+//#ifdef ERR1
 //#define malloc thrilleMallocCPP
 //void * thrilleMallocCPP(size_t);
-#endif
+//#endif
 
 using namespace std;
 
@@ -709,7 +723,7 @@ float pspeedy(Points *points, float z, long *kcenter)
 float pspeedy(Points *points, float z, long *kcenter, int pid, pthread_barrier_t* barrier)
 {
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   //my block
   long bsize = points->num/nproc;
@@ -758,8 +772,8 @@ float pspeedy(Points *points, float z, long *kcenter, int pid, pthread_barrier_t
 	    }
 	}
 #ifdef ENABLE_THREADS
-      pthread_barrier_wait(barrier);
-      pthread_barrier_wait(barrier);
+      my_pthread_barrier_wait(barrier);
+      my_pthread_barrier_wait(barrier);
 #endif
     } 
   }
@@ -784,11 +798,11 @@ float pspeedy(Points *points, float z, long *kcenter, int pid, pthread_barrier_t
 	  }
 	}
 #ifdef ENABLE_THREADS
-	pthread_barrier_wait(barrier);
+	my_pthread_barrier_wait(barrier);
 #endif
 	open = false;
 #ifdef ENABLE_THREADS
-	pthread_barrier_wait(barrier);
+	my_pthread_barrier_wait(barrier);
 #endif
       }
     }
@@ -802,7 +816,7 @@ float pspeedy(Points *points, float z, long *kcenter, int pid, pthread_barrier_t
 #endif
   }
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   open = false;
   double mytotal = 0;
@@ -811,7 +825,7 @@ float pspeedy(Points *points, float z, long *kcenter, int pid, pthread_barrier_t
   }
   costs[pid] = mytotal;
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   // aggregate costs from each thread
   if( pid == 0 )
@@ -824,7 +838,7 @@ float pspeedy(Points *points, float z, long *kcenter, int pid, pthread_barrier_t
       free(costs);
     }
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   return(totalcost);
@@ -955,7 +969,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
 {
   //  printf("pgain pthread %d begin\n",pid);
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   //my block
@@ -990,7 +1004,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
   }
 
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   /*For each center, we have a *lower* field that indicates 
     how much we will save by closing the center. 
@@ -1007,7 +1021,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
   work_mem[pid*stride] = count;
 
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   if( pid == 0 ) {
@@ -1020,7 +1034,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
   }
 
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   for( int i = k1; i < k2; i++ ) {
@@ -1035,7 +1049,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
   if( pid== 0 ) memset(work_mem+nproc*stride,0,stride*sizeof(double));
 
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   
   //my *lower* fields
@@ -1072,7 +1086,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
   }
 
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   // at this time, we can calculate the cost of opening a center
@@ -1101,7 +1115,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
   work_mem[pid*stride + K+1] = cost_of_opening_x;
 
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   //  printf("thread %d cost complete\n",pid); 
 
@@ -1114,7 +1128,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
     }
   }
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   // Now, check whether opening x would save cost; if so, do it, and
   // otherwise do nothing
@@ -1149,7 +1163,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid, pt
       gl_cost_of_opening_x = 0;  // the value we'll return
   }
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   if( pid == 0 ) {
     free(work_mem);
@@ -1211,7 +1225,7 @@ float pFL(Points *points, int *feasible, int numfeasible,
 	  int pid, pthread_barrier_t* barrier)
 {
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
   long i;
   long x;
@@ -1230,7 +1244,7 @@ float pFL(Points *points, int *feasible, int numfeasible,
       intshuffle(feasible, numfeasible);
     }
 #ifdef ENABLE_THREADS
-    pthread_barrier_wait(barrier);
+    my_pthread_barrier_wait(barrier);
 #endif
     for (i=0;i<iter;i++) {
       x = i%numfeasible;
@@ -1238,7 +1252,7 @@ float pFL(Points *points, int *feasible, int numfeasible,
     }
     cost -= change;
 #ifdef ENABLE_THREADS
-    pthread_barrier_wait(barrier);
+    my_pthread_barrier_wait(barrier);
 #endif
   }
   return(cost);
@@ -1476,6 +1490,10 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
 
 #else //!TBB_VERSION
 
+extern "C"
+float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
+	       int pid, pthread_barrier_t* barrier );
+
 /* compute approximate kmedian on the points */
 float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
 	       int pid, pthread_barrier_t* barrier )
@@ -1502,7 +1520,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
   if( pid == nproc-1 ) k2 = points->num;
 
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   double myhiz = 0;
@@ -1513,7 +1531,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
   hizs[pid] = myhiz;
 
 #ifdef ENABLE_THREADS  
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   for( int i = 0; i < nproc; i++ )   {
@@ -1567,16 +1585,14 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
       }
     }
 
+  concurritAtPc(42);
+  concurritAtPc(421);
+
 #ifdef ENABLE_THREADS
-  pthread_barrier_wait(barrier);
+  my_pthread_barrier_wait(barrier);
 #endif
 
   while(1) {
-	  printf("%d AT 42!!!\n", pid);
-	  concurritAtPc(42);
-	  printf("%d AT 44!!!\n", pid);
-	  concurritAtPc(44);
-
 
     /* first get a rough estimate on the FL solution */
     lastcost = cost;
@@ -1612,10 +1628,8 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
       { 
 	break;
       }
-    printf("%d AT 43!!!\n", pid);
-    concurritAtPc(43);
 #ifdef ENABLE_THREADS
-    pthread_barrier_wait(barrier);
+    my_pthread_barrier_wait(barrier);
 #endif
   }
 
@@ -1625,9 +1639,6 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
     free(hizs);
     *kfinal = k;
   }
-
-  printf("%d ENDING!!!\n", pid);
-  concurritAtPc(45);
 
   return cost;
 }
@@ -1747,6 +1758,9 @@ void localSearch( Points* points, long kmin, long kmax, long* kfinal ) {
       localSearchSub(&arg[0]);
 #endif
     }
+
+
+    concurritAtPc(1);
 
 #ifdef ENABLE_THREADS
     for ( int i = 0; i < nproc; i++) {
