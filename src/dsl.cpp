@@ -247,7 +247,9 @@ void ExecutionTree::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
 
 	if(Config::SaveExecutionTraceToFile) {
 		SourceLocation* srcloc = current->srcloc();
-		fprintf(safe_notnull(Scenario::trace_file()), "C TID:%2d: [%s] -- [%s]\n", current->tid(), static_info_->message().c_str(), (srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()));
+		FILE* trace_file = safe_notnull(Scenario::trace_file());
+		fprintf(trace_file, "C TID:%2d: [%s] -- [%s]\n", current->tid(), static_info_->message().c_str(), (srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()));
+		fflush(trace_file);
 	}
 }
 
@@ -267,7 +269,9 @@ void TransitionNode::OnTaken(Coroutine* current, int child_index /*= 0*/) {
 
 	if(Config::SaveExecutionTraceToFile) {
 		SourceLocation* srcloc = current->srcloc();
-		fprintf(safe_notnull(Scenario::trace_file()), "T TID:%2d: [%s] -- [%s]\n", current->tid(), static_info_->message().c_str(), (srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()));
+		FILE* trace_file = safe_notnull(Scenario::trace_file());
+		fprintf(trace_file, "T TID:%2d: [%s] -- [%s]\n", current->tid(), static_info_->message().c_str(), (srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()));
+		fflush(trace_file);
 	}
 }
 
