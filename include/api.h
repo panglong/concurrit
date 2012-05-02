@@ -456,6 +456,11 @@ inline TransitionPredicatePtr _WITH_ARG0(void* f, const AuxVar0_ADDRINT_PTR& arg
 	return safe_notnull(AuxState::Arg0.get())->TP5(AuxState::Arg0, PTR2ADDRINT(f), arg0, t);
 }
 
+inline TransitionPredicatePtr _WITH_ARG0(void* f, ADDRINT arg0, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Arg0.get())->TP3(AuxState::Arg0, PTR2ADDRINT(f), arg0, t);
+}
+
 #define WITH_ARG0(...)		_WITH_ARG0(__VA_ARGS__)
 
 /********************************************************************************/

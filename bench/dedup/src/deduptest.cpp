@@ -12,49 +12,47 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 //	TESTCASE() {
 //
-//		MAX_WAIT_TIME(3*USECSPERSEC);
+//		MAX_WAIT_TIME(10*USECSPERSEC);
 //
-//		FUNC(dq, dequeue);
+//		FUNC(f, dequeue);
 //
-//		NDSequentialSearch();
+//		FORALL(t1, IN_FUNC(f), "T1");
+//
+//		ADDRINT qptr = AuxState::Arg0->get(f, t1->tid());
+//
+//		RUN_UNTIL(PTRUE, AT_PC(42, t1) || RETURNS(f, t1), __, "T1 reaches 42");
+//
+//		RUN_UNTIL(NOT(t1) && IN_FUNC(f) && WITH_ARG0(f, qptr), RETURNS(f), __, "Other threads");
+//
+//		if(IN_FUNC(f, t1)) {
+//			RUN_UNTIL(PTRUE, RETURNS(f, t1), __, "T1 returning");
+//		} else {
+//			printf("t1 returned from dq!\n");
+//		}
 //
 //	}
 
-//	TESTCASE() {
-//
-//		MAX_WAIT_TIME(3*USECSPERSEC);
-//
-//		FUNC(dq, dequeue);
-//
-//		FORALL(t1, IN_FUNC(dq), "T1");
-//
-////		RUN_UNTIL(PTRUE, AT_PC2(42, t1), __, "T1 starting");
-//		RUN_UNTIL(PTRUE, AT_PC(42, t1), __, "T1 starting");
-//
-//		RUN_UNTIL(NOT(t1) && IN_FUNC(dq), RETURNS(dq), __, "Other threads");
-//
-//		RUN_UNTIL(STEP(t1), RETURNS(dq), __, "T1 returning");
-//
-//	}
 
 	TESTCASE() {
 
-		MAX_WAIT_TIME(10*USECSPERSEC);
+		MAX_WAIT_TIME(0);
 
-		FUNC(dq, dequeue);
+		FUNC(f, dequeue);
 
-		AVAR(qptr);
+		EXISTS(t1, IN_FUNC(f), "Select t1");
+		ADDRINT qptr = AuxState::Arg0->get(f, t1->tid());
 
-		FORALL(t1, IN_FUNC(dq) && WITH_ARG0(dq, qptr), "T1");
+		MAX_WAIT_TIME(15*USECSPERSEC);
 
-		RUN_UNTIL(PTRUE, AT_PC(42, t1) || RETURNS(dq, t1), __, "T1 reaches 42");
+		EXISTS(t2, IN_FUNC(f) && NOT(t1) && WITH_ARG0(f, qptr), "Select t2");
 
-		RUN_UNTIL(NOT(t1) && IN_FUNC(dq) && WITH_ARG0(dq, qptr), RETURNS(dq), __, "Other threads");
+		MAX_WAIT_TIME(USECSPERSEC);
 
-		if(IN_FUNC(dq, t1)) {
-			RUN_UNTIL(PTRUE, RETURNS(dq, t1), __, "T1 returning");
-		} else {
-			printf("t1 returned from dq!\n");
+		WHILE_STAR
+		{
+			FORALL(t, BY(t1) || BY(t2), "Select t");
+
+			RUN_UNTIL(BY(t), READS() || WRITES() || HITS_PC(), "Step t");
 		}
 
 	}

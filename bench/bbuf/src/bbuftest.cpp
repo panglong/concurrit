@@ -17,7 +17,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		MAX_WAIT_TIME(0);
 
 		EXISTS(t1, IN_FUNC(f_get), "Select t1");
-		EXISTS(t2, IN_FUNC(f_get), "Select t2");
+		EXISTS(t2, IN_FUNC(f_get) && NOT(t1), "Select t2");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
