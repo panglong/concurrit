@@ -211,7 +211,8 @@ public:
 
 	static void clear() {
 		for(AddrToLocMap::iterator itr = addrToLoc_.begin(); itr != addrToLoc_.end(); ++itr) {
-			safe_delete(itr->second);
+			safe_assert(itr->second != NULL);
+			delete itr->second;
 		}
 		addrToLoc_.clear();
 	}

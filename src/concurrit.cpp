@@ -251,7 +251,7 @@ void Concurrit::InstallSignalHandler() {
 	struct sigaction sig_action;
 	memset(&sig_action, 0, sizeof(sig_action));
 	sigemptyset(&sig_action.sa_mask);
-	sig_action.sa_flags |= SA_RESTART;
+//	sig_action.sa_flags |= SA_RESTART;
 	sig_action.sa_handler = &Concurrit::SignalHandler;
 
 	for (size_t i = 0; i < 3; ++i) {
