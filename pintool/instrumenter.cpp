@@ -293,7 +293,7 @@ public:
 		const std::string& name = RTN_Name(rtn);
 		if(RTNNamesToInstrument.find(name) != RTNNamesToInstrument.end()) {
 			// found
-			log_file << "Detected routine to instrument: " << name << std::endl;
+			log_file << "Detected routine to instrument: " << name << " at address " << addr << std::endl;
 			RTNIdsToInstrumentType::accessor acc;
 			RTNIdsToInstrument.insert(acc, addr);
 			acc->second = TRUE;
@@ -301,7 +301,7 @@ public:
 		} else
 		if(RTNNamesToSkip.find(name) != RTNNamesToSkip.end()) {
 			// found
-			log_file << "Detected routine to skip: " << name << std::endl;
+			log_file << "Detected routine to skip: " << name << " at address " << addr << std::endl;
 			RTNIdsToSkipType::accessor acc;
 			RTNIdsToSkip.insert(acc, addr);
 			acc->second = TRUE;
@@ -678,19 +678,20 @@ LOCALVAR std::vector<string> FilteredImages;
 typedef tbb::concurrent_hash_map<UINT32,BOOL> FilteredImageIdsType;
 LOCALVAR FilteredImageIdsType FilteredImageIds;
 
-LOCALFUN void InitFilteredImages(const char* filename) {
+LOCALFUN INLINE
+void InitFilteredImages(const char* filename) {
 	safe_assert(filename != NULL);
 
 	FilteredImages.clear();
 	concurrit::ReadLinesFromFile(filename, &FilteredImages, false, '#');
-
 }
 
 /* ===================================================================== */
 
 LOCALVAR volatile bool is_concurrit_loaded = false;
 
-LOCALFUN VOID OnLoadConcurrit(IMG img) {
+LOCALFUN INLINE
+VOID OnLoadConcurrit(IMG img) {
 	safe_assert(!is_concurrit_loaded);
 
 	for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
@@ -699,9 +700,12 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 		{
 			if(RTN_Name(rtn) == NativePinMonitorFunName) {
 				RTN_Open(rtn);
+
 				NativePinMonitorFunPtr = RTN_Funptr(rtn);
+
+				log_file << "Detected callback to concurrit: " << NativePinMonitorFunName << " at address " << RTN_Address(rtn) << std::endl;
+
 				RTN_Close(rtn);
-				log_file << "Detected callback to concurrit: " << NativePinMonitorFunName << endl;
 
 			} else if(RTN_Name(rtn) == NativePinEnableFunName) {
 				RTN_Open(rtn);
@@ -709,8 +713,9 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinEnable), IARG_FAST_ANALYSIS_CALL,
 						IARG_END);
 
+				log_file << "Detected callback to concurrit: " << NativePinEnableFunName << " at address " << RTN_Address(rtn) << std::endl;
+
 				RTN_Close(rtn);
-				log_file << "Detected callback to concurrit: " << NativePinEnableFunName << endl;
 
 			}  else if(RTN_Name(rtn) == NativePinDisableFunName) {
 				RTN_Open(rtn);
@@ -718,9 +723,9 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinDisable), IARG_FAST_ANALYSIS_CALL,
 						IARG_END);
 
-				RTN_Close(rtn);
+				log_file << "Detected callback to concurrit: " << NativePinDisableFunName << " at address " << RTN_Address(rtn) << std::endl;
 
-				log_file << "Detected callback to concurrit: " << NativePinDisableFunName << endl;
+				RTN_Close(rtn);
 
 			} else if(RTN_Name(rtn) == NativeThreadRestartFunName) {
 				RTN_Open(rtn);
@@ -728,9 +733,9 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(ThreadRestart), IARG_FAST_ANALYSIS_CALL,
 						IARG_THREAD_ID, IARG_END);
 
-				RTN_Close(rtn);
+				log_file << "Detected callback to concurrit: " << NativeThreadRestartFunName << " at address " << RTN_Address(rtn) << std::endl;
 
-				log_file << "Detected callback to concurrit: " << NativeThreadRestartFunName << endl;
+				RTN_Close(rtn);
 
 			} else if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
 				RTN_Open(rtn);
@@ -738,9 +743,9 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(StartInstrument), IARG_FAST_ANALYSIS_CALL,
 						IARG_THREAD_ID, IARG_END);
 
-				RTN_Close(rtn);
+				log_file << "Detected callback to concurrit: " << NativeStartInstrumentFunName << " at address " << RTN_Address(rtn) << std::endl;
 
-				log_file << "Detected callback to concurrit: " << NativeStartInstrumentFunName << endl;
+				RTN_Close(rtn);
 
 			} else if(RTN_Name(rtn) == NativeEndInstrumentFunName) {
 				RTN_Open(rtn);
@@ -748,9 +753,9 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(EndInstrument), IARG_FAST_ANALYSIS_CALL,
 						IARG_THREAD_ID, IARG_END);
 
-				RTN_Close(rtn);
+				log_file << "Detected callback to concurrit: " << NativeEndInstrumentFunName << " at address " << RTN_Address(rtn) << std::endl;
 
-				log_file << "Detected callback to concurrit: " << NativeEndInstrumentFunName << endl;
+				RTN_Close(rtn);
 
 			} else if(RTN_Name(rtn) == NativePinShutdownFunName) {
 				RTN_Open(rtn);
@@ -758,9 +763,9 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinShutdown), IARG_FAST_ANALYSIS_CALL,
 						IARG_END);
 
-				RTN_Close(rtn);
+				log_file << "Detected callback to concurrit: " << NativePinShutdownFunName << " at address " << RTN_Address(rtn) << std::endl;
 
-				log_file << "Detected callback to concurrit: " << NativePinShutdownFunName << endl;
+				RTN_Close(rtn);
 			}
 		}
 	}
@@ -774,7 +779,8 @@ LOCALFUN VOID OnLoadConcurrit(IMG img) {
 
 /* ===================================================================== */
 
-LOCALFUN BOOL IsImageFiltered(IMG img) {
+LOCALFUN INLINE
+BOOL IsImageFiltered(IMG img) {
 	if(IMG_IsMainExecutable(img)) {
 		return TRUE;
 	}
@@ -793,7 +799,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 	for(std::vector<string>::iterator itr = FilteredImages.begin(); itr < FilteredImages.end(); ++itr) {
 		if(img_name.find(*itr) != string::npos) {
 
-			log_file << "--- IMG --- " << IMG_Name(img) << endl;
+			log_file << "--- IMG --- " << IMG_Name(img) << std::endl;
 			FilteredImageIdsType::accessor acc;
 			FilteredImageIds.insert(acc, img_id);
 			acc->second = TRUE;
@@ -809,7 +815,7 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 		}
 	}
 
-	log_file << "+++ IMG +++ " << IMG_Name(img) << endl;
+	log_file << "+++ IMG +++ " << IMG_Name(img) << std::endl;
 	FilteredImageIdsType::accessor acc;
 	FilteredImageIds.insert(acc, img_id);
 	acc->second = FALSE;
@@ -818,7 +824,8 @@ LOCALFUN BOOL IsImageFiltered(IMG img) {
 
 /* ===================================================================== */
 
-INLINE LOCALFUN BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr) {
+LOCALFUN INLINE
+BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr) {
 	if(RTN_Valid(rtn)) {
 		// be careful to always call IsImageFiltered
 		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)))
@@ -972,6 +979,7 @@ VOID Instruction(INS ins, RTN rtn, ADDRINT rtn_addr) {
 
 /* ===================================================================== */
 
+LOCALFUN
 VOID Routine(RTN rtn, VOID *v) {
 
 	if(!RTN_Valid(rtn)) return;
@@ -998,7 +1006,7 @@ VOID Routine(RTN rtn, VOID *v) {
 	PinSourceLocation* loc = PinSourceLocation::get(rtn);
 	safe_assert(PTR2ADDRINT(loc->pointer()) == rtn_addr);
 
-	log_file << "+++ RTN +++ " << RTN_Name(rtn) << endl;
+	log_file << "+++ RTN +++ " << RTN_Name(rtn) << " at address " << rtn_addr << std::endl;
 
 	// check if start/end instrument
 	if(RTN_Name(rtn) == NativeStartInstrumentFunName) {
@@ -1046,7 +1054,8 @@ VOID Routine(RTN rtn, VOID *v) {
 
 /* ===================================================================== */
 
-LOCALFUN VOID ImageLoad(IMG img, VOID *) {
+LOCALFUN
+VOID ImageLoad(IMG img, VOID *) {
 
 	// filter out standard libraries
 	// also updates filtered image ids
@@ -1076,9 +1085,10 @@ LOCALFUN VOID ImageLoad(IMG img, VOID *) {
 
 /* ===================================================================== */
 
-LOCALFUN VOID ImageUnload(IMG img, VOID *) {
+LOCALFUN
+VOID ImageUnload(IMG img, VOID *) {
 
-	log_file << "Unloading image: " << IMG_Name(img) << endl;
+	log_file << "Unloading image: " << IMG_Name(img) << std::endl;
 
 	// delete filtering info about this image
 	UINT32 img_id = IMG_Id(img);
@@ -1087,6 +1097,7 @@ LOCALFUN VOID ImageUnload(IMG img, VOID *) {
 
 /* ===================================================================== */
 
+LOCALFUN
 VOID Trace(TRACE trace, VOID *v) {
 
 	if (!filter.SelectTrace(trace)) return;
@@ -1108,6 +1119,7 @@ VOID Trace(TRACE trace, VOID *v) {
 
 /* ===================================================================== */
 
+LOCALFUN
 VOID Fini(INT32 code, VOID *v) {
 	timer.stop();
 
@@ -1116,6 +1128,13 @@ VOID Fini(INT32 code, VOID *v) {
 	PIN_DeleteThreadDataKey(tls_key);
 
 	log_file.close();
+}
+
+/* ===================================================================== */
+
+LOCALFUN
+VOID Detach(VOID *v) {
+	Fini(EXIT_SUCCESS, v);
 }
 
 /* ===================================================================== */
@@ -1231,6 +1250,7 @@ int main(int argc, CHAR *argv[]) {
 	PIN_AddThreadFiniFunction(ThreadFini, 0);
 
 	PIN_AddFiniFunction(Fini, 0);
+	PIN_AddDetachFunction(Detach, 0);
 
 	IMG_AddInstrumentFunction(ImageLoad, 0);
 	IMG_AddUnloadFunction(ImageUnload, 0);
