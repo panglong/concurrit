@@ -77,13 +77,7 @@ private:
 
 class ExecutionTree : public Writable {
 public:
-	ExecutionTree(StaticDSLInfo* static_info = NULL, ExecutionTree* parent = NULL, int num_children = 0)
-	: static_info_(static_info), parent_(parent), covered_(false) {
-		safe_assert(static_info_ != NULL);
-		InitChildren(num_children);
-
-		safe_notnull(Scenario::Current())->counter("Num execution-tree nodes").increment();
-	}
+	ExecutionTree(StaticDSLInfo* static_info = NULL, ExecutionTree* parent = NULL, int num_children = 0);
 
 	virtual ~ExecutionTree();
 
