@@ -45,12 +45,7 @@ public:
 	virtual ~Result() {}
 
 	virtual bool IsSuccess() = 0;
-	virtual std::string ToString() {
-		std::stringstream s;
-		s << "************* Statistics *************\n";
-		s << statistics_.ToString() << "\n";
-		return s.str();
-	}
+	virtual std::string ToString() = 0;
 
 private:
 	DECL_FIELD_REF(Coverage, coverage)
@@ -68,7 +63,6 @@ public:
 
 	virtual std::string ToString() {
 		std::stringstream s;
-		s << Result::ToString();
 		s << "SUCCESS.";
 		return s.str();
 	}
@@ -84,7 +78,6 @@ public:
 	virtual bool IsSuccess() { return false; }
 	virtual std::string ToString() {
 		std::stringstream s;
-		s << Result::ToString();
 		s << "FAILURE.";
 		return s.str();
 	}
@@ -110,6 +103,7 @@ public:
 		std::stringstream s;
 		s << SuccessResult::ToString() << "\n";
 		s << "Found successful execution.\n";
+		s << statistics_.ToString() << "\n";
 
 //		schedule_->ToStream(InWorkDir("schedule.out"));
 //		s << "Schedule saved to schedule.out.\n";
@@ -149,6 +143,7 @@ public:
 		std::stringstream s;
 		s << SuccessResult::ToString() << "\n";
 		s << "Found " << num_all_schedules_ << " successful executions.\n";
+		s << statistics_.ToString() << "\n";
 
 //		s << "Found " << schedules_.size() << " coverage-increasing executions.\n";
 //		bool append = false;
@@ -181,7 +176,8 @@ public:
 	std::string ToString() {
 		std::stringstream s;
 		s << FailureResult::ToString() << "\n";
-		s << "Signal received: " << signal_number_;
+		s << "Signal received: " << signal_number_ << "\n";
+		s << statistics_.ToString() << "\n";
 		return s.str();
 	}
 
@@ -214,7 +210,8 @@ public:
 		std::stringstream s;
 		s << FailureResult::ToString() << "\n";
 		s << "Assertion Failure.\n";
-		s << cause_->what();
+		s << cause_->what() << "\n";
+		s << statistics_.ToString() << "\n";
 
 //		schedule_->ToStream(InWorkDir("schedule.out"));
 //		s << "Schedule saved to schedule.out.\n";
@@ -254,7 +251,8 @@ public:
 		std::stringstream s;
 		s << FailureResult::ToString() << "\n";
 		s << "Runtime Exception.";
-		s << cause_->what();
+		s << cause_->what() << "\n";
+		s << statistics_.ToString() << "\n";
 
 //		schedule_->ToStream(InWorkDir("schedule.out"));
 //		s << "Schedule saved to schedule.out.\n";
@@ -289,6 +287,7 @@ public:
 		std::stringstream s;
 		s << FailureResult::ToString() << "\n";
 		s << "No feasible execution found!\n";
+		s << statistics_.ToString() << "\n";
 
 //		schedule_->ToStream(InWorkDir("schedule.out"));
 //		s << "Schedule saved to schedule.out.\n";

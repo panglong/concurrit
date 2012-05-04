@@ -1123,7 +1123,7 @@ LOCALFUN
 VOID Fini(INT32 code, VOID *v) {
 	timer.stop();
 
-	printf("\nTIME for program: %s\n", timer.ElapsedTimeToString().c_str());
+	log_file << std::endl << "PIN-TIME for program: " << timer.ElapsedTimeToString() << std::endl;
 
 	PIN_DeleteThreadDataKey(tls_key);
 
@@ -1134,6 +1134,8 @@ VOID Fini(INT32 code, VOID *v) {
 
 LOCALFUN
 VOID Detach(VOID *v) {
+	log_file << "Detaching Pintool." << std::endl;
+
 	Fini(EXIT_SUCCESS, v);
 }
 

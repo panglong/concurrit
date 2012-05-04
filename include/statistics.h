@@ -128,8 +128,10 @@ public:
 	std::string ToString() {
 		std::stringstream s;
 
+		s << "************* Statistics *************\n";
+
 		for(TimerMap::iterator itr = timers_.begin(); itr != timers_.end(); ++itr) {
-			s << itr->second.ToString();
+			s << itr->second.ToString() << std::endl;
 		}
 
 		for(CounterMap::iterator itr = counters_.begin(); itr != counters_.end(); ++itr) {

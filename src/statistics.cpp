@@ -191,18 +191,14 @@ std::string Timer::EndTimeToString() {
 std::string Timer::ElapsedTimeToString() {
 	safe_assert(started);
 	char buff[256];
-	int h = getElapsedTimeInHours();
-	int m = getElapsedTimeInMin() - (h * 60);
-	int s = getElapsedTimeInSec() - (m * 60);
-	int ml = getElapsedTimeInMilliSec() - (s * 1000);
-	int mc = getElapsedTimeInMicroSec() - (ml * 1000);
+	long int h = (long int)getElapsedTimeInHours();
+	long int m = (long int)getElapsedTimeInMin() - (h * 60);
+	long int s = (long int)getElapsedTimeInSec() - (m * 60);
+	long int ml = (long int)getElapsedTimeInMilliSec() - (s * 1000);
+	long int mc = (long int)getElapsedTimeInMicroSec() - (ml * 1000);
 	snprintf(buff, 256,
-			"%d H | %d M | %d S | %d MS | %d MC\n"
-			"Total in MilliSecs: %lu\n"
-			"Total in MicroSecs: %lu",
-			h, m, s, ml, mc,
-			(long int)getElapsedTimeInMilliSec(),
-			(long int)getElapsedTimeInMicroSec());
+			"%lu Hour | %lu Min | %lu Sec | %lu MlSec | %lu McSec",
+			h, m, s, ml, mc);
 
 	return std::string(buff);
 }
@@ -212,9 +208,11 @@ std::string Timer::ElapsedTimeToString() {
 std::string Timer::ToString() {
 	std::stringstream s;
 	s << name << ":\n";
-	s << "Search started: " << StartTimeToString() << "\n";
-	s << "Search ended: " << EndTimeToString() << "\n";
-	s << "Elapsed time: " << ElapsedTimeToString() << "\n";
+	s << "  Started: " << StartTimeToString() << "\n";
+	s << "  Ended: " << EndTimeToString() << "\n";
+	s << "  Elapsed: " << ElapsedTimeToString() << "\n";
+	s << "  Total in MilliSecs: " << (long int)getElapsedTimeInMilliSec() << "\n";
+	s << "  Total in MicroSecs: " << (long int)getElapsedTimeInMicroSec() << "\n";
 	return s.str();
 }
 

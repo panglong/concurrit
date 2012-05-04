@@ -73,7 +73,7 @@ std::map<std::string, Result*> Suite::RunScenarios() {
 				coverage_.AddAll(static_cast<SuccessResult*>(result)->coverage());
 			}
 			results[scenario->name()] = result;
-			printf("Done with scenario %s. %s\n", scenario->name(), (result->IsSuccess() ? "SUCCESS" : "FAILURE"));
+			printf("\nDone with scenario %s. Result: %s\n", scenario->name(), (result->IsSuccess() ? "SUCCESS" : "FAILURE"));
 		}
 	}
 	return results;
@@ -90,18 +90,17 @@ void Suite::RunAll() {
 			Result* result = itr->second;
 			if(result->IsSuccess()) ++num_success; else ++num_failure;
 			s << "\nScenario: " << itr->first << "\n";
-			s << result->ToString() << "\n";
+			s << "Result: " << result->ToString() << "\n";
 			delete result;
 		}
 
 		// print statistics
+		printf("****************************************\n");
 		printf("\nSuite ended.\n");
 		printf("%d succeeded. %d failed.\n", num_success, num_failure);
-
-		printf("\nResults:");
 		printf("%s", s.str().c_str());
 
-		printf("Total coverage:\n%s\n", coverage_.ToString().c_str());
+//		printf("Total coverage:\n%s\n", coverage_.ToString().c_str());
 
 	} catch(std::exception* e) {
 		safe_assert(e != NULL && e->what() != NULL);
