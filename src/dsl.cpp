@@ -75,7 +75,8 @@ ExecutionTree::ExecutionTree(StaticDSLInfo* static_info /*= NULL*/, ExecutionTre
 	safe_assert(static_info_ != NULL);
 	InitChildren(num_children);
 
-	safe_notnull(Scenario::Current())->counter("Num execution-tree nodes").increment();
+	Scenario* scenario = Scenario::Current();
+	if(scenario != NULL) scenario->counter("Num execution-tree nodes").increment();
 }
 
 /*************************************************************************************/
