@@ -81,7 +81,8 @@ public:
 	: static_info_(static_info), parent_(parent), covered_(false) {
 		safe_assert(static_info_ != NULL);
 		InitChildren(num_children);
-		num_nodes_++;
+
+		safe_notnull(Scenario::Current())->counter("Num execution-tree nodes").increment();
 	}
 
 	virtual ~ExecutionTree();
@@ -126,8 +127,6 @@ private:
 	DECL_FIELD(ExecutionTree*, parent)
 	DECL_FIELD_REF(ExecutionTreeList, children)
 	DECL_FIELD(bool, covered)
-
-	DECL_STATIC_FIELD(int, num_nodes)
 
 	friend class ExecutionTreeManager;
 };
@@ -730,7 +729,99 @@ public:
 
 /********************************************************************************/
 
-typedef std::vector<ChildLoc> ExecutionTreePath;
+const int ScheduleItem_ChildIndex = 1,
+		  ScheduleItem_ThreadId = 2;
+
+struct ScheduleItem {
+	int kind_;
+	int value_;
+
+	ScheduleItem(int kind = 0, int value = -1) : kind_(kind), value_(value) {}
+};
+
+class PersistentSchedule : public std::vector<ScheduleItem>, public Serializable {
+public:
+	PersistentSchedule() : std::vector<ScheduleItem>() {}
+	~PersistentSchedule() {}
+
+	// override
+	void Load(Serializer* serializer) {
+		int sz;
+		if(!serializer->Load<int>(&sz)) safe_fail("Error in reading schedule!\n");
+		safe_assert(sz >= 0);
+		if(sz > 0) {
+			for(int i = 0; i < sz; ++i) {
+				ScheduleItem item;
+				if(!serializer->Load<ScheduleItem>(&item)) safe_fail("Error in reading schedule!\n");
+				this->push_back(item);
+			}
+		}
+		MYLOG(2) << "PersistentSchedule: Loaded " << sz << " items";
+	}
+
+	//override
+	void Store(Serializer* serializer) {
+		serializer->Store<int>(int(this->size()));
+		for(iterator itr = begin(); itr < end(); ++itr) {
+			serializer->Store<ScheduleItem>(*itr);
+		}
+		MYLOG(2) << "PersistentSchedule: Stored " << size() << " items";
+	}
+
+};
+
+/********************************************************************************/
+
+class ExecutionTreePath : public std::vector<ChildLoc> {
+public:
+	ExecutionTreePath() : std::vector<ChildLoc>() {}
+	virtual ~ExecutionTreePath() {}
+
+	PersistentSchedule* ComputeExecutionTreeStack(PersistentSchedule* schedule = NULL) {
+		if(schedule == NULL) {
+			schedule = new PersistentSchedule();
+		}
+		for(iterator itr = begin(); itr < end(); ++itr) {
+			ChildLoc& loc = (*itr);
+			safe_assert(!loc.empty());
+			ExecutionTree* parent = loc.parent();
+			int child_index = loc.child_index();
+			SelectThreadNode* select = ASINSTANCEOF(parent, SelectThreadNode*);
+			if(select != NULL) {
+				ThreadVarPtr var = select->var(child_index);
+				safe_assert(var != NULL || !var->is_empty());
+				schedule->push_back({ScheduleItem_ThreadId, var->tid()});
+			} else {
+				schedule->push_back({ScheduleItem_ChildIndex, child_index});
+			}
+		}
+		return schedule;
+	}
+};
+
+/********************************************************************************/
+
+class ExecutionTreeStack : public ExecutionTreePath {
+public:
+	ExecutionTreeStack() : ExecutionTreePath() {}
+	~ExecutionTreeStack() {}
+
+	void push(const ChildLoc& loc) {
+		this->push_back(loc);
+	}
+
+	ChildLoc pop() {
+		ChildLoc loc;
+		safe_assert(loc == ChildLoc::EMPTY());
+		if(this->size() > 0) {
+			loc = this->back(); this->pop_back();
+		}
+		return loc;
+	}
+
+};
+
+/********************************************************************************/
 
 enum AcquireRefMode { EXIT_ON_EMPTY = 1, EXIT_ON_FULL = 2, EXIT_ON_LOCK = 3};
 
@@ -808,19 +899,20 @@ private:
 	DECL_FIELD_REF(RootNode, root_node)
 	DECL_FIELD_REF(LockNode, lock_node)
 	DECL_FIELD_REF(StaticEndNode, end_node)
+
 //	DECL_FIELD_GET_REF(ChildLoc, current_node) // no set method, use UpdateCurrentNode
 	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
-	DECL_FIELD(unsigned, num_paths)
+//	DECL_FIELD(unsigned, num_paths)
 
 	ExecutionTreeRef atomic_ref_;
 	Semaphore sem_ref_;
 
-	DECL_FIELD(Mutex, mutex)
-	DECL_FIELD(ConditionVar, cv)
+//	DECL_FIELD(Mutex, mutex)
+//	DECL_FIELD(ConditionVar, cv)
 
-	DECL_FIELD_REF(ExecutionTreePath, replay_path)
+	DECL_FIELD_REF(ExecutionTreeStack, replay_path)
 
-	DECL_FIELD_REF(ExecutionTreePath, node_stack)
+	DECL_FIELD_REF(ExecutionTreeStack, node_stack)
 	DECL_FIELD(int, stack_index)
 
 	DISALLOW_COPY_AND_ASSIGN(ExecutionTreeManager)

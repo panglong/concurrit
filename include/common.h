@@ -307,6 +307,7 @@ public:
 
 /********************************************************************************/
 class Semaphore;
+class Scenario;
 
 class Concurrit {
 public:
@@ -316,6 +317,9 @@ public:
 	static void* CallDriverMain(void*);
 	static void LoadTestLibrary();
 	static void UnloadTestLibrary();
+
+	static void InstallSignalHandler();
+	static void SignalHandler(int signal_number);
 private:
 	static volatile bool initialized_;
 	DECL_STATIC_FIELD_REF(main_args, driver_args)
@@ -324,6 +328,7 @@ private:
 //	DECL_STATIC_FIELD(MainFuncType, driver_init)
 //	DECL_STATIC_FIELD(MainFuncType, driver_fini)
 	DECL_STATIC_FIELD(Semaphore*, sem_driver_load)
+	DECL_STATIC_FIELD(Scenario*, current_scenario)
 };
 
 /********************************************************************************/

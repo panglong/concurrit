@@ -1,3 +1,7 @@
+libproc-dev
+/usr/include/proc/readproc.h
+extern void look_up_our_self(proc_t *p);
+
 
 Notes:
 some effect: force program to a specific condition that will make some threads to contend. It will not lead to the bug, but help to reach a buggy situation

@@ -179,12 +179,12 @@ void TransferPoint::ConsumeAll() {
 
 /********************************************************************************/
 void TransferPoint::Load(Serializer* serializer) {
-	MYLOG(2) << "Loading point from file...";
-	yield_->source_ = reinterpret_cast<Coroutine*>(new std::string(serializer->Load<std::string>()));
-	target_ = reinterpret_cast<Coroutine*>(new std::string(serializer->Load<std::string>()));
-	yield_->label_ = serializer->Load<std::string>();
-	yield_->count_ = serializer->Load<int>();
-	MYLOG(2) << "Loaded point from file...";
+//	MYLOG(2) << "Loading point from file...";
+//	yield_->source_ = reinterpret_cast<Coroutine*>(new std::string(serializer->Load<std::string>()));
+//	target_ = reinterpret_cast<Coroutine*>(new std::string(serializer->Load<std::string>()));
+//	yield_->label_ = serializer->Load<std::string>();
+//	yield_->count_ = serializer->Load<int>();
+//	MYLOG(2) << "Loaded point from file...";
 }
 
 /********************************************************************************/
@@ -496,23 +496,23 @@ void Schedule::extend_points(Schedule* that) {
 /********************************************************************************/
 
 void Schedule::Load(Serializer* serializer) {
-	size_t len = serializer->Load<size_t>();
-	MYLOG(2) << "Will read " << len << " transfer points.";
-	for(size_t i = 0; i < len; ++i) {
-		try {
-			safe_assert(serializer->HasMore());
-			TransferPoint* point = new TransferPoint();
-			point->Load(serializer);
-			MYLOG(2) << "Loaded" << point->ToString() << " from file...";
-			// add point to our list
-			this->AddLast(point);
-		} catch(EOFException* eof) {
-			delete eof;
-			break;
-		}
-	}
-
-	Restart();
+//	size_t len = serializer->Load<size_t>();
+//	MYLOG(2) << "Will read " << len << " transfer points.";
+//	for(size_t i = 0; i < len; ++i) {
+//		try {
+//			safe_assert(serializer->HasMore());
+//			TransferPoint* point = new TransferPoint();
+//			point->Load(serializer);
+//			MYLOG(2) << "Loaded" << point->ToString() << " from file...";
+//			// add point to our list
+//			this->AddLast(point);
+//		} catch(EOFException* eof) {
+//			delete eof;
+//			break;
+//		}
+//	}
+//
+//	Restart();
 }
 
 /********************************************************************************/

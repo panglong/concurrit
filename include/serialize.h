@@ -61,11 +61,9 @@ public:
 class Serializer {
 public:
 	Serializer(const char* filename, const char* flags) {
-		file_ = fopen(filename, flags);
+		file_ = my_fopen(filename, flags, EXIT_ON_FAIL);
 		if(file_ == NULL) {
-			printf("File could not be opened: %s", filename);
-			bool CannotOpenFile = false;
-			safe_assert(CannotOpenFile);
+			safe_fail("File could not be opened: %s", filename);
 		}
 	}
 
@@ -75,28 +73,58 @@ public:
 	}
 
 	~Serializer() {
+		Close();
+	}
+
+	void Close() {
 		safe_assert(file_ != NULL);
-		fclose(file_);
+		my_fclose(file_, EXIT_ON_FAIL);
+		file_ = NULL;
 	}
 
 	template<typename T>
-	void Store(T x) {
-		int result = fwrite(&x, sizeof(T), 1, file_);
-		safe_assert(result == 1);
+	void Store(const T& x) {
+		Store(&x);
 	}
 
 	template<typename T>
-	T Load() {
-		T x;
-		int result = fread(&x, sizeof(T), 1, file_);
+	void Store(T* x, int size) {
+		safe_assert(size >= 0);
+		for(int i = 0; i < size; ++i) {
+			Store(&x[i]);
+		}
+	}
+
+	template<typename T>
+	void Store(T* x) {
+		int result = fwrite(x, sizeof(T), 1, file_);
+		if(result != 1) {
+			safe_fail("Error while writing to file!\n");
+		}
+	}
+
+	template<typename T>
+	bool Load(T* x) {
+		int result = fread(x, sizeof(T), 1, file_);
 		if(result != 1) {
 			if(feof(file_)) {
-				throw new EOFException();
+				return false;
 			} else {
-				unreachable();
+				safe_fail("Error while reading from file!\n");
 			}
 		}
-		return x;
+		return true;
+	}
+
+	template<typename T>
+	bool Load(T* x, int size) {
+		safe_assert(size >= 0);
+		for(int i = 0; i < size; ++i) {
+			if(!Load(&x[i])) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	bool HasMore() {
@@ -112,11 +140,22 @@ private:
 class Serializable {
 public:
 	virtual ~Serializable(){}
-	virtual void Load(FILE* file) {
+
+	void Load(const char* filename, const char* flags = "r") {
+		Serializer serializer(filename, flags);
+		Load(&serializer);
+	}
+
+	void Store(const char* filename, const char* flags = "w") {
+		Serializer serializer(filename, flags);
+		Store(&serializer);
+	}
+
+	void Load(FILE* file) {
 		Serializer serializer(file);
 		Load(&serializer);
 	}
-	virtual void Store(FILE* file) {
+	void Store(FILE* file) {
 		Serializer serializer(file);
 		Store(&serializer);
 	}

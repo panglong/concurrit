@@ -41,7 +41,7 @@ namespace concurrit {
 // return code from pthread_... functions when the operation is successful
 #define PTH_SUCCESS 0
 // pthread_t value indicating an invalid thread identifier
-#define PTH_INVALID_THREAD 0
+const pthread_t PTH_INVALID_THREAD = pthread_t(0);
 
 extern int __pthread_errno__;
 

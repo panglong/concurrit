@@ -70,7 +70,7 @@ public:
 	virtual ~Scenario();
 
 	static Scenario* Current() {
-		return safe_notnull(safe_notnull(Coroutine::Current())->group())->scenario();
+		return Concurrit::current_scenario();
 	}
 
 	void LoadScheduleFromFile(const char* filename);
@@ -104,6 +104,10 @@ public:
 	virtual void OnAccess(Coroutine* current, SharedAccess* access);
 
 	void OnException(std::exception* e);
+
+	void OnSignal(int signal_number);
+
+	void SaveSearchInfo();
 
 	/*
 	 * Methods to be used in testcases to control the test scenario

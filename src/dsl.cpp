@@ -70,10 +70,6 @@ TPVALUE TPOR(TPVALUE v1, TPVALUE v2) {
 
 /*************************************************************************************/
 
-int ExecutionTree::num_nodes_ = 0;
-
-/*************************************************************************************/
-
 ExecutionTree::~ExecutionTree(){
 	MYLOG(2) << "Deleting execution tree!";
 	for_each_child(child) {
@@ -836,7 +832,7 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 /*************************************************************************************/
 
 bool ExecutionTreeManager::RestartForAlternatePath() {
-	Scenario::Current()->counter("Num alternate paths collected").increment(current_nodes_.size());
+	safe_notnull(Scenario::Current())->counter("Num alternate paths collected").increment(current_nodes_.size());
 
 	int index_in_stack = -1;
 	ChildLoc next_loc = ChildLoc::EMPTY();
@@ -868,9 +864,9 @@ bool ExecutionTreeManager::RestartForAlternatePath() {
 	ComputePath(next_loc, &replay_path_);
 
 	// remove root
-	safe_assert(replay_path_.back().parent() == ROOTNODE());
-	safe_assert(replay_path_.back().child_index() == 0);
-	replay_path_.pop_back(); // remove root
+	ChildLoc root_loc = replay_path_.pop(); // remove root
+	safe_assert(root_loc.parent() == ROOTNODE());
+	safe_assert(root_loc.child_index() == 0);
 
 	// restart for replay
 	RestartChildIndexStack();
@@ -879,7 +875,7 @@ bool ExecutionTreeManager::RestartForAlternatePath() {
 
 	MYLOG(2) << "Starting the replay";
 
-	Scenario::Current()->counter("Num alternate paths explored");
+	safe_notnull(Scenario::Current())->counter("Num alternate paths explored");
 
 	return true;
 }
@@ -946,8 +942,7 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 /*************************************************************************************/
 
 bool ForallThreadNode::ComputeCoverage(bool call_parent /*= false*/) {
-	Scenario* scenario = Scenario::Current();
-	safe_assert(scenario != NULL);
+	Scenario* scenario = safe_notnull(Scenario::Current());
 	// this check is important, because we should not compute coverage at all if already covered
 	// since the computation below may turn already covered not covered
 	if(!covered_) {

@@ -40,37 +40,50 @@ namespace concurrit {
 
 
 template<>
-void Serializer::Store<std::string>(std::string x) {
-	const char* s = x.c_str();
-	int len = x.length();
-	safe_assert(len < 256);
-	safe_assert(s[len] == '\0');
+void Serializer::Store<std::string>(std::string* x) {
+	const char* s = x->c_str();
+	int len = x->length();
+	if(len >= 256 || s[len] != '\0') safe_fail("Invalid string!\n");
 	Store<int>(len);
 	int result = fwrite(s, sizeof(char), len, file_);
-	safe_assert(result == len);
-}
-
-template<>
-void Serializer::Store(const char* x) {
-	unimplemented();
+	if(result != len) safe_fail("Error while writing to file!\n");
 }
 
 /********************************************************************************/
 
 template<>
-std::string Serializer::Load<std::string>() {
+bool Serializer::Load<std::string>(std::string* str) {
 	char s[256];
-	int len = Load<int>();
+	int len = 0;
+	if(!Load<int>(&len)) safe_fail("Error when reading length of string from file!");
 	safe_assert(len < 256);
 	int result = fread(s, sizeof(char), len, file_);
-	safe_assert(result == len);
+	if(result != len) {
+		if(feof(file_)) {
+			return false;
+		} else {
+			safe_fail("Error while reading from file!\n");
+		}
+	}
 	s[len] = '\0';
-	return std::string(s);
+	str->assign(s, len);
+	return true;
+}
+
+/********************************************************************************/
+
+template<>
+void Serializer::Store<void*>(void** x) {
+	ADDRINT a = PTR2ADDRINT(*x);
+	Store<ADDRINT>(a);
 }
 
 template<>
-char* Serializer::Load<char*>() {
-	unimplemented();
+bool Serializer::Load<void*>(void** x) {
+	ADDRINT a = 0;
+	bool r = Load<ADDRINT>(&a);
+	if(r) *x = ADDRINT2PTR(a);
+	return r;
 }
 
 } // end namespace

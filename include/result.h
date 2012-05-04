@@ -170,6 +170,27 @@ private:
 
 /********************************************************************************/
 
+class SignalResult : public FailureResult {
+public:
+	explicit SignalResult(int signal_number) :signal_number_(signal_number) {
+		safe_assert(signal_number > 0);
+	}
+
+	~SignalResult() {}
+
+	std::string ToString() {
+		std::stringstream s;
+		s << FailureResult::ToString() << "\n";
+		s << "Signal received: " << signal_number_;
+		return s.str();
+	}
+
+private:
+	DECL_FIELD(int, signal_number)
+};
+
+/********************************************************************************/
+
 class AssertionViolationResult : public FailureResult {
 public:
 	explicit AssertionViolationResult(AssertionViolationException* cause, Schedule* schedule) {

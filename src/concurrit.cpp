@@ -46,6 +46,7 @@ MainFuncType Concurrit::driver_main_ = NULL;
 //MainFuncType Concurrit::driver_init_ = NULL;
 //MainFuncType Concurrit::driver_fini_ = NULL;
 Semaphore* Concurrit::sem_driver_load_;
+Scenario* Concurrit::current_scenario_ = NULL;
 
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
@@ -60,8 +61,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	// set up signal handler from google
-	google::InstallFailureSignalHandler();
+	Concurrit::InstallSignalHandler();
 
 	//==========================================
 	// separate arguments into two: 1 -- 2
@@ -133,8 +133,9 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 		initialized_ = true;
 	} while(false);
 
-	MYLOG(2) << "Initialized Concurrit.";
 }
+
+/********************************************************************************/
 
 void Concurrit::Destroy() {
 	safe_assert(IsInitialized());
@@ -151,12 +152,11 @@ void Concurrit::Destroy() {
 
 	Thread::delete_tls_key();
 
+	// finalize google logging
 	google::ShutdownGoogleLogging();
 
 //	int pth_kill_result = pth_kill();
 //	safe_assert(pth_kill_result == TRUE);
-
-	MYLOG(2) << "Finalized Concurrit.";
 }
 
 /********************************************************************************/
@@ -208,24 +208,6 @@ void Concurrit::UnloadTestLibrary() {
 
 /********************************************************************************/
 
-//============================================
-
-// code to add to benchmarks
-/*
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
-*/
-//============================================
-
 // run by a new thread created by the script before calling TestCase
 void* Concurrit::CallDriverMain(void*) {
 	// try to unload and load the driver
@@ -258,6 +240,46 @@ void* Concurrit::CallDriverMain(void*) {
 
 	// call the driver
 	main_func(driver_args_.argc_, driver_args_.argv_);
+}
+
+/********************************************************************************/
+
+const int signals_handled[] = { SIGSEGV, SIGABRT, SIGTERM };
+
+void Concurrit::InstallSignalHandler() {
+	struct sigaction sig_action;
+	memset(&sig_action, 0, sizeof(sig_action));
+	sigemptyset(&sig_action.sa_mask);
+	sig_action.sa_flags |= SA_RESTART;
+	sig_action.sa_handler = &Concurrit::SignalHandler;
+
+	for (size_t i = 0; i < 3; ++i) {
+		CHECK_ERR(sigaction(signals_handled[i], &sig_action, NULL));
+	}
+}
+
+static std::atomic<pthread_t> signal_handling_thread(PTH_INVALID_THREAD);
+
+void Concurrit::SignalHandler(int signal_number) {
+	pthread_t empty_thread = PTH_INVALID_THREAD;
+	pthread_t self_thread = pthread_self();
+	if(signal_handling_thread.compare_exchange_strong(empty_thread, self_thread)) {
+		Scenario* scenario = Scenario::Current();
+		if(scenario != NULL) {
+			scenario->OnSignal(signal_number);
+		}
+		// let google do rest of the work
+		google::InstallFailureSignalHandler();
+		kill(getpid(), signal_number);
+
+	} else if(signal_handling_thread.load() == self_thread) {
+		fprintf(stderr, "Triggered signal while handling another one!\n");
+		fflush(stderr);
+
+		// note: SIGKILL is not handled, thus breaks the recursion
+		print_stack_trace();
+		kill(getpid(), SIGKILL);
+	}
 }
 
 /********************************************************************************/

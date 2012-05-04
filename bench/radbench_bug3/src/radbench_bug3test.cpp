@@ -36,9 +36,9 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		WHILE_STAR {
 			FORALL(t, BY(t1) || BY(t2) || BY(t3));
-			RUN_UNTIL(BY(t), READS_WRITES_OR_ENDS(&rt->state, t), __, "Run t until ...");
+			RUN_UNTIL(BY(t), READS_WRITES_OR_ENDS(&rt->state, t), "Run t until ...");
 		}
-}
+	}
 
 CONCURRIT_END_TEST(MyScenario)
 

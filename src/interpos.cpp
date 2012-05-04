@@ -106,7 +106,8 @@ static int concurrit_pthread_create(pthread_t* thread, const pthread_attr_t *att
 
 	MYLOG(2) << "Creating new thread via interpositioned pthread_create.";
 
-	ThreadVarPtr var = safe_notnull(Scenario::Current())->CreatePThread(start_routine, arg, thread, attr);
+	Scenario* scenario = safe_notnull(Scenario::Current());
+	ThreadVarPtr var = scenario->CreatePThread(start_routine, arg, thread, attr);
 	safe_assert(var != NULL && !var->is_empty());
 
 	if(__pthread_errno__ != PTH_SUCCESS) {
@@ -122,8 +123,9 @@ static int concurrit_pthread_join(pthread_t thread, void ** value_ptr) {
 
 	MYLOG(2) << "Joining thread via interpositioned pthread_join.";
 
-	Coroutine* co = safe_notnull(safe_notnull(Scenario::Current())->group())->GetMember(thread);
-	Scenario::Current()->JoinPThread(co, value_ptr);
+	Scenario* scenario = safe_notnull(Scenario::Current());
+	Coroutine* co = safe_notnull(scenario->group())->GetMember(thread);
+	scenario->JoinPThread(co, value_ptr);
 
 	return __pthread_errno__;
 }

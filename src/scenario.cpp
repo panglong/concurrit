@@ -383,7 +383,8 @@ Result* Scenario::Explore() {
 	} // end for
 
 LOOP_DONE:
-	// result may be NULL!!!
+
+	safe_assert(result != NULL);
 	Finish(result); // deletes schedule_
 
 	return result;
@@ -656,6 +657,11 @@ bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
 // although Start and Restart have the same code,
 // we do not directly call Restart, since subclasses may override Start and Restart differently
 void Scenario::Start() {
+	// mark this as current scenario
+	safe_assert(Scenario::Current() == NULL || Scenario::Current() == this);
+	Concurrit::set_current_scenario(this);
+	safe_assert(Scenario::Current() == this);
+
 	// sanity checks for initialization
 	safe_assert(CoroutineGroup::main() != NULL);
 	safe_assert(test_status_ == TEST_BEGIN || test_status_ == TEST_ENDED);
@@ -707,8 +713,12 @@ void Scenario::Start() {
 /********************************************************************************/
 
 void Scenario::Finish(Result* result) {
-	safe_assert(test_status_ == TEST_ENDED);
+	safe_assert(result != NULL);
+	safe_assert((INSTANCEOF(result, SignalResult*) && test_status_ < TEST_TERMINATED) || test_status_ == TEST_ENDED);
 	test_status_ = TEST_TERMINATED;
+
+	// finish timer
+	timer("Search time").stop();
 
 	if(schedule_ != NULL) {
 		delete schedule_;
@@ -718,22 +728,41 @@ void Scenario::Finish(Result* result) {
 	// clear aux state
 	AuxState::Clear();
 
-	group_.Finish();
+	// save information to file
+	SaveSearchInfo();
 
-	counter("Num execution-tree nodes").set_value(ExecutionTree::num_nodes());
-
-	// finish timer
-	timer("Search time").stop();
-//	// print statistics
-//	std::cerr << "********** Statistics **********" << std::endl;
-//	std::cerr << statistics_.ToString() << std::endl;
-
-	safe_assert(Config::ExitOnFirstExecution >= 0 || result != NULL);
-	if(result != NULL) {
-		// copy statistics to the result
+	if(INSTANCEOF(result, SignalResult*)) {
+		// print statistics as we are dying
+		std::cerr << "********** Statistics **********" << std::endl;
+		std::cerr << statistics_.ToString() << std::endl;
+	} else {
+		// otherwise, copy statistics to the result
 		result->set_statistics(statistics_);
+
+		// terminate all the threads in the group
+		group_.Finish();
 	}
 
+	// clear the current scenario
+	Concurrit::set_current_scenario(NULL);
+	safe_assert(Scenario::Current() == NULL);
+
+}
+
+/********************************************************************************/
+
+void Scenario::OnSignal(int signal_number) {
+	if(BETWEEN(TEST_SETUP, test_status_, TEST_TEARDOWN)) {
+		fprintf(stderr, "Signal %d caught! Finishing...\n", signal_number);
+		fflush(stderr);
+		safe_assert(Scenario::Current() == this);
+		Finish(new SignalResult(signal_number));
+	}
+}
+
+/********************************************************************************/
+
+void Scenario::SaveSearchInfo() {
 	if(Config::SaveDotGraphToFile != NULL) {
 		std::cerr << "Saving dot file of the execution graph to: " << Config::SaveDotGraphToFile << std::endl;
 		exec_tree_.SaveDotGraph(Config::SaveDotGraphToFile);
@@ -746,8 +775,13 @@ void Scenario::Finish(Result* result) {
 			trace_file_ = NULL;
 		}
 	}
-}
 
+	// save execution tree schedule to file
+	static std::string schedule_file_name = InWorkDir("schedule.txt");
+	PersistentSchedule schedule;
+	exec_tree_.node_stack()->ComputeExecutionTreeStack(&schedule);
+	schedule.Serializable::Store(schedule_file_name.c_str());
+}
 
 /********************************************************************************/
 
@@ -1908,7 +1942,7 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 	//=======================================================
 
 	if(Config::TrackAlternatePaths && is_replaying()) {
-		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
+		ChildLoc reploc = exec_tree_.replay_path()->pop();
 		safe_assert(!reploc.empty());
 		safe_assert(BETWEEN(0, reploc.child_index(), 1));
 		ChoiceNode* choice = ASINSTANCEOF(reploc.parent(), ChoiceNode*);
@@ -2067,7 +2101,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	//=======================================================
 
 	if(Config::TrackAlternatePaths && is_replaying()) {
-		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
+		ChildLoc reploc = exec_tree_.replay_path()->pop();
 		safe_assert(!reploc.empty());
 		safe_assert(BETWEEN(0, reploc.child_index(), 1));
 		TransferUntilNode* trans = ASINSTANCEOF(reploc.parent(), TransferUntilNode*);
@@ -2140,7 +2174,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	ThreadVarPtr var;
 
 	if(Config::TrackAlternatePaths && is_replaying()) {
-		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
+		ChildLoc reploc = exec_tree_.replay_path()->pop();
 		safe_assert(reploc.parent() != NULL);
 		ForallThreadNode* select = ASINSTANCEOF(reploc.parent(), ForallThreadNode*);
 		safe_assert(select != NULL);
@@ -2233,7 +2267,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 	ThreadVarPtr var;
 
 	if(Config::TrackAlternatePaths && is_replaying()) {
-		ChildLoc reploc = exec_tree_.replay_path()->back(); exec_tree_.replay_path()->pop_back();
+		ChildLoc reploc = exec_tree_.replay_path()->pop();
 		safe_assert(reploc.parent() != NULL);
 		safe_assert(BETWEEN(0, reploc.child_index(), 1));
 		ExistsThreadNode* select = ASINSTANCEOF(reploc.parent(), ExistsThreadNode*);
