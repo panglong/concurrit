@@ -140,6 +140,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 void Concurrit::Destroy() {
 	safe_assert(IsInitialized());
 
+	safe_assert(!PinMonitor::IsEnabled());
 	PinMonitor::Shutdown();
 
 	do { // need a fence here
@@ -264,11 +265,17 @@ void Concurrit::SignalHandler(int signal_number) {
 	pthread_t empty_thread = PTH_INVALID_THREAD;
 	pthread_t self_thread = pthread_self();
 	if(signal_handling_thread.compare_exchange_strong(empty_thread, self_thread)) {
+		// first disable pin instrumentation
+		PinMonitor::Disable();
+		PinMonitor::Shutdown();
+
+		// then finish the current scenario, if exists
 		Scenario* scenario = Scenario::Current();
 		if(scenario != NULL) {
 			scenario->OnSignal(signal_number);
 		}
-		// let google do rest of the work
+
+		// finally, let google::logging do rest of the work
 		google::InstallFailureSignalHandler();
 		kill(getpid(), signal_number);
 

@@ -128,12 +128,14 @@ PinEnableDisable(UINT32 command);
 typedef tbb::concurrent_hash_map<ADDRINT,BOOL> PLTMapType;
 static PLTMapType rtn_plt_addr = 0;
 
-static bool IsPLT(ADDRINT addr) {
+LOCALFUN INLINE
+bool IsPLT(ADDRINT addr) {
 	PLTMapType::const_accessor acc;
 	return rtn_plt_addr.find(acc, addr);
 }
 
-static void AddToPLT(ADDRINT addr) {
+LOCALFUN INLINE
+void AddToPLT(ADDRINT addr) {
 	PLTMapType::accessor acc;
 	rtn_plt_addr.insert(acc, addr);
 	acc->second = true;
@@ -167,6 +169,84 @@ typedef std::vector<ADDRINT> CallStackType;
 
 LOCALVAR bool ThreadLocalState_inst_enabled[PIN_MAX_THREADS];
 LOCALVAR CallStackType* ThreadLocalState_call_stack[PIN_MAX_THREADS];
+
+/* ===================================================================== */
+
+class PinSourceLocation;
+
+typedef tbb::concurrent_hash_map<ADDRINT,PinSourceLocation*> AddrToLocMap;
+
+class PinSourceLocation : public concurrit::SourceLocation {
+public:
+
+	static inline PinSourceLocation* get(VOID* address) {
+		return PinSourceLocation::get(reinterpret_cast<ADDRINT>(address));
+	}
+
+	static inline PinSourceLocation* get(ADDRINT address) {
+		PIN_LockClient();
+		RTN rtn = RTN_FindByAddress(address);
+		PIN_UnlockClient();
+		return PinSourceLocation::get(rtn, address);
+	}
+
+	static inline PinSourceLocation* get(RTN rtn) {
+		return PinSourceLocation::get(rtn, RTN_Address(rtn));
+	}
+
+	static inline PinSourceLocation* get(RTN rtn, ADDRINT address) {
+		PinSourceLocation* loc = NULL;
+		AddrToLocMap::accessor acc;
+		if(addrToLoc_.find(acc, address)) {
+			loc = acc->second;
+			safe_assert(loc != NULL);
+		} else {
+			loc = new PinSourceLocation(rtn, address);
+			addrToLoc_.insert(acc, address);
+			acc->second = loc;
+		}
+		safe_assert(loc != NULL);
+		return loc;
+	}
+
+	static void clear() {
+		for(AddrToLocMap::iterator itr = addrToLoc_.begin(); itr != addrToLoc_.end(); ++itr) {
+			safe_delete(itr->second);
+		}
+		addrToLoc_.clear();
+	}
+
+	PinSourceLocation(RTN rtn, ADDRINT address)
+	: SourceLocation("<unknown>", "<unknown>", -1, -1, "<unknown>")
+	{
+		address_ = address;
+
+		PIN_LockClient();
+		PIN_GetSourceLocation(address_, &column_, &line_, &filename_);
+		PIN_UnlockClient();
+
+		if(filename_ == "") {
+			filename_ = "<unknown>";
+		}
+
+		if (RTN_Valid(rtn))
+		{
+			imgname_ = IMG_Name(SEC_Img(RTN_Sec(rtn)));
+			funcname_ = RTN_Name(rtn);
+		}
+	}
+
+	VOID* pointer() {
+		return reinterpret_cast<VOID*>(address_);
+	}
+
+	private:
+	DECL_FIELD(ADDRINT, address)
+
+	static AddrToLocMap addrToLoc_;
+};
+
+AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
@@ -361,7 +441,9 @@ EndInstrument(THREADID threadid) {
 
 VOID PIN_FAST_ANALYSIS_CALL
 PinShutdown() {
+	PinDisable();
 	PIN_Detach();
+	PinSourceLocation::clear();
 }
 
 /* ===================================================================== */
@@ -399,77 +481,6 @@ VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::PinMoni
 			PIN_PARG(void), PIN_PARG(concurrit::PinMonitorCallInfo*), (info), PIN_PARG_END());
 	}
 }
-
-/* ===================================================================== */
-
-class PinSourceLocation;
-
-typedef tbb::concurrent_hash_map<ADDRINT,PinSourceLocation*> AddrToLocMap;
-
-class PinSourceLocation : public concurrit::SourceLocation {
-public:
-
-	static PinSourceLocation* get(VOID* address) {
-		return PinSourceLocation::get(reinterpret_cast<ADDRINT>(address));
-	}
-
-	static PinSourceLocation* get(ADDRINT address) {
-		PIN_LockClient();
-		RTN rtn = RTN_FindByAddress(address);
-		PIN_UnlockClient();
-		return PinSourceLocation::get(rtn, address);
-	}
-
-	static PinSourceLocation* get(RTN rtn) {
-		return PinSourceLocation::get(rtn, RTN_Address(rtn));
-	}
-
-	static PinSourceLocation* get(RTN rtn, ADDRINT address) {
-		PinSourceLocation* loc = NULL;
-		AddrToLocMap::accessor acc;
-		if(addrToLoc_.find(acc, address)) {
-			loc = acc->second;
-			safe_assert(loc != NULL);
-		} else {
-			loc = new PinSourceLocation(rtn, address);
-			addrToLoc_.insert(acc, address);
-			acc->second = loc;
-		}
-		safe_assert(loc != NULL);
-		return loc;
-	}
-
-	PinSourceLocation(RTN rtn, ADDRINT address)
-	: SourceLocation("<unknown>", "<unknown>", -1, -1, "<unknown>")
-	{
-		address_ = address;
-
-		PIN_LockClient();
-		PIN_GetSourceLocation(address_, &column_, &line_, &filename_);
-		PIN_UnlockClient();
-
-		if(filename_ == "") {
-			filename_ = "<unknown>";
-		}
-
-		if (RTN_Valid(rtn))
-		{
-			imgname_ = IMG_Name(SEC_Img(RTN_Sec(rtn)));
-			funcname_ = RTN_Name(rtn);
-		}
-	}
-
-	VOID* pointer() {
-		return reinterpret_cast<VOID*>(address_);
-	}
-
-	private:
-	DECL_FIELD(ADDRINT, address)
-
-	static AddrToLocMap addrToLoc_;
-};
-
-AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
