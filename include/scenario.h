@@ -191,6 +191,10 @@ public:
 		return statistics_.counter(name);
 	}
 
+	AvgCounter& avg_counter(const std::string& name) {
+		return statistics_.avg_counter(name);
+	}
+
 
 protected:
 

@@ -85,28 +85,56 @@ private:
 class Counter {
 public:
 	Counter(std::string name = "") : name_(name), value_(0) {}
-	~Counter() {}
+	virtual ~Counter() {}
 
-	void increment(int k = 1) {
+	virtual void increment(unsigned long k = 1) {
 		value_ += k;
 	}
+
 	void reset(std::string name = "") {
 		if(name != "") {
 			name_ = name;
 		}
 		value_ = 0;
 	}
-	std::string ToString() {
-		std::stringstream s;
-		s << name_ << ": " << value_;
-		return s.str();
+
+	virtual std::string ToString() {
+		return format_string("%s: %lu", name_.c_str(), value_);
 	}
-	operator unsigned () {
+	operator unsigned long () {
 		return value_;
 	}
 private:
 	DECL_FIELD(std::string, name)
-	DECL_FIELD(unsigned, value)
+	DECL_FIELD(unsigned long, value)
+};
+
+/********************************************************************************/
+
+class AvgCounter : public Counter {
+public:
+	AvgCounter(std::string name = "") : Counter(name), count_(0) {}
+	~AvgCounter() {}
+
+	// override
+	void increment(unsigned long k = 1) {
+		Counter::increment(k);
+		++count_;
+	}
+	void reset(std::string name = "") {
+		Counter::reset(name);
+		count_ = 0;
+	}
+
+	// override
+	std::string ToString() {
+		return format_string("%s: Num: %lu | Total: %lu MicroSecs | Avg: %lu MicroSecs", name_.c_str(), count_, value_, (value_/count_));
+	}
+	operator unsigned long () {
+		return (value_/count_);
+	}
+private:
+	DECL_FIELD(unsigned long, count)
 };
 
 /********************************************************************************/
@@ -156,6 +184,15 @@ public:
 		}
 		return counters_[name];
 	}
+
+	AvgCounter& avg_counter(const std::string& name) {
+		CounterMap::iterator itr = counters_.find(name);
+		if(itr == counters_.end()) {
+			counters_[name] = AvgCounter(name);
+		}
+		return static_cast<AvgCounter&>(counters_[name]);
+	}
+
 
 
 private:

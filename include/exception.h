@@ -67,14 +67,11 @@ public:
 	}
 
 	virtual const char* what() const throw() {
-		std::stringstream s;
-		s << "Backtrack due to " << ReasonToString(reason_);
-		return s.str().c_str();
+		return (std::string("Backtrack due to ") + ReasonToString(reason_)).c_str();
 	}
 
 	static std::string ReasonToString(BacktrackReason reason) {
-		std::stringstream s;
-#define print_enum(e) case e: s << #e; break;
+#define print_enum(e) case e: return std::string(#e);
 		switch(reason) {
 			print_enum(SEARCH_ENDS)
 			print_enum(SUCCESS)
@@ -87,12 +84,11 @@ public:
 			print_enum(PTH_EXIT)
 			print_enum(UNKNOWN)
 		default:
-			bool UnknownBacktrackReason = false;
-			safe_assert(UnknownBacktrackReason);
+			safe_fail("UnknownBacktrackReason");
 			break;
 		}
 #undef print_enum
-		return s.str();
+		return std::string();
 	}
 private:
 	DECL_FIELD(BacktrackReason, reason)
@@ -131,12 +127,12 @@ public:
 		if(loc_ != NULL) delete loc_;
 	}
 
-	virtual const char* what() const throw()
-	{
-		std::stringstream s(std::stringstream::out);
-		s << "Assertion violated: " << condition_ << "\n";
-		s << "Source location: " << (loc_ != NULL ? loc_->ToString() : "<unknown>") << "\n";
-		return s.str().c_str();
+	virtual const char* what() const throw() {
+		std::string s = format_string("Assertion violated: %s\n"
+					  	  	  	  	  "Source location: %s\n",
+									  condition_.c_str(),
+									  SourceLocation::ToString(loc_).c_str());
+		return s.c_str();
 	}
 private:
 	DECL_FIELD(std::string, condition)
@@ -167,12 +163,12 @@ public:
 		delete loc_;
 	}
 
-	virtual const char* what() const throw()
-	{
-		std::stringstream s(std::stringstream::out);
-		s << "Assumption violated: " << condition_ << "\n";
-		s << "Source location: " << (loc_ != NULL ? loc_->ToString() : "<unknown>") << "\n";
-		return s.str().c_str();
+	virtual const char* what() const throw() {
+		std::string s = format_string("Assumption violated: %s\n"
+									  "Source location: %s\n",
+									  condition_.c_str(),
+									  SourceLocation::ToString(loc_).c_str());
+		return s.c_str();
 	}
 private:
 	DECL_FIELD(std::string, condition)
@@ -191,13 +187,14 @@ public:
 		}
 	}
 
-	virtual const char* what() const throw()
-	{
-		std::stringstream s(std::stringstream::out);
-		s << "Internal exception: " << message_ << "\n";
-		s << "Source location: " << (loc_ != NULL ? loc_->ToString() : "<unknown>") << "\n";
-		return s.str().c_str();
+	virtual const char* what() const throw() {
+		std::string s = format_string("Internal exception: %s\n"
+									  "Source location: %s\n",
+									  message_.c_str(),
+									  SourceLocation::ToString(loc_).c_str());
+		return s.c_str();
 	}
+
 private:
 	DECL_FIELD(std::string, message)
 	DECL_FIELD(SourceLocation*, loc)
@@ -229,16 +226,14 @@ public:
 		}
 	}
 
-	virtual const char* what() const throw()
-	{
-		std::stringstream s(std::stringstream::out);
-		s << "Exception in " << where_ << std::endl;
-		s << "Cause: " << cause_->what() << std::endl;
-		if(next_ != NULL) {
-			s << "Next: ";
-			s << next_->what();
-		}
-		return s.str().c_str();
+	virtual const char* what() const throw() {
+		std::string s = format_string("Exception in: %s\n"
+									  "Cause: %s\n"
+									  "%s",
+									  where_.c_str(),
+									  cause_->what(),
+									  (next_ != NULL ? next_->what() : ""));
+		return s.c_str();
 	}
 
 	// also assume exception

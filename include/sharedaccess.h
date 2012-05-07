@@ -125,9 +125,9 @@ public:
 	}
 
 	std::string ToString() {
-		std::stringstream s;
-		s << (type_ == READ_ACCESS ? "Read(" : "Write(") << expr_ << " = " << mem() << ")@" << time_;
-		return s.str();
+		return format_string("%s(%s = %lu)@d",
+							 (type_ == READ_ACCESS ? "Read" : "Write"),
+							 expr_, mem(), time_);
 	}
 
 	// override
@@ -179,14 +179,19 @@ public:
 
 	~SourceLocation() {}
 
+	static std::string ToString(SourceLocation* loc) {
+		return (loc != NULL ? loc->ToString() : "<unknown>");
+	}
+
 	std::string ToString() {
-		std::stringstream s;
 		if(IsUnknown()) {
-			s << "<unknown>";
+			return std::string("<unknown>");
 		} else {
-			s << filename_ << "(" << line_ << ":" << column_<< "): " << funcname_;
+			return format_string("%s(%d:%d): %s",
+								 filename_.c_str(),
+								 line_, column_,
+								 funcname_.c_str());
 		}
-		return s.str();
 	}
 
 	// override

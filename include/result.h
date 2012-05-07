@@ -62,9 +62,7 @@ public:
 	virtual bool IsSuccess() { return true; }
 
 	virtual std::string ToString() {
-		std::stringstream s;
-		s << "SUCCESS.";
-		return s.str();
+		return std::string("SUCCESS.");
 	}
 };
 
@@ -77,9 +75,7 @@ public:
 
 	virtual bool IsSuccess() { return false; }
 	virtual std::string ToString() {
-		std::stringstream s;
-		s << "FAILURE.";
-		return s.str();
+		return std::string("FAILURE.");
 	}
 };
 

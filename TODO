@@ -1,3 +1,5 @@
+Static counters to access them without using the hashmap
+
 libproc-dev
 /usr/include/proc/readproc.h
 extern void look_up_our_self(proc_t *p);

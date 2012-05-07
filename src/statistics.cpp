@@ -190,30 +190,30 @@ std::string Timer::EndTimeToString() {
 
 std::string Timer::ElapsedTimeToString() {
 	safe_assert(started);
-	char buff[256];
 	long int h = (long int)getElapsedTimeInHours();
 	long int m = (long int)getElapsedTimeInMin() - (h * 60);
 	long int s = (long int)getElapsedTimeInSec() - (m * 60);
 	long int ml = (long int)getElapsedTimeInMilliSec() - (s * 1000);
 	long int mc = (long int)getElapsedTimeInMicroSec() - (ml * 1000);
-	snprintf(buff, 256,
-			"%lu Hour | %lu Min | %lu Sec | %lu MlSec | %lu McSec",
-			h, m, s, ml, mc);
-
-	return std::string(buff);
+	return format_string("%lu Hour | %lu Min | %lu Sec | %lu MlSec | %lu McSec",
+						  h, m, s, ml, mc);
 }
 
 /********************************************************************************/
 
 std::string Timer::ToString() {
-	std::stringstream s;
-	s << name << ":\n";
-	s << "  Started: " << StartTimeToString() << "\n";
-	s << "  Ended: " << EndTimeToString() << "\n";
-	s << "  Elapsed: " << ElapsedTimeToString() << "\n";
-	s << "  Total in MilliSecs: " << (long int)getElapsedTimeInMilliSec() << "\n";
-	s << "  Total in MicroSecs: " << (long int)getElapsedTimeInMicroSec() << "\n";
-	return s.str();
+	return format_string("%s:\n"
+						 "  Started: %s\n"
+						 "  Ended: %s\n"
+						 "  Elapsed: %s\n"
+						 "  Total in MilliSecs: %lu\n"
+						 "  Total in MicroSecs: %lu\n",
+						 name.c_str(),
+						 StartTimeToString().c_str(),
+						 EndTimeToString().c_str(),
+						 ElapsedTimeToString().c_str(),
+						 (long int)getElapsedTimeInMilliSec(),
+						 (long int)getElapsedTimeInMicroSec());
 }
 
 /********************************************************************************/

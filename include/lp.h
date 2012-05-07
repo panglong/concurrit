@@ -70,11 +70,9 @@ public:
 	}
 
 	std::string ToString() const {
-		std::stringstream s;
-		//s << "(" << tid_ << ", " << label_ << ", " << count_ << ")";
-		s << label_;
-		if(count_ > 1) s << "," << count_;
-		return s.str();
+		std::string s = label_;
+		if(count_ > 1) s += ",";
+		return s;
 	}
 };
 

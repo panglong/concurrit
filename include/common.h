@@ -263,17 +263,8 @@ struct main_args {
 	main_args(int argc = 0, char** argv = NULL) : argc_(argc), argv_(argv) {}
 	~main_args() {} // { if(argv_ != NULL) delete argv_; }
 
-	std::string ToString() {
-		std::stringstream s;
-		s << "[";
-		const char* comma = "";
-		for(int i = 0; i < argc_; ++i) {
-			s << comma << (argv_[i] == NULL ? "NULL" : argv_[i]);
-			comma = ", ";
-		}
-		s << "]";
-		return s.str();
-	}
+	std::string ToString();
+
 	bool check() {
 		return (argc_ == 0 && argv_ == NULL) || (argc_ > 0 && argv_ != NULL);
 	}
@@ -371,9 +362,9 @@ extern "C" void EndInstrument();
 
 template<typename T>
 std::string to_string(T i) {
-	std::stringstream out;
-	out << i;
-	return out.str();
+	std::stringstream s;
+	s << i;
+	return s.str();
 }
 
 template<typename T>
@@ -381,8 +372,26 @@ std::string vector_to_string(const std::vector<T>& v) {
 	std::stringstream s;
 	s << "[";
 	const char* comma = "";
-	for(int i = 0; i < v.size(); ++i) {
-		s << comma << v[i];
+	for(typename std::vector<T>::iterator itr = v.begin(), end = v.end(); itr < end; ++itr) {
+		s << comma << (*itr);
+		comma = ", ";
+	}
+	s << "]";
+	return s.str();
+}
+
+template<typename T>
+std::string array_to_string(const T* v[], int sz) {
+	std::stringstream s;
+	s << "[";
+	const char* comma = "";
+	for(int i = 0; i < sz; ++i) {
+		const T* t = v[i];
+		if(t == NULL) {
+			s << comma << "NULL";
+		} else {
+			s << comma << t;
+		}
 		comma = ", ";
 	}
 	s << "]";
@@ -412,6 +421,9 @@ void* FuncAddressByName(const char* name, void* handle, bool fail_on_null = fals
 std::vector<std::string>* ReadLinesFromFile(const char* filename, std::vector<std::string>* lines = NULL, bool exit_on_fail = true, char comment = '#');
 
 bool generate_random_bool();
+
+#define format_string_buff_size	(256)
+std::string format_string (const char* format, ...);
 
 /********************************************************************************/
 

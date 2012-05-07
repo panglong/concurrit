@@ -256,25 +256,24 @@ public:
 	}
 
 	std::string ToString() {
-		std::stringstream s;
-		s << "EndNode(";
+		const char* s = NULL;
 		if(exception_ == NULL) {
-			s << "SUCCESS";
+			s = "SUCCESS";
 		} else {
 			BacktrackException* be = ASINSTANCEOF(exception_, BacktrackException*);
 			if(be != NULL) {
-				s << BacktrackException::ReasonToString(be->reason());
+				s = BacktrackException::ReasonToString(be->reason()).c_str();
 			} else {
 				AssertionViolationException* ae = ASINSTANCEOF(exception_, AssertionViolationException*);
 				if(ae != NULL) {
-					s << "ASSERT";
+					s = "ASSERT";
 				} else {
-					s << exception_->what();
+					s = exception_->what();
 				}
 			}
 		}
-		s << ")";
-		return s.str();
+		safe_assert(s != NULL);
+		return format_string("EndNode(%s)", s);
 	}
 
 	DotNode* UpdateDotGraph(DotGraph* g) {
@@ -459,16 +458,16 @@ public:
 	}
 
 	ThreadVarPtr create_thread_var(Coroutine* current = NULL) {
-		std::stringstream s;
+		std::string s;
 		if(static_info_->message() != "") {
-			s << static_info_->message();
+			s = static_info_->message();
 		} else if(current != NULL) {
-			s << "THR-" << current->tid();
+			s = "THR-" + current->tid();
 		} else {
-			s << "ThreadVar";
+			s = "ThreadVar";
 		}
 
-		ThreadVarPtr p(new ThreadVar(current, s.str()));
+		ThreadVarPtr p(new ThreadVar(current, s));
 		return p;
 	}
 

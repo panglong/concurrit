@@ -278,7 +278,7 @@ Result* Scenario::ExploreForall() {
 
 Result* Scenario::Explore() {
 
-	Result* result = NULL;
+	Result* result = new ForallResult();
 
 	for(;true;) {
 
@@ -301,12 +301,14 @@ Result* Scenario::Explore() {
 				counter("Num successful executions explored").increment();
 
 				if(explore_type_ == EXISTS) {
+					if(result != NULL) delete result;
 					result = new ExistsResult(schedule_->Clone());
 					break;
 				} else {
 					if(result == NULL) {
 						result = new ForallResult();
 					}
+					safe_assert(INSTANCEOF(result, ForallResult*));
 
 					ASINSTANCEOF(result, ForallResult*)->AddSchedule(schedule_->Clone());
 					MYLOG(2) << "Found one path for forall search.";
@@ -401,6 +403,9 @@ ConcurritException* Scenario::CollectExceptions() {
 
 ConcurritException* Scenario::RunOnce() throw() {
 
+	Timer timer;
+	timer.start();
+
 	Start();
 
 	RunSetUp();
@@ -412,6 +417,10 @@ ConcurritException* Scenario::RunOnce() throw() {
 	RunTearDown();
 
 	test_status_ = TEST_ENDED;
+
+	timer.stop();
+
+	avg_counter("Average time to explore each path").increment((long int)(timer.getElapsedTimeInMicroSec()));
 
 	return CollectExceptions();
 }
