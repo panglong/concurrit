@@ -452,8 +452,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 			}
 		}
 	}
-	// unreachable
-	safe_assert(false);
+	unreachable();
 	return NULL;
 }
 
