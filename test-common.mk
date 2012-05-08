@@ -37,8 +37,6 @@ bin/$(TARGET): lib/$(TARGETLIB) $(SRCS) $(HEADERS)
 #	ar rcs lib/$(TARGET).a obj/$(TARGET).o
 	chmod +x bin/$(TARGET)
 
-script: bin/$(TARGET)
-
 test: bin/$(TARGET)
 	bin/$(TARGET)
 	
@@ -49,11 +47,16 @@ pin: lib/$(TARGETLIB) bin/$(TARGET)
 	DYLD_LIBRARY_PATH=="$(BENCHDIR)/lib:$(DYLD_LIBRARY_PATH)" \
 		$(CONCURRIT_HOME)/scripts/run_pintool.sh $(BENCHDIR)/bin/$(TARGET) $(ARGS)
 
-shared: makedirs lib/lib$(TARGET).so
-
 LIBFLAGS+=-g -gdwarf-2 -O1 -w -fPIC -shared -ldummy -lpthread -fexceptions -I$(CONCURRIT_INCDIR) -L$(CONCURRIT_LIBDIR)
 
 lib/lib$(TARGET).so: $(LIBSRCS) $(LIBHEADERS)
 	$(CC) -I. -Isrc  $(LIBFLAGS) -o $@ $(LIBSRCS)
 
+shared: makedirs lib/lib$(TARGET).so
+
+script: bin/$(TARGET)
+
+driver: shared
+
 all: makedirs shared script
+

@@ -1,15 +1,28 @@
 #!/bin/bash
 
 MAKEBENCH() {
-	make -C $BENCHDIR clean
-	make -C $BENCHDIR shared
-	make -C $BENCHDIR all
+	for CMD in ${ARGS[@]}
+	do
+		make -C $BENCHDIR $CMD
+	done
 }
+
+#========================================
 
 ARGS=( $@ )
 # get and remove name of the benchmark from arguments
 BENCH=${ARGS[0]}
 echo "Compiling $BENCH"
+
+#========================================
+
+unset ARGS[0]
+if [ ${#ARGS[@]} == 0 ];
+then
+	ARGS=( "clean" "all" )
+fi
+
+#========================================
 
 if [ $BENCH != "all" ];
 then
