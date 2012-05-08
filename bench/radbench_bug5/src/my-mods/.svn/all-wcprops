@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug5/src/my-mods
+END
+ptsynch.c
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug5/src/my-mods/ptsynch.c
+END
+ptthread.c
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/ssg/spi/st/mt-testing/!svn/ver/11/Benchmarks/bug5/src/my-mods/ptthread.c
+END

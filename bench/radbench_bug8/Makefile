@@ -1,9 +1,9 @@
 
-BENCH=radbench_bug4
+BENCH=radbench_bug8
 
 include $(CONCURRIT_HOME)/test-common.mk
 
-RADBENCHDIR=$(RADBENCH_HOME)/bug4
+RADBENCHDIR=$(RADBENCH_HOME)/bug8
 
 TEST_FLAGS+=
 LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH)
@@ -16,8 +16,8 @@ makedirs::
 
 clean::
 	$(RADBENCHDIR)/scripts/clean.sh
-	rm -f $(RADBENCHDIR)/bin/*
-	rm -f $(RADBENCHDIR)/obj/*
+	rm -rf $(RADBENCHDIR)/bin/*
+	rm -rf $(RADBENCHDIR)/obj/*
 
 copyfiles:
 	cp -rf $(BENCHDIR)/scripts/* $(RADBENCHDIR)/scripts/
@@ -25,23 +25,13 @@ copyfiles:
 
 all: makedirs copyfiles shared script
 
-patch: nspr-patch testharness
-
-sleep: nspr-sleep testharness
-
-nspr-bug:
-	$(RADBENCHDIR)/scripts/build-nspr.sh default
-
-nspr-sleep:
-	$(RADBENCHDIR)/scripts/build-nspr.sh sleep
-
-nspr-patch:
-	$(RADBENCHDIR)/scripts/build-nspr.sh patch
+memcached:
+	$(RADBENCHDIR)/scripts/build-memcached.sh
 
 testharness:
 	TARGETLIBPATH="$(TARGETLIBPATH)" $(RADBENCHDIR)/scripts/build-testharness.sh
 	cp -f $(RADBENCHDIR)/src/runme.sh $(RADBENCHDIR)/bin/runme.sh
-
-shared: makedirs copyfiles nspr-bug testharness
+	
+shared: makedirs copyfiles memcached testharness
 
 driver: copyfiles testharness

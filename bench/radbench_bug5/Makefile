@@ -1,9 +1,9 @@
 
-BENCH=radbench_bug4
+BENCH=radbench_bug5
 
 include $(CONCURRIT_HOME)/test-common.mk
 
-RADBENCHDIR=$(RADBENCH_HOME)/bug4
+RADBENCHDIR=$(RADBENCH_HOME)/bug5
 
 TEST_FLAGS+=
 LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH)
@@ -34,9 +34,6 @@ nspr-bug:
 
 nspr-sleep:
 	$(RADBENCHDIR)/scripts/build-nspr.sh sleep
-
-nspr-patch:
-	$(RADBENCHDIR)/scripts/build-nspr.sh patch
 
 testharness:
 	TARGETLIBPATH="$(TARGETLIBPATH)" $(RADBENCHDIR)/scripts/build-testharness.sh

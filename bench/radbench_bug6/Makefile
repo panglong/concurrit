@@ -1,9 +1,9 @@
 
-BENCH=radbench_bug4
+BENCH=radbench_bug6
 
 include $(CONCURRIT_HOME)/test-common.mk
 
-RADBENCHDIR=$(RADBENCH_HOME)/bug4
+RADBENCHDIR=$(RADBENCH_HOME)/bug6
 
 TEST_FLAGS+=
 LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH)
@@ -25,23 +25,17 @@ copyfiles:
 
 all: makedirs copyfiles shared script
 
-patch: nspr-patch testharness
-
-sleep: nspr-sleep testharness
-
-nspr-bug:
-	$(RADBENCHDIR)/scripts/build-nspr.sh default
-
-nspr-sleep:
-	$(RADBENCHDIR)/scripts/build-nspr.sh sleep
-
-nspr-patch:
-	$(RADBENCHDIR)/scripts/build-nspr.sh patch
+nspr:
+	$(RADBENCHDIR)/scripts/build-nspr.sh
 
 testharness:
-	TARGETLIBPATH="$(TARGETLIBPATH)" $(RADBENCHDIR)/scripts/build-testharness.sh
+	TARGETLIBPATH="$(TARGETLIBPATH)" $(RADBENCHDIR)/scripts/build-testharness.sh default
+	cp -f $(RADBENCHDIR)/src/runme.sh $(RADBENCHDIR)/bin/runme.sh
+	
+testharness-sleep:
+	TARGETLIBPATH="$(TARGETLIBPATH)" $(RADBENCHDIR)/scripts/build-testharness.sh sleep
 	cp -f $(RADBENCHDIR)/src/runme.sh $(RADBENCHDIR)/bin/runme.sh
 
-shared: makedirs copyfiles nspr-bug testharness
+shared: makedirs copyfiles nspr testharness
 
 driver: copyfiles testharness

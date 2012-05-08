@@ -1,0 +1,922 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+
+
+
+
+
+ <link rel="icon" type="image/vnd.microsoft.icon" href="http://www.gstatic.com/codesite/ph/images/phosting.ico">
+ 
+ <script type="text/javascript">
+ 
+ 
+ 
+ var codesite_token = "e8a3cae0f6084de89652045b73bd8303";
+ 
+ 
+ var logged_in_user_email = "NickJalbert@gmail.com";
+ 
+ 
+ var relative_base_url = "";
+ 
+ </script>
+ 
+ 
+ <title>Issue 127 - 
+ memcached -
+ 
+ incr/decr operations are not thread safe. - Project Hosting on Google Code</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ 
+ <meta name="ROBOTS" content="NOARCHIVE">
+ 
+ <link type="text/css" rel="stylesheet" href="issue-127_files/ph_core.css">
+ 
+ <link type="text/css" rel="stylesheet" href="issue-127_files/ph_detail.css">
+ 
+ 
+ 
+ 
+<!--[if IE]>
+ <link type="text/css" rel="stylesheet" href="http://www.gstatic.com/codesite/ph/14316551366216337109/css/d_ie.css" >
+<![endif]-->
+ <style type="text/css">
+ .menuIcon.off { background: no-repeat url(http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif) 0 -42px }
+ .menuIcon.on { background: no-repeat url(http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif) 0 -28px }
+ .menuIcon.down { background: no-repeat url(http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif) 0 0; }
+ </style>
+<script src="issue-127_files/ga.js" async="" type="text/javascript"></script></head><body class="t3">
+ <script type="text/javascript">
+ var _gaq = _gaq || [];
+ _gaq.push(
+ ['siteTracker._setAccount', 'UA-18071-1'],
+ ['siteTracker._trackPageview']);
+ 
+ _gaq.push(
+ ['projectTracker._setAccount', 'UA-6824558-2'],
+ ['projectTracker._trackPageview']);
+ 
+ (function() {
+ var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+ (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ga);
+ })();
+ </script>
+ <div id="gaia">
+ 
+ <span>
+ 
+ 
+ <b>NickJalbert@gmail.com</b>
+ 
+ 
+ | <a href="http://code.google.com/u/NickJalbert/" id="projects-dropdown" onclick="return false;"><u>My favorites</u> <small>▼</small></a>
+ | <a href="http://code.google.com/u/NickJalbert/" onclick="_CS_click('/gb/ph/profile');" title="Profile, Updates, and Settings"><u>Profile</u></a>
+ | <a href="https://www.google.com/accounts/Logout?continue=http%3A%2F%2Fcode.google.com%2Fp%2Fmemcached%2Fissues%2Fdetail%3Fid%3D127" onclick="_CS_click('/gb/ph/signout');"><u>Sign out</u></a>
+ 
+ </span>
+
+ </div>
+ <div class="gbh" style="left: 0pt;"></div>
+ <div class="gbh" style="right: 0pt;"></div>
+ 
+ 
+ <div style="height: 1px;"></div>
+<!--[if IE 6]>
+<div style="text-align:center;">
+Support browsers that contribute to open source, try <a href="http://www.firefox.com">Firefox</a> or <a href="http://www.google.com/chrome">Google Chrome</a>.
+</div>
+<![endif]-->
+
+
+
+
+ <table style="padding: 0px; margin: 20px 0px 0px; width: 100%;" cellpadding="0" cellspacing="0">
+ <tbody><tr style="height: 58px;">
+ 
+ <td style="width: 55px; text-align: center;">
+ <a href="http://code.google.com/p/memcached/">
+ 
+ <img src="issue-127_files/defaultlogo.png" alt="Logo">
+ 
+ </a>
+ </td>
+ 
+ <td style="padding-left: 0.5em;">
+ 
+ <div id="pname" style="margin: 0px 0px -3px;">
+ <a href="http://code.google.com/p/memcached/" style="text-decoration: none; color: rgb(0, 0, 0);">memcached</a>
+ 
+ </div>
+ <div id="psum">
+ <i><a id="project_summary_link" href="http://code.google.com/p/memcached/" style="text-decoration: none; color: rgb(0, 0, 0);">Memcached</a></i>
+ </div>
+ 
+ </td>
+ <td style="white-space: nowrap; text-align: right;">
+ 
+ <form action="/hosting/search">
+ <input size="30" name="q">
+ <input name="projectsearch" value="Search projects" type="submit">
+ </form>
+ 
+ </td></tr>
+ </tbody></table>
+
+
+ 
+<table id="mt" border="0" cellpadding="0" cellspacing="0" width="100%">
+ <tbody><tr>
+ <th onclick="if (!cancelBubble) _go('/p/memcached/');">
+ <div class="tab inactive">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div class="box-inner">
+ <a onclick="cancelBubble=true;" href="http://code.google.com/p/memcached/">Project&nbsp;Home</a>
+ </div>
+ </div>
+ </th><td>&nbsp;&nbsp;</td>
+ 
+ 
+ 
+ 
+ <th onclick="if (!cancelBubble) _go('/p/memcached/downloads/list');">
+ <div class="tab inactive">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div class="box-inner">
+ <a onclick="cancelBubble=true;" href="http://code.google.com/p/memcached/downloads/list">Downloads</a>
+ </div>
+ </div>
+ </th><td>&nbsp;&nbsp;</td>
+ 
+ 
+ 
+ 
+ 
+ <th onclick="if (!cancelBubble) _go('/p/memcached/wiki/NewStart?tm=6');">
+ <div class="tab inactive">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div class="box-inner">
+ <a onclick="cancelBubble=true;" href="http://code.google.com/p/memcached/wiki/NewStart?tm=6">Wiki</a>
+ </div>
+ </div>
+ </th><td>&nbsp;&nbsp;</td>
+ 
+ 
+ 
+ 
+ 
+ <th onclick="if (!cancelBubble) _go('/p/memcached/issues/list');">
+ <div class="tab active">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div class="box-inner">
+ <a onclick="cancelBubble=true;" href="http://code.google.com/p/memcached/issues/list">Issues</a>
+ </div>
+ </div>
+ </th><td>&nbsp;&nbsp;</td>
+ 
+ 
+ 
+ 
+ 
+ <th onclick="if (!cancelBubble) _go('/p/memcached/wiki/DevelopmentRepos?tm=4');">
+ <div class="tab inactive">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div class="box-inner">
+ <a onclick="cancelBubble=true;" href="http://code.google.com/p/memcached/wiki/DevelopmentRepos?tm=4">Source</a>
+ </div>
+ </div>
+ </th><td>&nbsp;&nbsp;</td>
+ 
+ 
+ <td width="100%">&nbsp;</td>
+ </tr>
+</tbody></table>
+<table class="st" align="center" border="0" cellpadding="0" cellspacing="0" width="100%">
+ <tbody><tr>
+ 
+ 
+ 
+ 
+ 
+ <td>
+ <div class="issueDetail">
+<div class="isf">
+ 
+ 
+ <span class="inIssueEntry">
+ <a href="http://code.google.com/p/memcached/issues/entry">New issue</a>
+ </span> |
+ 
+ <span class="inIssueList">
+ <span>Search</span>
+ <form action="list" method="GET" style="display: inline;">
+ <select id="can" name="can" style="font-size: 92%;">
+ 
+<option disabled="disabled">Search within:</option>
+<option value="1">&nbsp;All issues</option>
+<option value="2" selected="selected">&nbsp;Open issues</option>
+
+ <option value="3">&nbsp;Open and owned by me</option>
+ <option value="4">&nbsp;Open and reported by me</option>
+ <option value="5">&nbsp;Open and starred by me</option>
+
+<option value="6">&nbsp;New issues</option>
+<option value="7">&nbsp;Issues to verify</option>
+
+ </select>
+ <span>for</span>
+ <span id="qq"><input size="38" id="searchq" name="q" style="font-size: 92%;" autocomplete="off" type="text"></span>
+ 
+ <span id="search_colspec"><input name="colspec" value="ID Type Status Priority Milestone Owner Summary" type="hidden"></span>
+ 
+ 
+ 
+ <input name="cells" value="tiles" type="hidden">
+ <input value="Search" style="font-size: 92%;" type="submit">
+ </form>
+ </span> |
+ <span class="inIssueAdvSearch">
+ <a href="http://code.google.com/p/memcached/issues/advsearch">Advanced search</a>
+ </span> |
+ <span class="inIssueSearchTips">
+ <a href="http://code.google.com/p/memcached/issues/searchtips">Search tips</a>
+ </span>
+</div>
+</div>
+
+ </td>
+ 
+ 
+ 
+ 
+ <td class="bevel-right" align="right" height="4" valign="top">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ </td>
+ </tr>
+</tbody></table>
+<script type="text/javascript">
+ var cancelBubble = false;
+ function _go(url) { document.location = url; }
+</script>
+
+
+<div id="maincol">
+
+ 
+<!-- IE -->
+
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+ 
+
+<style type="text/css">
+ .attachments { width:33%; border-top:2px solid #999; padding-top: 3px; margin-left: .7em;}
+ .attachments table { margin-bottom: 0.75em; }
+ .attachments table tr td { padding: 0; margin: 0; font-size: 95%; }
+ .preview { border: 2px solid #c3d9ff; padding: 1px; }
+ .preview:hover { border: 2px solid blue; }
+ .label { white-space: nowrap; }
+ .derived { font-style:italic }
+ tr.cursor_on .author {
+ background: #fff url(http://www.gstatic.com/codesite/ph/images/show-arrow.gif) no-repeat 2px;
+ }
+</style>
+<div id="color_control" class="">
+<div id="issueheader">
+<table cellpadding="0" cellspacing="0" width="100%"><tbody>
+ <tr>
+ <td class="vt h3" style="padding: 0pt 5px;" nowrap="nowrap">
+ 
+ 
+ 
+ 
+ <img src="issue-127_files/star_off.gif" style="cursor: pointer;" id="star" title="Vote for this issue and get email change notifications" onclick="_toggleStar(this,'','memcached',127); _syncStarIcons(this, 'star2')" height="15" width="15">
+ 
+ 
+ Issue <a href="http://code.google.com/p/memcached/issues/detail?id=127">127</a>:
+ </td>
+ <td class="vt" width="90%">
+ <span class="h3">incr/decr operations are not thread safe.</span>
+ </td>
+ <td>
+ 
+ <div class="pagination">
+ <a href="http://code.google.com/p/memcached/issues/detail?id=125" title="Prev">‹ Prev</a>
+ 18 of 31
+ <a href="http://code.google.com/p/memcached/issues/detail?id=128" title="Next">Next ›</a>
+ </div>
+ </td>
+ </tr>
+ <tr>
+ <td></td>
+ <td nowrap="nowrap">
+ 
+ 
+ 5 people starred this issue and may be notified of changes.
+ 
+ 
+ 
+ </td>
+ <td align="center" nowrap="nowrap">
+ 
+ <a href="http://code.google.com/p/memcached/issues/list?cursor=127">Back to list</a>
+ 
+ </td>
+ </tr>
+</tbody></table>
+</div>
+<table class="issuepage" id="meta-container" border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody id="cursorarea" class="collapse"> 
+ <tr class="cursor_off">
+ <td style="min-width: 161px;" id="issuemeta" rowspan="10">
+ <div style="width: 161px; position: relative; top: 0pt;" id="meta-float">
+ <table cellpadding="0" cellspacing="0">
+ <tbody><tr><th align="left">Status:&nbsp;</th>
+ <td width="100%">
+ 
+ <span title="Issue has not had initial review yet">New</span>
+ 
+ </td>
+ </tr>
+ 
+ <tr><th align="left">Owner:&nbsp;</th><td>
+ 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/@WRNRSlFTBxBAXgl0/">dorma...@rydia.net</a>
+ 
+ </td>
+ </tr>
+ 
+ 
+ 
+ 
+ <tr><td colspan="2">
+ <a href="http://code.google.com/p/memcached/issues/list?q=label:Type-Defect" title="Report of a software defect" class="label"><b>Type-</b>Defect</a>
+ </td></tr>
+ 
+ 
+ 
+ <tr><td colspan="2">
+ <a href="http://code.google.com/p/memcached/issues/list?q=label:Priority-Medium" title="Normal priority" class="label"><b>Priority-</b>Medium</a>
+ </td></tr>
+ 
+ 
+ 
+ </tbody></table>
+ <br><br>
+ 
+ 
+ 
+ 
+ 
+ <a href="javascript:_openIssueUpdateForm();">Add&nbsp;a&nbsp;comment&nbsp;below</a>
+ 
+ 
+ 
+ 
+ 
+ <div class="rel_issues">
+ 
+ 
+ 
+ </div>
+ 
+ 
+ </div>&nbsp;
+ </td>
+ <td class="vt issuedescription" width="100%">
+ <div class="author">
+ Reported by 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/sadao.hiratsuka/">sadao.hiratsuka</a>,
+ <span class="date" title="Tue Mar 30 09:34:34 2010">Mar 30, 2010</span>
+ 
+ </div>
+<pre>incr/decr operations are not thread safe.
+
+- What steps will reproduce the problem?
+Please use this code to reproduce the problem.
+<a href="http://gist.github.com/348889">http://gist.github.com/348889</a>
+
+$ memcached -t 16
+
+$ ./test_ascii
+expected: 100000
+result: 99939
+
+Change this line to use binary protocol and test again.
+bool g_binary = true;
+
+$ ./test_binary
+expected: 100000
+result: 99927
+
+- What version of the product are you using? On what operating system?
+memcached 1.4.4
+Red Hat Enterprise Linux 5.4 x86_64
+
+- Please provide any additional information below.
+Here is a sample patch to fix the problem.
+
+*** memcached.c_org     2009-11-27 14:45:13.000000000 +0900
+--- memcached.c 2010-03-31 01:29:22.000000000 +0900
+***************
+*** 54,59 ****
+--- 54,60 ----
+  #endif
+  #endif
+
++ pthread_mutex_t incr_lock = PTHREAD_MUTEX_INITIALIZER;
+  /*
+   * forward declarations
+   */
+***************
+*** 1017,1022 ****
+--- 1018,1024 ----
+                  req-&gt;message.body.expiration);
+      }
+
++     pthread_mutex_lock(&amp;incr_lock);
+      it = item_get(key, nkey);
+      if (it &amp;&amp; (c-&gt;binary_header.request.cas == 0 ||
+                 c-&gt;binary_header.request.cas == ITEM_get_cas(it))) {
+***************
+*** 1082,1087 ****
+--- 1084,1090 ----
+
+          write_bin_error(c, PROTOCOL_BINARY_RESPONSE_KEY_ENOENT, 0);
+      }
++     pthread_mutex_unlock(&amp;incr_lock);
+  }
+
+  static void complete_update_bin(conn *c) {
+***************
+*** 2780,2785 ****
+--- 2783,2789 ----
+          return;
+      }
+
++     pthread_mutex_lock(&amp;incr_lock);
+      it = item_get(key, nkey);
+      if (!it) {
+          pthread_mutex_lock(&amp;c-&gt;thread-&gt;stats.mutex);
+***************
+*** 2791,2796 ****
+--- 2795,2801 ----
+          pthread_mutex_unlock(&amp;c-&gt;thread-&gt;stats.mutex);
+
+          out_string(c, "NOT_FOUND");
++         pthread_mutex_unlock(&amp;incr_lock);
+          return;
+      }
+
+***************
+*** 2806,2811 ****
+--- 2811,2817 ----
+          break;
+      }
+      item_remove(it);         /* release our reference */
++     pthread_mutex_unlock(&amp;incr_lock);
+  }
+
+  /*
+
+Thanks.
+</pre>
+
+
+ </td>
+ </tr>
+
+ 
+
+ 
+ 
+ <tr class="cursor_off">
+ <td class="vt issuecomment">
+ 
+ 
+ 
+ <span class="author">Comment <a name="c1" href="#c1">1</a>
+ by
+ 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/@UBVWRVFUBRhAVwZ4/">kai...@ak.jp.nec.com</a></span>,
+ <span class="date" title="Thu Apr  1 02:01:11 2010">Apr 01, 2010</span>
+ 
+<pre>It seems to me the correct fix is to eliminate inplace incr/decr,
+rather than new locks (it possibly damages to scalability).
+
+Also see the report, <a href="http://bit.ly/9Dj9gI">http://bit.ly/9Dj9gI</a>
+
+In the engine branch, this matter was already fixed.
+
+<a href="http://github.com/trondn/memcached/commit/8e59e16a94fcf5f1e5fe1271a71a7958357853f8">http://github.com/trondn/memcached/commit/8e59e16a94fcf5f1e5fe1271a71a7958357853f8</a>
+
+I think it should be backported.
+</pre>
+ 
+ 
+ </td>
+ </tr>
+ 
+ 
+ 
+ <tr class="cursor_off">
+ <td class="vt issuecomment">
+ 
+ 
+ 
+ <span class="author">Comment <a name="c2" href="#c2">2</a>
+ by
+  project member 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/@WRNRSlFTBxBAXgl0/">dorma...@rydia.net</a></span>,
+ <span class="date" title="Thu Apr  1 17:45:04 2010">Apr 01, 2010</span>
+ 
+<pre>dustin and I talked about this briefly last night. That looks like the fix, but it's
+likely to be a performance regression (if slight).
+
+I'll verify the report with the fix a bit later and will see about qualifying the
+performance change in the future. Not sure what else can be realistically done here
+easily.
+
+We'd have to end up handling counters more specifically in the send code or
+something... like the way we send back suffixes. So again it's worth testing to see
+if it actually does regress before doing more code.
+</pre>
+ 
+ 
+ <div class="updates">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div class="box-inner">
+ <b>Owner:</b> dorma...@rydia.net<br>
+ </div>
+ <div class="round1"></div>
+ <div class="round2"></div>
+ <div class="round4"></div>
+ </div>
+ 
+ </td>
+ </tr>
+ 
+ 
+ 
+ <tr class="cursor_off">
+ <td class="vt issuecomment">
+ 
+ 
+ 
+ <span class="author">Comment <a name="c3" href="#c3">3</a>
+ by
+  project member 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/@WRNRSlFTBxBAXgl0/">dorma...@rydia.net</a></span>,
+ <span class="date" title="Fri Apr  2 23:54:07 2010">Apr 02, 2010</span>
+ 
+<pre>I just tried backporting the patch but I failed at it and it caused a 7% performance
+regression in running that test alone.
+
+So we're going to punt on this for 1.4.5 and try harder for 1.4.6. Sorry :/ Thanks
+for the test, it's very helpful.
+</pre>
+ 
+ 
+ </td>
+ </tr>
+ 
+ 
+ 
+ <tr class="cursor_off">
+ <td class="vt issuecomment">
+ 
+ 
+ 
+ <span class="author">Comment <a name="c4" href="#c4">4</a>
+ by
+  project member 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/@WRNRSlFTBxBAXgl0/">dorma...@rydia.net</a></span>,
+ <span class="date" title="Sat Apr  3 00:12:09 2010">Apr 03, 2010</span>
+ 
+<pre>Err, I figured it out, but it's still slower and not entirely correct so we'll have
+to figure it more later.
+
+do_add_delta has the global cache_lock, so it should've never had a race condition?
+But the item that's passed into it is fetched from outside of the big lock. So an
+incremented item could end up being junked by another thread. Added a little bit to
+trond's patch to re-fetch the item once inside do_add_delta and the test came back
+100% every time. It's still 7% slower, and I'm not sure if trond had that fixed
+elsewhere in the engine branch. I couldn't find it on a cursory look.
+
+To fix it more, do_add_delta needs to be passed in a key,keylen tuple instead of an
+item and return a NOT_FOUND if the internal fetch doesn't find the item. But again
+we'll revisit it later :/
+</pre>
+ 
+ 
+ </td>
+ </tr>
+ 
+ 
+ 
+ <tr class="cursor_off">
+ <td class="vt issuecomment">
+ 
+ 
+ 
+ <span class="author">Comment <a name="c5" href="#c5">5</a>
+ by
+  project member 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/@WRNRSlFTBxBAXgl0/">dorma...@rydia.net</a></span>,
+ <span class="date" title="Sun Apr  4 14:21:47 2010">Apr 04, 2010</span>
+ 
+<pre>I'll have to follow this up with another patch as mine's still incomplete, but I had
+a thought...
+
+When items are being sent back to a client, they have their reference counters
+incr/decr'ed. If we move the item_get down into do_add_delta (and use do_item_get),
+what we can do is then also test to see if the refcount &gt; 0 on the item. If it is,
+another thread is copying the data to the client or modifying it in some way. So then
+we allocate a new item and do the replace.
+
+But if recount == 0, we can modify the item in place. This *should* be safe since
+item_get and add_delta operate under the same lock.
+
+Bonus points would be optimizing counters to use thread-local write buffers on
+return. I can think of mildly complicated things to shorten the amount of time a
+counter is reflocked and decrease the number of expensive re-allocations:
+
+- Use thread-local write buffers for returning counters. Flatly allocated to
+INCR_MAX_STORAGE_LEN.
+- In a counter, store a uint64_t into the first 8 bytes of the value, and the string
+of the value in free bytes after that.
+- in do_add_delta, remove the safe_strtoull call and simply do the math
+- do the refcount check described above
+- then flatten the value back out via snprintf into the end of the value.
+- when returning a counter, we'd have to use some bit somewhere to determine that
+it's a counter (haven't looked at the item struct for ideas yet)
+- then memcpy the non-uint64_t of the counter into the send buffer for the client.
+- only hold the refclock on the counter in the client for the time it takes to fetch
+the item, determine it's a counter, toss a buffer into the return chain, and memcpy
+into it.
+
+That should greatly reduce the amount of time counter items stay locked. Also the
+amount of time we hold the global lock while processing incr/decr.
+
+Extra bonus points for doing the incr-or-decr detection outside of do_add_delta and
+passing in a positive or negative value to be added to the counter.
+
+That's on the memory-for-cpu tradeoff edge. we could also test just storing 8 bytes
+into counter values, doing most of the above, and calling snprintf from the value
+into the client buffer on every return.
+
+Low priority compared to getting the engine work finished, but worth testing I think
+:) In the shortterm I have a good feeling that the refcount trick will restore it to
+roughly the same speed it was before.
+</pre>
+ 
+ 
+ </td>
+ </tr>
+ 
+ 
+ 
+ <tr class="cursor_off">
+ <td class="vt issuecomment">
+ 
+ 
+ 
+ <span class="author">Comment <a name="c6" href="#c6">6</a>
+ by
+ 
+ <a style="white-space: nowrap;" href="http://code.google.com/u/tylerzheng/">tylerzheng</a></span>,
+ <span class="date" title="Thu Sep  9 08:06:27 2010">Sep 09 (6 days ago)</span>
+ 
+<pre>Hey everyone, any update on this issue after 5 months? Is the increment/decrement family (with_initial, by_key...) thread safe now?
+</pre>
+ 
+ 
+ </td>
+ </tr>
+ 
+ 
+
+ 
+
+
+
+ 
+
+
+</tbody>
+</table>
+<br>
+<script type="text/javascript" src="issue-127_files/dit_scripts.js"></script>
+
+
+
+
+
+ 
+ <div id="makechanges">
+ 
+ <div class="h4" style="margin-bottom: 0pt;">Add a comment
+ 
+ </div>
+ <div id="makechangesarea" class="closed" style="margin-top: 0pt; padding: 5px;">
+ 
+ <div class="updates" style="margin-bottom: 1em;">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div style="padding-left: 5px; cursor: pointer;" onclick="var star2=document.getElementById('star2');_toggleStar(star2,'','memcached',127); _syncStarIcons(star2, 'star')">
+ 
+ 
+ <img src="issue-127_files/star_off.gif" style="cursor: pointer;" id="star2" title="Vote for this issue and get email change notifications" height="15" width="15">
+ <b id="vote_feedback">Vote for this issue and get email change notifications</b>
+ 
+ 
+ </div>
+ <div class="round1"></div>
+ <div class="round2"></div>
+ <div class="round4"></div>
+ </div>
+ 
+ <div class="ifClosed">
+ <textarea onmousedown="_openIssueUpdateForm()" id="tempt" cols="85" rows="8" style="color: rgb(102, 102, 102);">Enter your comments</textarea>
+ </div>
+ <div class="ifOpened">
+ <form action="update.do?id=127" onsubmit="return _checkPlusOne() &amp;&amp; _checkUnrestrict(false)" method="POST" enctype="multipart/form-data">
+ <input name="_charset_" value="" type="hidden">
+ <input name="projectname" value="memcached" type="hidden">
+ <input name="token" value="e8a3cae0f6084de89652045b73bd8303" type="hidden">
+ <input name="id" value="127" type="hidden">
+ <input name="can" value="2" type="hidden">
+ <input name="q" value="" type="hidden">
+ <input name="colspec" value="ID Type Status Priority Milestone Owner Summary" type="hidden">
+ <input name="sort" value="" type="hidden">
+ <input name="start" value="0" type="hidden">
+ <input name="num" value="100" type="hidden">
+ <input name="pagegen" value="1284607102562034" type="hidden">
+ 
+ <table border="0" cellpadding="0" cellspacing="0">
+ <tbody><tr>
+ <td>
+ 
+ <textarea cols="85" rows="8" name="comment" id="addCommentTextArea" onkeyup="_dirty(); return true;"></textarea><br>
+ 
+ <div id="attachmentarea"></div>
+ <span id="attachprompt"><img src="issue-127_files/paperclip.gif" border="0" height="15" width="15"><a href="javascript:_addAttachmentFields('attachmentarea')" id="attachafile">Attach a file</a></span>
+ <span id="attachmaxsize" style="margin-left: 2em; display: none;">Max. attachments per comment: 10.0 MB</span><br>
+ 
+ 
+ <br>
+ </td>
+ 
+ <td valign="top">
+ <div class="tip">
+ <div class="round4"></div>
+ <div class="round2"></div>
+ <div class="round1"></div>
+ <div class="box-inner">
+ Each comment triggers notification emails.
+ So, please do not post
+ "<tt style="white-space: nowrap;">+1 Me too!</tt>".<br>
+ Instead, click the star icon.
+ </div>
+ <div class="round1"></div>
+ <div class="round2"></div>
+ <div class="round4"></div>
+ </div>
+ </td>
+ 
+ </tr>
+ <tr>
+ <td>
+ <table class="rowmajor" border="0" cellpadding="2" cellspacing="2">
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ <tbody><tr>
+ <td colspan="3"><span id="confirmarea" class="novel" style="padding-top: 5px; margin: 0pt;">
+ <span id="confirmmsg"></span>&nbsp;
+ 
+ </span>
+ </td>
+ </tr>
+ </tbody></table>
+ <input id="submit" name="btn" onfocus="_acrob(null)" onmousedown="_acrob(null)" value="Save changes" type="submit">
+ <input id="discard" name="nobtn" value="Discard" onfocus="_acrob(null)" onclick="_acrob(null); _confirmDiscardUpdate('detail?id=127'); return false;" type="button">
+ 
+ 
+ 
+ </td>
+ </tr>
+ </tbody></table>
+ </form>
+ 
+ </div>
+ </div>
+</div>
+<script type="text/javascript">
+ _allOrigLabels = [
+ "Type-Defect", "Priority-Medium", "", "", "",
+ "", "", "", "", "",
+ "", "", "", "", ""];
+ _lfidprefix = 'labeledit';
+</script>
+
+
+
+ 
+ 
+
+
+</div> 
+<form name="delcom" action="delComment.do?q=&amp;can=2&amp;sort=&amp;colspec=ID+Type+Status+Priority+Milestone+Owner+Summary" method="POST">
+ <input name="sequence_num" value="" type="hidden">
+ <input name="mode" value="" type="hidden">
+ <input name="id" value="127" type="hidden">
+ <input name="token" value="e8a3cae0f6084de89652045b73bd8303" type="hidden">
+</form>
+<div id="helparea"></div>
+<script type="text/javascript">
+ _onload();
+ function delComment(sequence_num, delete_mode) {
+ var f = document.forms["delcom"];
+ f.sequence_num.value = sequence_num;
+ f.mode.value = delete_mode;
+ 
+ f.submit();
+ return false;
+ }
+ _floatMetadata();
+</script>
+<script type="text/javascript" src="issue-127_files/kibbles-1.js"></script>
+<script type="text/javascript">
+ _setupKibblesOnDetailPage(
+ 'http://code.google.com/p/memcached/issues/list?cursor\x3d127',
+ '/p/memcached/issues/entry',
+ 'detail?id\x3d125',
+ 'detail?id\x3d128',
+ '', 'memcached', 127,
+ true, true);
+</script>
+ 
+ 
+ <script type="text/javascript" src="issue-127_files/core_scripts_20081103.js"></script>
+ <script type="text/javascript" src="issue-127_files/codesite_product_dictionary_ph.js"></script>
+ </div>
+<div id="footer" dir="ltr">
+ 
+ <div class="text">
+ 
+ ©2010 Google -
+ <a href="http://code.google.com/projecthosting/terms.html">Terms</a> -
+ <a href="http://www.google.com/privacy.html">Privacy</a> -
+ <a href="http://code.google.com/p/support/">Project Hosting Help</a>
+ 
+ </div>
+</div>
+
+ <div class="hostedBy" style="margin-top: -20px;">
+ <span style="vertical-align: top;">Powered by <a href="http://code.google.com/projecthosting/">Google Project Hosting</a></span>
+ </div>
+ 
+ 
+
+
+ 
+ <div style="display: none;" id="menuDiv-projects-dropdown" class="menuDiv instance0"><b style="display: block;" class="categoryTitle projects">Projects</b><div class="menuCategory projects"><a href="http://code.google.com/p/cs267-spring2010-jiang-nick/" style="display: block;" class="menuItem">cs267-spring2010-jiang-nick</a></div><div class="menuCategory controls"><hr class="menuSeparator"><a href="http://code.google.com/more/" style="display: block;" class="menuItem">Find developer products...</a><a href="http://code.google.com/hosting/" style="display: block;" class="menuItem">Find open source projects...</a></div></div></body></html>

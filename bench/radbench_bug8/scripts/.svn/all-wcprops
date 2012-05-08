@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/ssg/spi/st/mt-testing/!svn/ver/623/Benchmarks/bug8/scripts
+END
+runme.sh
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/ssg/spi/st/mt-testing/!svn/ver/623/Benchmarks/bug8/scripts/runme.sh
+END
+common.sh
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/ssg/spi/st/mt-testing/!svn/ver/21/Benchmarks/bug8/scripts/common.sh
+END
+build-testharness.sh
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/ssg/spi/st/mt-testing/!svn/ver/523/Benchmarks/bug8/scripts/build-testharness.sh
+END
+clean.sh
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/ssg/spi/st/mt-testing/!svn/ver/20/Benchmarks/bug8/scripts/clean.sh
+END
+build-memcached.sh
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/ssg/spi/st/mt-testing/!svn/ver/21/Benchmarks/bug8/scripts/build-memcached.sh
+END
