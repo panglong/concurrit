@@ -39,6 +39,10 @@ namespace concurrit {
 Coroutine* PinMonitor::tid_to_coroutine_[MAX_THREADS];
 volatile bool PinMonitor::enabled_ = false;
 volatile bool PinMonitor::down_ = false;
+PinToolOptions PinMonitor::options_ = {
+		TRUE, // TrackFuncCalls;
+		TRUE  // InstrTopLevelFuncs
+};
 
 /********************************************************************************/
 
@@ -49,6 +53,8 @@ void PinMonitor::Init() {
 		for(int i = 0; i < MAX_THREADS; ++i) {
 			tid_to_coroutine_[i] = NULL;
 		}
+		// init pin tool options, detected by Pin
+		InitPinTool(&PinMonitor::options_);
 	}
 }
 
@@ -277,6 +283,8 @@ void CallPinMonitor(PinMonitorCallInfo* info) {
 /********************************************************************************/
 
 // functions whose first instructions to be instrumented by pin tool
+
+void InitPinTool(PinToolOptions* options) { MYLOG(2) << "Initializing pin instrumentation"; }
 
 void EnablePinTool() { MYLOG(2) << "Enabling pin instrumentation"; }
 void DisablePinTool() { MYLOG(2) << "Disabling pin instrumentation"; }

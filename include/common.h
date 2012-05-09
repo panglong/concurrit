@@ -94,6 +94,16 @@ namespace concurrit {
 
 /********************************************************************************/
 
+#ifndef	TRUE
+#define TRUE	1
+#endif	/* TRUE */
+
+#ifndef	FALSE
+#define FALSE	0
+#endif	/* FALSE */
+
+/********************************************************************************/
+
 #define BETWEEN(x,y,z)		(((x) <= (y)) && ((y) <= (z)))
 #define BETWEEN2(x,y1,y2,z)	(((x) <= (y1)) && (y1 <= y2) && ((y2) <= (z)))
 
@@ -337,6 +347,9 @@ public:
 /********************************************************************************/
 
 // functions that are tracked by pin tool
+
+struct PinToolOptions;
+extern "C" void InitPinTool(PinToolOptions* options);
 
 extern "C" void EnablePinTool();
 extern "C" void DisablePinTool();

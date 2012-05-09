@@ -45,6 +45,11 @@ namespace concurrit {
 class Coroutine;
 class Scenario;
 
+struct PinToolOptions {
+	uint32_t TrackFuncCalls;
+	uint32_t InstrTopLevelFuncs;
+};
+
 /// class to handle pin events
 class PinMonitor {
 private:
@@ -87,6 +92,7 @@ private:
 	static Coroutine* tid_to_coroutine_[MAX_THREADS];
 	static volatile bool enabled_;
 	static volatile bool down_;
+	static PinToolOptions options_;
 };
 
 typedef uint32_t PinMonitorCallType;

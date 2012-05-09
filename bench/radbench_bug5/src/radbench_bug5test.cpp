@@ -11,6 +11,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 	TESTCASE() {
 
+		NDConcurrentSearch();
+
 
 	}
 

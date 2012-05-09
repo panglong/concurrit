@@ -104,8 +104,13 @@ LOCALVAR TLS_KEY tls_key;
 
 std::string CONCURRIT_HOME;
 
-LOCALVAR BOOL INST_TOP_LEVEL = FALSE;
-LOCALVAR BOOL TRACK_FUNC_CALLS = FALSE;
+LOCALVAR concurrit::PinToolOptions OPTIONS = {
+		FALSE, // TrackFuncCalls;
+		FALSE  // InstrTopLevelFuncs
+};
+
+//LOCALVAR BOOL INST_TOP_LEVEL = FALSE;
+//LOCALVAR BOOL TRACK_FUNC_CALLS = FALSE;
 
 /* ===================================================================== */
 
@@ -113,6 +118,7 @@ LOCALVAR BOOL TRACK_FUNC_CALLS = FALSE;
 
 /* ===================================================================== */
 
+static const char* NativePinInitFunName = "InitPinTool";
 static const char* NativePinShutdownFunName = "ShutdownPinTool";
 static const char* NativePinEnableFunName = "EnablePinTool";
 static const char* NativePinDisableFunName = "DisablePinTool";
@@ -441,10 +447,19 @@ EndInstrument(THREADID threadid) {
 }
 
 VOID PIN_FAST_ANALYSIS_CALL
-PinShutdown() {
+PinToolShutdown() {
 	PinDisable();
 	PIN_Detach();
 	PinSourceLocation::clear();
+}
+
+VOID PIN_FAST_ANALYSIS_CALL
+PinToolInit(ADDRINT options_addrint) {
+	concurrit::PinToolOptions* options_ptr = static_cast<concurrit::PinToolOptions*>(ADDRINT2PTR(options_addrint));
+	PIN_SafeCopy(&OPTIONS, options_ptr, sizeof(concurrit::PinToolOptions));
+
+	log_file << "[PinToolInit] Pin Option TrackFuncCalls: " << OPTIONS.TrackFuncCalls << std::endl;
+	log_file << "[PinToolInit] Pin Option InstrTopLevelFuncs: " << OPTIONS.InstrTopLevelFuncs << std::endl;
 }
 
 /* ===================================================================== */
@@ -760,10 +775,20 @@ VOID OnLoadConcurrit(IMG img) {
 			} else if(RTN_Name(rtn) == NativePinShutdownFunName) {
 				RTN_Open(rtn);
 
-				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinShutdown), IARG_FAST_ANALYSIS_CALL,
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinToolShutdown), IARG_FAST_ANALYSIS_CALL,
 						IARG_END);
 
 				log_file << "Detected callback to concurrit: " << NativePinShutdownFunName << " at address " << RTN_Address(rtn) << std::endl;
+
+				RTN_Close(rtn);
+			} else if(RTN_Name(rtn) == NativePinInitFunName) {
+				RTN_Open(rtn);
+
+				RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(PinToolInit), IARG_FAST_ANALYSIS_CALL,
+						IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+						IARG_END);
+
+				log_file << "Detected callback to concurrit: " << NativePinInitFunName << " at address " << RTN_Address(rtn) << std::endl;
 
 				RTN_Close(rtn);
 			}
@@ -830,7 +855,7 @@ BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr) {
 		// be careful to always call IsImageFiltered
 		return IsImageFiltered(SEC_Img(RTN_Sec(rtn)))
 				|| InstParams::IsRoutineToSkip(rtn_addr)
-				|| (INST_TOP_LEVEL && !InstParams::IsRoutineToInstrument(rtn_addr));
+				|| (OPTIONS.InstrTopLevelFuncs && !InstParams::IsRoutineToInstrument(rtn_addr));
 	}
 	return TRUE;
 }
@@ -840,7 +865,7 @@ BOOL IsRoutineFiltered(RTN rtn, ADDRINT rtn_addr) {
 LOCALFUN INLINE
 VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 
-	if (TRACK_FUNC_CALLS && INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
+	if (OPTIONS.TrackFuncCalls && INS_IsCall(ins) && INS_IsProcedureCall(ins) && !INS_IsSyscall(ins)) {
 		if (!INS_IsDirectBranchOrCall(ins)) {
 			// Indirect call
 			PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
@@ -1244,8 +1269,11 @@ int main(int argc, CHAR *argv[]) {
 
 	InitFilteredImages(KnobFilteredImagesFile.Value().c_str());
 
-	INST_TOP_LEVEL = KnobInstrumentTopLevel.Value();
-	TRACK_FUNC_CALLS = KnobTrackFuncCalls.Value();
+	OPTIONS.InstrTopLevelFuncs = KnobInstrumentTopLevel.Value();
+	OPTIONS.TrackFuncCalls = KnobTrackFuncCalls.Value();
+
+	log_file << "[main] Pin Option TrackFuncCalls: " << OPTIONS.TrackFuncCalls << std::endl;
+	log_file << "[main] Pin Option InstrTopLevelFuncs: " << OPTIONS.InstrTopLevelFuncs << std::endl;
 
 //	tls_key = PIN_CreateThreadDataKey(ThreadLocalDestruct);
 	PIN_AddThreadStartFunction(ThreadStart, 0);
