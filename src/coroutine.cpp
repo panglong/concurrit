@@ -117,7 +117,7 @@ void Coroutine::Finish() {
 		} else {
 			fprintf(stderr, "Killing thread %d...", tid_);
 			MYLOG(2) << CO_TITLE << "Cancelling the thread";
-			this->Cancel();
+			this->Cancel(); // this->Kill(SIGUSR1);
 			MYLOG(2) << CO_TITLE << "Waiting for the thread";
 			this->Join();
 			fprintf(stderr, "Done.\n");

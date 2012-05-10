@@ -47,8 +47,8 @@ class Coroutine;
 
 class FuncVar {
 public:
-	explicit FuncVar(void* addr) : addr_(PTR2ADDRINT(safe_notnull(addr))) {
-		MYLOG(1) << "Creating function variable for " << addr;
+	explicit FuncVar(const char* name, void* addr) : addr_(PTR2ADDRINT(safe_notnull(addr))) {
+		MYLOG(1) << "Creating function variable for " << name << " at address " << addr;
 	}
 	~FuncVar() {}
 

@@ -328,16 +328,3 @@ int __main__(int argc, char* argv[]) {
 	return main0(argc, argv);
 }
 
-//__attribute__((constructor))
-//void __init__() {
-//	PR_STDIO_INIT();
-//	PR_Init(PR_USER_THREAD, PR_PRIORITY_HIGH, 0);
-//}
-//
-//__attribute__((destructor))
-//void __fini__() {
-//	if(PR_Cleanup() != PR_SUCCESS) {
-//		printf("ERROR in Cleanup!\n");
-//		exit(-1);
-//	}
-//}

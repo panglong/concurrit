@@ -209,6 +209,15 @@ void Thread::Cancel() {
 
 /********************************************************************************/
 
+void Thread::Kill(int signal_number) {
+	__pthread_errno__ = pthread_kill(pthread_, signal_number);
+	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
+		safe_fail("Kill error: %s\n", PTHResultToString(__pthread_errno__));
+	}
+}
+
+/********************************************************************************/
+
 void Thread::Yield(bool force /*false*/) {
 	if (force) {
 		sched_yield();

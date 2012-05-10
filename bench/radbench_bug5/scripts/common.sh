@@ -23,7 +23,7 @@ if [ ! -e "$NSPR_ZIP" ]; then
     exit 1
 fi;
 
-TEST_SRC=$SRC_DIR/cvar.c
+TEST_SRC=$SRC_DIR/join.c
 if [ ! -e "$TEST_SRC" ]; then
     echo "ERROR: unable to find test harness $TEST_SRC"
     exit 1

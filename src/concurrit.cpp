@@ -245,7 +245,7 @@ void* Concurrit::CallDriverMain(void*) {
 
 /********************************************************************************/
 
-const int signals_handled[] = { SIGSEGV, SIGABRT, SIGTERM };
+const int signals_handled[] = { SIGSEGV, SIGABRT, SIGTERM, SIGTSTP, SIGINT };
 
 void Concurrit::InstallSignalHandler() {
 	struct sigaction sig_action;
@@ -254,7 +254,7 @@ void Concurrit::InstallSignalHandler() {
 //	sig_action.sa_flags |= SA_RESTART;
 	sig_action.sa_handler = &Concurrit::SignalHandler;
 
-	for (size_t i = 0; i < 3; ++i) {
+	for (size_t i = 0; i < 5; ++i) {
 		CHECK_ERR(sigaction(signals_handled[i], &sig_action, NULL));
 	}
 }

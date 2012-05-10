@@ -245,7 +245,7 @@ inline void* _FUNC(const char* func_name) {
 	return f;
 }
 
-#define FUNC(v, f)					static FuncVar v(_FUNC(#f));
+#define FUNC(v, f)					static FuncVar v(#f, _FUNC(#f));
 #define FVAR(v, f)					FUNC(v, f)
 
 /********************************************************************************/

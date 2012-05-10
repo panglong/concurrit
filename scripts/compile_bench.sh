@@ -3,7 +3,9 @@
 MAKEBENCH() {
 	for CMD in ${ARGS[@]}
 	do
-		make -C $BENCHDIR $CMD
+		CFLAGS="$CFLAGS -g -gdwarf-2" \
+			CXXFLAGS="$CXXFLAGS -g -gdwarf-2" \
+				make -C $BENCHDIR $CMD
 	done
 }
 
