@@ -30,6 +30,9 @@ clean::
 
 clean-test::
 	rm -f bin/*
+	
+clean-script::
+	rm -f bin/$(TARGET)
 
 bin/$(TARGET): lib/$(TARGETLIB) $(SRCS) $(HEADERS)
 	$(CC) $(TEST_FLAGS) -o $@ $(SRCS)

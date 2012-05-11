@@ -314,4 +314,14 @@ Coroutine* CoroutineGroup::GetMember(const pthread_t& pid) {
 
 /********************************************************************************/
 
+void CoroutineGroup::KillAll(int signal_number, THREADID sender /*= 0*/) {
+	for_each_member(co) {
+		if(co->tid() != sender) {
+			co->Kill(signal_number);
+		}
+	}
+}
+
+/********************************************************************************/
+
 } // end namespace

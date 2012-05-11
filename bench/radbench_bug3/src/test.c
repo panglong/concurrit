@@ -10,13 +10,11 @@ static JSRuntime *rt;
 #define THREADS 3
 
 static void * testfunc(void *ignored) {
-	concurritStartInstrument();
-    JSContext *cx = JS_NewContext(rt, 0x1000);
+	JSContext *cx = JS_NewContext(rt, 0x1000);
     if (cx) {
     	JS_BeginRequest(cx);
         JS_DestroyContext(cx);
     }
-    concurritEndInstrument();
 }
 
 static

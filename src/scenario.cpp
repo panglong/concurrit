@@ -741,6 +741,10 @@ void Scenario::Finish(Result* result) {
 	SaveSearchInfo();
 
 	if(INSTANCEOF(result, SignalResult*)) {
+		Coroutine* current = Coroutine::Current();
+		group_.Kill(ASINSTANCEOF(result, SignalResult*)->signal_number(),
+					current == NULL ? 0 : current->tid());
+
 		// print statistics as we are dying
 		std::cerr << "********** Statistics **********" << std::endl;
 		std::cerr << statistics_.ToString() << std::endl;
@@ -761,6 +765,7 @@ void Scenario::Finish(Result* result) {
 /********************************************************************************/
 
 void Scenario::OnSignal(int signal_number) {
+
 	if(BETWEEN(TEST_SETUP, test_status_, TEST_TEARDOWN)) {
 		fprintf(stderr, "Signal %d caught! Finishing...\n", signal_number);
 		fflush(stderr);

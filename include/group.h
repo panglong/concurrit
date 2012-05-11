@@ -90,6 +90,8 @@ public:
 
 //	bool CheckCurrent(Coroutine* current);
 
+	void KillAll(int signal_number, THREADID sender = 0);
+
 protected:
 	static void init_main();
 	static void delete_main();
