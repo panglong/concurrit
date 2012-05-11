@@ -207,7 +207,7 @@ void joinWithUnjoinable2(void)
                      unjoinable, 0,
                      PR_PRIORITY_NORMAL,
                      PR_GLOBAL_THREAD,
-                     PR_JOINABLE_THREAD,
+                     PR_UNJOINABLE_THREAD,
                      0);
     if (!thread) {
         if (debug_mode) printf("\tcannot create unjoinable thread\n");
@@ -215,18 +215,18 @@ void joinWithUnjoinable2(void)
         return;
     }
 
-//    if (PR_JoinThread(thread) == PR_SUCCESS) {
-//        if (debug_mode) printf("\tsuccessfully joined with unjoinable thread?!\n");
-//        else Test_Result(FAIL);
-//        return;
-//    } else {
-//        if (debug_mode) printf("\tcannot join with unjoinable thread, as expected\n");
-//        if (PR_GetError() != PR_INVALID_ARGUMENT_ERROR) {
-//            if (debug_mode) printf("\tWrong error code\n");
-//            else Test_Result(FAIL);
-//            return;
-//        }
-//    }
+    if (PR_JoinThread(thread) == PR_SUCCESS) {
+        if (debug_mode) printf("\tsuccessfully joined with unjoinable thread?!\n");
+        else Test_Result(FAIL);
+        return;
+    } else {
+        if (debug_mode) printf("\tcannot join with unjoinable thread, as expected\n");
+        if (PR_GetError() != PR_INVALID_ARGUMENT_ERROR) {
+            if (debug_mode) printf("\tWrong error code\n");
+            else Test_Result(FAIL);
+            return;
+        }
+    }
     if (PR_Interrupt(thread) == PR_FAILURE) {
         if (debug_mode) printf("\tcannot interrupt unjoinable thread\n");
         else Test_Result(FAIL);

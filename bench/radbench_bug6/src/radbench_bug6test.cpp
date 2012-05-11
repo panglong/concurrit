@@ -11,6 +11,10 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 	TESTCASE() {
 
+		WHILE_STAR {
+			FORALL(t, ENTERS());
+			RUN_UNTIL(BY(t), RETURNS() || ENDS(), __);
+		}
 
 	}
 

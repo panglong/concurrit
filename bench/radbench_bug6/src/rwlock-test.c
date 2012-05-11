@@ -8,7 +8,8 @@ static void writer_main(void *arg);
 /* Globals */
 static PRRWLock *thelock;
 
-int main()
+static
+int main0(int argc, char* argv[])
 {
     int rc = 0;
     PRThread *reader_thread = NULL;
@@ -86,4 +87,10 @@ static void writer_main(void *arg)
     PR_RWLock_Wlock(thelock);
     PR_RWLock_Unlock(thelock);
 }
+
+//============================================
+int __main__(int argc, char* argv[]) {
+	return main0(argc, argv);
+}
+
 

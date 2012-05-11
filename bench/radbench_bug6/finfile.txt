@@ -1,0 +1,3 @@
+PR_RWLock_Wlock
+PR_RWLock_Rlock
+PR_RWLock_Unlock
