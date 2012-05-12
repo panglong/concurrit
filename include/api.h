@@ -373,6 +373,8 @@ inline TransitionPredicatePtr _WRITES(void* x = NULL, ThreadVarPtr t = ThreadVar
 
 /********************************************************************************/
 
+#define ACCESSES(...)	(READS(__VA_ARGS__) || WRITES(__VA_ARGS__))
+
 #define TO_READ(...)	READS(__VA_ARGS__)
 #define TO_WRITES(...)	WRITES(__VA_ARGS__)
 

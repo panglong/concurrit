@@ -69,7 +69,8 @@ TESTCASE() {
 
 		JSRuntime* rt = static_cast<JSRuntime*>(ADDRINT2PTR(AuxState::Arg0->get(f_newcontext, t1->tid())));
 		safe_assert(rt != NULL);
-		void* x = &rt->state;
+		void* x = &(rt->state);
+		void* y = &(rt->gcLock);
 
 		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext), __);
 		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext), __);
@@ -78,11 +79,11 @@ TESTCASE() {
 
 //		printf("Starting interleaving\n");
 
-		RUN_UNTIL(BY(t1), CALLS(f_prlock) || ENDS(), "Run t until ...");
+		RUN_UNTIL(BY(t1), READS(y) || ENDS(), "Run t until ...");
 
 		WHILE_STAR {
 			FORALL(t, BY(t1) || BY(t2) || BY(t3));
-			RUN_UNTIL(BY(t), CALLS(f_prlock) || ENDS(), "Run t until ...");
+			RUN_UNTIL(BY(t), READS(y) || ENDS(), "Run t until ...");
 		}
 	}
 
