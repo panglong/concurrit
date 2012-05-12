@@ -71,16 +71,10 @@ void concurritEndInstrumentEx(const char* filename, const char* funcname, int li
 void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
-	MYLOG(2) << "Thread at pc " << pc;
-
 	Coroutine* current = safe_notnull(Coroutine::Current());
 	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
-	if(filename != NULL) current->set_srcloc(new SourceLocation(filename, funcname, line));
 
-	AuxState::Pc->set(pc, current->tid());
-	AuxState::AtPc->set(true, current->tid());
-
-	scenario->OnControlledTransition(current);
+	PinMonitor::AtPc(current, scenario, pc, new SourceLocation(filename, funcname, line));
 }
 
 /********************************************************************************/

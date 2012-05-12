@@ -192,8 +192,9 @@ public:
 	static inline PinSourceLocation* get(ADDRINT address) {
 		PIN_LockClient();
 		RTN rtn = RTN_FindByAddress(address);
+		PinSourceLocation* loc = PinSourceLocation::get(rtn, address);
 		PIN_UnlockClient();
-		return PinSourceLocation::get(rtn, address);
+		return loc;
 	}
 
 	static inline PinSourceLocation* get(RTN rtn) {
@@ -229,18 +230,22 @@ public:
 		address_ = address;
 
 		PIN_LockClient();
+
 		PIN_GetSourceLocation(address_, &column_, &line_, &filename_);
-		PIN_UnlockClient();
 
 		if(filename_ == "") {
 			filename_ = "<unknown>";
 		}
 
-		if (RTN_Valid(rtn))
-		{
-			imgname_ = IMG_Name(SEC_Img(RTN_Sec(rtn)));
+		if (RTN_Valid(rtn)) {
+			IMG img = SEC_Img(RTN_Sec(rtn));
+			if(IMG_Valid(img)) {
+				imgname_ = IMG_Name(img);
+			}
 			funcname_ = RTN_Name(rtn);
 		}
+
+		PIN_UnlockClient();
 	}
 
 	VOID* pointer() {
@@ -515,7 +520,7 @@ FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation
 	info.type = concurrit::FuncCall;
 	info.threadid = threadid;
 	info.addr = ADDRINT2PTR(rtn_addr); // loc_src->pointer();
-	info.addr_target = loc_target->pointer();
+	info.addr_target = ADDRINT2PTR(target); // loc_target->pointer();
 	info.direct = direct;
 	info.loc_src = loc_src;
 	info.loc_target = loc_target;
@@ -897,6 +902,7 @@ VOID CallTrace(INS ins, RTN rtn, ADDRINT rtn_addr) {
 #if defined(TARGET_LINUX) && defined(TARGET_IA32)
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_runtime_resolve") return;
 		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_debug_state") return;
+		if( RTN_Valid(rtn) && RTN_Name(rtn) == "_dl_fixup") return;
 #endif
 		PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
@@ -1011,12 +1017,6 @@ VOID Routine(RTN rtn, VOID *v) {
 
 	ADDRINT rtn_addr = RTN_Address(rtn);
 
-	// check plt routine
-	if(RTN_Name(rtn) == ".plt") {
-		AddToPLT(rtn_addr);
-		return;
-	}
-
 	// if this is a routine to forward to concurrit, then record its address
 	InstParams::CheckAndRecordRoutine(rtn, rtn_addr);
 
@@ -1027,6 +1027,13 @@ VOID Routine(RTN rtn, VOID *v) {
 //	PIN_LockClient();
 
 	RTN_Open(rtn);
+
+	// check plt routine
+	if(RTN_Name(rtn) == ".plt") {
+		AddToPLT(rtn_addr);
+		RTN_Close(rtn);
+		return;
+	}
 
 	PinSourceLocation* loc = PinSourceLocation::get(rtn);
 	safe_assert(PTR2ADDRINT(loc->pointer()) == rtn_addr);

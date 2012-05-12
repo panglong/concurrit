@@ -46,7 +46,9 @@ Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* ent
 	exception_ = NULL;
 	current_node_ = NULL;
 //	is_driver_thread_ = false;
+
 	srcloc_ = NULL;
+	instr_callback_info_[0] = '\0';
 
 	ThreadVarPtr p(new StaticThreadVar(this, "Self-ThreadVar"));
 	tvar_ = p;
@@ -463,6 +465,8 @@ void Coroutine::FinishControlledTransition() {
 	AuxState::Reset(tid_);
 
 	srcloc_ = NULL;
+
+	instr_callback_info_[0] = '\0';
 
 	current_node_ = NULL;
 

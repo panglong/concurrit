@@ -51,14 +51,15 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 TESTCASE() {
 
-		FUNC(f_newcontext, js_NewContext);
+		FUNC(f_newcontext, JS_NewContext);
 		FUNC(f_setcontextthread, js_SetContextThread);
 		FUNC(f_clearcontextthread, js_ClearContextThread);
 		FUNC(f_beginrequest, JS_BeginRequest);
-		FUNC(f_gc, js_GC);
+		FUNC(f_gc, JS_GC);
 		FUNC(f_endrequest, JS_EndRequest);
-		FUNC(f_destroycontext, js_DestroyContext);
+		FUNC(f_destroycontext, JS_DestroyContext);
 		FUNC(f_prlock, PR_Lock);
+		FUNC(f_prunlock, PR_Unlock);
 
 		MAX_WAIT_TIME(0);
 
@@ -73,13 +74,15 @@ TESTCASE() {
 		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext), __);
 		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext), __);
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
+		MAX_WAIT_TIME(60*USECSPERSEC);
 
 //		printf("Starting interleaving\n");
 
+		RUN_UNTIL(BY(t1), CALLS(f_prlock) || ENDS(), "Run t until ...");
+
 		WHILE_STAR {
 			FORALL(t, BY(t1) || BY(t2) || BY(t3));
-			RUN_UNTIL(BY(t), READS(x) || WRITES(x) || CALLS(f_prlock) || ENDS(), "Run t until ...");
+			RUN_UNTIL(BY(t), CALLS(f_prlock) || ENDS(), "Run t until ...");
 		}
 	}
 

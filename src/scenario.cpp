@@ -742,7 +742,7 @@ void Scenario::Finish(Result* result) {
 
 	if(INSTANCEOF(result, SignalResult*)) {
 		Coroutine* current = Coroutine::Current();
-		group_.Kill(ASINSTANCEOF(result, SignalResult*)->signal_number(),
+		group_.KillAll(ASINSTANCEOF(result, SignalResult*)->signal_number(),
 					current == NULL ? 0 : current->tid());
 
 		// print statistics as we are dying

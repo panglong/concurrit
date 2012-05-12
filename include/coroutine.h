@@ -108,6 +108,10 @@ public:
 
 	void FinishControlledTransition();
 
+	char* instr_callback_info() {
+		return instr_callback_info_;
+	}
+
 private:
 
 	DECL_VOL_FIELD(StatusType, status)
@@ -129,6 +133,7 @@ private:
 //	DECL_FIELD(bool, is_driver_thread)
 
 	DECL_FIELD(SourceLocation*, srcloc)
+	char instr_callback_info_[256];
 
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };

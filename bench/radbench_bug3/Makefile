@@ -16,12 +16,12 @@ makedirs::
 
 clean::
 	#$(RADBENCHDIR)/scripts/clean.sh
-	rm -f $(RADBENCHDIR)/bin/*
-	rm -f $(RADBENCHDIR)/obj/*
+	rm -rf $(RADBENCHDIR)/bin/*
+	rm -rf $(RADBENCHDIR)/obj/*
 
 copyfiles:
-	cp -f $(BENCHDIR)/scripts/* $(RADBENCHDIR)/scripts/
-	cp -f $(BENCHDIR)/src/* $(RADBENCHDIR)/src/
+	cp -rf $(BENCHDIR)/scripts/* $(RADBENCHDIR)/scripts/
+	cp -rf $(BENCHDIR)/src/* $(RADBENCHDIR)/src/
 
 all: makedirs copyfiles shared script
 

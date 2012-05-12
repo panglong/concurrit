@@ -84,9 +84,13 @@ public:
 	static void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1);
 	static void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
 
+	static void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
+
 	static void ThreadEnd(Coroutine* current, Scenario* scenario);
 
-	static void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
+	static void AtPc(Coroutine* current, Scenario* scenario, int pc, SourceLocation* loc = NULL);
+
+	/******************************************************************************************/
 
 private:
 	static Coroutine* tid_to_coroutine_[MAX_THREADS];

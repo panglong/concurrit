@@ -1,8 +1,8 @@
--JS_NewContext
--JS_DestroyContext
+JS_NewContext
+JS_DestroyContext
 -JS_SetContextThread
 -JS_ClearContextThread
--JS_GC
+JS_GC
 -JS_BeginRequest
 -JS_EndRequest
 -js_SetContextThread
@@ -13,3 +13,4 @@ js_NewContext
 js_DestroyContext
 js_GC
 -PR_Lock
+-PR_Unlock
