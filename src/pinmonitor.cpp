@@ -40,7 +40,7 @@ Coroutine* PinMonitor::tid_to_coroutine_[MAX_THREADS];
 volatile bool PinMonitor::enabled_ = false;
 volatile bool PinMonitor::down_ = false;
 PinToolOptions PinMonitor::options_ = {
-		FALSE, // TrackFuncCalls;
+		TRUE, // TrackFuncCalls;
 		TRUE  // InstrTopLevelFuncs
 };
 

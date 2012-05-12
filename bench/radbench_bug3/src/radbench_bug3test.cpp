@@ -75,11 +75,12 @@ TESTCASE() {
 		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext), __);
 		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext), __);
 
-		MAX_WAIT_TIME(60*USECSPERSEC);
+		MAX_WAIT_TIME(3*USECSPERSEC);
 
 //		printf("Starting interleaving\n");
 
-		RUN_UNTIL(BY(t1), READS(y) || ENDS(), "Run t until ...");
+		EXISTS(t4, BY(t1) || BY(t2));
+		RUN_UNTIL(BY(t4), READS(y) || ENDS(), "Run t until ...");
 
 		WHILE_STAR {
 			FORALL(t, BY(t1) || BY(t2) || BY(t3));
