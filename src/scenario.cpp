@@ -107,7 +107,7 @@ void Scenario::LoadScheduleFromFile(const char* filename) {
 /********************************************************************************/
 
 ThreadVarPtr Scenario::RunTestDriver() {
-	if(Config::TestLibraryFile != NULL) {
+	if(Config::TestLibraryFile != NULL && Concurrit::driver_main() != NULL) {
 		MYLOG(2) << "Calling driver's main function.";
 
 		ThreadVarPtr var = CreateThread(Concurrit::CallDriverMain, NULL);

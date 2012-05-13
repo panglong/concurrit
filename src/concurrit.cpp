@@ -177,7 +177,7 @@ void Concurrit::LoadTestLibrary() {
 			safe_fail("Cannot load the test library %s!\n", Config::TestLibraryFile);
 		}
 		Concurrit::driver_handle_ = handle;
-		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", handle, true);
+		Concurrit::driver_main_ = (MainFuncType) FuncAddressByName("__main__", handle, false);
 //		Concurrit::driver_init_ = (MainFuncType) FuncAddressByName("__init__", handle, false);
 //		Concurrit::driver_fini_ = (MainFuncType) FuncAddressByName("__fini__", handle, false);
 		MYLOG(1) << "Loaded the test library " << Config::TestLibraryFile;
