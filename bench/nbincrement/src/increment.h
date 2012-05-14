@@ -9,10 +9,9 @@
 
 //extern int x;
 class NBCounter {
-private:
-	pthread_mutex_t mutex;
 public:
-	int x;
+	pthread_mutex_t mutex;
+	long int x;
 
 	NBCounter(int k = 0);
 	~NBCounter();

@@ -55,21 +55,24 @@ CONCURRIT_BEGIN_TEST(INCScenario, "NB-Increment scenario")
 
 		//-----------------------------------------
 
+		printf("counter->x: %lx\n", &counter->x);
+		printf("counter->lock: %lx\n", &counter->mutex);
+
 		EXISTS(t1, PTRUE, "Select thread t1");
 		EXISTS(t2, NOT(t1), "Select thread t2");
 //
-//		RUN_UNTIL(BY(t1), READS(&counter->x, t1), __, "Reads from x");
+		RUN_UNTIL(BY(t1), ENDS(), __, "Reads from x");
 //
 //		RUN_UNTIL(NOT_BY(t1), WRITES(&counter->x, t2), __, "Writes to x");
 //
 //		RUN_UNTIL(PTRUE, ENDS(t1), __, "Ends...");
 
 
-		WHILE_STAR
-		{
-			FORALL(t, (TID == t1 || TID == t2), "Select thread t");
-			RUN_UNTIL(BY(t), ENDS(), __, "Run until ends");
-		}
+//		WHILE_STAR
+//		{
+//			FORALL(t, (TID == t1 || TID == t2), "Select thread t");
+//			RUN_UNTIL(BY(t), ENDS(), __, "Run until ends");
+//		}
 
 
 

@@ -19,8 +19,8 @@ void NBCounter::increment() {
 	concurritStartInstrument();
 
 	while(true) {
-		int t = x;
-		int k = t + 1;
+		long int t = x;
+		long int k = t + 1;
 
 		printf("---------------------- INCREMENT READS FROM X\n");
 
