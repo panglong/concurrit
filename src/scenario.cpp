@@ -517,11 +517,13 @@ void Scenario::RunTestCase() throw() {
 				MYLOG(2) << "Replacing TIMEOUT with THREADS_ALLENDED; all threads have ended.";
 			}
 			if(reason == TIMEOUT ||
+				reason == REPLAY_FAILS ||
 				reason == TREENODE_COVERED ||
 				reason == ASSUME_FAILS ||
 				reason == THREADS_ALLENDED) { // TODO(elmas): we can find without restarting which ones win here
 				// retry...
 			} else {
+				safe_assert(reason != SUCCESS);
 				break; // this is handled below (if(reason != SUCCESS) case)
 			}
 		} catch(...) {
@@ -1462,7 +1464,7 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 			int idx_in_stack = loc_in_stack.child_index();
 			safe_assert(idx_in_stack == -1 || idx_in_stack == 0);
 			safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == exists);
-			safe_assert(idx_in_stack == -1 || exists->selected_tid() >= 0); // seleted tid must ve valid if index is not -1
+			safe_assert(idx_in_stack == -1 || exists->selected_tid() >= 0); // selected tid must be valid if index is not -1
 			if(idx_in_stack == -1 || exists->selected_tid() == tid) {
 
 				std::set<THREADID>* tids = exists->covered_tids();
@@ -2030,6 +2032,83 @@ bool Scenario::DSLChoice(StaticDSLInfo* static_info, const char* message /*= NUL
 	MYLOG(2) << "DSLChoice returns " << ret;
 
 	return (ret == 1);
+}
+
+/********************************************************************************/
+
+bool Scenario::DSLConditional(StaticDSLInfo* static_info, bool value, const char* message /*= NULL*/) {
+	safe_assert(static_info != NULL);
+	if(message != NULL) static_info->set_message(message);
+
+	MYLOG(2) << "Adding DSLConditional";
+
+	//=======================================================
+
+	if(Config::TrackAlternatePaths && is_replaying()) {
+		ChildLoc reploc = exec_tree_.replay_path()->pop();
+		safe_assert(!reploc.empty());
+		safe_assert(BETWEEN(0, reploc.child_index(), 1));
+		ConditionalNode* choice = ASINSTANCEOF(reploc.parent(), ConditionalNode*);
+		safe_assert(choice != NULL);
+
+		// update current node
+		exec_tree_.AddToNodeStack(reploc);
+
+		MYLOG(2) << "Replaying path with conditional node.";
+		return (reploc.child_index() == 1);
+	}
+
+	//=======================================================
+
+	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+
+	ConditionalNode* choice = NULL;
+	node = exec_tree_.GetNextNodeInStack().parent();
+	if(node != NULL) {
+		choice = ASINSTANCEOF(node, ConditionalNode*);
+		safe_assert(choice != NULL);
+		// recompute coverage, since static info might be updated to set one of the branches covered
+		if(choice->ComputeCoverage()) {
+			// release lock
+			exec_tree_.ReleaseRef(NULL);
+			// backtrack
+			TRIGGER_BACKTRACK(TREENODE_COVERED);
+		}
+//		if(choice == NULL || choice->covered()) {
+//			safe_assert(choice != NULL || exec_tree_.IS_ENDNODE(node));
+//			// release lock
+//			exec_tree_.ReleaseRef(NULL);
+//			// backtrack
+//			TRIGGER_BACKTRACK(TREENODE_COVERED);
+//		}
+	} else {
+		choice = new ConditionalNode(static_info, value);
+	}
+
+	safe_assert(choice != NULL && !choice->covered());
+
+	ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
+	int child_index = loc_in_stack.child_index();
+	safe_assert(child_index == -1 || child_index == 0);
+	safe_assert((child_index < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == choice);
+
+	if(choice->value() != value) {
+		// release lock
+		exec_tree_.ReleaseRef(NULL);
+		TRIGGER_BACKTRACK(REPLAY_FAILS);
+	}
+
+	safe_assert(!choice->child_covered(0));
+
+	choice->OnSubmitted();
+	choice->OnConsumed(Coroutine::Current(), 0);
+
+	exec_tree_.ReleaseRef(choice, 0);
+
+	MYLOG(2) << "DSLConditional returns " << value;
+
+	return value;
 }
 
 /********************************************************************************/

@@ -91,7 +91,7 @@ public:
 		value_ += k;
 	}
 
-	void reset(std::string name = "") {
+	virtual void reset(std::string name = "") {
 		if(name != "") {
 			name_ = name;
 		}
@@ -101,7 +101,8 @@ public:
 	virtual std::string ToString() {
 		return format_string("%s: %lu", name_.c_str(), value_);
 	}
-	operator unsigned long () {
+
+	virtual operator unsigned long () {
 		return value_;
 	}
 private:
@@ -113,28 +114,37 @@ private:
 
 class AvgCounter : public Counter {
 public:
-	AvgCounter(std::string name = "") : Counter(name), count_(0) {}
+	AvgCounter(std::string name = "") : Counter(name), count_(0), min_(ULONG_MAX), max_(0L) {}
 	~AvgCounter() {}
 
 	// override
 	void increment(unsigned long k = 1) {
 		Counter::increment(k);
+		if(k > max_) max_ = k; else if(k < min_) min_ = k;
 		++count_;
 	}
+
+	// override
 	void reset(std::string name = "") {
 		Counter::reset(name);
 		count_ = 0;
+		min_ = ULONG_MAX;
+		max_ = 0L;
 	}
 
 	// override
 	std::string ToString() {
-		return format_string("%s: Num: %lu | Total: %lu MicroSecs | Avg: %lu MicroSecs", name_.c_str(), count_, value_, (value_/count_));
+		safe_assert(count_ > 0);
+		return format_string("%s: Num: %lu | Total: %lu | Avg: %lu | Min: %lu | Max: %lu", name_.c_str(), count_, value_, (value_/count_), min_, max_);
 	}
+
 	operator unsigned long () {
 		return (value_/count_);
 	}
 private:
 	DECL_FIELD(unsigned long, count)
+	DECL_FIELD(unsigned long, min)
+	DECL_FIELD(unsigned long, max)
 };
 
 /********************************************************************************/
@@ -159,11 +169,13 @@ public:
 		s << "************* Statistics *************\n";
 
 		for(TimerMap::iterator itr = timers_.begin(); itr != timers_.end(); ++itr) {
-			s << itr->second.ToString() << std::endl;
+			Timer& timer = itr->second;
+			s << timer.ToString() << std::endl;
 		}
 
 		for(CounterMap::iterator itr = counters_.begin(); itr != counters_.end(); ++itr) {
-			s << itr->second.ToString() << std::endl;
+			Counter& counter = itr->second;
+			s << counter.ToString() << std::endl;
 		}
 
 		return s.str();

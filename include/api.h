@@ -216,9 +216,6 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 #define WHILE_STAR					STAR(Config::IsStarNondeterministic, while, true, "WHILE_STAR")
 #define IF_STAR						STAR(Config::IsStarNondeterministic, if, true, "IF_STAR")
 
-#define WHILE_STAR					STAR(Config::IsStarNondeterministic, while, true, "WHILE_STAR")
-#define IF_STAR						STAR(Config::IsStarNondeterministic, if, true, "IF_STAR")
-
 #define WHILE_DTSTAR				STAR(false, while, true, "WHILE_DTSTAR")
 #define IF_DTSTAR					STAR(false, if, true, "IF_DTSTAR")
 
@@ -227,6 +224,13 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 #define ELSE						else
 #define DO							do
+
+/********************************************************************************/
+
+#define COND(stmt, cond, code) 		DECL_STATIC_DSL_INFO(code); stmt(DSLConditional(&STATIC_DSL_INFO_NAME, (cond)))
+
+#define WHILE(cond)					COND(while, (cond), "WHILE("#cond")")
+#define IF(cond)					COND(if, (cond), "IF("#cond")")
 
 /********************************************************************************/
 
@@ -309,9 +313,11 @@ inline void* _FUNC(const char* func_name) {
 
 /********************************************************************************/
 
-#define SETUP() 	void SetUp()
-#define TEARDOWN() 	void TearDown()
-#define TESTCASE() 	void TestCase()
+#define SETUP() 			void SetUp()
+#define TEARDOWN() 			void TearDown()
+#define TESTCASE() 			void TestCase()
+#define TEST(name) 			void TestCase_##name()
+#define CALL_TEST(name)		TestCase_##name()
 
 /********************************************************************************/
 

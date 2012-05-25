@@ -73,6 +73,10 @@ public:
 		return Concurrit::current_scenario();
 	}
 
+	static Scenario* NotNullCurrent() {
+		return CHECK_NOTNULL(Concurrit::current_scenario());
+	}
+
 	void LoadScheduleFromFile(const char* filename);
 
 	ThreadVarPtr RunTestDriver();
@@ -167,6 +171,7 @@ public:
 	/******************************************************************/
 
 	bool DSLChoice(StaticDSLInfo* static_info, const char* message = NULL);
+	bool DSLConditional(StaticDSLInfo* static_info, bool value, const char* message = NULL);
 
 //	void DSLTransition(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 

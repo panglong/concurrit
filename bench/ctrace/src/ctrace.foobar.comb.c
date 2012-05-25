@@ -477,10 +477,19 @@ static uint_t _unitmax = 0;		/* size of trace unit array */
 /* write has exclusive use of hash table */
 /* muliple reads can occur concurrently */
 #ifdef ERR1
-#define HASH_READ_ENTER() \
-	if(!_hashreads) \
-		sem_wait(&_hashsem); \
-	_hashreads++;
+//#define HASH_READ_ENTER() \
+//	if(!_hashreads) \
+//		sem_wait(&_hashsem); \
+//	_hashreads++;
+#include "dummy.h"
+void HASH_READ_ENTER() {
+	if(!_hashreads)
+		sem_wait(&_hashsem);
+	int k = _hashreads;
+	concurritAtPc(42);
+	concurritAtPc(43);
+	_hashreads = k + 1;
+}
 #else
 #define HASH_READ_ENTER() \
 	pthread_mutex_lock(&_hashmutex); \
@@ -1427,7 +1436,8 @@ void *bar(void *arg)
 }
 
 
-int main(int argc, char **argv)
+static
+int main0(int argc, char **argv)
 {
     int n;
     pthread_t tid;
@@ -1450,4 +1460,9 @@ int main(int argc, char **argv)
     TRC_REMOVE_THREAD(tid);
     TRC_REMOVE_THREAD(pthread_self());
     TRC_END();
+}
+
+//============================================
+int __main__(int argc, char* argv[]) {
+	return main0(argc, argv);
 }

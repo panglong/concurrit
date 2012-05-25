@@ -411,6 +411,15 @@ std::string array_to_string(const T* v[], int sz) {
 	return s.str();
 }
 
+inline const char* bool_to_string(bool b) {
+	return (b ? "T" : "F");
+}
+
+inline const char* int_to_boolstring(int b) {
+	safe_assert(BETWEEN(-1, b, 1));
+	return (b == 1 ? "T" : (b == 0 ? "F" : "U"));
+}
+
 /********************************************************************************/
 
 #define EXIT_ON_FAIL	(true)

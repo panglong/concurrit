@@ -76,7 +76,7 @@ ExecutionTree::ExecutionTree(StaticDSLInfo* static_info /*= NULL*/, ExecutionTre
 	InitChildren(num_children);
 
 	Scenario* scenario = Scenario::Current();
-	if(scenario != NULL) scenario->counter("Num execution-tree nodes").increment();
+	if(scenario != NULL) scenario->counter("Num execution-tree nodes").increment(1);
 }
 
 /*************************************************************************************/
@@ -470,6 +470,13 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 	safe_assert(IS_LOCKNODE(GetRef(memory_order_relaxed)));
 	LOCKNODE()->OnUnlock();
 
+	// TODO(elmas): optimize (do not check for every releaseref
+	const bool is_endnode = IS_ENDNODE(node);
+	if(is_endnode) {
+		// record stack size
+		Scenario::NotNullCurrent()->avg_counter("Stack size").increment(node_stack_.size());
+	}
+
 	if(child_index >= 0) {
 		safe_assert(node != NULL);
 
@@ -477,7 +484,7 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 		AddToPath(node, child_index);
 
 		// if released node is an end node, we do not nullify atomic_ref
-		SetRef(IS_ENDNODE(node) ? node : NULL);
+		SetRef(is_endnode ? node : NULL);
 	} else {
 		// release
 		SetRef(node);
@@ -714,6 +721,7 @@ bool ExecutionTreeManager::CheckCompletePath(ExecutionTreePath* path) {
 
 bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	MYLOG(2) << "Ending with success " << reason;
+
 	// wait until the last node is consumed (or an end node is inserted)
 	// we use AcquireRefEx to use a timeout to check if the last-inserted transition was consumed on time
 	// in addition, if there is already an end node, AcquireRefEx throws a backtrack

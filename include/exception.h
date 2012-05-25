@@ -54,6 +54,7 @@ enum BacktrackReason { SEARCH_ENDS = 1,
 					   TIMEOUT = 7,
 					   EXCEPTION = 8,
 					   PTH_EXIT = 9,
+					   REPLAY_FAILS = 10,
 					   UNKNOWN = -1};
 
 class BacktrackException : public std::exception {

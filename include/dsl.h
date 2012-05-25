@@ -422,6 +422,42 @@ public:
 
 /********************************************************************************/
 
+class ConditionalNode : public ExecutionTree {
+public:
+	ConditionalNode(StaticDSLInfo* info, bool value, ExecutionTree* parent = NULL)
+	: ExecutionTree(info, parent, 1), value_(value) {}
+	~ConditionalNode() {}
+
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "ConditionalNode: %s", bool_to_string(value_));
+		ExecutionTree::ToStream(file);
+	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("ConditionalNode");
+		g->AddNode(node);
+		ExecutionTree* c = child(0);
+		DotNode* cn = NULL;
+		std::string edge_label;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+			edge_label = std::string(bool_to_string(value_));
+		} else {
+			cn = new DotNode("NULL");
+			edge_label = std::string("?");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, edge_label));
+
+		return node;
+	}
+
+private:
+	DECL_FIELD(bool, value)
+};
+
+/********************************************************************************/
+
 class SelectThreadNode : public SelectionNode {
 public:
 	typedef std::map<THREADID, int> TidToIdxMap;
