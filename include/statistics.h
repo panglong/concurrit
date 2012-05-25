@@ -120,7 +120,8 @@ public:
 	// override
 	void increment(unsigned long k = 1) {
 		Counter::increment(k);
-		if(k > max_) max_ = k; else if(k < min_) min_ = k;
+		if(k > max_) max_ = k;
+		if(k < min_) min_ = k;
 		++count_;
 	}
 
