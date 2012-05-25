@@ -1652,10 +1652,10 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 							// the following causes holding the node in the switch below
 							tval = TPUNKNOWN;
 						}
-//						else if(tval == TPTRUE) {
-//							MYLOG(2) << "Will consume the current transfer-until";
-//							*newnode = {truntil, 0}; // newnode is the next of node
-//						}
+						else if(tval == TPTRUE) {
+							MYLOG(2) << "Will consume the current transfer-unless";
+							*newnode = {trunless, 0}; // newnode is the next of node
+						}
 					}
 					// if tval == TPTRUE, we consume the node but we are not done, so continue to iterate in BeforeControlledTransition
 	//			}
@@ -1666,6 +1666,10 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 		}
 //	}
 
+
+	if(tval == TPTRUE) {
+		node->OnConsumed(current, tval == TPUNKNOWN ? 0 : newnode->child_index());
+	}
 
 //	safe_assert(tval == TPFALSE || tval == TPUNKNOWN);
 	return tval;
@@ -1911,8 +1915,7 @@ SWITCH:
 			MYLOG(2) << "Consuming transition";
 			// in this case, we insert a new node to the path represented by newnode
 			safe_assert(!newnode.empty());
-			safe_assert(!exec_tree_.IS_TRANSNODE(node));
-			safe_assert(exec_tree_.IS_SELECTTHREADNODE(node));
+			safe_assert(exec_tree_.IS_SELECTTHREADNODE(node) || INSTANCEOF(node, TransferUnlessNode*));
 			exec_tree_.ReleaseRef(newnode);
 			// do not exit method
 			safe_assert(!done);
