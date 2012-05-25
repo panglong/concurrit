@@ -758,6 +758,41 @@ public:
 
 /********************************************************************************/
 
+class TransferUnlessNode : public MultiTransitionNode {
+public:
+	TransferUnlessNode(StaticDSLInfo* static_info,
+					 const TransitionPredicatePtr& assertion,
+					 const TransitionPredicatePtr& pred,
+					 const ThreadVarPtr& var = ThreadVarPtr(),
+					 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
+					 ExecutionTree* parent = NULL)
+	: MultiTransitionNode(static_info, assertion, pred, var, constraints, parent, 1) {}
+
+	~TransferUnlessNode() {}
+
+	virtual void ToStream(FILE* file) {
+		fprintf(file, "TransferUnlessNode.");
+		ExecutionTree::ToStream(file);
+	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode("TransferUnlessNode");
+		g->AddNode(node);
+		ExecutionTree* c = child();
+		DotNode* cn = NULL;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, var_.get() == NULL ? "-" : var_.get()->ToString()));
+		return node;
+	}
+};
+
+/********************************************************************************/
+
 const int ScheduleItem_ChildIndex = 1,
 		  ScheduleItem_ThreadId = 2;
 

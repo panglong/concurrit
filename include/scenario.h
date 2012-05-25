@@ -178,6 +178,9 @@ public:
 	void DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 	void DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const char* message = NULL);
 
+	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
+	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const char* message = NULL);
+
 	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 

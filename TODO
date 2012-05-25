@@ -1,3 +1,4 @@
+*** assertionlari transfer nodelarindan kaldir
 ***RUN_UNLESS
 ***DO-WHILE_STAR
 ***Test programin standard outputunu dosyaya yonlendir, sadece stderr ekrana yazilsin.

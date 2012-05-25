@@ -1487,6 +1487,8 @@ TPVALUE Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, C
 		}
 	}
 
+	safe_assert(tval == TPTRUE || tval == TPFALSE);
+
 	return tval;
 }
 
@@ -1590,23 +1592,78 @@ TPVALUE Scenario::EvalPreState(Coroutine* current, TransitionNode* node, ChildLo
 						// the following causes holding the node in the switch below
 						tval = TPUNKNOWN;
 					}
-					else if(tval == TPTRUE) {
-						MYLOG(2) << "Will consume the current transfer-until";
-						*newnode = {truntil, 0}; // newnode is the next of node
-					}
+//					else if(tval == TPTRUE) {
+//						MYLOG(2) << "Will consume the current transfer-until";
+//						*newnode = {truntil, 0}; // newnode is the next of node
+//					}
+				}
+
+				if(tval == TPTRUE) {
+					// hold transition nodes until the after phase
+					tval = TPUNKNOWN;
 				}
 //			}
 		} else {
-			safe_assert(false); // unknown node type
+			TransferUnlessNode* trunless = ASINSTANCEOF(node, TransferUnlessNode*);
+			if(trunless != NULL) {
+	//			// first look at the thread var
+	//			ThreadVarPtr& var = truntil->var();
+	//			safe_assert(var != NULL);
+	//			Coroutine* selected_thread = var->thread();
+	//			if(selected_thread == NULL) {
+	//				safe_assert(!truntil->thread_preselected());
+	//				// select thread as this one
+	//				var->set_thread(current);
+	//				selected_thread = current;
+	//			}
+	//
+	//			if(selected_thread != current) {
+	//				// we are not supposed to take this transition, so put it back and retry
+	//				tval = TPFALSE;
+	//			} else {
+					// this is the selected thread
+					// evaluate transition predicate
+
+					// first check the assertion
+					TransitionPredicatePtr assertion = trunless->assertion();
+					if(assertion != NULL && assertion != TransitionPredicate::True()) {
+						// do check assertion
+						tval = assertion->EvalPreState(current);
+						if(tval == TPFALSE) {
+							// trigger assertion violation
+							TRIGGER_ASSERTION_VIOLATION(assertion->ToString().c_str(), "", "", 0);
+						}
+					}
+
+					tval = constraints != NULL ? constraints->EvalPreState(current) : TPTRUE;
+					if(tval != TPFALSE) {
+
+						// now evaluate the actual predicate
+						TransitionPredicatePtr pred = trunless->pred();
+						safe_assert(pred != NULL);
+						tval = pred->EvalPreState(current);
+
+						if(tval == TPFALSE) {
+							// continue holding the node
+							// the following causes holding the node in the switch below
+							tval = TPUNKNOWN;
+						}
+//						else if(tval == TPTRUE) {
+//							MYLOG(2) << "Will consume the current transfer-until";
+//							*newnode = {truntil, 0}; // newnode is the next of node
+//						}
+					}
+					// if tval == TPTRUE, we consume the node but we are not done, so continue to iterate in BeforeControlledTransition
+	//			}
+
+			} else {
+				safe_assert(false); // unknown node type
+			}
 		}
 //	}
 
-	if(tval == TPTRUE) {
-		// hold transition nodes until the after phase
-		tval = TPUNKNOWN;
-	}
 
-	safe_assert(tval == TPFALSE || tval == TPUNKNOWN);
+//	safe_assert(tval == TPFALSE || tval == TPUNKNOWN);
 	return tval;
 }
 
@@ -1681,7 +1738,45 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 			}
 
 		} else {
-			safe_assert(false); // unknown node type
+			TransferUnlessNode* trunless = ASINSTANCEOF(node, TransferUnlessNode*);
+			if(truntil != NULL) {
+
+				// first check the assertion
+				TransitionPredicatePtr assertion = trunless->assertion();
+				if(assertion != NULL && assertion != TransitionPredicate::True()) {
+					// do check assertion
+					if(!assertion->EvalPostState(current)) {
+						// trigger assertion violation
+						TRIGGER_ASSERTION_VIOLATION(assertion->ToString().c_str(), "", "", 0);
+					}
+				}
+
+				bool ret = constraints != NULL ? constraints->EvalPostState(current) : TPTRUE;
+				tval = (ret ? TPTRUE : TPFALSE);
+				if(ret) {
+
+					// now evaluate the actual predicate
+					TransitionPredicatePtr pred = trunless->pred();
+					safe_assert(pred != NULL);
+					ret = pred->EvalPostState(current);
+
+					tval = (ret ? TPTRUE : TPFALSE);
+
+					if(tval == TPFALSE) {
+						// continue holding the node
+						// the following causes holding the node in the switch below
+						tval = TPUNKNOWN;
+					}
+					else if(tval == TPTRUE) {
+						MYLOG(2) << "tval should not ve TPTRUE for transferunless in the post state";
+						// tval should not be TPTRUE, so we make it false, and this causes a backtrack
+						tval = TPFALSE;
+					}
+				}
+
+			} else {
+				safe_assert(false); // unknown node type
+			}
 		}
 //	}
 
@@ -1815,6 +1910,8 @@ SWITCH:
 			safe_assert(!exec_tree_.IS_TRANSNODE(node));
 			safe_assert(exec_tree_.IS_SELECTTHREADNODE(node));
 			exec_tree_.ReleaseRef(newnode);
+			// do not exit method
+			safe_assert(!done);
 			break;
 
 		case TPFALSE: // release the transition and wait
@@ -1823,13 +1920,15 @@ SWITCH:
 
 			prev_unsat_node = node; // update previously unsatisfied node
 			Thread::Yield(true);
-			break; // do not exit method
+			// do not exit method
+			safe_assert(!done);
+			break;
 
 		case TPUNKNOWN: // take the transition and decide after the transition
 			MYLOG(2) << "Unknown, to be decided after the transition";
 			current->set_current_node(node);
-			safe_assert(done);
 			UpdateAlternateLocations(current, true);
+			safe_assert(done);
 			break;
 
 		default:
@@ -2251,6 +2350,82 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	exec_tree_.ReleaseRef(NULL);
 
 	MYLOG(2) << "Added DSLTransferUntil.";
+}
+
+/********************************************************************************/
+
+void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+	DSLTransferUntil(static_info, assertion, pred, ThreadVarPtr(), message);
+}
+
+/********************************************************************************/
+
+void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+	safe_assert(static_info != NULL);
+	if(message != NULL) static_info->set_message(message);
+
+	MYLOG(2) << "Adding DSLTransferUnless";
+
+	//=======================================================
+
+	if(Config::TrackAlternatePaths && is_replaying()) {
+		ChildLoc reploc = exec_tree_.replay_path()->pop();
+		safe_assert(!reploc.empty());
+		safe_assert(BETWEEN(0, reploc.child_index(), 1));
+		TransferUnlessNode* trans = ASINSTANCEOF(reploc.parent(), TransferUnlessNode*);
+		safe_assert(trans != NULL);
+		trans->Update(assertion, pred, var, trans_constraints_->Clone());
+
+		// update current node
+		exec_tree_.AddToNodeStack(reploc);
+
+		MYLOG(2) << "Replaying path with transfer unless node.";
+		return;
+	}
+
+	//=======================================================
+
+	if(group_.IsAllEnded()) {
+		TRIGGER_BACKTRACK(THREADS_ALLENDED);
+	}
+
+	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+
+	TransferUnlessNode* trans = NULL;
+	node = exec_tree_.GetNextNodeInStack().parent();
+	if(node != NULL) {
+		trans = ASINSTANCEOF(node, TransferUnlessNode*);
+		safe_assert(trans != NULL && !trans->covered());
+//		if(trans == NULL || trans->covered()) {
+//			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
+//			// release lock
+//			exec_tree_.ReleaseRef(NULL);
+//			// backtrack
+//			TRIGGER_BACKTRACK(TREENODE_COVERED);
+//		}
+		trans->Update(assertion, pred, var, trans_constraints_->Clone());
+	} else {
+		trans = new TransferUnlessNode(static_info, assertion, pred, var, trans_constraints_->Clone());
+	}
+
+	safe_assert(trans != NULL && !trans->covered());
+
+	// not covered yet
+
+	trans->OnSubmitted();
+
+	// set atomic_ref to point to trans
+	exec_tree_.ReleaseRef(trans);
+
+	//=======================================================
+	// wait for the consumption
+
+	node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
+	safe_assert(node == NULL);
+	exec_tree_.ReleaseRef(NULL);
+
+	MYLOG(2) << "Added DSLTransferUnless.";
 }
 
 
