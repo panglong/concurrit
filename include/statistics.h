@@ -152,6 +152,7 @@ private:
 class Statistics {
 	typedef std::map<std::string, Timer> TimerMap;
 	typedef std::map<std::string, Counter> CounterMap;
+	typedef std::map<std::string, AvgCounter> AvgCounterMap;
 public:
 	Statistics() {
 		Reset();
@@ -161,6 +162,7 @@ public:
 	void Reset() {
 		timers_.clear();
 		counters_.clear();
+		avgcounters_.clear();
 	}
 
 	std::string ToString() {
@@ -176,6 +178,11 @@ public:
 		for(CounterMap::iterator itr = counters_.begin(); itr != counters_.end(); ++itr) {
 			Counter& counter = itr->second;
 			s << counter.ToString() << std::endl;
+		}
+
+		for(AvgCounterMap::iterator itr = avgcounters_.begin(); itr != avgcounters_.end(); ++itr) {
+			AvgCounter& avgcounter = itr->second;
+			s << avgcounter.ToString() << std::endl;
 		}
 
 		return s.str();
@@ -198,11 +205,11 @@ public:
 	}
 
 	AvgCounter& avg_counter(const std::string& name) {
-		CounterMap::iterator itr = counters_.find(name);
-		if(itr == counters_.end()) {
-			counters_[name] = AvgCounter(name);
+		AvgCounterMap::iterator itr = avgcounters_.find(name);
+		if(itr == avgcounters_.end()) {
+			avgcounters_[name] = AvgCounter(name);
 		}
-		return static_cast<AvgCounter&>(counters_[name]);
+		return avgcounters_[name];
 	}
 
 
@@ -210,6 +217,7 @@ public:
 private:
 	DECL_FIELD_REF(TimerMap, timers)
 	DECL_FIELD_REF(CounterMap, counters)
+	DECL_FIELD_REF(AvgCounterMap, avgcounters)
 };
 
 } // end namespace
