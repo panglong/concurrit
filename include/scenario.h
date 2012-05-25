@@ -249,6 +249,7 @@ private:
 	DECL_VOL_FIELD(TestStatus, test_status)
 
 	DECL_FIELD(TransitionConstraintsPtr, trans_constraints)
+	DECL_FIELD(TransitionAssertionsPtr, trans_assertions)
 
 	DECL_FIELD(Statistics, statistics)
 

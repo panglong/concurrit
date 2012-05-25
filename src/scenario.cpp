@@ -65,6 +65,9 @@ Scenario::Scenario(const char* name) {
 	TransitionConstraintsPtr p(new TransitionConstraints());
 	trans_constraints_ = p;
 
+	TransitionAssertionsPtr q(new TransitionAssertions());
+	trans_assertions_ = q;
+
 	test_status_ = TEST_BEGIN;
 }
 
@@ -708,6 +711,7 @@ void Scenario::Start() {
 	transfer_criteria_.Reset();
 
 	trans_constraints_->clear();
+	trans_assertions_->clear();
 
 	// open trace file
 	if(Config::SaveExecutionTraceToFile) {

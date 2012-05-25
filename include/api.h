@@ -264,6 +264,10 @@ inline void* _FUNC(const char* func_name) {
 
 /********************************************************************************/
 
+#define ASSERT_ALL(pred) 			TransitionPredicatePtr __assertion_##__LINE__(pred); AssertionInstaller __assertion_installer_##__LINE__(this, __assertion_##__LINE__);
+
+/********************************************************************************/
+
 #define CONSTRAIN_ALL(pred) 		TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintAll(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);
 
 #define CONSTRAIN_FST(pred) 		TransitionPredicatePtr __constraint_##__LINE__(new TransitionConstraintFirst(pred)); ConstraintInstaller __constraint_installer_##__LINE__(this, __constraint_##__LINE__);

@@ -130,6 +130,8 @@ private:
 	DECL_FIELD(TPVALUE, result)
 };
 
+typedef boost::shared_ptr<PreStateTransitionPredicate> PreStateTransitionPredicatePtr;
+
 /********************************************************************************/
 
 class NotTransitionPredicate : public TransitionPredicate {
@@ -206,13 +208,28 @@ public:
 };
 
 typedef NAryTransitionPredicate<NAryAND> TransitionConstraints;
-typedef boost::shared_ptr<NAryTransitionPredicate<NAryAND>> TransitionConstraintsPtr;
+typedef NAryTransitionPredicate<NAryAND> TransitionAssertions;
+typedef boost::shared_ptr<TransitionConstraints> TransitionConstraintsPtr;
+typedef boost::shared_ptr<TransitionAssertions> TransitionAssertionsPtr;
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
 
 class Scenario;
+
+// assertions
+class AssertionInstaller {
+public:
+	AssertionInstaller(Scenario* scenario, const TransitionPredicatePtr& pred);
+	~AssertionInstaller();
+
+private:
+	DECL_FIELD(Scenario*, scenario)
+	DECL_FIELD(TransitionPredicatePtr, pred)
+};
+
+/********************************************************************************/
 
 // constraints
 class ConstraintInstaller {

@@ -238,6 +238,23 @@ private:
 
 /********************************************************************************/
 
+AssertionInstaller::AssertionInstaller(Scenario* scenario, const TransitionPredicatePtr& pred)
+: scenario_(scenario), pred_(pred) {
+	safe_assert(scenario_ != NULL);
+	safe_assert(pred_ != NULL);
+	scenario_->trans_assertions()->push_back(pred_);
+}
+
+AssertionInstaller::~AssertionInstaller() {
+	safe_assert(scenario_ != NULL);
+	safe_assert(pred_ != NULL);
+	safe_assert(!scenario_->trans_assertions()->empty());
+	safe_assert(scenario_->trans_assertions()->back().get() == pred_.get());
+	scenario_->trans_assertions()->pop_back();
+}
+
+/********************************************************************************/
+
 ConstraintInstaller::ConstraintInstaller(Scenario* scenario, const TransitionPredicatePtr& pred)
 : scenario_(scenario), pred_(pred) {
 	safe_assert(scenario_ != NULL);
