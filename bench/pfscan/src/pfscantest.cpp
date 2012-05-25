@@ -10,7 +10,7 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
-		CALL_TEST(ModelCheckAll);
+		CALL_TEST(Final);
 	}
 
 	//================================//
@@ -26,7 +26,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		WHILE_STAR {
 
-			RUN_UNTIL(BY(t1), AT_PC(42), __, "pqueue_get starts by T1");
+			RUN_UNLESS(BY(t1), AT_PC(42), __, "pqueue_get starts by T1");
 
 			RUN_UNTIL(BY(t2), RETURNS(fg), __, "pqueue_get by T2");
 

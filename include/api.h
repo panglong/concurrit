@@ -290,6 +290,20 @@ inline void* _FUNC(const char* func_name) {
 
 /********************************************************************************/
 
+#define RUN_UNLESS1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_UNLESS " #r); DSLTransferUnless(&STATIC_DSL_INFO_NAME, PTRUE, (r), __VA_ARGS__);
+
+#define RUN_UNLESS2a(p, r, ...) 	{ CONSTRAIN_FST(p); RUN_UNLESS1((r), __VA_ARGS__); }
+
+#define RUN_UNLESS2b(q, r, ...) 	{ CONSTRAIN_ALL(q); RUN_UNLESS1((r), __VA_ARGS__); }
+
+#define RUN_UNLESS3(p, q, r, ...) 	{ CONSTRAIN_FST(p); CONSTRAIN_ALL(q); RUN_UNLESS1((r), __VA_ARGS__); }
+
+/********************************************************************************/
+
+#define RUN_UNLESS(q, r, ...) 		RUN_UNLESS2b((q), (r), __VA_ARGS__);
+
+/********************************************************************************/
+
 #define CONCURRIT_BEGIN_MAIN() \
 		using namespace concurrit; \
 		static Suite __concurrit_suite__; \

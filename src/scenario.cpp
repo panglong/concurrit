@@ -1743,7 +1743,7 @@ TPVALUE Scenario::EvalPostState(Coroutine* current, TransitionNode* node, ChildL
 
 		} else {
 			TransferUnlessNode* trunless = ASINSTANCEOF(node, TransferUnlessNode*);
-			if(truntil != NULL) {
+			if(trunless != NULL) {
 
 				// first check the assertion
 				TransitionPredicatePtr assertion = trunless->assertion();
