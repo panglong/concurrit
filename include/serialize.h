@@ -35,6 +35,7 @@
 #define SERIALIZE_H_
 
 #include "common.h"
+#include "util.h"
 
 namespace concurrit {
 

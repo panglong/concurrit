@@ -48,9 +48,10 @@
 using namespace INSTLIB;
 
 #include "common.h"
+#include "util.h"
 #include "statistics.h"
 #include "sharedaccess.h"
-#include "pinmonitor.h"
+#include "interface.h"
 #include "tbb/concurrent_hash_map.h"
 
 /* ===================================================================== */

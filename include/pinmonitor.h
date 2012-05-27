@@ -36,6 +36,7 @@
 #define PINMONITOR_H_
 
 #include "common.h"
+#include "interface.h"
 #include "sharedaccess.h"
 
 #define MAX_THREADS 2048
@@ -44,12 +45,6 @@ namespace concurrit {
 
 class Coroutine;
 class Scenario;
-
-struct PinToolOptions {
-	uint32_t TrackFuncCalls;
-	uint32_t InstrTopLevelFuncs;
-	uint32_t InstrAfterMemoryAccess;
-};
 
 /// class to handle pin events
 class PinMonitor {
@@ -99,32 +94,6 @@ private:
 	static volatile bool down_;
 	static PinToolOptions options_;
 };
-
-typedef uint32_t PinMonitorCallType;
-const PinMonitorCallType
-	MemAccessBefore = 1,
-	MemAccessAfter = 2,
-	MemWrite = 3,
-	MemRead = 4,
-	FuncCall = 5,
-	FuncEnter = 6,
-	FuncReturn = 7;
-
-struct PinMonitorCallInfo {
-	PinMonitorCallType type;
-	THREADID threadid;
-	void* addr;
-	void* addr_target;
-	uint32_t size;
-	bool direct;
-	SourceLocation* loc_src;
-	SourceLocation* loc_target;
-	ADDRINT arg0;
-	ADDRINT arg1;
-	ADDRINT retval;
-};
-
-extern "C" void CallPinMonitor(PinMonitorCallInfo* call_info);
 
 } // end namespace
 

@@ -38,6 +38,32 @@
 
 namespace concurrit {
 	extern std::string CONCURRIT_HOME;
+
+	class Scenario;
+	class Semaphore;
+
+	class Concurrit {
+	public:
+		static void Init(int argc = -1, char **argv = NULL);
+		static void Destroy();
+		static volatile bool IsInitialized();
+		static void* CallDriverMain(void*);
+		static void LoadTestLibrary();
+		static void UnloadTestLibrary();
+
+		static void InstallSignalHandler();
+		static void SignalHandler(int signal_number);
+	private:
+		static volatile bool initialized_;
+		DECL_STATIC_FIELD_REF(main_args, driver_args)
+		DECL_STATIC_FIELD(void*, driver_handle)
+		DECL_STATIC_FIELD(MainFuncType, driver_main)
+	//	DECL_STATIC_FIELD(MainFuncType, driver_init)
+	//	DECL_STATIC_FIELD(MainFuncType, driver_fini)
+		DECL_STATIC_FIELD(Semaphore*, sem_driver_load)
+		DECL_STATIC_FIELD(Scenario*, current_scenario)
+	};
+
 }
 #define InWorkDir(f)	(CONCURRIT_HOME + "/work/" + f)
 
@@ -56,6 +82,9 @@ namespace concurrit {
 // pthreads library
 #include <pthread.h>
 
+#include "util.h"
+#include "config.h"
+#include "dummy.h"
 #include "str.h"
 #include "iterator.h"
 #include "statistics.h"
@@ -84,5 +113,7 @@ namespace concurrit {
 #include "transpred.h"
 #include "interpos.h"
 #include "default.h"
+
+/********************************************************************************/
 
 #endif /* COUNIT_H_ */

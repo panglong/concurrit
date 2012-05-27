@@ -304,6 +304,18 @@ inline void* _FUNC(const char* func_name) {
 
 /********************************************************************************/
 
+class ConcurritInitializer {
+public:
+	ConcurritInitializer(int argc = -1, char **argv = NULL) {
+		Concurrit::Init(argc, argv);
+	}
+	~ConcurritInitializer() {
+		Concurrit::Destroy();
+	}
+};
+
+/********************************************************************************/
+
 #define CONCURRIT_BEGIN_MAIN() \
 		using namespace concurrit; \
 		static Suite __concurrit_suite__; \
