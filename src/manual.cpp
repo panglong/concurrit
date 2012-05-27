@@ -39,7 +39,7 @@
 // functions implementing manual instrumentation routines
 // these functions overwrite functions in libdummy.so when concurrit is preloaded
 
-namespace concurrit {
+using namespace concurrit;
 
 /********************************************************************************/
 
@@ -119,8 +119,5 @@ void concurritThreadEndEx(const char* filename, const char* funcname, int line) 
 }
 
 /********************************************************************************/
-
-
-} // end namespace
 
 

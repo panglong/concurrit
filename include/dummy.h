@@ -34,14 +34,11 @@
 #ifndef DUMMY_H_
 #define DUMMY_H_
 
-#include "stdlib.h"
-#include "stdio.h"
+/********************************************************************************/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/********************************************************************************/
 
 extern void concurritStartInstrumentEx(const char* filename, const char* funcname, int line);
 extern void concurritEndInstrumentEx(const char* filename, const char* funcname, int line);
@@ -53,7 +50,11 @@ extern void concurritFuncReturnEx(void* addr, const char* filename, const char* 
 
 extern void concurritThreadEndEx(const char* filename, const char* funcname, int line);
 
-extern void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
+extern void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 /********************************************************************************/
 
@@ -73,12 +74,8 @@ extern void TriggerAssert(const char* expr, const char* filename, const char* fu
 
 /********************************************************************************/
 
-#define concurritAssert(b)	if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); TriggerAssert(#b, __FILE__, __PRETTY_FUNCTION__, __LINE__); }
+#define concurritAssert(b)	if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); concurritTriggerAssert(#b, __FILE__, __PRETTY_FUNCTION__, __LINE__); }
 
 /********************************************************************************/
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif /* DUMMY_H_ */

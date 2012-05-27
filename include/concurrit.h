@@ -36,6 +36,8 @@
 
 #include "common.h"
 
+/********************************************************************************/
+
 namespace concurrit {
 	extern std::string CONCURRIT_HOME;
 
@@ -63,9 +65,13 @@ namespace concurrit {
 		DECL_STATIC_FIELD(Semaphore*, sem_driver_load)
 		DECL_STATIC_FIELD(Scenario*, current_scenario)
 	};
+} // end namespace
 
-}
+/********************************************************************************/
+
 #define InWorkDir(f)	(CONCURRIT_HOME + "/work/" + f)
+
+/********************************************************************************/
 
 // google libraries
 #include <glog/logging.h>
@@ -82,9 +88,10 @@ namespace concurrit {
 // pthreads library
 #include <pthread.h>
 
+/********************************************************************************/
+
 #include "util.h"
 #include "config.h"
-#include "dummy.h"
 #include "str.h"
 #include "iterator.h"
 #include "statistics.h"
@@ -106,6 +113,7 @@ namespace concurrit {
 #include "suite.h"
 #include "yield.h"
 #include "dot.h"
+#include "interface.h"
 #include "pinmonitor.h"
 #include "predicate.h"
 #include "modular.h"

@@ -32,18 +32,21 @@
  */
 
 #include "dummy.h"
+
 #include <cstdlib>
 #include <cstdio>
+
+/********************************************************************************/
+
+#define dummy_error()	fprintf(stderr, "Function %s in dummy.cpp should not be called!!!\n", __FUNCTION__); \
+						fflush(stderr); \
+						exit(EXIT_FAILURE);
+
+/********************************************************************************/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/********************************************************************************/
-
-#define dummy_error()	fprintf(stderr, "Function %s in dummy.cpp should be called!!!\n", __FUNCTION__); \
-						fflush(stderr); \
-						exit(EXIT_FAILURE);
 
 void concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {dummy_error();}
 
@@ -54,14 +57,13 @@ void concurritAtPcEx(int pc, const char* filename, const char* funcname, int lin
 void concurritFuncEnterEx(void* addr, const char* filename, const char* funcname, int line) {dummy_error();}
 void concurritFuncReturnEx(void* addr, const char* filename, const char* funcname, int line) {dummy_error();}
 
-void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}
+void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}
 
 void concurritThreadEndEx(const char* filename, const char* funcname, int line)  {dummy_error();}
-
-/********************************************************************************/
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
+/********************************************************************************/
 
