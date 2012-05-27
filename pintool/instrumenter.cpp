@@ -106,7 +106,8 @@ std::string CONCURRIT_HOME;
 
 LOCALVAR concurrit::PinToolOptions OPTIONS = {
 		FALSE, // TrackFuncCalls;
-		FALSE  // InstrTopLevelFuncs
+		FALSE, // InstrTopLevelFuncs
+		FALSE  // InstrAfterMemoryAccess;
 };
 
 //LOCALVAR BOOL INST_TOP_LEVEL = FALSE;
@@ -465,6 +466,7 @@ PinToolInit(ADDRINT options_addrint) {
 
 	log_file << "[PinToolInit] Pin Option TrackFuncCalls: " << OPTIONS.TrackFuncCalls << std::endl;
 	log_file << "[PinToolInit] Pin Option InstrTopLevelFuncs: " << OPTIONS.InstrTopLevelFuncs << std::endl;
+	log_file << "[PinToolInit] Pin Option InstrAfterMemoryAccess: " << OPTIONS.InstrAfterMemoryAccess << std::endl;
 }
 
 /* ===================================================================== */
@@ -928,9 +930,13 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 
 	bool is_access = INS_IsMemoryWrite(ins) || INS_HasMemoryRead2(ins) || (INS_IsMemoryRead(ins) && !INS_IsPrefetch(ins));
 	if(!is_access) return;
-	bool has_fallthrough = INS_HasFallThrough(ins);
-	bool is_branchorcall = INS_IsBranchOrCall(ins);
-	if(!has_fallthrough && !is_branchorcall) return;
+	bool has_fallthrough = false;
+	bool is_branchorcall = false;
+	if(OPTIONS.InstrAfterMemoryAccess) {
+		has_fallthrough = INS_HasFallThrough(ins);
+		is_branchorcall = INS_IsBranchOrCall(ins);
+		if(!has_fallthrough && !is_branchorcall) return;
+	}
 
 	PinSourceLocation* loc = PinSourceLocation::get(rtn, INS_Address(ins));
 
@@ -978,21 +984,23 @@ VOID MemoryTrace(INS ins, RTN rtn) {
 
 	/* ==================== */
 
-	if (has_fallthrough) {
-		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
-			IARG_THREAD_ID, IARG_END);
+	if(OPTIONS.InstrAfterMemoryAccess) {
+		if (has_fallthrough) {
+			INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
 
-		INS_InsertThenPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
-			IARG_CONTEXT,
-			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
-	}
-	if (is_branchorcall) {
-		INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
-			IARG_THREAD_ID, IARG_END);
+			INS_InsertThenPredicatedCall(ins, IPOINT_AFTER, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
+				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
+		}
+		if (is_branchorcall) {
+			INS_InsertIfPredicatedCall(ins, IPOINT_BEFORE, AFUNPTR(If_OnInstruction), IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_END);
 
-		INS_InsertThenPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
-			IARG_CONTEXT,
-			IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
+			INS_InsertThenPredicatedCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(MemAccessAfter), IARG_FAST_ANALYSIS_CALL,
+				IARG_CONTEXT,
+				IARG_THREAD_ID, IARG_PTR, loc, IARG_END);
+		}
 	}
 }
 

@@ -44,7 +44,7 @@ Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* ent
 	yield_point_ = NULL;
 	vc_clear(vc_);
 	exception_ = NULL;
-	current_node_ = NULL;
+//	current_node_ = NULL;
 //	is_driver_thread_ = false;
 
 	srcloc_ = NULL;
@@ -172,7 +172,7 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 	yield_point_ = NULL;
 	vc_clear(vc_);
 	exception_ = NULL;
-	current_node_ = NULL;
+//	current_node_ = NULL;
 //	trinfolist_.clear();
 
 	//---------------
@@ -459,6 +459,14 @@ void Coroutine::OnAccess(SharedAccess* access) {
 
 /********************************************************************************/
 
+void Coroutine::StartControlledTransition() {
+
+	// make it blocked
+	status_ = BLOCKED;
+}
+
+/********************************************************************************/
+
 void Coroutine::FinishControlledTransition() {
 
 	// remove auxiliary state
@@ -468,7 +476,7 @@ void Coroutine::FinishControlledTransition() {
 
 	instr_callback_info_[0] = '\0';
 
-	current_node_ = NULL;
+//	current_node_ = NULL;
 
 	// make it enabled
 	status_ = ENABLED;

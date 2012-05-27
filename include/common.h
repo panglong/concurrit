@@ -295,7 +295,7 @@ public:
 	static char* TestLibraryFile;
 	static bool IsStarNondeterministic;
 	static bool KeepExecutionTree;
-	static bool TrackAlternatePaths;
+//	static bool TrackAlternatePaths;
 	static int MaxTimeOutsBeforeDeadlock;
 	static bool ManualInstrEnabled;
 	static bool PinInstrEnabled;

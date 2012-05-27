@@ -1,6 +1,4 @@
-***AfterControlledTransition'i kaldir!!!
-*** assertionlari transfer nodelarindan kaldir
-***RUN_UNLESS
+*** event abstraction!!!
 ***DO-WHILE_STAR
 ***Test programin standard outputunu dosyaya yonlendir, sadece stderr ekrana yazilsin.
 ***Static counters to access them without using the hashmap
@@ -36,11 +34,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=477021
 - transition eklerken predicate False'a esitse direk backtrack at
 - end of script olan branchlara, endscriptnode : endnode ve bir backtrack(endofscript) exception
 - eger script bittigi icin backtrack yapan kod varsa, backtrack sirasinda bunu tespit edip covered yap
---- ayni nodelari tespit etmek icin source location kullan.
-- pin icin variable ve functionlari basta belirle, sadece bunlarin instrumente edilmesini sagla
 - script bittikten sonra controlled transition devam ediyorsa backtrack et, success olmasin.
 ---- satisfy edilmeyen transitionlar nedeniyle olan backtrackli executionlari forall'da sayma
-- hem read, hem de write yapan instructionlarda ne yapacagiz?
 - INSTANCEOF lari ASINSTANCEOF ile yer degistir dynamic castlari bire dusurmek icin
 
  -- pin instrumentation'i kaldir!!!

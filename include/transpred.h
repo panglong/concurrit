@@ -44,10 +44,10 @@ namespace concurrit {
 
 /********************************************************************************/
 
-enum TPVALUE { TPFALSE = 0, TPTRUE = 1, TPUNKNOWN = 2, TPINVALID = -1 };
-TPVALUE TPNOT(TPVALUE v);
-TPVALUE TPAND(TPVALUE v1, TPVALUE v2);
-TPVALUE TPOR(TPVALUE v1, TPVALUE v2);
+//enum TPVALUE { TPFALSE = 0, TPTRUE = 1, TPUNKNOWN = 2, TPINVALID = -1 };
+//TPVALUE TPNOT(TPVALUE v);
+//TPVALUE TPAND(TPVALUE v1, TPVALUE v2);
+//TPVALUE TPOR(TPVALUE v1, TPVALUE v2);
 
 /********************************************************************************/
 class TransitionPredicate;
@@ -58,14 +58,10 @@ public:
 	TransitionPredicate() {}
 	virtual ~TransitionPredicate() {}
 
-	virtual TPVALUE EvalPreState(Coroutine* t = NULL) = 0;
-	virtual bool EvalPostState(Coroutine* t = NULL) = 0;
+	virtual bool EvalState(Coroutine* t = NULL) = 0;
 
-	TPVALUE EvalPreState(const ThreadVarPtr& var) {
-		return EvalPreState(var->thread());
-	}
-	bool EvalPostState(const ThreadVarPtr& var) {
-		return EvalPostState(var->thread());
+	bool EvalState(const ThreadVarPtr& var) {
+		return EvalState(var->thread());
 	}
 
 	static TransitionPredicatePtr True();
@@ -77,7 +73,7 @@ public:
 
 	// evaluate immediatelly
 	operator bool () {
-		return TPTRUE == EvalPreState(NULL);
+		return EvalState(NULL);
 	}
 };
 
@@ -94,43 +90,15 @@ class TrueTransitionPredicate : public TransitionPredicate {
 public:
 	TrueTransitionPredicate() : TransitionPredicate() {}
 	~TrueTransitionPredicate() {}
-	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPTRUE; }
-	bool EvalPostState(Coroutine* t = NULL) { return TPTRUE; }
+	bool EvalState(Coroutine* t = NULL) { return true; }
 };
 
 class FalseTransitionPredicate : public TransitionPredicate {
 public:
 	FalseTransitionPredicate() : TransitionPredicate() {}
 	~FalseTransitionPredicate() {}
-	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPFALSE; }
-	bool EvalPostState(Coroutine* t = NULL) { return TPFALSE; }
+	bool EvalState(Coroutine* t = NULL) { return false; }
 };
-
-/********************************************************************************/
-
-class PreStateTransitionPredicate : public TransitionPredicate {
-public:
-	PreStateTransitionPredicate() : TransitionPredicate(), result_(TPINVALID) {}
-	~PreStateTransitionPredicate() {}
-
-	// function to overrride
-	virtual bool EvalState(Coroutine* t = NULL) = 0;
-
-	TPVALUE EvalPreState(Coroutine* t = NULL) {
-		bool result = EvalState(t);
-		result_ = (result ? TPTRUE : TPFALSE);
-		return result_;
-	}
-
-	bool EvalPostState(Coroutine* t = NULL) {
-		CHECK(result_ == TPTRUE || result_ == TPFALSE) << "result_ is " << to_string(result_);
-		return (result_ == TPTRUE);
-	}
-private:
-	DECL_FIELD(TPVALUE, result)
-};
-
-typedef boost::shared_ptr<PreStateTransitionPredicate> PreStateTransitionPredicatePtr;
 
 /********************************************************************************/
 
@@ -139,8 +107,7 @@ public:
 	explicit NotTransitionPredicate(TransitionPredicatePtr pred) : TransitionPredicate(), pred_(pred) {}
 	NotTransitionPredicate(TransitionPredicate* pred) : TransitionPredicate(), pred_(TransitionPredicatePtr(pred)) {}
 	~NotTransitionPredicate() {}
-	TPVALUE EvalPreState(Coroutine* t = NULL) { return TPNOT(pred_->EvalPreState(t)); }
-	bool EvalPostState(Coroutine* t = NULL) { return !(pred_->EvalPostState(t)); }
+	bool EvalState(Coroutine* t = NULL) { return !(pred_->EvalState(t)); }
 private:
 	DECL_FIELD(TransitionPredicatePtr, pred)
 };
@@ -167,27 +134,13 @@ public:
 	}
 	~NAryTransitionPredicate() {}
 
-	TPVALUE EvalPreState(Coroutine* t = NULL) {
-		TPVALUE v = (op_ == NAryAND) ? TPTRUE : TPFALSE;
-		for(NAryTransitionPredicate<op_>::iterator itr = begin(); itr != end(); ++itr) {
-			// update current
-			TransitionPredicatePtr current = (*itr);
-			// update v
-			v = (op_ == NAryAND) ? TPAND(v, current->EvalPreState(t)) : TPOR(v, current->EvalPreState(t));
-			if((op_ == NAryAND && v == TPFALSE) || (op_ == NAryOR && v == TPTRUE)) {
-				break;
-			}
-		}
-		return v;
-	}
-
-	bool EvalPostState(Coroutine* t = NULL) {
+	bool EvalState(Coroutine* t = NULL) {
 		bool v = (op_ == NAryAND) ? true : false;
 		for(NAryTransitionPredicate<op_>::iterator itr = begin(); itr != end(); ++itr) {
 			// update current
 			TransitionPredicatePtr current = (*itr);
 			// update v
-			v = (op_ == NAryAND) ? (v && current->EvalPostState(t)) : (v || current->EvalPostState(t));
+			v = (op_ == NAryAND) ? (v && current->EvalState(t)) : (v || current->EvalState(t));
 			if((op_ == NAryAND && v == false) || (op_ == NAryOR && v == true)) {
 				break;
 			}
@@ -251,11 +204,8 @@ public:
 
 	~TransitionConstraintAll() {}
 
-	TPVALUE EvalPreState(Coroutine* t = NULL) {
-		return pred_->EvalPreState(t);
-	}
-	bool EvalPostState(Coroutine* t = NULL) {
-		return pred_->EvalPostState(t);
+	bool EvalState(Coroutine* t = NULL) {
+		return pred_->EvalState(t);
 	}
 
 private:
@@ -272,12 +222,8 @@ public:
 
 	~TransitionConstraintFirst() {}
 
-	TPVALUE EvalPreState(Coroutine* t = NULL) {
-		return pred_->EvalPreState(t);
-	}
-
-	bool EvalPostState(Coroutine* t = NULL) {
-		if(pred_->EvalPreState(t)) {
+	bool EvalState(Coroutine* t = NULL) {
+		if(pred_->EvalState(t)) {
 			pred_ = TransitionPredicate::True();
 			return true;
 		}
@@ -424,12 +370,12 @@ private:
 /********************************************************************************/
 
 template<typename T, T undef_value_>
-class AuxVar0Pre : public PreStateTransitionPredicate {
+class AuxVar0Pre : public TransitionPredicate {
 	typedef AuxVar0<T,undef_value_> AuxVar0Type;
 	typedef boost::shared_ptr<AuxVar0Type> AuxVar0Ptr;
 	typedef StaticAuxVar0<T,undef_value_> StaticAuxVar0Type;
 public:
-	AuxVar0Pre(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar) : PreStateTransitionPredicate(), var1_(var1), var2_(var2), tvar_(tvar) {}
+	AuxVar0Pre(const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar) : TransitionPredicate(), var1_(var1), var2_(var2), tvar_(tvar) {}
 	~AuxVar0Pre(){}
 
 	static TransitionPredicatePtr create (const AuxVar0Ptr& var1, const AuxVar0Ptr& var2, const ThreadVarPtr& tvar) {
@@ -646,7 +592,7 @@ public:
 /********************************************************************************/
 
 template<typename K, typename T,  K undef_key_, T undef_value_>
-class AuxVar1Pre : public PreStateTransitionPredicate {
+class AuxVar1Pre : public TransitionPredicate {
 	typedef AuxVar1<K,T,undef_key_,undef_value_> AuxVarType;
 	typedef StaticAuxVar1<K,T,undef_key_,undef_value_> StaticAuxVarType;
 	typedef boost::shared_ptr<AuxVarType> AuxVarPtr;
@@ -660,7 +606,7 @@ class AuxVar1Pre : public PreStateTransitionPredicate {
 	typedef boost::shared_ptr<AuxValueConstType> AuxValueConstPtr;
 public:
 	AuxVar1Pre(const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar)
-	: PreStateTransitionPredicate(), var_(var), key_(key), value_(value), tvar_(tvar) {}
+	: TransitionPredicate(), var_(var), key_(key), value_(value), tvar_(tvar) {}
 	~AuxVar1Pre(){}
 
 	static TransitionPredicatePtr create (const AuxVarPtr& var, const AuxKeyPtr& key, const AuxValuePtr& value, const ThreadVarPtr& tvar) {
@@ -797,9 +743,9 @@ public:
 
 /********************************************************************************/
 
-class TPInFunc : public PreStateTransitionPredicate {
+class TPInFunc : public TransitionPredicate {
 public:
-	TPInFunc(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr()) : PreStateTransitionPredicate(), tvar_(tvar), addr_(addr) {}
+	TPInFunc(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr()) : TransitionPredicate(), tvar_(tvar), addr_(addr) {}
 	~TPInFunc() {}
 
 	bool EvalState(Coroutine* t = NULL) {

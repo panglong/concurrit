@@ -274,7 +274,7 @@ inline void* _FUNC(const char* func_name) {
 
 /********************************************************************************/
 
-#define RUN_UNTIL1(r, ...) 			DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLTransferUntil(&STATIC_DSL_INFO_NAME, PTRUE, (r), __VA_ARGS__);
+#define RUN_UNTIL1(r, ...) 			DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLTransferUntil(&STATIC_DSL_INFO_NAME, (r), __VA_ARGS__);
 
 #define RUN_UNTIL2a(p, r, ...) 		{ CONSTRAIN_FST(p); RUN_UNTIL1((r), __VA_ARGS__); }
 
@@ -290,7 +290,7 @@ inline void* _FUNC(const char* func_name) {
 
 /********************************************************************************/
 
-#define RUN_UNLESS1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_UNLESS " #r); DSLTransferUnless(&STATIC_DSL_INFO_NAME, PTRUE, (r), __VA_ARGS__);
+#define RUN_UNLESS1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_UNLESS " #r); DSLTransferUnless(&STATIC_DSL_INFO_NAME, (r), __VA_ARGS__);
 
 #define RUN_UNLESS2a(p, r, ...) 	{ CONSTRAIN_FST(p); RUN_UNLESS1((r), __VA_ARGS__); }
 

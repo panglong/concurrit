@@ -48,6 +48,7 @@ class Scenario;
 struct PinToolOptions {
 	uint32_t TrackFuncCalls;
 	uint32_t InstrTopLevelFuncs;
+	uint32_t InstrAfterMemoryAccess;
 };
 
 /// class to handle pin events

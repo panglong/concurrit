@@ -38,35 +38,35 @@ namespace concurrit {
 
 /*************************************************************************************/
 
-TPVALUE TPNOT(TPVALUE v) {
-	static TPVALUE __not_table__ [3] = {
-			TPTRUE, TPFALSE, TPUNKNOWN
-	};
-	safe_assert(v != TPINVALID);
-	return __not_table__[v];
-}
-
-TPVALUE TPAND(TPVALUE v1, TPVALUE v2) {
-	static TPVALUE __and_table__ [3][3] = {
-	//		F			T			U
-	/*F*/	{TPFALSE,   TPFALSE, 	TPFALSE},
-	/*T*/	{TPFALSE,   TPTRUE, 	TPUNKNOWN},
-	/*U*/	{TPFALSE, 	TPUNKNOWN, 	TPUNKNOWN}
-	};
-	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
-	return __and_table__[v1][v2];
-}
-
-TPVALUE TPOR(TPVALUE v1, TPVALUE v2) {
-	static TPVALUE __or_table__ [3][3] = {
-	//		F			T			U
-	/*F*/	{TPFALSE,   TPTRUE,		TPUNKNOWN},
-	/*T*/	{TPTRUE,   	TPTRUE, 	TPTRUE},
-	/*U*/	{TPUNKNOWN,	TPTRUE,		TPUNKNOWN}
-	};
-	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
-	return __or_table__[v1][v2];
-}
+//TPVALUE TPNOT(TPVALUE v) {
+//	static TPVALUE __not_table__ [3] = {
+//			TPTRUE, TPFALSE, TPUNKNOWN
+//	};
+//	safe_assert(v != TPINVALID);
+//	return __not_table__[v];
+//}
+//
+//TPVALUE TPAND(TPVALUE v1, TPVALUE v2) {
+//	static TPVALUE __and_table__ [3][3] = {
+//	//		F			T			U
+//	/*F*/	{TPFALSE,   TPFALSE, 	TPFALSE},
+//	/*T*/	{TPFALSE,   TPTRUE, 	TPUNKNOWN},
+//	/*U*/	{TPFALSE, 	TPUNKNOWN, 	TPUNKNOWN}
+//	};
+//	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
+//	return __and_table__[v1][v2];
+//}
+//
+//TPVALUE TPOR(TPVALUE v1, TPVALUE v2) {
+//	static TPVALUE __or_table__ [3][3] = {
+//	//		F			T			U
+//	/*F*/	{TPFALSE,   TPTRUE,		TPUNKNOWN},
+//	/*T*/	{TPTRUE,   	TPTRUE, 	TPTRUE},
+//	/*U*/	{TPUNKNOWN,	TPTRUE,		TPUNKNOWN}
+//	};
+//	safe_assert(v1 != TPINVALID && v2 != TPINVALID);
+//	return __or_table__[v1][v2];
+//}
 
 /*************************************************************************************/
 
@@ -317,9 +317,9 @@ ExecutionTreeManager::ExecutionTreeManager() {
 /*************************************************************************************/
 
 void ExecutionTreeManager::Restart() {
-	current_nodes_.clear();
+//	current_nodes_.clear();
 
-	replay_path_.clear();
+//	replay_path_.clear();
 
 	// clean end_node's exceptions etc
 	ENDNODE()->clear_exceptions();
@@ -330,9 +330,9 @@ void ExecutionTreeManager::Restart() {
 
 	RestartChildIndexStack();
 
-	if(Config::TrackAlternatePaths) {
-		ROOTNODE()->PopulateLocations(0, &current_nodes_);
-	}
+//	if(Config::TrackAlternatePaths) {
+//		ROOTNODE()->PopulateLocations(0, &current_nodes_);
+//	}
 
 	SetRef(NULL);
 }
@@ -536,9 +536,9 @@ void ExecutionTreeManager::AddToPath(ExecutionTree* node, int child_index) {
 	// put node to the path
 	AddToNodeStack({node, child_index});
 
-	if(Config::TrackAlternatePaths) {
-		node->PopulateLocations(child_index, &current_nodes_);
-	}
+//	if(Config::TrackAlternatePaths) {
+//		node->PopulateLocations(child_index, &current_nodes_);
+//	}
 }
 
 /*************************************************************************************/
@@ -657,20 +657,20 @@ bool ExecutionTreeManager::DoBacktrack(BacktrackReason reason /*= SUCCESS*/) thr
 	//===========================
 	// after coverage computation:
 	// first remove alternate paths which become covered, since we will delete covered subtrees below
-	safe_assert(Config::TrackAlternatePaths || current_nodes_.empty());
-	if(Config::TrackAlternatePaths) {
-		for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(); itr < current_nodes_.end(); ) {
-			ChildLoc loc = *itr;
-			safe_assert(!IS_ENDNODE(loc.parent()));
-			if(loc.parent()->covered()) {
-				// delete it
-				itr = current_nodes_.erase(itr);
-			} else {
-				// skip it
-				++itr;
-			}
-		}
-	}
+//	safe_assert(Config::TrackAlternatePaths || current_nodes_.empty());
+//	if(Config::TrackAlternatePaths) {
+//		for(std::vector<ChildLoc>::iterator itr = current_nodes_.begin(); itr < current_nodes_.end(); ) {
+//			ChildLoc loc = *itr;
+//			safe_assert(!IS_ENDNODE(loc.parent()));
+//			if(loc.parent()->covered()) {
+//				// delete it
+//				itr = current_nodes_.erase(itr);
+//			} else {
+//				// skip it
+//				++itr;
+//			}
+//		}
+//	}
 
 	//===========================
 	// now delete the (largest) covered subtree
@@ -839,8 +839,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	//================================================
 
 	// check alternate paths
-	safe_assert(Config::TrackAlternatePaths || current_nodes_.empty());
-	if(!Config::TrackAlternatePaths || !RestartForAlternatePath()) {
+//	safe_assert(Config::TrackAlternatePaths || current_nodes_.empty());
+//	if(!Config::TrackAlternatePaths || !RestartForAlternatePath()) {
 //		if(!backtracked) {
 //			// this means dobacktrack has not been run, and end_node has not been added to the path, so use static end_node
 //			safe_assert(!IS_ENDNODE(GetLastNodeInStack().get()));
@@ -850,61 +850,61 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 		// notify threads about the end of the controlled run
 		ReleaseRef(ENDNODE()); // this does not add the node to the path, it is already added
 		return false;
-	}
+//	}
 
-	return true;
+//	return true;
 }
 
 /*************************************************************************************/
 
-bool ExecutionTreeManager::RestartForAlternatePath() {
-	safe_notnull(Scenario::Current())->counter("Num alternate paths collected").increment(current_nodes_.size());
-
-	int index_in_stack = -1;
-	ChildLoc next_loc = ChildLoc::EMPTY();
-	while(index_in_stack < 0 && !current_nodes_.empty()) {
-		// select the next one and replay
-		next_loc = current_nodes_.back(); current_nodes_.pop_back();
-
-		safe_assert(next_loc.parent() != NULL);
-		safe_assert(!next_loc.parent()->covered());
-		safe_assert(next_loc.empty() || next_loc.get() == NULL || !next_loc.get()->covered());
-
-		// truncate execution stack so that the last element is next_loc
-		index_in_stack = GetIndexInNodesStack(next_loc);
-	}
-
-	if(index_in_stack < 0) return false;
-
-	MYLOG(2) << "Alternate path exists, will replay";
-
-	safe_assert(next_loc.parent() != NULL);
-	safe_assert(!next_loc.parent()->covered());
-	safe_assert(next_loc.empty() || next_loc.get() == NULL || !next_loc.get()->covered());
-
-	// truncate stack after (including) next_loc
-	TruncateNodeStack(index_in_stack);
-
-	// compute the path to follow
-	replay_path_.clear();
-	ComputePath(next_loc, &replay_path_);
-
-	// remove root
-	ChildLoc root_loc = replay_path_.pop(); // remove root
-	safe_assert(root_loc.parent() == ROOTNODE());
-	safe_assert(root_loc.child_index() == 0);
-
-	// restart for replay
-	RestartChildIndexStack();
-
-	ReleaseRef(NULL); // nullify the atomic ref to continue
-
-	MYLOG(2) << "Starting the replay";
-
-	safe_notnull(Scenario::Current())->counter("Num alternate paths explored");
-
-	return true;
-}
+//bool ExecutionTreeManager::RestartForAlternatePath() {
+//	safe_notnull(Scenario::Current())->counter("Num alternate paths collected").increment(current_nodes_.size());
+//
+//	int index_in_stack = -1;
+//	ChildLoc next_loc = ChildLoc::EMPTY();
+//	while(index_in_stack < 0 && !current_nodes_.empty()) {
+//		// select the next one and replay
+//		next_loc = current_nodes_.back(); current_nodes_.pop_back();
+//
+//		safe_assert(next_loc.parent() != NULL);
+//		safe_assert(!next_loc.parent()->covered());
+//		safe_assert(next_loc.empty() || next_loc.get() == NULL || !next_loc.get()->covered());
+//
+//		// truncate execution stack so that the last element is next_loc
+//		index_in_stack = GetIndexInNodesStack(next_loc);
+//	}
+//
+//	if(index_in_stack < 0) return false;
+//
+//	MYLOG(2) << "Alternate path exists, will replay";
+//
+//	safe_assert(next_loc.parent() != NULL);
+//	safe_assert(!next_loc.parent()->covered());
+//	safe_assert(next_loc.empty() || next_loc.get() == NULL || !next_loc.get()->covered());
+//
+//	// truncate stack after (including) next_loc
+//	TruncateNodeStack(index_in_stack);
+//
+//	// compute the path to follow
+//	replay_path_.clear();
+//	ComputePath(next_loc, &replay_path_);
+//
+//	// remove root
+//	ChildLoc root_loc = replay_path_.pop(); // remove root
+//	safe_assert(root_loc.parent() == ROOTNODE());
+//	safe_assert(root_loc.child_index() == 0);
+//
+//	// restart for replay
+//	RestartChildIndexStack();
+//
+//	ReleaseRef(NULL); // nullify the atomic ref to continue
+//
+//	MYLOG(2) << "Starting the replay";
+//
+//	safe_notnull(Scenario::Current())->counter("Num alternate paths explored");
+//
+//	return true;
+//}
 
 /*************************************************************************************/
 

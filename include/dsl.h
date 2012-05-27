@@ -130,31 +130,23 @@ private:
 class TransitionNode : public ExecutionTree {
 public:
 	TransitionNode(StaticDSLInfo* static_info,
-				   const TransitionPredicatePtr& assertion,
 				   const TransitionPredicatePtr& pred,
 				   const ThreadVarPtr& var = ThreadVarPtr(),
-				   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 				   ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(static_info, parent, num_children), assertion_(assertion), pred_(pred), var_(var), constraints_(constraints) {}
+	: ExecutionTree(static_info, parent, num_children), pred_(pred), var_(var) {}
 	virtual ~TransitionNode(){}
 
 	virtual void OnTaken(Coroutine* current, int child_index = 0);
 
-	void Update(const TransitionPredicatePtr& assertion,
-				const TransitionPredicatePtr& pred,
-			   const ThreadVarPtr& var = ThreadVarPtr(),
-			   const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr()) {
-		assertion_ = assertion;
+	void Update(const TransitionPredicatePtr& pred,
+			   const ThreadVarPtr& var = ThreadVarPtr()) {
 		pred_ = pred;
 		var_ = var;
-		constraints_ = constraints;
 	}
 
 private:
-	DECL_FIELD(TransitionPredicatePtr, assertion)
 	DECL_FIELD(TransitionPredicatePtr, pred)
 	DECL_FIELD(ThreadVarPtr, var)
-	DECL_FIELD(TransitionConstraintsPtr, constraints)
 };
 
 class SelectionNode : public ExecutionTree {
@@ -490,7 +482,7 @@ public:
 		safe_assert(var != NULL);
 		Coroutine* current = safe_notnull(var.get())->thread();
 		AuxState::Tid->set_thread(current);
-		return (pred_->EvalPreState(current) == TPTRUE);
+		return pred_->EvalState(current);
 	}
 
 	ThreadVarPtr create_thread_var(Coroutine* current = NULL) {
@@ -526,18 +518,17 @@ public:
 
 	bool is_exists() { return true; }
 
-	ChildLoc set_selected_thread(Coroutine* thread) {
-		ChildLoc newnode = {this, 0};
+	int set_selected_thread(Coroutine* thread) {
 		// set thread of the variable
 		safe_assert(var_ != NULL);
 		safe_assert(var_->thread() == NULL);
 		var_->set_thread(thread);
-		return newnode;
+		return 0;
 	}
 
-	ChildLoc clear_selected_thread() {
+	int clear_selected_thread() {
 		var_->set_thread(NULL);
-		return ChildLoc::EMPTY();
+		return -1;
 	}
 
 	DotNode* UpdateDotGraph(DotGraph* g) {
@@ -591,17 +582,17 @@ public:
 	// override
 	bool ComputeCoverage(bool call_parent = false);
 
-	ChildLoc set_selected_thread(Coroutine* co) {
+	int set_selected_thread(Coroutine* co) {
 		int child_index = add_or_get_thread(co);
 		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
 		ThreadVarPtr var = this->var(child_index);
-		return {this, child_index};
+		return child_index;
 	}
 
-	ChildLoc set_selected_thread(int child_index) {
+	int set_selected_thread(int child_index) {
 		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
 		ThreadVarPtr var = this->var(child_index);
-		return {this, child_index};
+		return child_index;
 	}
 
 	ExecutionTree* child_by_tid(THREADID tid) {
@@ -670,50 +661,13 @@ private:
 
 /********************************************************************************/
 
-//class SingleTransitionNode : public TransitionNode {
-//public:
-//	SingleTransitionNode(const TransitionPredicatePtr& assertion,
-//						 const TransitionPredicatePtr& pred,
-//						 const ThreadVarPtr& var = ThreadVarPtr(),
-//						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
-//						 const char* message = NULL,
-//						 ExecutionTree* parent = NULL)
-//	: TransitionNode(assertion, pred, var, constraints, message, parent, 1) {}
-//
-//	~SingleTransitionNode() {}
-//
-//	virtual void ToStream(FILE* file) {
-//		fprintf(file, "TransitionNode.");
-//		ExecutionTree::ToStream(file);
-//	}
-//
-//	DotNode* UpdateDotGraph(DotGraph* g) {
-//		DotNode* node = new DotNode("TransitionNode");
-//		g->AddNode(node);
-//		ExecutionTree* c = child();
-//		DotNode* cn = NULL;
-//		if(c != NULL) {
-//			cn = c->UpdateDotGraph(g);
-//		} else {
-//			cn = new DotNode("NULL");
-//		}
-//		g->AddNode(cn);
-//		g->AddEdge(new DotEdge(node, cn, "?"));
-//		return node;
-//	}
-//};
-
-/********************************************************************************/
-
 class MultiTransitionNode : public TransitionNode {
 public:
 	MultiTransitionNode(StaticDSLInfo* static_info,
-						 const TransitionPredicatePtr& assertion,
 						 const TransitionPredicatePtr& pred,
 						 const ThreadVarPtr& var = ThreadVarPtr(),
-						 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 						 ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(static_info, assertion, pred, var, constraints, parent, num_children) {}
+	: TransitionNode(static_info, pred, var, parent, num_children) {}
 
 	virtual void ToStream(FILE* file) {
 		fprintf(file, "MultiTransitionNode.");
@@ -726,12 +680,10 @@ public:
 class TransferUntilNode : public MultiTransitionNode {
 public:
 	TransferUntilNode(StaticDSLInfo* static_info,
-					 const TransitionPredicatePtr& assertion,
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
-					 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 					 ExecutionTree* parent = NULL)
-	: MultiTransitionNode(static_info, assertion, pred, var, constraints, parent, 1) {}
+	: MultiTransitionNode(static_info, pred, var, parent, 1) {}
 
 	~TransferUntilNode() {}
 
@@ -761,12 +713,10 @@ public:
 class TransferUnlessNode : public MultiTransitionNode {
 public:
 	TransferUnlessNode(StaticDSLInfo* static_info,
-					 const TransitionPredicatePtr& assertion,
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
-					 const TransitionConstraintsPtr& constraints = TransitionConstraintsPtr(),
 					 ExecutionTree* parent = NULL)
-	: MultiTransitionNode(static_info, assertion, pred, var, constraints, parent, 1) {}
+	: MultiTransitionNode(static_info, pred, var, parent, 1) {}
 
 	~TransferUnlessNode() {}
 
@@ -920,10 +870,6 @@ public:
 	// otherwise, puts node back to atomic_ref
 	void ReleaseRef(ExecutionTree* node = NULL, int child_index = -1);
 
-	void ReleaseRef(ChildLoc& node) {
-		ReleaseRef(node.parent(), node.child_index());
-	}
-
 	void AddToPath(ExecutionTree* node, int child_index);
 
 	void AddToNodeStack(const ChildLoc& current);
@@ -931,7 +877,7 @@ public:
 	ChildLoc GetLastNodeInStack();
 	void TruncateNodeStack(int index);
 
-	bool RestartForAlternatePath();
+//	bool RestartForAlternatePath();
 	int GetIndexInNodesStack(ChildLoc& loc);
 
 	ExecutionTreePath* ComputePath(ChildLoc leaf_loc, ExecutionTreePath* path = NULL);
@@ -965,7 +911,7 @@ private:
 	DECL_FIELD_REF(StaticEndNode, end_node)
 
 //	DECL_FIELD_GET_REF(ChildLoc, current_node) // no set method, use UpdateCurrentNode
-	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
+//	DECL_FIELD_REF(std::vector<ChildLoc>, current_nodes)
 //	DECL_FIELD(unsigned, num_paths)
 
 	ExecutionTreeRef atomic_ref_;
@@ -974,7 +920,7 @@ private:
 //	DECL_FIELD(Mutex, mutex)
 //	DECL_FIELD(ConditionVar, cv)
 
-	DECL_FIELD_REF(ExecutionTreeStack, replay_path)
+//	DECL_FIELD_REF(ExecutionTreeStack, replay_path)
 
 	DECL_FIELD_REF(ExecutionTreeStack, node_stack)
 	DECL_FIELD(int, stack_index)

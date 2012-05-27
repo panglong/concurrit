@@ -106,6 +106,7 @@ public:
 		return (status_ >= ENDED);
 	}
 
+	void StartControlledTransition();
 	void FinishControlledTransition();
 
 	char* instr_callback_info() {
@@ -123,7 +124,7 @@ private:
 	DECL_FIELD(VC, vc)
 
 //	DECL_FIELD_REF(TransitionInfoList, trinfolist)
-	DECL_FIELD(ExecutionTree*, current_node)
+//	DECL_FIELD(ExecutionTree*, current_node)
 
 	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD_REF(Semaphore, sem_end)

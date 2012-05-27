@@ -45,7 +45,7 @@ bool Config::IsStarNondeterministic = false;
 bool Config::RunUncontrolled = false;
 char* Config::TestLibraryFile = NULL;
 bool Config::KeepExecutionTree = true;
-bool Config::TrackAlternatePaths = false;
+//bool Config::TrackAlternatePaths = false;
 int Config::MaxTimeOutsBeforeDeadlock = 10;
 bool Config::ManualInstrEnabled = true;
 bool Config::PinInstrEnabled = true;
@@ -60,7 +60,7 @@ static void usage() {
 
 			"-h: Show this help. (OnlyShowHelp)\n\n"
 
-			"-a: Track altenate paths (TrackAlternatePaths)\n"
+//			"-a: Track altenate paths (TrackAlternatePaths)\n"
 			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
@@ -87,14 +87,14 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "acd::f::hl:m::p::rstuv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "cd::f::hl:m::p::rstuv:w:")) != -1) {
 		switch(c) {
-		case 'a':
-//			Config::KeepExecutionTree = true;
-			Config::TrackAlternatePaths = true;
-			Config::MarkEndingBranchesCovered = false; // alternate paths handle this
-			printf("Will track alternate paths!\n");
-			break;
+//		case 'a':
+////			Config::KeepExecutionTree = true;
+//			Config::TrackAlternatePaths = true;
+//			Config::MarkEndingBranchesCovered = false; // alternate paths handle this
+//			printf("Will track alternate paths!\n");
+//			break;
 		case 'c':
 			Config::DeleteCoveredSubtrees = true;
 			printf("Will cut covered subtrees!\n");

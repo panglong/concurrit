@@ -41,7 +41,8 @@ volatile bool PinMonitor::enabled_ = false;
 volatile bool PinMonitor::down_ = false;
 PinToolOptions PinMonitor::options_ = {
 		TRUE, // TrackFuncCalls;
-		TRUE  // InstrTopLevelFuncs
+		TRUE,  // InstrTopLevelFuncs
+		FALSE,  // InstrAfterMemoryAccess
 };
 
 /********************************************************************************/
@@ -126,17 +127,17 @@ void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceL
 	safe_assert(loc != NULL);
 
 	current->set_srcloc(loc);
-	scenario->BeforeControlledTransition(current);
+	scenario->OnControlledTransition(current);
 }
 
 /********************************************************************************/
 
 void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
-	safe_assert(current != NULL && scenario != NULL);
-	safe_assert(loc != NULL);
-
-	current->set_srcloc(loc);
-	scenario->AfterControlledTransition(current);
+//	safe_assert(current != NULL && scenario != NULL);
+//	safe_assert(loc != NULL);
+//
+//	current->set_srcloc(loc);
+//	scenario->AfterControlledTransition(current);
 }
 
 /********************************************************************************/
@@ -244,7 +245,7 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, 
 	AuxState::Returns->set(PTR2ADDRINT(addr), true, current->tid());
 
 	current->set_srcloc(loc);
-	scenario->BeforeControlledTransition(current);
+	scenario->OnControlledTransition(current);
 
 	int c = AuxState::InFunc->get(PTR2ADDRINT(addr), current->tid());
 	safe_assert(c >= 0);
@@ -253,7 +254,7 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, void* addr, 
 
 	AuxState::Arg0->set(PTR2ADDRINT(addr), 0, current->tid());
 
-	scenario->AfterControlledTransition(current);
+//	scenario->AfterControlledTransition(current);
 }
 
 /********************************************************************************/

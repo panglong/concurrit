@@ -182,9 +182,9 @@ TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bo
 
 /********************************************************************************/
 
-class TPThreadVarsEqual : public PreStateTransitionPredicate {
+class TPThreadVarsEqual : public TransitionPredicate {
 public:
-	TPThreadVarsEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : PreStateTransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
+	TPThreadVarsEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : TransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
 	~TPThreadVarsEqual() {}
 
 	bool EvalState(Coroutine* t = NULL) {
@@ -209,9 +209,9 @@ private:
 	DECL_FIELD(ThreadVarPtr, tvar2)
 };
 
-class TPThreadVarsNotEqual : public PreStateTransitionPredicate {
+class TPThreadVarsNotEqual : public TransitionPredicate {
 public:
-	TPThreadVarsNotEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : PreStateTransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
+	TPThreadVarsNotEqual(const ThreadVarPtr& tvar1, const ThreadVarPtr& tvar2) : TransitionPredicate(), tvar1_(tvar1), tvar2_(tvar2) {}
 	~TPThreadVarsNotEqual() {}
 
 	bool EvalState(Coroutine* t = NULL) {

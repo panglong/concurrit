@@ -161,12 +161,13 @@ public:
 	/******************************************************************/
 
 	// run before and after each controlled transition
-	void BeforeControlledTransition(Coroutine* current);
-	void AfterControlledTransition(Coroutine* current);
-	void OnControlledTransition(Coroutine* current) {
-		BeforeControlledTransition(current);
-		AfterControlledTransition(current);
-	}
+//	void BeforeControlledTransition(Coroutine* current);
+//	void AfterControlledTransition(Coroutine* current);
+	void OnControlledTransition(Coroutine* current);
+//	void OnControlledTransition(Coroutine* current) {
+//		BeforeControlledTransition(current);
+//		AfterControlledTransition(current);
+//	}
 
 	/******************************************************************/
 
@@ -175,19 +176,18 @@ public:
 
 //	void DSLTransition(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 
-	void DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
-	void DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const char* message = NULL);
+	void DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
+	void DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message = NULL);
 
-	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
-	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const char* message = NULL);
+	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
+	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message = NULL);
 
 	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 
-	TPVALUE EvalSelectThread(Coroutine* current, SelectThreadNode* node, ChildLoc* newnode);
-	TPVALUE EvalPreState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
-	TPVALUE EvalPostState(Coroutine* current, TransitionNode* node, ChildLoc* newnode);
-	void UpdateAlternateLocations(Coroutine* current, bool pre_state);
+	void EvalSelectThread(Coroutine* current, SelectThreadNode* node, int& child_index, bool& take);
+	void EvalTransition(Coroutine* current, TransitionNode* node, int& child_index, bool& take);
+	void UpdateAlternateLocations(Coroutine* current);
 
 	/******************************************************************/
 	// shortcuts to statistics
@@ -232,7 +232,7 @@ protected:
 	virtual void Start();
 	virtual void Finish(Result* result);
 
-	inline bool is_replaying() { bool r = !exec_tree_.replay_path()->empty(); safe_assert(Config::TrackAlternatePaths || !r); return r; }
+//	inline bool is_replaying() { bool r = !exec_tree_.replay_path()->empty(); safe_assert(Config::TrackAlternatePaths || !r); return r; }
 
 private:
 
