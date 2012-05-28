@@ -48,6 +48,24 @@ MainFuncType Concurrit::driver_main_ = NULL;
 Semaphore* Concurrit::sem_driver_load_;
 Scenario* Concurrit::current_scenario_ = NULL;
 
+/********************************************************************************/
+
+extern "C"
+__attribute__((constructor))
+void Concurrit_Constructor() {
+	//...
+}
+
+/********************************************************************************/
+
+extern "C"
+__attribute__((destructor))
+void Concurrit_Destructor() {
+	//...
+}
+
+/********************************************************************************/
+
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
 

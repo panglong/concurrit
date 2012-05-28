@@ -75,28 +75,35 @@ inline PipeNamePair PipeNamesForDSL(THREADID tid) {
 
 class EventPipe {
 public:
+	EventPipe() {
+		Init(NULL, NULL);
+	}
+
 	EventPipe(PipeNamePair& names) {
+		Init(names);
+	}
+
+	void Init(PipeNamePair& names) {
 		Init(names.in_name.c_str(), names.out_name.c_str());
 	}
 
-	EventPipe(const char* in_name, const char* out_name) {
-		Init(in_name, out_name);
-	}
 
 	void Init(const char* in_name, const char* out_name) {
-		safe_assert(in_name_ != NULL || out_name_ != NULL);
-
-		if(in_name != NULL) {
+		in_name_ = in_name;
+		if(in_name_ != NULL) {
 			in_name_ = strdup(in_name_);
 			MkFifo(in_name_);
 		}
 
-		if(out_name != NULL) {
+		out_name_ = out_name;
+		if(out_name_ != NULL) {
 			out_name_ = strdup(out_name_);
 			MkFifo(out_name_);
 		}
 
 		in_fd_ = out_fd_ = -1;
+
+		is_open_ = false;
 	}
 
 	~EventPipe() {
@@ -115,6 +122,8 @@ public:
 	}
 
 	void Open() {
+		safe_assert(!is_open_);
+
 		if(in_name_ != NULL) {
 			in_fd_ = open(in_name_, O_RDONLY);
 		}
@@ -122,9 +131,13 @@ public:
 		if(out_name_ != NULL) {
 			out_fd_ = open(out_name_, O_WRONLY);
 		}
+
+		is_open_ = true;
 	}
 
 	void Close() {
+		safe_assert(is_open_);
+
 		if(in_name_ != NULL) {
 			close(in_fd_);
 		}
@@ -132,6 +145,8 @@ public:
 		if(out_name_ != NULL) {
 			close(out_fd_);
 		}
+
+		is_open_ = false;
 	}
 
 #define DoSend(x)	write(out_fd_, static_cast<void*>(&x), sizeof(x))
@@ -174,10 +189,11 @@ public:
 	DECL_SEND_RECV(Recv)
 
 private:
-	DECL_FIELD(char*, in_name)
-	DECL_FIELD(char*, out_name)
+	DECL_FIELD(const char*, in_name)
+	DECL_FIELD(const char*, out_name)
 	DECL_FIELD(int, in_fd)
 	DECL_FIELD(int, out_fd)
+	DECL_FIELD(bool, is_open)
 };
 
 /********************************************************************************/

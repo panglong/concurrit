@@ -49,6 +49,7 @@ struct PinToolOptions {
 
 typedef uint32_t EventKind;
 const EventKind
+	InvalidEventKind = 0,
 	MemAccessBefore	= 1U,
 	MemAccessAfter	= 2U,
 	MemWrite 		= 3U,
@@ -58,7 +59,11 @@ const EventKind
 	FuncReturn 		= 7U,
 	ThreadStart		= 8U,
 	ThreadEnd		= 9U,
-	TestBegin		= 10U;
+	TestStart		= 10U,
+	TestEnd			= 11U,
+	// events from DSL to SUT
+	Continue		= 12U,
+	TestShutdown	= 13U;
 
 struct EventBuffer {
 	EventKind type;

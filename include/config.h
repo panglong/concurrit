@@ -36,7 +36,7 @@
 
 namespace concurrit {
 
-enum ExecutionModeType {MODE_SINGLE, MODE_SERVER, MODE_CLIENT};
+enum ExecutionModeType {MODE_SINGLE = 0, MODE_SERVER = 1, MODE_CLIENT = 2};
 
 class Config {
 public:

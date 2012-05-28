@@ -39,15 +39,149 @@ namespace concurrit {
 
 /********************************************************************************/
 
+const THREADID MAINTID = THREADID(1);
+
+/********************************************************************************/
+
+class ShadowThread {
+public:
+	ShadowThread(THREADID threadid) : tid_(threadid) {
+		memset(&event_, 0, sizeof(EventBuffer));
+
+		PipeNamePair pipe_names = PipeNamesForDSL(tid_);
+		pipe_.Init(pipe_names);
+		pipe_.Open();
+	}
+
+	virtual ~ShadowThread(){
+		if(pipe_.is_open()) {
+			pipe_.Close();
+		}
+	}
+
+	void SendContinue() {
+		event_.type = Continue;
+		event_.threadid = tid_;
+		pipe_.Send(&event_);
+	}
+
+	virtual void* Run();
+private:
+	DECL_FIELD(THREADID, tid)
+	DECL_FIELD(EventPipe, pipe)
+	DECL_FIELD(EventBuffer, event)
+};
+
+/********************************************************************************/
+
+void* shadow_thread_func(void* arg) {
+	safe_assert(arg != NULL);
+	ShadowThread* thread = static_cast<ShadowThread*>(arg);
+	safe_assert(thread != NULL);
+
+	return thread->Run();
+}
+
+/********************************************************************************/
+
+void* ShadowThread::Run() {
+	// main loop
+	for(pipe_.Recv(&event_); event_.type != TestEnd; pipe_.Recv(&event_)) {
+
+		ShadowThread* thread = NULL;
+
+		// handle event
+		switch(event_.type) {
+		case ThreadStart:
+
+			safe_assert(event_.threadid >= 0);
+			// create new thread, imitating the interpositioned threads
+			pthread_t pt;
+			thread = new ShadowThread(event_.threadid);
+			pthread_create(&pt, NULL, shadow_thread_func, thread);
+
+			SendContinue();
+
+			break;
+
+		case MemAccessBefore:
+		case MemAccessAfter:
+		case MemWrite:
+		case MemRead:
+		case FuncCall:
+		case FuncEnter:
+		case FuncReturn:
+
+			// notify concurrit
+			CallPinMonitor(&event_);
+
+			// send continue to remote
+			SendContinue();
+
+			break;
+
+		case TestEnd:
+			if(tid_ != MAINTID)
+				safe_fail("Invalid event type: %d", event_.type);
+			break;
+		default:
+			safe_fail("Invalid event type: %d", event_.type);
+			break;
+		}
+	}
+
+	return NULL;
+}
+
+/********************************************************************************/
+
+class MainShadowThread : public ShadowThread {
+public:
+	MainShadowThread() : ShadowThread(MAINTID) {}
+	~MainShadowThread(){}
+
+	void* Run();
+};
+
+/********************************************************************************/
+
+void* MainShadowThread::Run() {
+	// wait for TestBegin
+	int timer = 0;
+	for(pipe_.Recv(&event_); event_.type != TestStart; pipe_.Recv(&event_)) {
+		if(timer > 1000) {
+			safe_fail("Too many iterations for waiting TestBegin!");
+		}
+		++timer;
+	}
+	SendContinue();
+
+	// main loop
+	ShadowThread::Run();
+
+	// uncontrolled mode
+	timer = 0;
+	for(; event_.type != TestEnd; pipe_.Recv(&event_)) {
+		if(timer > 1000) {
+			safe_fail("Too many iterations for waiting TestEnd!");
+		}
+		++timer;
+	}
+	SendContinue();
+
+	return NULL;
+}
+
+
+/********************************************************************************/
+
 static
 int main0(int argc, char* argv[]) {
-	safe_assert(argc >= 3);
-	char* in_pipe_name = CHECK_NOTNULL(argv[1]);
-	char* out_pipe_name = CHECK_NOTNULL(argv[2]);
 
-	EventPipe in_pipe(in_pipe_name, out_pipe_name);
+	MainShadowThread* thread = new MainShadowThread();
+	thread->Run();
 
-
+	return EXIT_SUCCESS;
 }
 
 /********************************************************************************/
