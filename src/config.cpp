@@ -52,6 +52,7 @@ bool Config::PinInstrEnabled = true;
 bool Config::ReloadTestLibraryOnRestart = false;
 bool Config::MarkEndingBranchesCovered = true;
 bool Config::SaveExecutionTraceToFile = false;
+ExecutionModeType Config::ExecutionMode = ExecutionModeType::MODE_SINGLE;
 
 /********************************************************************************/
 
@@ -63,6 +64,7 @@ static void usage() {
 //			"-a: Track altenate paths (TrackAlternatePaths)\n"
 			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
+			"-eMODE: Execution mode. MODE in [server, client]"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
 			"-l: Test program as shared (.so) library.\n"
 			"-m: Enable manual instrumentation (ManuelInstrEnabled)\n"
@@ -87,7 +89,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "cd::f::hl:m::p::rstuv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "cd::e:f::hl:m::p::rstuv:w:")) != -1) {
 		switch(c) {
 //		case 'a':
 ////			Config::KeepExecutionTree = true;
@@ -98,6 +100,19 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 		case 'c':
 			Config::DeleteCoveredSubtrees = true;
 			printf("Will cut covered subtrees!\n");
+			break;
+		case 'e':
+			if(optarg == NULL) {
+				safe_fail("Argument of -e option is missing, server or client is required!");
+			}
+			if(strncmp(optarg, "server", 6) == 0) {
+				Config::ExecutionMode = ExecutionModeType::MODE_SERVER;
+			} else if(strncmp(optarg, "client", 6) == 0) {
+				Config::ExecutionMode = ExecutionModeType::MODE_CLIENT;
+			} else {
+				safe_fail("Argument of -e option is incorrect, server or client is required!");
+			}
+			printf("Execution mode is %d.\n", Config::ExecutionMode);
 			break;
 		case 'h':
 			Config::OnlyShowHelp = true;
