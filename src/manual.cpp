@@ -101,7 +101,7 @@ void concurritFuncReturnEx(void* addr, const char* filename, const char* funcnam
 
 /********************************************************************************/
 
-void TriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
+void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
 	MYLOG(1) << "Triggering assertion violation!";
 	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
 }
