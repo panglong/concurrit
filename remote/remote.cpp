@@ -31,75 +31,39 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "concurrit.h"
 
-#ifndef INTERFACE_H_
-#define INTERFACE_H_
-
-#include "common.h"
+#include "ipc.h"
 
 namespace concurrit {
 
-struct PinToolOptions {
-	uint32_t TrackFuncCalls;
-	uint32_t InstrTopLevelFuncs;
-	uint32_t InstrAfterMemoryAccess;
-};
-
-/***********************************************************************/
-
-typedef uint32_t EventKind;
-const EventKind
-	MemAccessBefore	= 1U,
-	MemAccessAfter	= 2U,
-	MemWrite 		= 3U,
-	MemRead 		= 4U,
-	FuncCall 		= 5U,
-	FuncEnter 		= 6U,
-	FuncReturn 		= 7U,
-	ThreadStart		= 8U,
-	ThreadEnd		= 9U,
-	TestBegin		= 10U;
-
-struct EventBuffer {
-	EventKind type;
-	THREADID threadid;
-	ADDRINT addr;
-	ADDRINT addr_target;
-	uint32_t size;
-	uint32_t direct;
-	ADDRINT arg0;
-	ADDRINT arg1;
-	ADDRINT retval;
-	SourceLocation* loc_src;
-	SourceLocation* loc_target;
-};
-
 /********************************************************************************/
 
-// functions that are called by pin tool
+static
+int main0(int argc, char* argv[]) {
+	safe_assert(argc >= 3);
+	char* in_pipe_name = CHECK_NOTNULL(argv[1]);
+	char* out_pipe_name = CHECK_NOTNULL(argv[2]);
 
-extern "C" void CallPinMonitor(EventBuffer* call_info);
+	EventPipe in_pipe(in_pipe_name, out_pipe_name);
 
-/********************************************************************************/
 
-// functions that are tracked by pin tool
-
-extern "C" void InitPinTool(PinToolOptions* options);
-
-extern "C" void EnablePinTool();
-extern "C" void DisablePinTool();
-
-extern "C" void ThreadRestart();
-
-extern "C" void ShutdownPinTool();
-
-extern "C" void StartInstrument();
-extern "C" void EndInstrument();
+}
 
 /********************************************************************************/
 
 } // end namespace
 
+/********************************************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+int __main__(int argc, char* argv[]) {
+	return concurrit::main0(argc, argv);
+}
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 
-#endif /* INTERFACE_H_ */

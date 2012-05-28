@@ -85,7 +85,7 @@ void concurritFuncEnterEx(void* addr, const char* filename, const char* funcname
 	Coroutine* current = safe_notnull(Coroutine::Current());
 	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
 
-	PinMonitor::FuncEnter(current, scenario, addr, new SourceLocation(filename, funcname, line), 0, 0);
+	PinMonitor::FuncEnter(current, scenario, PTR2ADDRINT(addr), new SourceLocation(filename, funcname, line), 0, 0);
 }
 
 /********************************************************************************/
@@ -96,7 +96,7 @@ void concurritFuncReturnEx(void* addr, const char* filename, const char* funcnam
 	Coroutine* current = safe_notnull(Coroutine::Current());
 	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
 
-	PinMonitor::FuncReturn(current, scenario, addr, new SourceLocation(filename, funcname, line), 0);
+	PinMonitor::FuncReturn(current, scenario, PTR2ADDRINT(addr), new SourceLocation(filename, funcname, line), 0);
 }
 
 /********************************************************************************/

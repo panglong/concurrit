@@ -491,18 +491,18 @@ If_OnInstruction(THREADID threadid) {
 
 /* ===================================================================== */
 
-typedef void (*NativePinMonitorFunType)(concurrit::PinMonitorCallInfo*);
+typedef void (*NativePinMonitorFunType)(concurrit::EventBuffer*);
 static AFUNPTR NativePinMonitorFunPtr = NULL;
 static const char* NativePinMonitorFunName = "CallPinMonitor"; // _ZN9concurrit14CallPinMonitorEPNS_18PinMonitorCallInfoE
 
 LOCALFUN INLINE
-VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::PinMonitorCallInfo* info) {
+VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::EventBuffer* info) {
 	if(NativePinMonitorFunPtr != NULL) {
 
 //		reinterpret_cast<NativePinMonitorFunType>(NativePinMonitorFunPtr)(info);
 		PIN_CallApplicationFunction(ctxt, tid,
 			CALLINGSTD_DEFAULT, AFUNPTR(NativePinMonitorFunPtr),
-			PIN_PARG(void), PIN_PARG(concurrit::PinMonitorCallInfo*), (info), PIN_PARG_END());
+			PIN_PARG(void), PIN_PARG(concurrit::EventBuffer*), (info), PIN_PARG_END());
 	}
 }
 
@@ -519,11 +519,11 @@ FuncCall(const CONTEXT * ctxt, THREADID threadid, BOOL direct, PinSourceLocation
 
 	PinSourceLocation* loc_target = PinSourceLocation::get(target);
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::FuncCall;
 	info.threadid = threadid;
-	info.addr = ADDRINT2PTR(rtn_addr); // loc_src->pointer();
-	info.addr_target = ADDRINT2PTR(target); // loc_target->pointer();
+	info.addr = rtn_addr; // loc_src->pointer();
+	info.addr_target = target; // loc_target->pointer();
 	info.direct = direct;
 	info.loc_src = loc_src;
 	info.loc_target = loc_target;
@@ -547,10 +547,10 @@ FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 
 	//=======================================
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::FuncEnter;
 	info.threadid = threadid;
-	info.addr = loc->pointer();
+	info.addr = PTR2ADDRINT(loc->pointer());
 	info.loc_src = loc;
 	info.arg0 = arg0;
 	info.arg1 = arg1;
@@ -568,10 +568,10 @@ FuncEnterEx(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 
 	//=======================================
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::FuncEnter;
 	info.threadid = threadid;
-	info.addr = loc->pointer();
+	info.addr = PTR2ADDRINT(loc->pointer());
 	info.loc_src = loc;
 	info.arg0 = arg0;
 	info.arg1 = arg1;
@@ -590,10 +590,10 @@ FuncReturn(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc, ADDR
 
 	//=======================================
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::FuncReturn;
 	info.threadid = threadid;
-	info.addr = ADDRINT2PTR(rtn_addr); // loc_src->pointer();
+	info.addr = rtn_addr; // loc_src->pointer();
 	info.loc_src = loc;
 	info.retval = ret0;
 
@@ -626,7 +626,7 @@ MemAccessBefore(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc)
 
 //	CaptureAddrSize(threadid, addr, size);
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::MemAccessBefore;
 	info.threadid = threadid;
 	info.loc_src = loc;
@@ -645,7 +645,7 @@ MemAccessAfter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc) 
 //	VOID * addr = AddrSizePairs[threadid].addr;
 //	UINT32 size = AddrSizePairs[threadid].size;
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::MemAccessAfter;
 	info.threadid = threadid;
 	info.loc_src = loc;
@@ -665,10 +665,10 @@ MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinS
 
 //	CaptureAddrSize(threadid, addr, size);
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::MemWrite;
 	info.threadid = threadid;
-	info.addr = addr;
+	info.addr = PTR2ADDRINT(addr);
 	info.size = size;
 	info.loc_src = loc;
 
@@ -685,10 +685,10 @@ MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSo
 
 //	CaptureAddrSize(threadid, addr, size);
 
-	concurrit::PinMonitorCallInfo info;
+	concurrit::EventBuffer info;
 	info.type = concurrit::MemRead;
 	info.threadid = threadid;
-	info.addr = addr;
+	info.addr = PTR2ADDRINT(addr);
 	info.size = size;
 	info.loc_src = loc;
 

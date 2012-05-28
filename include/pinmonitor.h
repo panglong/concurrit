@@ -74,13 +74,13 @@ public:
 	static void MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
 	static void MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
 
-	static void MemWrite(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
-	static void MemRead(Coroutine* current, Scenario* scenario, void* addr, uint32_t size, SourceLocation* loc = NULL);
+	static void MemWrite(Coroutine* current, Scenario* scenario, ADDRINT addr, uint32_t size, SourceLocation* loc = NULL);
+	static void MemRead(Coroutine* current, Scenario* scenario, ADDRINT addr, uint32_t size, SourceLocation* loc = NULL);
 
-	static void FuncEnter(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1);
-	static void FuncReturn(Coroutine* current, Scenario* scenario, void* addr, SourceLocation* loc, ADDRINT retval);
+	static void FuncEnter(Coroutine* current, Scenario* scenario, ADDRINT addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1);
+	static void FuncReturn(Coroutine* current, Scenario* scenario, ADDRINT addr, SourceLocation* loc, ADDRINT retval);
 
-	static void FuncCall(Coroutine* current, Scenario* scenario, void* addr_src, void* addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
+	static void FuncCall(Coroutine* current, Scenario* scenario, ADDRINT addr_src, ADDRINT addr_target, bool direct, SourceLocation* loc_src, SourceLocation* loc_target, ADDRINT arg0, ADDRINT arg1);
 
 	static void ThreadEnd(Coroutine* current, Scenario* scenario);
 
