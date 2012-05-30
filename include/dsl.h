@@ -87,6 +87,7 @@ public:
 
 	ExecutionTree* child(int i = 0);
 	int index_of(ExecutionTree* node);
+	bool check_index(int i) { return BETWEEN(0, i, int(children_.size())-1); }
 
 	void add_child(ExecutionTree* node);
 
@@ -101,7 +102,7 @@ public:
 		fprintf(file, "Num children: %d, %s.", children_.size(), (covered_ ? "covered" : "not covered"));
 	}
 
-	void PopulateLocations(int child_index, std::vector<ChildLoc>* current_nodes);
+//	void PopulateLocations(int child_index, std::vector<ChildLoc>* current_nodes);
 
 	virtual DotNode* UpdateDotGraph(DotGraph* g);
 	DotGraph* CreateDotGraph();
@@ -137,6 +138,7 @@ public:
 	virtual ~TransitionNode(){}
 
 	virtual void OnTaken(Coroutine* current, int child_index = 0);
+	virtual void OnConsumed(Coroutine* current, int child_index = 0);
 
 	void Update(const TransitionPredicatePtr& pred,
 			   const ThreadVarPtr& var = ThreadVarPtr()) {
@@ -452,57 +454,63 @@ private:
 
 class SelectThreadNode : public SelectionNode {
 public:
-	typedef std::map<THREADID, int> TidToIdxMap;
 	SelectThreadNode(StaticDSLInfo* static_info = NULL,
+					 ThreadVarPtrSet* scope = NULL,
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 ExecutionTree* parent = NULL, int num_children = 0)
-	: SelectionNode(static_info, parent, num_children), pred_(pred) {}
+	: SelectionNode(static_info, parent, num_children) , lvar_(create_thread_var()) {
+		Update(scope, pred);
+	}
 	virtual ~SelectThreadNode() {}
 
-	virtual bool is_exists() = 0;
-	bool is_forall() { return !is_exists(); }
+	void Update(ThreadVarPtrSet* scope = NULL, const TransitionPredicatePtr& pred = TransitionPredicatePtr()) {
 
-	void ToStream(FILE* file) {
-		fprintf(file, "%sThreadNode.", (is_exists() ? "Exists" : "Forall"));
-		ExecutionTree::ToStream(file);
-	}
+		CHECK(scope == NULL || !scope->empty()) << "EMPTY scope is given! Expecting NULL or NON_EMPTY scope!";
 
-	void Update(const TransitionPredicatePtr& pred) {
+		scope_ = scope;
 		pred_ = pred;
+
+		// scope_size_ == 0 means scope is NULL, so use the total number of threads when needed
+		scope_size_ = scope_ != NULL ? scope_->size() : 0;
+
+		lvar_->clear_thread();
 	}
 
-	bool CanSelectThread(int child_index = 0) {
-		safe_assert(BETWEEN(0, child_index, children_.size()-1));
+	bool CanSelectThread(Coroutine* thread) {
 		// if no pred, then this means TRUE, so skip checking pred
-		if(pred_ == NULL) {
+		if(pred_ == NULL || pred_ == TransitionPredicate::True()) {
 			return true;
 		}
 		// check condition
-		ThreadVarPtr var = this->var(child_index);
-		safe_assert(var != NULL);
-		Coroutine* current = safe_notnull(var.get())->thread();
-		AuxState::Tid->set_thread(current);
-		return pred_->EvalState(current);
+		AuxState::Tid->set_thread(thread);
+		return pred_->EvalState(thread);
 	}
 
 	ThreadVarPtr create_thread_var(Coroutine* current = NULL) {
-		std::string s;
-		if(static_info_->message() != "") {
-			s = static_info_->message();
-		} else if(current != NULL) {
-			s = "THR-" + current->tid();
-		} else {
-			s = "ThreadVar";
+		ThreadVarPtr t(new ThreadVar());
+		if(current != NULL) {
+			t->set_name("THR-" + current->tid());
+			t->set_thread(current);
 		}
-
-		ThreadVarPtr p(new ThreadVar(current, s));
-		return p;
+		return t;
 	}
 
-	virtual ThreadVarPtr var(int child_index = 0) = 0;
+	// override
+	void OnConsumed(Coroutine* current, int child_index = 0) {
+		ExecutionTree::OnConsumed(current, child_index);
+		// update selected_tid
+		safe_assert(lvar_->thread() == current);
+//		selected_tid_ = current->tid();
+	}
+
+	virtual int CheckAndSelectThread(Coroutine* current, int child_index_in_stack = -1) = 0;
+	virtual ThreadVarPtr& var(int child_index) = 0;
 
 private:
 	DECL_FIELD(TransitionPredicatePtr, pred)
+	DECL_FIELD(ThreadVarPtrSet*, scope)
+	DECL_FIELD(size_t, scope_size)
+	DECL_FIELD(ThreadVarPtr, lvar)
 };
 
 /********************************************************************************/
@@ -510,25 +518,16 @@ private:
 class ExistsThreadNode : public SelectThreadNode {
 public:
 	ExistsThreadNode(StaticDSLInfo* static_info = NULL,
+					 ThreadVarPtrSet* scope = NULL,
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(static_info, pred, parent, 1), selected_tid_(-1), var_(create_thread_var()) {}
+	: SelectThreadNode(static_info, scope, pred, parent, 1) /*selected_tid_(-1)*/ {}
 
 	~ExistsThreadNode() {}
 
-	bool is_exists() { return true; }
-
-	int set_selected_thread(Coroutine* thread) {
-		// set thread of the variable
-		safe_assert(var_ != NULL);
-		safe_assert(var_->thread() == NULL);
-		var_->set_thread(thread);
-		return 0;
-	}
-
-	int clear_selected_thread() {
-		var_->set_thread(NULL);
-		return -1;
+	void ToStream(FILE* file) {
+		fprintf(file, "ExistsThreadNode.");
+		SelectThreadNode::ToStream(file);
 	}
 
 	DotNode* UpdateDotGraph(DotGraph* g) {
@@ -547,59 +546,87 @@ public:
 		return node;
 	}
 
-	ThreadVarPtr var(int child_index = 0) {
-		safe_assert(child_index == 0);
-		safe_assert(var_ != NULL);
-		return var_;
+	//override
+	int CheckAndSelectThread(Coroutine* thread, int child_index_in_stack = -1) {
+		THREADID tid = thread->tid();
+
+		// EXISTS does not consider child_index_in_stack!
+		safe_assert(child_index_in_stack == -1 || child_index_in_stack == 0);
+
+		if(scope_ != NULL) {
+			ThreadVarPtr t = scope_->FindByThread(thread);
+			if(t == NULL) {
+				return -1;
+			}
+			safe_assert(thread == t->thread());
+
+			if(covered_vars_.find(t) != covered_vars_.end()) {
+				return -1;
+			}
+		} else {
+			if(covered_vars_.FindByThread(thread) != NULL) {
+				return -1;
+			}
+		}
+
+		// check condition
+		if(CanSelectThread(thread)) {
+			lvar_->set_thread(thread);
+			return 0;
+		}
+
+		safe_assert(lvar_->is_empty());
+		return -1;
 	}
 
-	// override
-	void OnConsumed(Coroutine* current, int child_index = 0) {
-		ExecutionTree::OnConsumed(current, child_index);
-		// update selected_tid
-		selected_tid_ = current->tid();
+	void UpdateCoveredVars() {
+		safe_assert(lvar_ != NULL && !lvar_->is_empty());
+
+		Coroutine* thread = lvar_->thread();
+		ThreadVarPtr t;
+		if(scope_ != NULL) {
+			t = scope_->FindByThread(thread);
+		} else {
+			t = create_thread_var(thread);
+		}
+		safe_assert(t != NULL && thread == t->thread());
+		covered_vars_.insert(t);
+	}
+
+	//override
+	ThreadVarPtr& var(int child_index) {
+		safe_assert(child_index == 0);
+		return lvar_;
 	}
 
 private:
-	DECL_FIELD_SET(ThreadVarPtr, var)
-	DECL_FIELD_REF(std::set<THREADID>, covered_tids)
-	DECL_FIELD(THREADID, selected_tid)
+	DECL_FIELD_REF(ThreadVarPtrSet, covered_vars)
+//	DECL_FIELD(THREADID, selected_tid)
 };
 
 /********************************************************************************/
 
 class ForallThreadNode : public SelectThreadNode {
+	typedef std::map<ThreadVar*, int> ThreadVarToIdxMap;
 public:
 	ForallThreadNode(StaticDSLInfo* static_info = NULL,
+					 ThreadVarPtrSet* scope = NULL,
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 ExecutionTree* parent = NULL)
-	: SelectThreadNode(static_info, pred, parent, 0) {}
+	: SelectThreadNode(static_info, scope, pred, parent, 0) {}
 
 	~ForallThreadNode() {}
 
-	bool is_exists() { return false; }
+	// override
+	void ToStream(FILE* file) {
+		fprintf(file, "ForallThreadNode.");
+		SelectThreadNode::ToStream(file);
+	}
 
 	// override
 	bool ComputeCoverage(bool call_parent = false);
 
-	int set_selected_thread(Coroutine* co) {
-		int child_index = add_or_get_thread(co);
-		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
-		ThreadVarPtr var = this->var(child_index);
-		return child_index;
-	}
-
-	int set_selected_thread(int child_index) {
-		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
-		ThreadVarPtr var = this->var(child_index);
-		return child_index;
-	}
-
-	ExecutionTree* child_by_tid(THREADID tid) {
-		int index = child_index_by_tid(tid);
-		return index < 0 ? NULL : child(index);
-	}
-
+	// override
 	DotNode* UpdateDotGraph(DotGraph* g) {
 		DotNode* node = new DotNode("ForallThreadNode");
 		g->AddNode(node);
@@ -612,50 +639,81 @@ public:
 				cn = new DotNode("NULL");
 			}
 			g->AddNode(cn);
-			g->AddEdge(new DotEdge(node, cn, to_string(this->var(i).get()->thread()->tid())));
+			g->AddEdge(new DotEdge(node, cn, to_string(this->var(i)->thread()->tid())));
 		}
 
 		return node;
 	}
 
-	ThreadVarPtr var(int child_index = 0) {
+	//override
+	int CheckAndSelectThread(Coroutine* thread, int child_index_in_stack = -1) {
+		THREADID tid = thread->tid();
+
+		safe_assert(lvar_->is_empty());
+
+		ThreadVarPtr t;
+		if(scope_ != NULL) {
+			t = scope_->FindByThread(thread);
+			if(t == NULL) {
+				return -1;
+			}
+			safe_assert(thread == t->thread());
+		} else {
+			t = create_thread_var(thread);
+		}
+
+		// check condition
+		if(!CanSelectThread(thread)) {
+			return -1;
+		}
+
+		int child_index = add_or_get_child_index(t);
+		safe_assert(check_index(child_index));
+		safe_assert(child_index_in_stack == -1 || check_index(child_index_in_stack));
+
+		if(child_index_in_stack >= 0 && child_index_in_stack != child_index) {
+			return -1;
+		}
+
+		ExecutionTree* c = child(child_index);
+		if(c != NULL && c->covered()) {
+			return -1;
+		}
+
+		lvar_->set_thread(thread);
+		return child_index;
+	}
+
+	// override
+	ThreadVarPtr& var(int child_index) {
 		safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
-		ThreadVarPtr var = idxToThreadMap_[child_index];
+		ThreadVarPtr& var = idxToThreadMap_[child_index];
 		safe_assert(var != NULL);
 		safe_assert(!var->is_empty());
 		return var;
 	}
 
-private:
+protected:
 
 	// returns the index of the new child
-	int add_or_get_thread(Coroutine* co) {
-		THREADID tid = safe_notnull(co)->tid();
-		int child_index = child_index_by_tid(tid);
-		if(child_index < 0) {
+	int add_or_get_child_index(const ThreadVarPtr& t) {
+		ThreadVarToIdxMap::iterator itr = tvarToIdxMap_.find(t.get());
+		if(itr == tvarToIdxMap_.end()) {
 			const size_t sz = children_.size();
 			safe_assert(idxToThreadMap_.size() == sz);
-			tidToIdxMap_[tid] = sz;
+			tvarToIdxMap_[t.get()] = sz;
 			children_.push_back(NULL);
-			ThreadVarPtr var = create_thread_var(co);
-			idxToThreadMap_.push_back(var);
+			idxToThreadMap_.push_back(t);
 			return sz;
 		} else {
+			int child_index = itr->second;
+			safe_assert(BETWEEN(0, child_index, idxToThreadMap_.size()-1));
 			return child_index;
 		}
 	}
 
-	int child_index_by_tid(THREADID tid) {
-		TidToIdxMap::iterator itr = tidToIdxMap_.find(tid);
-		if(itr == tidToIdxMap_.end()) {
-			return -1;
-		} else {
-			return itr->second;
-		}
-	}
-
 private:
-	DECL_FIELD_REF(TidToIdxMap, tidToIdxMap)
+	DECL_FIELD_REF(ThreadVarToIdxMap, tvarToIdxMap)
 	DECL_FIELD_REF(std::vector<ThreadVarPtr>, idxToThreadMap)
 };
 

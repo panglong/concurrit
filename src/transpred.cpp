@@ -299,34 +299,44 @@ std::string ThreadVar::ToString() {
 	return thread_ == NULL ? std::string("no-tid") : to_string(thread_->tid());
 }
 
-bool operator==(const ThreadVar& tx, const ThreadVar& ty) {
-	Coroutine* co1 = const_cast<ThreadVar&>(tx).thread();
-	Coroutine* co2 = const_cast<ThreadVar&>(tx).thread();
-	if(co1 == NULL || co2 == NULL) {
-		return co1 == co2;
-	}
-	return co1->tid() == co2->tid();
-}
+//bool operator==(const ThreadVar& tx, const ThreadVar& ty) {
+////	Coroutine* co1 = const_cast<ThreadVar&>(tx).thread();
+////	Coroutine* co2 = const_cast<ThreadVar&>(tx).thread();
+////	if(co1 == NULL || co2 == NULL) {
+////		return co1 == co2;
+////	}
+////	return co1->tid() == co2->tid();
+//	return tx.id() == ty.id();
+//}
+//
+//bool operator!=(const ThreadVar& tx, const ThreadVar& ty) {
+//	return !(tx == ty);
+//}
+//
+//bool operator<(const ThreadVar& tx, const ThreadVar& ty) {
+////	Coroutine* co1 = const_cast<ThreadVar&>(tx).thread();
+////	Coroutine* co2 = const_cast<ThreadVar&>(tx).thread();
+////	if(co1 == NULL || co2 == NULL) {
+////		return PTR2ADDRINT(co1) < PTR2ADDRINT(co2);
+////	}
+////	return co1->tid() < co2->tid();
+//	return tx.id() < ty.id();
+//}
 
-bool operator!=(const ThreadVar& tx, const ThreadVar& ty) {
-	return !(tx == ty);
-}
-
-bool operator<(const ThreadVar& tx, const ThreadVar& ty) {
-	Coroutine* co1 = const_cast<ThreadVar&>(tx).thread();
-	Coroutine* co2 = const_cast<ThreadVar&>(tx).thread();
-	if(co1 == NULL || co2 == NULL) {
-		return PTR2ADDRINT(co1) < PTR2ADDRINT(co2);
-	}
-	return co1->tid() < co2->tid();
-}
+/********************************************************************************/
 
 // operator <
 bool ThreadVarPtr_compare::operator()(const ThreadVarPtr& tx, const ThreadVarPtr& ty) const {
 	safe_assert(tx != NULL && ty != NULL);
-	ThreadVar* txp = tx.get();
-	ThreadVar* typ = ty.get();
-	return (*txp) < (*typ);
+	return PTR2ADDRINT(tx.get()) < PTR2ADDRINT(ty.get());
+}
+
+/********************************************************************************/
+
+// operator <
+bool ThreadVarPtr_distinct_compare::operator()(const ThreadVarPtr& tx, const ThreadVarPtr& ty) const {
+	safe_assert(tx != NULL && ty != NULL);
+	return tx->tid() < ty->tid();
 }
 
 /********************************************************************************/
@@ -341,11 +351,27 @@ ThreadVarPtr& operator << (ThreadVarPtr& to, const ThreadVarPtr& from) {
 
 /********************************************************************************/
 
+ThreadVarPtr& operator << (ThreadVarPtr& to, Coroutine* from) {
+	safe_assert(to != NULL);
+	safe_assert(from != NULL);
+	to->set_thread(from);
+	return to;
+}
+
+/********************************************************************************/
+
 THREADID ThreadVar::tid() {
-	safe_assert(!is_empty());
+	safe_assert(!is_empty()); // TODO(elmas): should we allow tid() for empty variables?
 	return thread_->tid();
 }
 
+/********************************************************************************/
+//int ThreadVar::next_id_ = 0;
+//
+//// static
+//int ThreadVar::get_id() {
+//	return next_id_++;
+//}
 /********************************************************************************/
 
 } // end namespace

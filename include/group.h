@@ -123,7 +123,6 @@ private:
 
 /********************************************************************************/
 
-
 // represents a set of coroutines to restrict the group to the rest of those
 class WithoutGroup {
 public:

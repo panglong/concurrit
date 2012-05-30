@@ -51,8 +51,8 @@ public:
 	void NDSequentialSearch(TransitionPredicatePtr select_criteria = PTRUE) {
 
 		WHILE_DTSTAR {
-			FORALL(t, select_criteria);
-			RUN_UNTIL(BY(t), ENDS(), __);
+			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
+			RUN_THREAD_UNTIL(BY(t), ENDS(), __);
 		}
 	}
 
@@ -61,8 +61,8 @@ public:
 	void NDConcurrentSearch(TransitionPredicatePtr select_criteria = PTRUE,
 							TransitionPredicatePtr trans_criteria = PTRUE) {
 		WHILE_DTSTAR {
-			FORALL(t, select_criteria);
-			RUN_UNTIL(BY(t), trans_criteria, __);
+			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
+			RUN_THREAD_UNTIL(BY(t), trans_criteria, __);
 		}
 	}
 
@@ -76,9 +76,9 @@ public:
 		TVAR(t_old);
 		for(unsigned i = 0; i < bound && !ALL_ENDED; ) {
 
-			FORALL(t, select_criteria && (TID != t_old));
+			SELECT_THREAD_BACKTRACK(t, select_criteria && (TID != t_old), "Forall thread");
 			WHILE_DTSTAR {
-				RUN_UNTIL(BY(t), trans_criteria, __);
+				RUN_THREAD_UNTIL(BY(t), trans_criteria, __);
 			}
 			if(!HAS_ENDED(t)) {
 				++i;

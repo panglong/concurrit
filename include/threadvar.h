@@ -64,7 +64,7 @@ private:
 class ThreadVar {
 public:
 	explicit ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
-	: name_(name), thread_(thread) {}
+	: name_(name), thread_(thread) {} // , id_(ThreadVar::get_id()) {}
 	virtual ~ThreadVar() {}
 
 	std::string ToString();
@@ -74,9 +74,14 @@ public:
 
 	THREADID tid();
 
+//protected:
+//	static int get_id();
+//
 private:
 	DECL_FIELD(std::string, name)
 	DECL_FIELD(Coroutine*, thread)
+//	DECL_FIELD_CONST(int, id)
+//	DECL_STATIC_FIELD(int, next_id)
 };
 
 // Thread variable that should not be deleted
@@ -91,20 +96,101 @@ public:
 	}
 };
 
-bool operator==(const ThreadVar& tx, const ThreadVar& yx);
-bool operator!=(const ThreadVar& tx, const ThreadVar& ty);
-bool operator<(const ThreadVar& a, const ThreadVar& b);
+//bool operator==(const ThreadVar& tx, const ThreadVar& yx);
+//bool operator!=(const ThreadVar& tx, const ThreadVar& ty);
+//bool operator<(const ThreadVar& a, const ThreadVar& b);
 
 typedef boost::shared_ptr<ThreadVar> ThreadVarPtr;
 
 // thread variable assignment. do not use the standard assignment =
 ThreadVarPtr& operator << (ThreadVarPtr& to, const ThreadVarPtr& from);
+ThreadVarPtr& operator << (ThreadVarPtr& to, Coroutine* from);
+
+/********************************************************************************/
 
 struct ThreadVarPtr_compare {
     bool operator()(const ThreadVarPtr& tx, const ThreadVarPtr& ty) const;
 };
 
-typedef std::set<ThreadVarPtr, ThreadVarPtr_compare> ThreadVarPtrSet;
+class ThreadVarPtrSet : public std::set<ThreadVarPtr, ThreadVarPtr_compare> {
+public:
+	ThreadVarPtrSet() : std::set<ThreadVarPtr, ThreadVarPtr_compare>() {}
+	~ThreadVarPtrSet() {}
+
+	ThreadVarPtr FindByThread(Coroutine* thread) {
+		for(iterator itr = begin(); itr != end(); ++itr) {
+			ThreadVarPtr t = (*itr);
+			if(t->thread() == thread) {
+				return t;
+			}
+		}
+		return ThreadVarPtr();
+	}
+};
+
+/********************************************************************************/
+
+struct ThreadVarPtr_distinct_compare {
+    bool operator()(const ThreadVarPtr& tx, const ThreadVarPtr& ty) const;
+};
+
+class ThreadVarPtrDistinctSet : public std::set<ThreadVarPtr, ThreadVarPtr_distinct_compare> {
+public:
+	ThreadVarPtrDistinctSet() : std::set<ThreadVarPtr, ThreadVarPtr_distinct_compare>() {}
+	~ThreadVarPtrDistinctSet() {}
+
+	ThreadVarPtr FindByThread(Coroutine* thread) {
+		for(iterator itr = begin(); itr != end(); ++itr) {
+			ThreadVarPtr t = (*itr);
+			if(t->thread() == thread) {
+				return t;
+			}
+		}
+		return ThreadVarPtr();
+	}
+};
+
+/********************************************************************************/
+
+// thread variable scope and definitions
+
+class ThreadVarScope : public ThreadVarPtrSet {
+public:
+	ThreadVarScope() {}
+	~ThreadVarScope() {}
+
+	void Add(const ThreadVarPtr& t) {
+		safe_assert(t != NULL);
+		safe_assert(this->find(t) == this->end());
+		this->insert(t);
+	}
+
+	void Remove(const ThreadVarPtr& t) {
+		safe_assert(t != NULL);
+		safe_assert(this->find(t) != this->end());
+		this->erase(t);
+	}
+
+};
+
+/********************************************************************************/
+
+class ThreadVarDef {
+public:
+	ThreadVarDef(ThreadVarScope* scope, ThreadVarPtr& t): scope_(scope), var_(t) {
+		safe_assert(scope != NULL);
+		safe_assert(t != NULL);
+		// remove existing thread info, if any
+		t->clear_thread();
+		scope_->Add(var_);
+	}
+	~ThreadVarDef(){
+		scope_->Remove(var_);
+	}
+private:
+	DECL_FIELD(ThreadVarScope*, scope)
+	DECL_FIELD(ThreadVarPtr, var)
+};
 
 /********************************************************************************/
 

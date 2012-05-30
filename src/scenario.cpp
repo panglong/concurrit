@@ -713,6 +713,9 @@ void Scenario::Start() {
 	trans_constraints_->clear();
 	trans_assertions_->clear();
 
+	// clear thread variables from the scope
+	scope_.clear();
+
 	// open trace file
 	if(Config::SaveExecutionTraceToFile) {
 		if(trace_file_ != NULL) {
@@ -1418,22 +1421,22 @@ void Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, int&
 		// first check the stack
 		ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
 		int idx_in_stack = loc_in_stack.child_index();
-		safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == forall);
-		safe_assert(BETWEEN(-1, idx_in_stack, int(forall->children()->size())-1));
-		if(idx_in_stack == -1 || (forall->var(idx_in_stack)->thread()->tid() == tid)) {
+		safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == node);
+//		if(idx_in_stack == -1 || (forall->var(idx_in_stack)->thread()->tid() == tid)) {
 
-			ExecutionTree* child = forall->child_by_tid(tid);
-			if(child == NULL || !child->covered()) {
-				// set the selected thread to current
-				child_index = forall->set_selected_thread(current);
-				safe_assert(child_index >= 0);
-
-				// check condition
-				if(!forall->CanSelectThread(child_index)) {
-					child_index = -1;
-				}
-			}
-		}
+//			ExecutionTree* child = forall->child_by_tid(tid);
+//			if(child == NULL || !child->covered()) {
+//				// set the selected thread to current
+//				child_index = forall->set_selected_thread(current);
+//				safe_assert(child_index >= 0);
+//
+//				// check condition
+//				if(!forall->CanSelectThread(child_index)) {
+//					child_index = -1;
+//				}
+//			}
+			child_index = forall->CheckAndSelectThread(current, idx_in_stack);
+//		}
 
 	} else { //=======================================================
 		ExistsThreadNode* exists = ASINSTANCEOF(node, ExistsThreadNode*);
@@ -1443,23 +1446,22 @@ void Scenario::EvalSelectThread(Coroutine* current, SelectThreadNode* node, int&
 			// first check the stack
 			ChildLoc loc_in_stack = exec_tree_.GetNextNodeInStack();
 			int idx_in_stack = loc_in_stack.child_index();
-			safe_assert(idx_in_stack == -1 || idx_in_stack == 0);
-			safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == exists);
-			safe_assert(idx_in_stack == -1 || exists->selected_tid() >= 0); // selected tid must be valid if index is not -1
-			if(idx_in_stack == -1 || exists->selected_tid() == tid) {
+			safe_assert((idx_in_stack < 0 && loc_in_stack.parent() == NULL) || loc_in_stack.parent() == node);
+//			if(idx_in_stack == -1 || exists->lvar()->tid() == tid) {
 
-				std::set<THREADID>* tids = exists->covered_tids();
-				if(tids->find(tid) == tids->end()) {
-
-					child_index = exists->set_selected_thread(current);
-					safe_assert(child_index >= 0);
-
-					// check condition
-					if(!exists->CanSelectThread(child_index)) {
-						child_index = exists->clear_selected_thread();
-					}
-				}
-			}
+//				std::set<THREADID>* tids = exists->covered_tids();
+//				if(tids->find(tid) == tids->end()) {
+//
+//					child_index = exists->set_selected_thread(current);
+//					safe_assert(child_index >= 0);
+//
+//					// check condition
+//					if(!exists->CanSelectThread(child_index)) {
+//						child_index = exists->clear_selected_thread();
+//					}
+//				}
+				child_index = exists->CheckAndSelectThread(current, idx_in_stack);
+//			}
 		} else {
 			safe_fail("Unknown select thread node!");
 		}
@@ -1911,7 +1913,7 @@ void Scenario::OnControlledTransition(Coroutine* current) {
 			prev_unsat_node = node; // update previously unsatisfied node
 			Thread::Yield(true);
 		}
-	}
+	} // end loop
 
 
 	//=================================================================
@@ -2411,7 +2413,7 @@ void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPre
 
 /********************************************************************************/
 
-ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
@@ -2468,14 +2470,19 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Update(pred);
+		select->Update(scope, pred);
 	} else {
-		select = new ForallThreadNode(static_info, pred);
+		select = new ForallThreadNode(static_info, scope, pred);
 	}
 
 	safe_assert(select != NULL && !select->covered());
 
 	// not covered yet
+
+	// clear the var
+	var = select->lvar();
+	var->clear_thread();
+	safe_assert(var != NULL && var->is_empty());
 
 	select->OnSubmitted();
 
@@ -2488,23 +2495,28 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, const Transit
 	node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
+#ifdef SAFE_ASSERT
 	// check if correctly consumed
 	ChildLoc last = exec_tree_.GetLastNodeInStack();
 	safe_assert(select == ASINSTANCEOF(last.parent(), ForallThreadNode*));
 	int child_index = last.child_index();
 	safe_assert(child_index >= 0);
-	var = select->var(child_index);
+	safe_assert(var.get() == select->lvar().get());
+	safe_assert(var->thread() == select->var(child_index)->thread());
+#endif
+
+	safe_assert(var != NULL || !(var->is_empty()));
+
+	MYLOG(2) << "Added DSLForallThread: " << var->thread()->tid();
 
 	exec_tree_.ReleaseRef(NULL);
 
-	safe_assert(var != NULL || !var->is_empty());
-	MYLOG(2) << "Added DSLForallThread: " << var->thread()->tid();
 	return var;
 }
 
 /********************************************************************************/
 
-ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
@@ -2559,9 +2571,9 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Update(pred);
+		select->Update(scope, pred);
 	} else {
-		select = new ExistsThreadNode(static_info, pred);
+		select = new ExistsThreadNode(static_info, scope, pred);
 	}
 
 	safe_assert(select != NULL && !select->covered());
@@ -2569,8 +2581,9 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 	// not covered yet
 
 	// clear the var
-	var = select->var();
+	var = select->lvar();
 	var->clear_thread();
+	safe_assert(var != NULL && var->is_empty());
 
 	select->OnSubmitted();
 
@@ -2582,11 +2595,21 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, const Transit
 
 	node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
+
+#ifdef SAFE_ASSERT
+	// check if correctly consumed
+	ChildLoc last = exec_tree_.GetLastNodeInStack();
+	safe_assert(select == ASINSTANCEOF(last.parent(), ExistsThreadNode*));
+	safe_assert(last.child_index() == 0);
+	safe_assert(var.get() == select->lvar().get());
+#endif
+
+	safe_assert(var != NULL || !(var->is_empty()));
+
+	MYLOG(2) << "Added DSLExistsThread: " << var->thread()->tid();
+
 	exec_tree_.ReleaseRef(NULL);
 
-
-	safe_assert(var != NULL || !var->is_empty());
-	MYLOG(2) << "Added DSLExistsThread: " << var->thread()->tid();
 
 	return var;
 }

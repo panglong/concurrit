@@ -187,34 +187,34 @@ bool ExecutionTree::ComputeCoverage(bool call_parent /*= false*/) {
 
 /*************************************************************************************/
 
-void ExecutionTree::PopulateLocations(int child_index, std::vector<ChildLoc>* current_nodes) {
-	if(ExecutionTreeManager::IS_SELECTNODE(this) && !this->covered()) {
-		int sz = children_.size();
-		safe_assert(BETWEEN(-1, child_index, sz-1));
-
-		// if select thread and child_index is -1, then add this with index -1
-		SelectThreadNode* select = ASINSTANCEOF(this, SelectThreadNode*);
-		if(select != NULL) {
-			current_nodes->push_back({this, -1});
-		}
-
-		for(int i = 0; i < sz; ++i) {
-			if(i != child_index) {
-				// check if we can proceed
-				if(select != NULL && !select->CanSelectThread(i)) {
-					continue;
-				}
-
-				ExecutionTree* c = child(i);
-				if(c == NULL || (ExecutionTreeManager::IS_TRANSNODE(c) && !c->covered())) {
-					current_nodes->push_back({this, i});
-				} else {
-					c->PopulateLocations(-1, current_nodes);
-				}
-			}
-		}
-	}
-}
+//void ExecutionTree::PopulateLocations(int child_index, std::vector<ChildLoc>* current_nodes) {
+//	if(ExecutionTreeManager::IS_SELECTNODE(this) && !this->covered()) {
+//		int sz = children_.size();
+//		safe_assert(BETWEEN(-1, child_index, sz-1));
+//
+//		// if select thread and child_index is -1, then add this with index -1
+//		SelectThreadNode* select = ASINSTANCEOF(this, SelectThreadNode*);
+//		if(select != NULL) {
+//			current_nodes->push_back({this, -1});
+//		}
+//
+//		for(int i = 0; i < sz; ++i) {
+//			if(i != child_index) {
+//				// check if we can proceed
+//				if(select != NULL && !select->CanSelectThread(i)) {
+//					continue;
+//				}
+//
+//				ExecutionTree* c = child(i);
+//				if(c == NULL || (ExecutionTreeManager::IS_TRANSNODE(c) && !c->covered())) {
+//					current_nodes->push_back({this, i});
+//				} else {
+//					c->PopulateLocations(-1, current_nodes);
+//				}
+//			}
+//		}
+//	}
+//}
 
 /*************************************************************************************/
 
@@ -266,9 +266,18 @@ void ExecutionTree::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
 
 /*************************************************************************************/
 
+void TransitionNode::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
+	ExecutionTree::OnConsumed(current, child_index);
+
+	safe_assert(var_ == NULL || var_->thread() == current);
+}
+
+/*************************************************************************************/
+
 void TransitionNode::OnTaken(Coroutine* current, int child_index /*= 0*/) {
 	safe_assert(current != NULL);
 	safe_assert(BETWEEN(0, child_index, children_.size()-1));
+
 	// update var if not null
 	if(var_ != NULL) {
 		var_->set_thread(current);
@@ -803,10 +812,8 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 //	bool backtracked = false;
 	ExistsThreadNode* exists = ASINSTANCEOF(last_parent, ExistsThreadNode*);
 	if(exists != NULL && !exists->covered()) {
-		// update covered tid set
-		std::set<THREADID>* tids = exists->covered_tids();
-		safe_assert(exists->var() != NULL && exists->var()->thread() != NULL);
-		tids->insert(exists->var()->thread()->tid());
+		// update covered var set
+		exists->UpdateCoveredVars();
 		// do not backtrack, just leave it there
 		// this will be covered only when it cannot be consumed
 		MYLOG(2) << "Adding tid to covered tids";
@@ -971,9 +978,11 @@ bool ForallThreadNode::ComputeCoverage(bool call_parent /*= false*/) {
 	Scenario* scenario = safe_notnull(Scenario::Current());
 	// this check is important, because we should not compute coverage at all if already covered
 	// since the computation below may turn already covered not covered
+
 	if(!covered_) {
-		covered_ = (children_.size() == scenario->group()->GetNumMembers())
-					&& ExecutionTree::ComputeCoverage(call_parent);
+		// scope_size_ == 0 means scope is NULL, so use the total number of threads when needed
+		size_t sz = scope_size_ == 0 ? scenario->group()->GetNumMembers() : scope_size_;
+		covered_ = (children_.size() == sz) && ExecutionTree::ComputeCoverage(call_parent);
 	}
 	return covered_;
 }

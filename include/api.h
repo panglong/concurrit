@@ -101,13 +101,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-// for loops until some condition (e.g., all coroutines end)
-#define ALL_ENDED		(AllEnded())
-#define UNTIL_ALL_END	while(!ALL_ENDED)
-#define UNTIL_ENDS(c)	while(!(c)->is_ended())
-
-/********************************************************************************/
-
 #define TEST_FORALL()	CheckForall()
 #define TEST_EXISTS()	CheckExists()
 
@@ -146,24 +139,69 @@ namespace concurrit {
 /********************************************************************************/
 
 // constructing coroutine sets from comma-separated arguments
-static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
+static inline
+ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr& t, ...) {
 	va_list args;
-	CoroutinePtrSet set;
-	va_start(args, co);
-	while (co != NULL) {
-	   set.insert(co);
-	   co = va_arg(args, Coroutine*);
+	ThreadVarPtrSet set;
+	va_start(args, t);
+	while (t != NULL) {
+	   set.insert(t);
+	   t = va_arg(args, ThreadVarPtr&);
 	}
 	va_end(args);
 	return set;
 }
 // use the following instead of MakeCoroutinePtrSet alone
-#define MAKE_COROUTINEPTRSET(...) \
-	MakeCoroutinePtrSet(__VA_ARGS__, NULL)
+#define MAKE_THREADVARPTRSET(...) \
+	MakeThreadVarPtrSet(__VA_ARGS__, NULL)
 
 /********************************************************************************/
 
-/* restricting a block of code to a set of coroutines
+// represents a set of coroutines to restrict the group to the rest of those
+class WithoutThreads {
+public:
+	WithoutThreads(ThreadVarScope* scope, ThreadVarPtrSet set) : scope_(scope), set_(set) {
+		CHECK(!set.empty());
+		for(ThreadVarPtrSet::iterator itr = set_.begin(), end = set_.end(); itr != end; ++itr) {
+			scope_->Remove(*itr);
+		}
+	}
+
+	~WithoutThreads() {
+		for(ThreadVarPtrSet::iterator itr = set_.begin(), end = set_.end(); itr != end; ++itr) {
+			scope_->Add(*itr);
+		}
+	}
+private:
+	DECL_FIELD(ThreadVarScope*, scope)
+	DECL_FIELD_REF(ThreadVarPtrSet, set)
+};
+
+/********************************************************************************/
+
+// represents a set of coroutines to restrict the group to only those
+class WithThreads {
+public:
+	WithThreads(ThreadVarScope* scope, ThreadVarPtrSet set) {
+		CHECK(!set.empty());
+		ThreadVarPtrSet others = *scope;
+		for(ThreadVarPtrSet::iterator itr = set.begin(), end = set.end(); itr != end; ++itr) {
+			others.erase(*itr);
+		}
+		without_ = new WithoutThreads(scope, others); // takes out others
+	}
+
+	~WithThreads() {
+		delete without_; // puts back others
+	}
+
+private:
+	DECL_FIELD_REF(WithoutThreads*, without)
+};
+
+/********************************************************************************/
+
+/* restricting a block of code to a set of thread variables
  * usage:
  * { WITH(s);
  *   ....
@@ -173,10 +211,10 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
  * }
  */
 #define WITH(...) \
-	WithGroup __withgroup__(group(), MAKE_COROUTINEPTRSET(__VA_ARGS__))
+	WithGroup __withgroup__(scope(), MAKE_THREADVARPTRSET(__VA_ARGS__))
 
 #define WITHOUT(...) \
-	WithoutGroup __withoutgroup__(group(), MAKE_COROUTINEPTRSET(__VA_ARGS__))
+	WithoutGroup __withoutgroup__(scope(), MAKE_THREADVARPTRSET(__VA_ARGS__))
 
 /********************************************************************************/
 
@@ -234,6 +272,13 @@ static CoroutinePtrSet MakeCoroutinePtrSet(Coroutine* co, ...) {
 
 /********************************************************************************/
 
+// for loops until some condition (e.g., all coroutines end)
+#define ALL_ENDED		(AllEnded())
+#define UNTIL_ALL_END	WHILE(!ALL_ENDED)
+#define UNTIL_ENDS(c)	WHILE(!(c)->is_ended())
+
+/********************************************************************************/
+
 #define PTRUE						TransitionPredicate::True()
 #define PFALSE						TransitionPredicate::False()
 
@@ -254,13 +299,67 @@ inline void* _FUNC(const char* func_name) {
 
 /********************************************************************************/
 
-// exists thread
+#define TID				(AuxState::Tid)
+#define __				(ThreadVarPtr())
 
-#define TVAR(t)						ThreadVarPtr t(new ThreadVar());
+#define NOT(t)			(TID != t)
+#define STEP(t)			(TID == t)
 
-#define EXISTS(t, ...)				DECL_STATIC_DSL_INFO("EXISTS " #t); ThreadVarPtr t = DSLExistsThread(&STATIC_DSL_INFO_NAME, __VA_ARGS__);
+#define BY(t)			STEP(t)
+#define NOT_BY(t)		NOT(t)
 
-#define FORALL(t, ...)				DECL_STATIC_DSL_INFO("FORALL " #t); ThreadVarPtr t = DSLForallThread(&STATIC_DSL_INFO_NAME, __VA_ARGS__);
+/********************************************************************************/
+
+inline TransitionPredicatePtr _DISTINCT(ThreadVarScope* scope, ThreadVarPtr t = ThreadVarPtr()) {
+	if(scope->empty()) return PTRUE;
+
+	if(t == NULL) t = TID;
+
+	TransitionPredicatePtr p = TransitionPredicate::True();
+	for(ThreadVarScope::iterator itr = scope->begin(), end = scope->end(); itr != end; ++itr) {
+		p = p && (t != (*itr));
+	}
+	return p;
+}
+
+#define DISTINCT(...)		_DISTINCT(scope(), __VA_ARGS__)
+
+/********************************************************************************/
+
+// to be used in predicates defined below, when memory address accessed or function called is not important
+#define ANY_ADDR		(NULL)
+#define ANY_FUNC		(NULL)
+#define ANY_PC			(-1)
+
+/********************************************************************************/
+
+#define TVAR(t)			static ThreadVarPtr t(new ThreadVar()); /***/ ThreadVarDef __def__##t(scope(), (t))
+
+/********************************************************************************/
+
+// core definitions for exists and forall
+
+#define _EXISTS(op, t, ...)		DECL_STATIC_DSL_INFO(op " " #t); TVAR(t); t << DSLExistsThread(&STATIC_DSL_INFO_NAME, __VA_ARGS__);
+
+#define _FORALL(op, t, ...)		DECL_STATIC_DSL_INFO(op " " #t); TVAR(t); t << DSLForallThread(&STATIC_DSL_INFO_NAME, __VA_ARGS__);
+
+/********************************************************************************/
+
+#define EXISTS(t, ...)			_EXISTS("EXISTS", t, NULL, __VA_ARGS__)
+
+#define FORALL(t, ...)			_FORALL("FORALL", t, NULL, __VA_ARGS__)
+
+/********************************************************************************/
+
+#define WAIT_FOR_THREAD(t, ...)					_EXISTS("WAIT_FOR_THREAD", t, NULL, __VA_ARGS__)
+
+#define WAIT_FOR_DISTINCT_THREAD(t, p, ...)		_EXISTS("WAIT_FOR_DISTINCT_THREAD", t, NULL, ((p) && DISTINCT(TID)), __VA_ARGS__)
+
+/********************************************************************************/
+
+#define SELECT_THREAD(t, ...)					_EXISTS("SELECT_THREAD", t, scope(), __VA_ARGS__)
+
+#define SELECT_THREAD_BACKTRACK(t, ...)			_FORALL("FORALL_THREAD", t, scope(), __VA_ARGS__)
 
 /********************************************************************************/
 
@@ -301,6 +400,11 @@ inline void* _FUNC(const char* func_name) {
 /********************************************************************************/
 
 #define RUN_UNLESS(q, r, ...) 		RUN_UNLESS2b((q), (r), __VA_ARGS__);
+
+/********************************************************************************/
+
+#define RUN_THREAD_UNTIL			RUN_UNTIL
+#define RUN_THREAD_UNLESS			RUN_UNLESS
 
 /********************************************************************************/
 
@@ -355,24 +459,6 @@ public:
 		}; /* end class */ \
 		/* add to the suite */ \
 		static StaticSuiteAdder<test_name> __static_suite_adder_##test_name##__(&__concurrit_suite__); \
-
-/********************************************************************************/
-
-#define TID				(AuxState::Tid)
-#define __				(ThreadVarPtr())
-
-#define NOT(t)			(TID != t)
-#define STEP(t)			(TID == t)
-
-#define BY(t)			STEP(t)
-#define NOT_BY(t)		NOT(t)
-
-/********************************************************************************/
-
-// to be used in predicates defined below, when memory address accessed or function called is not important
-#define ANY_ADDR		(NULL)
-#define ANY_FUNC		(NULL)
-#define ANY_PC			(-1)
 
 /********************************************************************************/
 

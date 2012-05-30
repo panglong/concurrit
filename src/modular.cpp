@@ -171,53 +171,53 @@ void* env_thread_function(void* p) {
 // this is a API call, given a set of threads, makes a modular check
 void ThreadModularScenario::TestCase() {
 
-	TEST_FORALL(); // we check all possible executions
-	DISABLE_DPOR(); // disable dynamic partial order reduction
-
-	// add environment thread to the group
-	ThreadVarPtr env_var = CREATE_THREAD(env_thread_function, &env_trace_);
-	safe_assert(env_var != NULL && !env_var->is_empty());
-	Coroutine* env_co = env_var->thread();
-
-	// add a choice point for choosing which member to run (or reuse it if already exists)
-	MemberChoicePoint* member_choice = NULL;
-	ChoicePoint* choice_point = ChoicePoint::GetCurrent();
-	if(choice_point != NULL) {
-		MYLOG(2) << SC_TITLE << "Reusing member choice point";
-
-		member_choice = ASINSTANCEOF(choice_point, MemberChoicePoint*);
-	} else {
-		MYLOG(2) << SC_TITLE << "Creating new member choice point";
-
-		CoroutinePtrSet members;
-		group_.GetMemberSet(&members);
-		// remove env thread
-		members.erase(members.find(env_co));
-		member_choice = new MemberChoicePoint(members);
-		// no need to call ChooseNext, as member_choice.itr_ is already pointing to the first member
-	}
-
-	Coroutine* co = member_choice->GetNext();
-	if(co == NULL) {
-		MYLOG(2) << SC_TITLE << "All members were used, so backtracking";
-		// no more members, so backtrack (and end the execution)
-		TRIGGER_BACKTRACK();
-	}
-	safe_assert(co != env_co);
-
-	member_choice->SetAndConsumeCurrent();
-
-	// run one member at a time concurrently with env_thread
-	MYLOG(2) << SC_TITLE << "Modular check with coroutine " << co->tid();
-
-	{ WITH(env_co, co);
-		UNTIL_ALL_END {
-			UNTIL_STAR()->TRANSFER_STAR();
-		}
-		if(env_graph_.size() >= 10) {
-			TRIGGER_TERMINATE_SEARCH();
-		}
-	}
+//	TEST_FORALL(); // we check all possible executions
+//	DISABLE_DPOR(); // disable dynamic partial order reduction
+//
+//	// add environment thread to the group
+//	ThreadVarPtr env_var = CREATE_THREAD(env_thread_function, &env_trace_);
+//	safe_assert(env_var != NULL && !env_var->is_empty());
+//	Coroutine* env_co = env_var->thread();
+//
+//	// add a choice point for choosing which member to run (or reuse it if already exists)
+//	MemberChoicePoint* member_choice = NULL;
+//	ChoicePoint* choice_point = ChoicePoint::GetCurrent();
+//	if(choice_point != NULL) {
+//		MYLOG(2) << SC_TITLE << "Reusing member choice point";
+//
+//		member_choice = ASINSTANCEOF(choice_point, MemberChoicePoint*);
+//	} else {
+//		MYLOG(2) << SC_TITLE << "Creating new member choice point";
+//
+//		CoroutinePtrSet members;
+//		group_.GetMemberSet(&members);
+//		// remove env thread
+//		members.erase(members.find(env_co));
+//		member_choice = new MemberChoicePoint(members);
+//		// no need to call ChooseNext, as member_choice.itr_ is already pointing to the first member
+//	}
+//
+//	Coroutine* co = member_choice->GetNext();
+//	if(co == NULL) {
+//		MYLOG(2) << SC_TITLE << "All members were used, so backtracking";
+//		// no more members, so backtrack (and end the execution)
+//		TRIGGER_BACKTRACK();
+//	}
+//	safe_assert(co != env_co);
+//
+//	member_choice->SetAndConsumeCurrent();
+//
+//	// run one member at a time concurrently with env_thread
+//	MYLOG(2) << SC_TITLE << "Modular check with coroutine " << co->tid();
+//
+//	{ WITH(env_co, co);
+//		UNTIL_ALL_END {
+//			UNTIL_STAR()->TRANSFER_STAR();
+//		}
+//		if(env_graph_.size() >= 10) {
+//			TRIGGER_TERMINATE_SEARCH();
+//		}
+//	}
 }
 
 /********************************************************************************/

@@ -182,8 +182,8 @@ public:
 	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 	void DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message = NULL);
 
-	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
-	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
+	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
+	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
 
 	void EvalSelectThread(Coroutine* current, SelectThreadNode* node, int& child_index, bool& take);
 	void EvalTransition(Coroutine* current, TransitionNode* node, int& child_index, bool& take);
@@ -256,6 +256,8 @@ private:
 	DECL_FIELD_GET_REF(ExecutionTreeManager, exec_tree)
 
 	DECL_STATIC_FIELD(FILE*, trace_file)
+
+	DECL_FIELD_REF(ThreadVarScope, scope)
 };
 
 /************************************************************************************/
