@@ -223,6 +223,7 @@ void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, ADDRINT addr,
 	AuxState::NumInFunc->set(addr, c+1, current->tid());
 
 	AuxState::Arg0->set(addr, arg0, current->tid());
+	AuxState::Arg1->set(addr, arg1, current->tid());
 
 	current->set_srcloc(loc);
 	scenario->OnControlledTransition(current);
@@ -253,6 +254,7 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, ADDRINT addr
 	AuxState::InFunc->set(addr, c-1, current->tid());
 
 	AuxState::Arg0->set(addr, 0, current->tid());
+	AuxState::Arg1->set(addr, 0, current->tid());
 
 //	scenario->AfterControlledTransition(current);
 }

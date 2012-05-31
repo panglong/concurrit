@@ -75,6 +75,10 @@ public:
 	operator bool () {
 		return EvalState(NULL);
 	}
+
+	bool operator () (const ThreadVarPtr& t) {
+		return EvalState(t == NULL ? NULL : t->thread());
+	}
 };
 
 TransitionPredicatePtr operator ! (const TransitionPredicatePtr& pred);
@@ -733,6 +737,7 @@ public:
 	static boost::shared_ptr<AuxVar1<ADDRINT, int, 0, 0>> NumInFunc;
 
 	static boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> Arg0;
+	static boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> Arg1;
 
 	static boost::shared_ptr<AuxVar0<int, -1>> Pc;
 	static boost::shared_ptr<AuxVar0<bool, false>> AtPc;

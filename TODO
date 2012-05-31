@@ -1,3 +1,4 @@
+*** TID to thread variable reverse map to speed up checking whether a thread is contained in a variable. update map whenever assigning thread variables.
 *** until_ends scope'u kale alsin!!!
 *** run_thread().until()
 *** event abstraction!!!

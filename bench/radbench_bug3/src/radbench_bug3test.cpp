@@ -202,18 +202,22 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(0);
 
-		FUNC(f_newcontext, JS_NewContext);
-		FUNC(f_beginrequest, JS_BeginRequest);
-		FUNC(f_gc, js_GC);
-		FUNC(f_GC, JS_GC);
-		FUNC(f_destroycontext, JS_DestroyContext);
+		FVAR(f_newcontext, JS_NewContext);
+		FVAR(f_beginrequest, JS_BeginRequest);
+		FVAR(f_gc, js_GC);
+		FVAR(f_GC, JS_GC);
+		FVAR(f_destroycontext, JS_DestroyContext);
 
 //		Now suppose there are 3 threads, A, B, C.
-		EXISTS(t1, IN_FUNC(f_newcontext), "Select t1");
-		EXISTS(t2, (TID != t1) && IN_FUNC(f_newcontext), "Select t2");
-		EXISTS(t3, (TID != t1) && (TID != t2) && IN_FUNC(f_newcontext), "Select t3");
+		WAIT_FOR_THREAD(TA, IN_FUNC(f_newcontext), "Select TA");
 
-		JSRuntime* rt = static_cast<JSRuntime*>(ADDRINT2PTR(AuxState::Arg0->get(f_newcontext, t1->tid())));
+		WAIT_FOR_DISTINCT_THREAD(TB, IN_FUNC(f_newcontext), "Select TB");
+
+		WAIT_FOR_DISTINCT_THREAD(TC, IN_FUNC(f_newcontext), "Select TC");
+
+		//======================================================
+
+		JSRuntime* rt = static_cast<JSRuntime*>(ADDRINT2PTR(ARG0(TA, f_newcontext)));
 		safe_assert(rt != NULL);
 		void* RT_STATE = &(rt->state);
 //		printf("rtstate: %lx\n", RT_STATE);
@@ -227,40 +231,42 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		//======================================================
 
 //		Threads A and B calls js_DestroyContext and thread C calls js_NewContext.
-		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext), __);
-		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext), __);
+		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext), __);
+
+		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext), __);
 
 		//======================================================
 
 //		First thread A removes its context from the runtime list. That context is not
 //		the last one so thread does not touch rt->state and eventually calls js_GC. The
 //		latter skips the above check and tries to to take the GC lock.
-		RUN_UNTIL(BY(t1), IN_FUNC(f_gc) && READS(RT_STATE), "Run TA until js_GC");
+		RUN_THREAD_UNTIL(TA, IN_FUNC(f_gc) && READS(RT_STATE), "Run TA until js_GC");
 
 //		Before this moment the thread B takes the lock, removes its context from the
 //		runtime list, discovers that it is the last, sets rt->state to LANDING, runs
 //		the-last-context-cleanup, runs the GC and then sets rt->state to DOWN.
-		RUN_UNTIL(BY(t2), ENDS(), "Run TB ends");
+		RUN_THREAD_UNTIL(TB, ENDS(), "Run TB ends");
 
 //		At this stage the thread A gets the GC lock, setup itself as the thread that
 //		runs the GC and releases the GC lock to proceed with the GC when rt->state is
 //		DOWN.
-		RUN_UNTIL(BY(t1), IN_FUNC(f_gc) && WRITES(RT_GCTHREAD), "Run TA until writes to rt->gcThread");
+		RUN_THREAD_UNTIL(TA, IN_FUNC(f_gc) && WRITES(RT_GCTHREAD), "Run TA until writes to rt->gcThread");
 
 //		Now the thread C enters the picture. It discovers under the GC lock in
 //		js_NewContext that the newly allocated context is the first one. Since
 //		rt->state is DOWN, it releases the GC lock and starts the first context
 //		initialization procedure.
-//		RUN_UNTIL(BY(t3), ENTERS(f_beginrequest), "Run TC until js_BeginRequest");
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
 //		That procedure includes the allocation of the initial
 //		atoms and it will happen when the thread A runs the GC. This may lead precisely
 //		to the first stack trace from the comment 4.
-		WHILE_STAR {
-			FORALL(t, (TID == t1) || (TID == t3));
-			RUN_UNTIL(TID == t, READS() || WRITES(), "Run until true...");
+		WHILE(!HAS_ENDED(TA) || !HAS_ENDED(TC)) {
+
+				SELECT_THREAD_BACKTRACK(t, BY(TA) || BY(TC));
+
+				RUN_THREAD_UNTIL(t, READS() || WRITES(), "Run until true...");
 		}
 	}
 

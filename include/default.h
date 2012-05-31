@@ -52,7 +52,7 @@ public:
 
 		WHILE_DTSTAR {
 			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
-			RUN_THREAD_UNTIL(BY(t), ENDS(), __);
+			RUN_THREAD_UNTIL(t, ENDS(), __);
 		}
 	}
 
@@ -62,7 +62,7 @@ public:
 							TransitionPredicatePtr trans_criteria = PTRUE) {
 		WHILE_DTSTAR {
 			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
-			RUN_THREAD_UNTIL(BY(t), trans_criteria, __);
+			RUN_THREAD_UNTIL(t, trans_criteria, __);
 		}
 	}
 
@@ -78,7 +78,7 @@ public:
 
 			SELECT_THREAD_BACKTRACK(t, select_criteria && (TID != t_old), "Forall thread");
 			WHILE_DTSTAR {
-				RUN_THREAD_UNTIL(BY(t), trans_criteria, __);
+				RUN_THREAD_UNTIL(t, trans_criteria, __);
 			}
 			if(!HAS_ENDED(t)) {
 				++i;

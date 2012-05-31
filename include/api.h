@@ -138,22 +138,29 @@ namespace concurrit {
 
 /********************************************************************************/
 
+// double expansion trick!
+#define ADD_LINE_2(s, line)				s##line
+#define ADD_LINE_1(s, line)				ADD_LINE_2(s, line)
+#define ADD_LINE(s)						ADD_LINE_1(s, __LINE__)
+
+/********************************************************************************/
+
 // constructing coroutine sets from comma-separated arguments
 static inline
-ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr& t, ...) {
+ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t, ...) {
 	va_list args;
 	ThreadVarPtrSet set;
 	va_start(args, t);
 	while (t != NULL) {
 	   set.insert(t);
-	   t = va_arg(args, ThreadVarPtr&);
+	   t = va_arg(args, ThreadVarPtr);
 	}
 	va_end(args);
 	return set;
 }
 // use the following instead of MakeCoroutinePtrSet alone
 #define MAKE_THREADVARPTRSET(...) \
-	MakeThreadVarPtrSet(__VA_ARGS__, NULL)
+	MakeThreadVarPtrSet(__VA_ARGS__, ThreadVarPtr())
 
 /********************************************************************************/
 
@@ -210,11 +217,12 @@ private:
  *   ....
  * }
  */
+
 #define WITH(...) \
-	WithGroup __withgroup__(scope(), MAKE_THREADVARPTRSET(__VA_ARGS__))
+	WithThreads ADD_LINE(__withthreads__)(scope(), MAKE_THREADVARPTRSET(__VA_ARGS__))
 
 #define WITHOUT(...) \
-	WithoutGroup __withoutgroup__(scope(), MAKE_THREADVARPTRSET(__VA_ARGS__))
+	WithoutThreads ADD_LINE(__withoutthreads__)(scope(), MAKE_THREADVARPTRSET(__VA_ARGS__))
 
 /********************************************************************************/
 
@@ -237,11 +245,7 @@ private:
 
 /********************************************************************************/
 
-// double expansion trick!
-#define STATIC_DSL_INFO_NAME_2(line)	__static_dsl_info_##line
-#define STATIC_DSL_INFO_NAME_1(line)	STATIC_DSL_INFO_NAME_2(line)
-
-#define STATIC_DSL_INFO_NAME			STATIC_DSL_INFO_NAME_1(__LINE__)
+#define STATIC_DSL_INFO_NAME			ADD_LINE(__static_dsl_info_)
 #define	DECL_STATIC_DSL_INFO(code) 		static StaticDSLInfo STATIC_DSL_INFO_NAME (RECORD_SRCLOC(), (code));
 
 /********************************************************************************/
@@ -302,11 +306,44 @@ inline void* _FUNC(const char* func_name) {
 #define TID				(AuxState::Tid)
 #define __				(ThreadVarPtr())
 
-#define NOT(t)			(TID != t)
-#define STEP(t)			(TID == t)
+/********************************************************************************/
 
-#define BY(t)			STEP(t)
-#define NOT_BY(t)		NOT(t)
+inline TransitionPredicatePtr _BY(ThreadVarPtr t, ...) {
+	va_list args;
+	va_start(args, t);
+	safe_assert(t != NULL);
+	TransitionPredicatePtr p;
+	do {
+		TransitionPredicatePtr q = (TID == t);
+		p = ((p == NULL) ? q : (p || q));
+		t = va_arg(args, ThreadVarPtr);
+	} while (t != NULL);
+	va_end(args);
+	return p;
+}
+
+#define BY(t)			(TID == t)
+//#define BY(...)			_BY(__VA_ARGS__, ThreadVarPtr())
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _NOT_BY(ThreadVarPtr t, ...) {
+	va_list args;
+	va_start(args, t);
+	safe_assert(t != NULL);
+	TransitionPredicatePtr p;
+	do {
+		TransitionPredicatePtr q = (TID != t);
+		p = ((p == NULL) ? q : (p && q));
+		t = va_arg(args, ThreadVarPtr);
+	} while (t != NULL);
+	va_end(args);
+	return p;
+}
+
+#define NOT_BY(t)			(TID != t)
+//#define NOT_BY(...)			_NOT_BY(__VA_ARGS__, ThreadVarPtr())
+#define NOT(...)			NOT_BY(__VA_ARGS__)
 
 /********************************************************************************/
 
@@ -403,8 +440,9 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarScope* scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define RUN_THREAD_UNTIL			RUN_UNTIL
-#define RUN_THREAD_UNLESS			RUN_UNLESS
+#define RUN_THREAD_UNTIL(t, q, ...)		RUN_UNTIL(BY(t), (q), __VA_ARGS__)
+#define RUN_THREAD_UNLESS(t, q, ...)	RUN_UNLESS(BY(t), (q), __VA_ARGS__)
+
 
 /********************************************************************************/
 
@@ -599,6 +637,27 @@ inline TransitionPredicatePtr _WITH_ARG0(void* f, ADDRINT arg0, ThreadVarPtr t =
 }
 
 #define WITH_ARG0(...)		_WITH_ARG0(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline TransitionPredicatePtr _WITH_ARG1(void* f, const AuxVar0_ADDRINT_PTR& arg1, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Arg1.get())->TP5(AuxState::Arg1, PTR2ADDRINT(f), arg1, t);
+}
+
+inline TransitionPredicatePtr _WITH_ARG1(void* f, ADDRINT arg1, ThreadVarPtr t = ThreadVarPtr()) {
+	if(t == NULL) t = TID;
+	return safe_notnull(AuxState::Arg1.get())->TP3(AuxState::Arg1, PTR2ADDRINT(f), arg1, t);
+}
+
+#define WITH_ARG1(...)		_WITH_ARG1(__VA_ARGS__)
+
+/********************************************************************************/
+
+// read current aux-state
+
+#define ARG0(t, f)			(safe_notnull(AuxState::Arg0.get())->get((f), safe_notnull(t.get())->tid()))
+#define ARG1(t, f)			(safe_notnull(AuxState::Arg1.get())->get((f), safe_notnull(t.get())->tid()))
 
 /********************************************************************************/
 
