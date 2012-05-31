@@ -245,6 +245,8 @@ void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, ADDRINT addr
 	// update auxstate
 	AuxState::Returns->set(addr, true, current->tid());
 
+	AuxState::RetVal->set(addr, retval, current->tid());
+
 	current->set_srcloc(loc);
 	scenario->OnControlledTransition(current);
 

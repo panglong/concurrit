@@ -739,6 +739,8 @@ public:
 	static boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> Arg0;
 	static boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> Arg1;
 
+	static boost::shared_ptr<AuxVar1<ADDRINT, ADDRINT, 0, 0>> RetVal;
+
 	static boost::shared_ptr<AuxVar0<int, -1>> Pc;
 	static boost::shared_ptr<AuxVar0<bool, false>> AtPc;
 

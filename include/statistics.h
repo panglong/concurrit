@@ -214,6 +214,7 @@ public:
 	}
 
 
+	static unsigned long GetMemoryUsageInKB();
 
 private:
 	DECL_FIELD_REF(TimerMap, timers)

@@ -425,6 +425,8 @@ ConcurritException* Scenario::RunOnce() throw() {
 
 	avg_counter("Average time to explore each path").increment((long int)(timer.getElapsedTimeInMicroSec()));
 
+	avg_counter("Average memory usage (KB)").increment(Statistics::GetMemoryUsageInKB());
+
 	return CollectExceptions();
 }
 

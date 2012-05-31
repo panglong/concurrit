@@ -265,4 +265,45 @@ std::string Timer::timeval_to_string_(timeval* tv) {
 
 /********************************************************************************/
 
+//#include <proc/readproc.h>
+
+unsigned long Statistics::GetMemoryUsageInKB() {
+//	struct proc_t usage;
+//	look_up_our_self(&usage);
+//	return usage.vm_data / 1024UL;
+
+	unsigned long mem = 0;
+
+	FILE* fin = my_fopen("/proc/self/status", "r");
+
+	const size_t buff_sz = 64;
+	if(fin != NULL) {
+		char buff[buff_sz];
+		while(!feof(fin)) {
+			if(fgets(buff, buff_sz, fin) == NULL) {
+				break;
+			} else {
+				size_t sz = strnlen(buff, buff_sz);
+				if(sz > 0) {
+					if(buff[sz-1] == '\n') {
+						buff[sz-1] = '\0';
+						--sz;
+						if(sz == 0) continue;
+					}
+
+					if(strncmp(buff, "VmData:", 7) == 0) {
+						sscanf(buff+7, "%9lu", &mem);
+						break;
+					}
+				}
+			}
+		}
+		safe_assert(mem > 0);
+		my_fclose(fin);
+	}
+	return mem;
+}
+
+/********************************************************************************/
+
 } // end namespace

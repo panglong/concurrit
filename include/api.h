@@ -656,8 +656,39 @@ inline TransitionPredicatePtr _WITH_ARG1(void* f, ADDRINT arg1, ThreadVarPtr t =
 
 // read current aux-state
 
-#define ARG0(t, f)			(safe_notnull(AuxState::Arg0.get())->get((f), safe_notnull(t.get())->tid()))
-#define ARG1(t, f)			(safe_notnull(AuxState::Arg1.get())->get((f), safe_notnull(t.get())->tid()))
+inline ADDRINT _ARG0(ThreadVarPtr& t, ADDRINT f = 0) {
+	if(f == 0) {
+		return (safe_notnull(AuxState::Arg0.get())->get_first_value(safe_notnull(t.get())->tid()));
+	} else {
+		return (safe_notnull(AuxState::Arg0.get())->get((f), safe_notnull(t.get())->tid()));
+	}
+}
+
+#define ARG0(...)			_ARG0(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline ADDRINT _ARG1(ThreadVarPtr& t, ADDRINT f = 0) {
+	if(f == 0) {
+		return (safe_notnull(AuxState::Arg1.get())->get_first_value(safe_notnull(t.get())->tid()));
+	} else {
+		return (safe_notnull(AuxState::Arg1.get())->get((f), safe_notnull(t.get())->tid()));
+	}
+}
+
+#define ARG1(...)			_ARG1(__VA_ARGS__)
+
+/********************************************************************************/
+
+inline ADDRINT _RETVAL(ThreadVarPtr& t, ADDRINT f = 0) {
+	if(f == 0) {
+		return (safe_notnull(AuxState::RetVal.get())->get_first_value(safe_notnull(t.get())->tid()));
+	} else {
+		return (safe_notnull(AuxState::RetVal.get())->get((f), safe_notnull(t.get())->tid()));
+	}
+}
+
+#define RETVAL(...)		_RETVAL(__VA_ARGS__)
 
 /********************************************************************************/
 
