@@ -687,7 +687,7 @@ void *fileWriter(void *outname)
 	int currBlock = 0;
 	int ret = -1;
 
-	concurritFuncEnter(reinterpret_cast<void*>(fileWriter));
+	concurritFuncEnter(reinterpret_cast<void*>(fileWriter), 0, 0);
 
 	OutFilename = (char *) outname;
 
@@ -700,7 +700,7 @@ void *fileWriter(void *outname)
 		{
 			fprintf(stderr, " *ERROR: Could not create output file [%s]!\n", OutFilename);
 
-			concurritFuncReturn(reinterpret_cast<void*>(fileWriter));
+			concurritFuncReturn(reinterpret_cast<void*>(fileWriter), 0);
 
 			return (NULL);
 		}
@@ -736,7 +736,7 @@ void *fileWriter(void *outname)
 				delete [] OutputBuffer[currBlock].buf;
 			pthread_mutex_unlock(MemMutex);
 
-			concurritFuncReturn(reinterpret_cast<void*>(fileWriter));
+			concurritFuncReturn(reinterpret_cast<void*>(fileWriter), 0);
 
 			return (NULL);
 		}
@@ -763,7 +763,7 @@ void *fileWriter(void *outname)
 		fprintf(stderr, "    Output Size: %llu bytes\n", (unsigned long long)CompressedSize);
 	}
 
-	concurritFuncReturn(reinterpret_cast<void*>(fileWriter));
+	concurritFuncReturn(reinterpret_cast<void*>(fileWriter), 0);
 
 	printf("WRITERRRRR\n");
 
@@ -898,7 +898,7 @@ void *consumer (void *q)
 
 	fifo = (queue *)q;
 
-	concurritFuncEnter(reinterpret_cast<void*>(consumer));
+	concurritFuncEnter(reinterpret_cast<void*>(consumer), 0, 0);
 
 	for (;;)
 	{
@@ -999,7 +999,7 @@ void *consumer (void *q)
 	printf ("consumer: exiting\n");
 	#endif
 
-	concurritFuncReturn(reinterpret_cast<void*>(consumer));
+	concurritFuncReturn(reinterpret_cast<void*>(consumer), 0);
 
 	return (NULL);
 }
