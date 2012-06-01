@@ -462,7 +462,7 @@ PinToolShutdown() {
 
 VOID PIN_FAST_ANALYSIS_CALL
 PinToolInit(ADDRINT options_addrint) {
-	concurrit::PinToolOptions* options_ptr = static_cast<concurrit::PinToolOptions*>(ADDRINT2PTR(options_addrint));
+	concurrit::PinToolOptions* options_ptr = static_cast<concurrit::PinToolOptions*>(concurrit::ADDRINT2PTR(options_addrint));
 	PIN_SafeCopy(&OPTIONS, options_ptr, sizeof(concurrit::PinToolOptions));
 
 	log_file << "[PinToolInit] Pin Option TrackFuncCalls: " << OPTIONS.TrackFuncCalls << std::endl;
@@ -541,7 +541,7 @@ FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 
 //	log_file << threadid << " entering " << loc->funcname() << std::endl;
 
-//	if(!InstParams::OnFuncEnter(threadid, PTR2ADDRINT(loc->pointer()))) {
+//	if(!InstParams::OnFuncEnter(threadid, concurrit::PTR2ADDRINT(loc->pointer()))) {
 //		return;
 //	}
 
@@ -550,7 +550,7 @@ FuncEnter(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 	concurrit::EventBuffer info;
 	info.type = concurrit::FuncEnter;
 	info.threadid = threadid;
-	info.addr = PTR2ADDRINT(loc->pointer());
+	info.addr = concurrit::PTR2ADDRINT(loc->pointer());
 	info.loc_src = loc;
 	info.arg0 = arg0;
 	info.arg1 = arg1;
@@ -564,14 +564,14 @@ FuncEnterEx(const CONTEXT * ctxt, THREADID threadid, PinSourceLocation* loc,
 
 //	log_file << threadid << " entering " << loc->funcname() << std::endl;
 
-	if(!InstParams::OnFuncEnter(threadid, PTR2ADDRINT(loc->pointer()))) return;
+	if(!InstParams::OnFuncEnter(threadid, concurrit::PTR2ADDRINT(loc->pointer()))) return;
 
 	//=======================================
 
 	concurrit::EventBuffer info;
 	info.type = concurrit::FuncEnter;
 	info.threadid = threadid;
-	info.addr = PTR2ADDRINT(loc->pointer());
+	info.addr = concurrit::PTR2ADDRINT(loc->pointer());
 	info.loc_src = loc;
 	info.arg0 = arg0;
 	info.arg1 = arg1;
@@ -668,7 +668,7 @@ MemWrite(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinS
 	concurrit::EventBuffer info;
 	info.type = concurrit::MemWrite;
 	info.threadid = threadid;
-	info.addr = PTR2ADDRINT(addr);
+	info.addr = concurrit::PTR2ADDRINT(addr);
 	info.size = size;
 	info.loc_src = loc;
 
@@ -688,7 +688,7 @@ MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSo
 	concurrit::EventBuffer info;
 	info.type = concurrit::MemRead;
 	info.threadid = threadid;
-	info.addr = PTR2ADDRINT(addr);
+	info.addr = concurrit::PTR2ADDRINT(addr);
 	info.size = size;
 	info.loc_src = loc;
 
@@ -1045,7 +1045,7 @@ VOID Routine(RTN rtn, VOID *v) {
 	}
 
 	PinSourceLocation* loc = PinSourceLocation::get(rtn);
-	safe_assert(PTR2ADDRINT(loc->pointer()) == rtn_addr);
+	safe_assert(concurrit::PTR2ADDRINT(loc->pointer()) == rtn_addr);
 
 	log_file << "+++ RTN +++ " << RTN_Name(rtn) << " at address " << rtn_addr << std::endl;
 
