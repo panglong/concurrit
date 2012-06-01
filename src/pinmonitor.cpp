@@ -194,8 +194,8 @@ void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, ADDRINT addr_s
 	AuxState::CallsFrom->set(addr_src, current->tid());
 	AuxState::CallsTo->set(addr_target, current->tid());
 
-	AuxState::Arg0->set(addr, arg0, current->tid());
-	AuxState::Arg1->set(addr, arg1, current->tid());
+	AuxState::Arg0->set(addr_target, arg0, current->tid());
+	AuxState::Arg1->set(addr_target, arg1, current->tid());
 
 	current->set_srcloc(loc_src);
 	scenario->OnControlledTransition(current);
