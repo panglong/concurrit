@@ -17,7 +17,7 @@ FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions -rdynamic \
 # other flags that can be used:
 #-finline-functions # this gives a lot of warnings in Linux
 
-all: makedirs dummy remote $(CONCURRIT_LIBDIR)/$(TARGET).so
+all: makedirs dummy server $(CONCURRIT_LIBDIR)/$(TARGET).so
 
 ############################
 
@@ -34,13 +34,20 @@ $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
 dummy: makedirs $(CONCURRIT_LIBDIR)/libdummy.so
 
 $(CONCURRIT_LIBDIR)/libdummy.so: $(CONCURRIT_HOME)/dummy/dummy.cpp
-	$(CC) -I$(CONCURRIT_INCDIR) -g -gdwarf-2 -O1 -w -fPIC -shared -o $@ $^
+	$(CC) -I$(CONCURRIT_INCDIR) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
 
 ############################
 
-remote: makedirs $(CONCURRIT_LIBDIR)/libremote.so
+server: makedirs $(CONCURRIT_LIBDIR)/libserver.so
 
-$(CONCURRIT_LIBDIR)/libremote.so: $(CONCURRIT_HOME)/remote/remote.cpp
+$(CONCURRIT_LIBDIR)/libserver.so: $(CONCURRIT_HOME)/remote/server.cpp
+	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
+
+############################
+
+client: makedirs $(CONCURRIT_LIBDIR)/libclient.so
+
+$(CONCURRIT_LIBDIR)/libclient.so: $(CONCURRIT_HOME)/remote/client.cpp
 	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
 
 ############################

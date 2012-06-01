@@ -79,24 +79,79 @@ void concurritAtPcEx(int pc, const char* filename, const char* funcname, int lin
 
 /********************************************************************************/
 
-void concurritFuncEnterEx(void* addr, const char* filename, const char* funcname, int line) {
+void concurritFuncEnterEx(void* addr, ADDRINT arg0, ADDRINT arg1, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
 	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
 
-	PinMonitor::FuncEnter(current, scenario, PTR2ADDRINT(addr), new SourceLocation(filename, funcname, line), 0, 0);
+	PinMonitor::FuncEnter(current, scenario, PTR2ADDRINT(addr), new SourceLocation(filename, funcname, line), arg0, arg1);
 }
 
 /********************************************************************************/
 
-void concurritFuncReturnEx(void* addr, const char* filename, const char* funcname, int line) {
+void concurritFuncReturnEx(void* addr, ADDRINT retval, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
 	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
 
-	PinMonitor::FuncReturn(current, scenario, PTR2ADDRINT(addr), new SourceLocation(filename, funcname, line), 0);
+	PinMonitor::FuncReturn(current, scenario, PTR2ADDRINT(addr), new SourceLocation(filename, funcname, line), retval);
+}
+
+/********************************************************************************/
+
+void concurritFuncCallEx(void* from_addr, void* to_addr, ADDRINT arg0, ADDRINT arg1, const char* filename, const char* funcname, int line) {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+
+	PinMonitor::FuncCall(current, scenario, PTR2ADDRINT(from_addr), PTR2ADDRINT(to_addr), true, new SourceLocation(filename, funcname, line), NULL, arg0, arg1);
+}
+
+/********************************************************************************/
+
+void concurritMemReadEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+
+	PinMonitor::MemRead(current, scenario, PTR2ADDRINT(addr), (uint32_t)size, new SourceLocation(filename, funcname, line));
+}
+
+/********************************************************************************/
+
+void concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+
+	PinMonitor::MemWrite(current, scenario, PTR2ADDRINT(addr), (uint32_t)size, new SourceLocation(filename, funcname, line));
+}
+
+/********************************************************************************/
+
+void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line) {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+
+	PinMonitor::MemAccessBefore(current, scenario, new SourceLocation(filename, funcname, line));
+}
+
+/********************************************************************************/
+
+void concurritMemAfterBeforeEx(const char* filename, const char* funcname, int line) {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	Coroutine* current = safe_notnull(Coroutine::Current());
+	Scenario* scenario = safe_notnull(safe_notnull(current->group())->scenario());
+
+	PinMonitor::MemAccessAfter(current, scenario, new SourceLocation(filename, funcname, line));
 }
 
 /********************************************************************************/

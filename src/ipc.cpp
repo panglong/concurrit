@@ -31,43 +31,49 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "dummy.h"
+#include "concurrit.h"
+
+namespace concurrit {
 
 /********************************************************************************/
 
-#define dummy_error()	fprintf(stderr, "Function %s in dummy.cpp should not be called!!!\n", __FUNCTION__); \
-						fflush(stderr); \
-						exit(EXIT_FAILURE);
+void ShadowThread::WaitForEventAndSkip(EventKind type) {
+	int timer = 0;
+	for(pipe_.Recv(&event_); event_.type != type; pipe_.Recv(&event_)) {
+		if(timer > 1000) {
+			safe_fail("Too many iterations for waiting event kind %d!", type);
+		}
+		++timer;
+	}
+	SendContinue();
+}
 
 /********************************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+ShadowThread::ShadowThread(THREADID threadid, bool is_server) : tid_(threadid), thread_(NULL) {
+		memset(&event_, 0, sizeof(EventBuffer));
 
-void concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {dummy_error();}
-void concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {dummy_error();}
-
-void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {dummy_error();}
-
-void concurritFuncEnterEx(void* addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {dummy_error();}
-void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {dummy_error();}
-
-void concurritFuncCallEx(void* from_addr, void* to_addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {dummy_error();}
-
-void concurritMemReadEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {dummy_error();}
-void concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {dummy_error();}
-
-void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line) {dummy_error();}
-void concurritMemAfterBeforeEx(const char* filename, const char* funcname, int line) {dummy_error();}
-
-void concurritThreadEndEx(const char* filename, const char* funcname, int line)  {dummy_error();}
-
-void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
+		PipeNamePair pipe_names = is_server ? PipeNamesForDSL(tid_) : PipeNamesForSUT(tid_);
+		pipe_.Init(pipe_names);
+		pipe_.Open();
+	}
 
 /********************************************************************************/
 
+ShadowThread::~ShadowThread(){
+	if(pipe_.is_open()) {
+		pipe_.Close();
+	}
+}
+
+/********************************************************************************/
+
+void ShadowThread::SendContinue() {
+	event_.type = Continue;
+	event_.threadid = tid_;
+	pipe_.Send(&event_);
+}
+
+/********************************************************************************/
+
+} // end namespace

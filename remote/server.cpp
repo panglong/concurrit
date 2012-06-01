@@ -35,6 +35,8 @@
 
 #include "ipc.h"
 
+#include "tbb/concurrent_vector.h"
+
 namespace concurrit {
 
 /********************************************************************************/
@@ -43,33 +45,20 @@ const THREADID MAINTID = THREADID(1);
 
 /********************************************************************************/
 
-class ShadowThread {
+class ShadowThread;
+typedef tbb::concurrent_vector<ShadowThread*> ShadowThreadPtrList;
+static ShadowThreadPtrList shadow_threads;
+
+/********************************************************************************/
+
+class ServerShadowThread : public ShadowThread {
 public:
-	ShadowThread(THREADID threadid) : tid_(threadid) {
-		memset(&event_, 0, sizeof(EventBuffer));
+	ServerShadowThread(THREADID threadid) : ShadowThread(threadid, true)  {}
 
-		PipeNamePair pipe_names = PipeNamesForDSL(tid_);
-		pipe_.Init(pipe_names);
-		pipe_.Open();
-	}
+	virtual ~ServerShadowThread(){}
 
-	virtual ~ShadowThread(){
-		if(pipe_.is_open()) {
-			pipe_.Close();
-		}
-	}
-
-	void SendContinue() {
-		event_.type = Continue;
-		event_.threadid = tid_;
-		pipe_.Send(&event_);
-	}
-
+	// override
 	virtual void* Run();
-private:
-	DECL_FIELD(THREADID, tid)
-	DECL_FIELD(EventPipe, pipe)
-	DECL_FIELD(EventBuffer, event)
 };
 
 /********************************************************************************/
@@ -84,26 +73,30 @@ void* shadow_thread_func(void* arg) {
 
 /********************************************************************************/
 
-void* ShadowThread::Run() {
-	// main loop
-	for(pipe_.Recv(&event_); event_.type != TestEnd; pipe_.Recv(&event_)) {
+void* ServerShadowThread::Run() {
+	thread_ = Coroutine::Current();
 
-		ShadowThread* thread = NULL;
+	// main loop
+	for(pipe_.Recv(&event_); event_.type != ThreadEnd; pipe_.Recv(&event_)) {
 
 		// handle event
 		switch(event_.type) {
 		case ThreadStart:
-
+		{
 			safe_assert(event_.threadid >= 0);
 			// create new thread, imitating the interpositioned threads
 			pthread_t pt;
-			thread = new ShadowThread(event_.threadid);
-			pthread_create(&pt, NULL, shadow_thread_func, thread);
+			ShadowThread* shadowthread = new ServerShadowThread(event_.threadid);
+
+			// add shadow thread to shadow_threads
+			shadow_threads.push_back(shadowthread);
+
+			pthread_create(&pt, NULL, shadow_thread_func, shadowthread);
 
 			SendContinue();
 
 			break;
-
+		}
 		case MemAccessBefore:
 		case MemAccessAfter:
 		case MemWrite:
@@ -120,10 +113,6 @@ void* ShadowThread::Run() {
 
 			break;
 
-		case TestEnd:
-			if(tid_ != MAINTID)
-				safe_fail("Invalid event type: %d", event_.type);
-			break;
 		default:
 			safe_fail("Invalid event type: %d", event_.type);
 			break;
@@ -135,41 +124,62 @@ void* ShadowThread::Run() {
 
 /********************************************************************************/
 
-class MainShadowThread : public ShadowThread {
+class MainShadowThread : public ServerShadowThread {
 public:
-	MainShadowThread() : ShadowThread(MAINTID) {}
+	MainShadowThread() : ServerShadowThread(MAINTID) {}
 	~MainShadowThread(){}
 
+	// override
 	void* Run();
+
+	void StartShadowThreads();
+	void EndShadowThreads();
 };
 
 /********************************************************************************/
 
 void* MainShadowThread::Run() {
 	// wait for TestBegin
-	int timer = 0;
-	for(pipe_.Recv(&event_); event_.type != TestStart; pipe_.Recv(&event_)) {
-		if(timer > 1000) {
-			safe_fail("Too many iterations for waiting TestBegin!");
-		}
-		++timer;
-	}
-	SendContinue();
+	WaitForEventAndSkip(TestStart);
+
+	StartShadowThreads();
 
 	// main loop
 	ShadowThread::Run();
 
 	// uncontrolled mode
-	timer = 0;
-	for(; event_.type != TestEnd; pipe_.Recv(&event_)) {
-		if(timer > 1000) {
-			safe_fail("Too many iterations for waiting TestEnd!");
-		}
-		++timer;
-	}
-	SendContinue();
+	WaitForEventAndSkip(TestEnd);
+
+	EndShadowThreads();
 
 	return NULL;
+}
+
+/********************************************************************************/
+
+void MainShadowThread::StartShadowThreads() {
+	// imitate creating threads (but actually restarts coroutines)
+	for(ShadowThreadPtrList::iterator itr = shadow_threads.begin(), end = shadow_threads.end(); itr != end; ++itr) {
+		ShadowThread* shadowthread = (*itr);
+
+		// create new thread, imitating the interpositioned threads
+		pthread_t pt;
+		pthread_create(&pt, NULL, shadow_thread_func, shadowthread);
+	}
+}
+
+/********************************************************************************/
+
+void MainShadowThread::EndShadowThreads() {
+	// send other threads ThreadEnd signal
+	for(ShadowThreadPtrList::iterator itr = shadow_threads.begin(), end = shadow_threads.end(); itr != end; ++itr) {
+		ShadowThread* shadowthread = (*itr);
+
+		EventBuffer e;
+		e.type = ThreadEnd;
+		e.threadid = tid_;
+		shadowthread->pipe()->Send(&e);
+	}
 }
 
 

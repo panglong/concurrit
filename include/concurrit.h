@@ -121,6 +121,7 @@ namespace concurrit {
 #include "transpred.h"
 #include "interpos.h"
 #include "default.h"
+#include "ipc.h"
 
 /********************************************************************************/
 

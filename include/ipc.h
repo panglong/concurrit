@@ -198,6 +198,31 @@ private:
 
 /********************************************************************************/
 
+class ShadowThread {
+public:
+	ShadowThread(THREADID threadid, bool is_server);
+
+	virtual ~ShadowThread();
+
+	void SendContinue();
+
+	void WaitForEventAndSkip(EventKind type);
+
+	virtual void* Run() = 0;
+
+private:
+	DECL_FIELD(THREADID, tid)
+	DECL_FIELD_REF(EventPipe, pipe)
+	DECL_FIELD(EventBuffer, event)
+	DECL_FIELD(Coroutine*, thread)
+};
+
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+
+
 } // end namespace
 
 #endif /* IPC_H_ */
