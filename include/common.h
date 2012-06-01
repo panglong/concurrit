@@ -246,8 +246,8 @@ typedef uintptr_t ADDRINT;
 #define SIZEOF_ASSERT(e) typedef char __SIZEOF_ASSERT__[(e)?1:-1]
 SIZEOF_ASSERT(sizeof(ADDRINT) == sizeof(void*));
 
-#define PTR2ADDRINT(p)	(reinterpret_cast<ADDRINT>(p))
-#define ADDRINT2PTR(p)	(reinterpret_cast<void*>(p))
+inline ADDRINT	PTR2ADDRINT(void* p)	{ return (reinterpret_cast<ADDRINT>(p)); }
+inline void* 	ADDRINT2PTR(ADDRINT p)	{ return (reinterpret_cast<void*>(p)); }
 
 /********************************************************************************/
 

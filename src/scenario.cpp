@@ -724,7 +724,7 @@ void Scenario::Start() {
 			my_fclose(trace_file_, EXIT_ON_FAIL);
 			trace_file_ = NULL;
 		}
-		static std::string trace_file_name = InWorkDir("trace.txt");
+		static std::string trace_file_name = InConcurritWorkDir("trace.txt");
 		trace_file_ = my_fopen(safe_notnull(trace_file_name.c_str()), "w", EXIT_ON_FAIL);
 		safe_assert(trace_file_ != NULL);
 	}
@@ -802,7 +802,7 @@ void Scenario::SaveSearchInfo() {
 	}
 
 	// save execution tree schedule to file
-	static std::string schedule_file_name = InWorkDir("schedule.txt");
+	static std::string schedule_file_name = InConcurritWorkDir("schedule.txt");
 	PersistentSchedule schedule;
 	exec_tree_.node_stack()->ComputeExecutionTreeStack(&schedule);
 	schedule.Serializable::Store(schedule_file_name.c_str());

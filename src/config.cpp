@@ -105,8 +105,12 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			if(optarg == NULL) {
 				safe_fail("Argument of -e option is missing, server or client is required!");
 			}
+			safe_assert(Config::ExecutionMode == ExecutionModeType::MODE_SINGLE);
 			if(strncmp(optarg, "server", 6) == 0) {
 				Config::ExecutionMode = ExecutionModeType::MODE_SERVER;
+				// we will be using our own test library file
+				safe_assert(Config::TestLibraryFile == NULL);
+				Config::TestLibraryFile = const_cast<char*>(InConcurritHomeDir("/lib/libserver.so").c_str());
 			} else if(strncmp(optarg, "client", 6) == 0) {
 				Config::ExecutionMode = ExecutionModeType::MODE_CLIENT;
 			} else {
@@ -127,7 +131,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			if(optarg != NULL) {
 				Config::SaveDotGraphToFile = strdup(optarg);
 			} else {
-				Config::SaveDotGraphToFile = strdup(const_cast<char*>(InWorkDir("exec_tree.dot").c_str()));
+				Config::SaveDotGraphToFile = strdup(const_cast<char*>(InConcurritWorkDir("exec_tree.dot").c_str()));
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
 			break;

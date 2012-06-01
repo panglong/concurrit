@@ -69,7 +69,8 @@ namespace concurrit {
 
 /********************************************************************************/
 
-#define InWorkDir(f)	(CONCURRIT_HOME + "/work/" + f)
+#define InConcurritHomeDir(f)	(CONCURRIT_HOME + "/" + f)
+#define InConcurritWorkDir(f)	(CONCURRIT_HOME + "/work/" + f)
 
 /********************************************************************************/
 
