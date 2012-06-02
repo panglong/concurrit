@@ -61,7 +61,7 @@ public:
 	void NDConcurrentSearch(TransitionPredicatePtr select_criteria = PTRUE,
 							TransitionPredicatePtr trans_criteria = PTRUE) {
 		WHILE_DTSTAR {
-			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
+			FORALL(t, select_criteria, "Forall thread");
 			RUN_THREAD_UNTIL(t, trans_criteria, __);
 		}
 	}

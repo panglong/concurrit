@@ -440,9 +440,21 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarScope* scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
+#define RUN_ANY_THREAD_ONCE(...)		RUN_UNTIL(PTRUE, PTRUE, __VA_ARGS__)
+#define RUN_ANY_THREAD_UNTIL(q, ...)	RUN_UNTIL(PTRUE, (q), __VA_ARGS__)
+#define RUN_ANY_THREAD_UNLESS(q, ...)	RUN_UNLESS(PTRUE, (q), __VA_ARGS__)
+
+/********************************************************************************/
+
+#define RUN_ANY_THREAD_BUT_ONCE(t, ...)			RUN_UNTIL(NOT_BY(t), PTRUE, __VA_ARGS__)
+#define RUN_ANY_THREAD_BUT_UNTIL(t, q, ...)		RUN_UNTIL(NOT_BY(t), (q), __VA_ARGS__)
+#define RUN_ANY_THREAD_BUT_UNLESS(t, q, ...)	RUN_UNLESS(NOT_BY(t), (q), __VA_ARGS__)
+
+/********************************************************************************/
+
+#define RUN_THREAD_ONCE(t, ...)			RUN_UNTIL(BY(t), PTRUE, __VA_ARGS__)
 #define RUN_THREAD_UNTIL(t, q, ...)		RUN_UNTIL(BY(t), (q), __VA_ARGS__)
 #define RUN_THREAD_UNLESS(t, q, ...)	RUN_UNLESS(BY(t), (q), __VA_ARGS__)
-
 
 /********************************************************************************/
 
@@ -489,7 +501,7 @@ public:
 #define TEARDOWN() 			void TearDown()
 #define TESTCASE() 			void TestCase()
 #define TEST(name) 			void TestCase_##name()
-#define CALL_TEST(name)		TestCase_##name()
+#define CALL_TEST(name)		MYLOG(1) << "Calling testcase " #name; TestCase_##name()
 
 /********************************************************************************/
 

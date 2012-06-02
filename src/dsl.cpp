@@ -248,6 +248,9 @@ DotGraph* ExecutionTree::CreateDotGraph() {
 /*************************************************************************************/
 
 void ExecutionTree::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
+	safe_assert(current != NULL);
+	safe_assert(BETWEEN(0, child_index, children_.size()-1));
+
 	if(static_info_->message() != "") {
 		MYLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 	}
@@ -269,7 +272,10 @@ void ExecutionTree::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
 void TransitionNode::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
 	ExecutionTree::OnConsumed(current, child_index);
 
-	safe_assert(var_ == NULL || var_->thread() == current);
+	// update var if not null
+	if(var_ != NULL) {
+		var_->set_thread(current);
+	}
 }
 
 /*************************************************************************************/
