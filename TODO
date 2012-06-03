@@ -1,8 +1,7 @@
-*** TID to thread variable reverse map to speed up checking whether a thread is contained in a variable. update map whenever assigning thread variables.
+***radbench_bug4: hashtable to store key/ADDRINT pairs for get info from the program.
+*** WITH_ALL_THREADS{..} scope should be treated NULL when it is empty
 *** until_ends scope'u kale alsin!!!
 *** run_thread().until()
-*** event abstraction!!!
-***DO-WHILE_STAR
 ***Test programin standard outputunu dosyaya yonlendir, sadece stderr ekrana yazilsin.
 ***Static counters to access them without using the hashmap
 ***libproc-dev /usr/include/proc/readproc.h extern void look_up_our_self(proc_t *p);

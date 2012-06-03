@@ -9,26 +9,32 @@ CONCURRIT_BEGIN_MAIN()
 
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
+	// not robust, if not trigger the bug at the first execution
+	// GLOG_v=0 scripts/run_bench.sh radbench_bug4 -s -c -r
+	// finfile: PR_LocalTimeParameters MT_safe_localtime
 	TESTCASE() {
 
-//	NDConcurrentSearch();
-
 	FUNC(f_pr, PR_LocalTimeParameters);
-//	FUNC(f_mt, MT_safe_localtime);
 
 	MAX_WAIT_TIME(0);
 
-	EXISTS(t1, IN_FUNC(f_pr), "Select t1");
-	EXISTS(t2, NOT(t1) && IN_FUNC(f_pr), "Select t2");
+	WAIT_FOR_THREAD(t1, IN_FUNC(f_pr), "Select t1");
+	WAIT_FOR_DISTINCT_THREAD(t2, IN_FUNC(f_pr), "Select t2");
 
 	MAX_WAIT_TIME(USECSPERSEC);
 
-//	WHILE_STAR {
-//		FORALL(t, BY(t1) || BY(t2));
-//		RUN_UNTIL(BY(t), READS_WRITES_OR_ENDS(ANY_ADDR, t), __, "Run t until ...");
-//	}
+	TVAR(t_old);
 
-	NDConcurrentSearch(BY(t1) || BY(t2));
+	WHILE(!HAS_ENDED(t1) && !HAS_ENDED(t2)) {
+
+		IF(t_old->is_empty()) {
+			SELECT_THREAD_BACKTRACK(t, PTRUE, "Select t");
+		} ELSE {
+			SELECT_THREAD_BACKTRACK(t, TID != t_old, "Select t");
+		}
+
+		RUN_THREAD_UNTIL(t, READS() || WRITES() || ENDS(), t_old, "Run t once");
+	}
 }
 
 CONCURRIT_END_TEST(MyScenario)

@@ -100,7 +100,7 @@ pqueue_get(PQUEUE *qp,
 #ifdef ERR1
         pthread_mutex_unlock(&qp->mtx);
 
-        concurritAtPc(42); concurritAtPc(43);
+        concurritAtPc(42);
 
         pthread_mutex_lock(&qp->mtx);
 //        thrilleAssertC(qp->occupied > 0);
