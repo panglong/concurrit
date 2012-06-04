@@ -10,7 +10,7 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
-		CALL_TEST(Final1);
+		CALL_TEST(Final2);
 	}
 
 	//============================================================//
@@ -121,6 +121,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		WHILE_STAR {
 			RUN_THREAD_UNTIL(tt, READS() || WRITES() || ENDS(), "Run tt until");
 		}
+
+		RUN_THREAD_UNTIL(t, ENDS(), "Run t until ends");
 	}
 
 CONCURRIT_END_TEST(MyScenario)
