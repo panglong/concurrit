@@ -7,7 +7,7 @@
 #define JS_THREADSAFE
 #include "jsapi.h"
 
-#define THREADS 2
+#define THREADS 1
 #define MAX_CALLS 1
 #define MAX_GC 1
 
@@ -28,23 +28,20 @@ static void * testfunc(void *ignored) {
 
     for (int i = 0; i < MAX_CALLS; i++) {
 
-    	concurritStartInstrument();
-
         // Fastest way to cause a crash..
 //        JS_SetContextThread(cx);
 //        JS_ClearContextThread(cx);
 
         // Slower to crash, but more realistic use case?
-      JS_SetContextThread(cx);
-      JS_BeginRequest(cx);
-      JS_EndRequest(cx);
-      JS_ClearContextThread(cx);
+		JS_SetContextThread(cx);
+		JS_BeginRequest(cx);
+		JS_EndRequest(cx);
+		JS_ClearContextThread(cx);
 
         // Avoiding Set/ClearContextThread does not cause any crash..
 //      JS_BeginRequest(cx);
 //      JS_EndRequest(cx);
 
-      concurritEndInstrument();
     }
 }
 
@@ -76,8 +73,6 @@ int main0(int argc, char* argv[]) {
 
     for (int i = 0; i < MAX_GC; i++) {
 
-    	concurritStartInstrument();
-
         // Does an isolated JS_GC need to be wrapped in a request? The
         // API doesn't explicitly state so, but we get the same
         // behaviour regardless of whether or not we use
@@ -86,7 +81,6 @@ int main0(int argc, char* argv[]) {
         JS_GC(cx);
         JS_EndRequest(cx);
 
-        concurritEndInstrument();
     }
     for (int i = 0; i < THREADS; i++) {
         pthread_join(t[i], NULL);

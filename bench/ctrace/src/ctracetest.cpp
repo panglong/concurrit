@@ -10,13 +10,117 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 	TESTCASE() {
+		CALL_TEST(Final4);
+	}
+
+	// deadlock in 54-90 executions
+	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m1 -p1
+	TEST(Final1) {
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
-//		TVAR(t_old);
-		WHILE_STAR {
-			FORALL(t, PTRUE); // TID != t_old
-			RUN_UNTIL(BY(t), HITS_PC(42) || ENDS(), __); // t_old
+		WAIT_FOR_THREAD(t1);
+		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE);
+
+		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
+
+			SELECT_THREAD_BACKTRACK(t);
+
+			RUN_THREAD_ONCE(t, "Run once");
+			RUN_THREAD_UNLESS(t, HITS_PC() || RETURNS() || ENDS(), "Run unless");
 		}
+	}
+
+	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m0 -p1
+	TEST(Final2) {
+		MAX_WAIT_TIME(3*USECSPERSEC);
+
+		WAIT_FOR_THREAD(t1);
+		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE);
+
+		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
+
+			SELECT_THREAD_BACKTRACK(t);
+
+			RUN_THREAD_UNTIL(t, READS() || WRITES() || RETURNS() || ENDS(), "Run until");
+		}
+	}
+
+	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m1 -p1
+	TEST(Final3) {
+		MAX_WAIT_TIME(3*USECSPERSEC);
+
+		WAIT_FOR_THREAD(t1);
+		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE);
+
+		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
+
+			SELECT_THREAD_BACKTRACK(t);
+
+			RUN_THREAD_UNTIL(t, READS() || WRITES() || HITS_PC() || RETURNS() || ENDS(), "Run until");
+		}
+	}
+
+//	canonical bug trace:
+//
+//	//thread 0 is reading the hash table, thread 1 is not, _hashreads == 1
+//
+//	(0, HASH_READ_EXIT)
+//	(0, pthread_mutex_lock(&_hashmutex))
+//	(0, r1 = _hashreads)   // decrement is not atomic (by inspection of LLVM IR)
+//	(0, r1 = r1 - 1)       // r1 == 0
+//
+//	(1, HASH_READ_ENTER)   // context switch
+//	(1, if (!_hashreads))  // _hashreads still == 1
+//	(1, r2 = _hashreads)
+//	(1, r2 = r2 + 1)
+//	(1, _hashreads = r2)   // _hashreads == 2
+//
+//	(0, _hashreads = r1)   // store thread 0's stale value into hash reads
+//	(0, if(!_hashreads)
+//	(0, sem_post(&_hashsem))
+//	(0, pthread_mutex_unlock(&_hashmutex))
+//	(0, HASH_READ_ENTER)
+//	(0, if(!_hashreads))
+//
+//	// _hashreads is 0, so thread 0 will wait, pause 0 before it waits
+//
+//	(1, HASH_READ_EXIT)
+//	(1, pthread_mutex_lock(&_hashmutex))
+//	(1, --_hashreads)       //_hashreads == -1
+//	(1, if(!_hashreads)     // if (false)
+//	(1, pthread_mutex_unlock(&_hashmutex))
+//	(1, thread finish)
+//
+//	(0, sem_wait(&_hashsem))
+//	// _hashsem is now 0
+//	(0, _hashreads++) //_hashreads == 0
+//	(0, pthread_join)
+//	(0, TRC_REMOVE_THREAD)
+//	(0, int i,ret = 1)
+//	(0, ...)
+//	(0, HASH_WRITE_ENTER)
+//	(0, sem_wait(&_hashsem))
+
+
+	// GLOG_v=1 scripts/run_bench.sh ctrace -s -c -r -m1 -p1
+	TEST(Final4) {
+		MAX_WAIT_TIME(3*USECSPERSEC);
+
+		FVAR(f_enter, HASH_READ_ENTER);
+		FVAR(f_exit, HASH_READ_EXIT);
+
+		WAIT_FOR_THREAD(t1, IN_FUNC(f_enter));
+		WAIT_FOR_DISTINCT_THREAD(t2, IN_FUNC(f_enter));
+
+		RUN_THREAD_UNLESS(t1, HITS_PC(43) && IN_FUNC(f_exit), "Run t1 unless 43 in f_exit");
+
+		RUN_THREAD_UNTIL(t2, RETURNS(f_enter), "Run t2 until returns");
+
+		RUN_THREAD_UNLESS(t1, READS() && IN_FUNC(f_enter), "Run t1 until reads in f_enter");
+
+		RUN_THREAD_UNTIL(t2, RETURNS(f_exit), "Run t2 until returns from f_exit");
+
+		RUN_THREAD_UNTIL(t1, ENDS(), "Run t1 until ends");
 	}
 
 CONCURRIT_END_TEST(MyScenario)

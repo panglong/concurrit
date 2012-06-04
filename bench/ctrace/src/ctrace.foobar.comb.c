@@ -487,31 +487,39 @@ void HASH_READ_ENTER() {
 		sem_wait(&_hashsem);
 	int k = _hashreads;
 	concurritAtPc(42);
-	concurritAtPc(43);
 	_hashreads = k + 1;
 }
 #else
-#define HASH_READ_ENTER() \
-	pthread_mutex_lock(&_hashmutex); \
-	if(!_hashreads) \
-		sem_wait(&_hashsem); \
-	_hashreads++; \
+void HASH_READ_ENTER() {
+	pthread_mutex_lock(&_hashmutex);
+	if(!_hashreads)
+		sem_wait(&_hashsem);
+	_hashreads++;
 	pthread_mutex_unlock(&_hashmutex);
+}
 #endif
 
 #ifdef ERR2
-#define HASH_READ_EXIT() \
-	--_hashreads; \
-	if(!_hashreads) \
+//#define HASH_READ_EXIT() \
+//	--_hashreads; \
+//	if(!_hashreads) \
+//		sem_post(&_hashsem);
+#include "dummy.h"
+void HASH_READ_EXIT() {
+	int k = _hashreads;
+	concurritAtPc(43);
+	_hashreads = k - 1;
+	if(!_hashreads)
 		sem_post(&_hashsem);
+}
 #else
-#define HASH_READ_EXIT() \
-	pthread_mutex_lock(&_hashmutex); \
-	--_hashreads; \
-	if(!_hashreads) \
-		sem_post(&_hashsem); \
+void HASH_READ_EXIT() {
+	pthread_mutex_lock(&_hashmutex);
+	--_hashreads;
+	if(!_hashreads)
+		sem_post(&_hashsem);
 	pthread_mutex_unlock(&_hashmutex);
-
+}
 #endif
 
 #ifdef ERR3
