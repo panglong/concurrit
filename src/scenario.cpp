@@ -1495,29 +1495,29 @@ void Scenario::EvalTransition(Coroutine* current, TransitionNode* node, int& chi
 
 	//==========================================//
 
-	TransferUntilNode* truntil = ASINSTANCEOF(node, TransferUntilNode*);
-	if(truntil != NULL) {
+	RunThroughNode* runthrough = ASINSTANCEOF(node, RunThroughNode*);
+	if(runthrough != NULL) {
 
 		// now evaluate the actual predicate
-		TransitionPredicatePtr pred = truntil->pred();
+		TransitionPredicatePtr pred = runthrough->pred();
 		safe_assert(pred != NULL);
 
 		if(pred->EvalState(current)) {
-			MYLOG(2) << "Will consume the current transfer-until";
+			MYLOG(2) << "Will consume the current run-through";
 			child_index = 0;
 		}
 		take = true;
 
 	} else {
 
-		TransferUnlessNode* trunless = ASINSTANCEOF(node, TransferUnlessNode*);
-		if(trunless != NULL) {
+		RunUntilNode* rununtil = ASINSTANCEOF(node, RunUntilNode*);
+		if(rununtil != NULL) {
 			// now evaluate the actual predicate
-			TransitionPredicatePtr pred = trunless->pred();
+			TransitionPredicatePtr pred = rununtil->pred();
 			safe_assert(pred != NULL);
 
 			if(pred->EvalState(current)) {
-				MYLOG(2) << "Will consume the current transfer-unless";
+				MYLOG(2) << "Will consume the current run-until";
 				child_index = 0;
 				take = false;
 			} else {
@@ -2259,17 +2259,17 @@ bool Scenario::DSLConditional(StaticDSLInfo* static_info, bool value, const char
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
-	DSLTransferUntil(static_info, pred, ThreadVarPtr(), message);
+void Scenario::DSLRunThrough(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+	DSLRunThrough(static_info, pred, ThreadVarPtr(), message);
 }
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+void Scenario::DSLRunThrough(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
-	MYLOG(2) << "Adding DSLTransferUntil";
+	MYLOG(2) << "Adding DSLRunThrough";
 
 	//=======================================================
 
@@ -2297,10 +2297,10 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
-	TransferUntilNode* trans = NULL;
+	RunThroughNode* trans = NULL;
 	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
-		trans = ASINSTANCEOF(node, TransferUntilNode*);
+		trans = ASINSTANCEOF(node, RunThroughNode*);
 		safe_assert(trans != NULL && !trans->covered());
 //		if(trans == NULL || trans->covered()) {
 //			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
@@ -2311,7 +2311,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 //		}
 		trans->Init(pred, var);
 	} else {
-		trans = new TransferUntilNode(static_info, pred, var);
+		trans = new RunThroughNode(static_info, pred, var);
 	}
 
 	safe_assert(trans != NULL && !trans->covered());
@@ -2330,22 +2330,22 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 	safe_assert(node == NULL);
 	exec_tree_.ReleaseRef(NULL);
 
-	MYLOG(2) << "Added DSLTransferUntil.";
+	MYLOG(2) << "Added DSLRunThrough.";
 }
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
-	DSLTransferUntil(static_info, pred, ThreadVarPtr(), message);
+void Scenario::DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
+	DSLRunThrough(static_info, pred, ThreadVarPtr(), message);
 }
 
 /********************************************************************************/
 
-void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
+void Scenario::DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var /*= ThreadVarPtr()*/, const char* message /*= NULL*/) {
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
-	MYLOG(2) << "Adding DSLTransferUnless";
+	MYLOG(2) << "Adding DSLRunUntil";
 
 	//=======================================================
 
@@ -2373,10 +2373,10 @@ void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPre
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
-	TransferUnlessNode* trans = NULL;
+	RunUntilNode* trans = NULL;
 	node = exec_tree_.GetNextNodeInStack().parent();
 	if(node != NULL) {
-		trans = ASINSTANCEOF(node, TransferUnlessNode*);
+		trans = ASINSTANCEOF(node, RunUntilNode*);
 		safe_assert(trans != NULL && !trans->covered());
 //		if(trans == NULL || trans->covered()) {
 //			safe_assert(trans != NULL || exec_tree_.IS_ENDNODE(node));
@@ -2387,7 +2387,7 @@ void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPre
 //		}
 		trans->Init(pred, var);
 	} else {
-		trans = new TransferUnlessNode(static_info, pred, var);
+		trans = new RunUntilNode(static_info, pred, var);
 	}
 
 	safe_assert(trans != NULL && !trans->covered());
@@ -2406,7 +2406,7 @@ void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPre
 	safe_assert(node == NULL);
 	exec_tree_.ReleaseRef(NULL);
 
-	MYLOG(2) << "Added DSLTransferUnless.";
+	MYLOG(2) << "Added DSLRunUntil.";
 }
 
 

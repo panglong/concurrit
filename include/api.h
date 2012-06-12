@@ -388,7 +388,23 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define RUN_UNTIL1(r, ...) 			DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLTransferUntil(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
+#define RUN_THROUGH1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_THROUGH " #r); DSLRunThrough(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
+
+#define RUN_THROUGH2a(p, r, ...) 	{ CONSTRAIN_FST(p); RUN_THROUGH1((r), ## __VA_ARGS__); }
+
+#define RUN_THROUGH2b(q, r, ...) 	{ CONSTRAIN_ALL(q); RUN_THROUGH1((r), ## __VA_ARGS__); }
+
+#define RUN_THROUGH3(p, q, r, ...) 	{ CONSTRAIN_FST(p); CONSTRAIN_ALL(q); RUN_THROUGH1((r), ## __VA_ARGS__); }
+
+/********************************************************************************/
+
+#define RUN_ONCE(p, ...)			RUN_THROUGH2a((p), (p), ## __VA_ARGS__);
+
+#define RUN_THROUGH(q, r, ...) 		RUN_THROUGH2b((q), (r), ## __VA_ARGS__);
+
+/********************************************************************************/
+
+#define RUN_UNTIL1(r, ...) 			DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLRunUntil(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
 
 #define RUN_UNTIL2a(p, r, ...) 		{ CONSTRAIN_FST(p); RUN_UNTIL1((r), ## __VA_ARGS__); }
 
@@ -398,41 +414,25 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define RUN_ONCE(p, ...)			RUN_UNTIL2a((p), (p), ## __VA_ARGS__);
-
 #define RUN_UNTIL(q, r, ...) 		RUN_UNTIL2b((q), (r), ## __VA_ARGS__);
 
 /********************************************************************************/
 
-#define RUN_UNLESS1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_UNLESS " #r); DSLTransferUnless(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
-
-#define RUN_UNLESS2a(p, r, ...) 	{ CONSTRAIN_FST(p); RUN_UNLESS1((r), ## __VA_ARGS__); }
-
-#define RUN_UNLESS2b(q, r, ...) 	{ CONSTRAIN_ALL(q); RUN_UNLESS1((r), ## __VA_ARGS__); }
-
-#define RUN_UNLESS3(p, q, r, ...) 	{ CONSTRAIN_FST(p); CONSTRAIN_ALL(q); RUN_UNLESS1((r), ## __VA_ARGS__); }
-
-/********************************************************************************/
-
-#define RUN_UNLESS(q, r, ...) 		RUN_UNLESS2b((q), (r), ## __VA_ARGS__);
-
-/********************************************************************************/
-
-#define RUN_ANY_THREAD_ONCE(...)		RUN_UNTIL(PTRUE, PTRUE, ## __VA_ARGS__)
+#define RUN_ANY_THREAD_ONCE(...)		RUN_THROUGH(PTRUE, PTRUE, ## __VA_ARGS__)
+#define RUN_ANY_THREAD_THROUGH(q, ...)	RUN_THROUGH(PTRUE, (q), ## __VA_ARGS__)
 #define RUN_ANY_THREAD_UNTIL(q, ...)	RUN_UNTIL(PTRUE, (q), ## __VA_ARGS__)
-#define RUN_ANY_THREAD_UNLESS(q, ...)	RUN_UNLESS(PTRUE, (q), ## __VA_ARGS__)
 
 /********************************************************************************/
 
-#define RUN_ANY_THREAD_BUT_ONCE(t, ...)			RUN_UNTIL(NOT_BY(t), PTRUE, ## __VA_ARGS__)
+#define RUN_ANY_THREAD_BUT_ONCE(t, ...)			RUN_THROUGH(NOT_BY(t), PTRUE, ## __VA_ARGS__)
+#define RUN_ANY_THREAD_BUT_THROUGH(t, q, ...)	RUN_THROUGH(NOT_BY(t), (q), ## __VA_ARGS__)
 #define RUN_ANY_THREAD_BUT_UNTIL(t, q, ...)		RUN_UNTIL(NOT_BY(t), (q), ## __VA_ARGS__)
-#define RUN_ANY_THREAD_BUT_UNLESS(t, q, ...)	RUN_UNLESS(NOT_BY(t), (q), ## __VA_ARGS__)
 
 /********************************************************************************/
 
-#define RUN_THREAD_ONCE(t, ...)			RUN_UNTIL(BY(t), PTRUE, ## __VA_ARGS__)
+#define RUN_THREAD_ONCE(t, ...)			RUN_THROUGH(BY(t), PTRUE, ## __VA_ARGS__)
+#define RUN_THREAD_THROUGH(t, q, ...)	RUN_THROUGH(BY(t), (q), ## __VA_ARGS__)
 #define RUN_THREAD_UNTIL(t, q, ...)		RUN_UNTIL(BY(t), (q), ## __VA_ARGS__)
-#define RUN_THREAD_UNLESS(t, q, ...)	RUN_UNLESS(BY(t), (q), ## __VA_ARGS__)
 
 /********************************************************************************/
 

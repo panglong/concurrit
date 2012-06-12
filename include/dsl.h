@@ -128,40 +128,6 @@ private:
 
 /********************************************************************************/
 
-class TransitionNode : public ExecutionTree {
-public:
-	TransitionNode(StaticDSLInfo* static_info,
-				   const TransitionPredicatePtr& pred,
-				   const ThreadVarPtr& var = ThreadVarPtr(),
-				   ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(static_info, parent, num_children) {
-		Init(pred, var);
-	}
-	virtual ~TransitionNode(){}
-
-	virtual void OnTaken(Coroutine* current, int child_index = 0);
-	virtual void OnConsumed(Coroutine* current, int child_index = 0);
-
-	void Init(const TransitionPredicatePtr& pred,
-			   const ThreadVarPtr& var = ThreadVarPtr()) {
-		pred_ = pred;
-		var_ = var;
-	}
-
-private:
-	DECL_FIELD(TransitionPredicatePtr, pred)
-	DECL_FIELD(ThreadVarPtr, var)
-};
-
-class SelectionNode : public ExecutionTree {
-public:
-	SelectionNode(StaticDSLInfo* static_info = NULL, ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(static_info, parent, num_children) {}
-	virtual ~SelectionNode(){}
-};
-
-/********************************************************************************/
-
 class ChildLoc {
 public:
 	ChildLoc(ExecutionTree* parent = NULL, int child_index = -1) : parent_(parent), child_index_(child_index) {}
@@ -356,6 +322,15 @@ public:
 private:
 	DECL_FIELD(bool, nondet)
 	bool covered_[2];
+};
+
+/********************************************************************************/
+
+class SelectionNode : public ExecutionTree {
+public:
+	SelectionNode(StaticDSLInfo* static_info = NULL, ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(static_info, parent, num_children) {}
+	virtual ~SelectionNode(){}
 };
 
 /********************************************************************************/
@@ -730,6 +705,55 @@ private:
 
 /********************************************************************************/
 
+class TransitionNode : public ExecutionTree {
+public:
+	TransitionNode(StaticDSLInfo* static_info,
+				   const TransitionPredicatePtr& pred,
+				   const ThreadVarPtr& var = ThreadVarPtr(),
+				   ExecutionTree* parent = NULL, int num_children = 0)
+	: ExecutionTree(static_info, parent, num_children) {
+		Init(pred, var);
+	}
+	virtual ~TransitionNode(){}
+
+	virtual void OnTaken(Coroutine* current, int child_index = 0);
+	virtual void OnConsumed(Coroutine* current, int child_index = 0);
+
+	void Init(const TransitionPredicatePtr& pred,
+			   const ThreadVarPtr& var = ThreadVarPtr()) {
+		pred_ = pred;
+		var_ = var;
+	}
+
+	virtual const char* Kind() = 0;
+
+	void ToStream(FILE* file) {
+		fprintf(file, Kind());
+		ExecutionTree::ToStream(file);
+	}
+
+	DotNode* UpdateDotGraph(DotGraph* g) {
+		DotNode* node = new DotNode(Kind());
+		g->AddNode(node);
+		ExecutionTree* c = child();
+		DotNode* cn = NULL;
+		if(c != NULL) {
+			cn = c->UpdateDotGraph(g);
+		} else {
+			cn = new DotNode("NULL");
+		}
+		g->AddNode(cn);
+		g->AddEdge(new DotEdge(node, cn, var_.get() == NULL ? "-" : var_.get()->ToString()));
+		return node;
+	}
+
+private:
+	DECL_FIELD(TransitionPredicatePtr, pred)
+	DECL_FIELD(ThreadVarPtr, var)
+};
+
+/********************************************************************************/
+
 //class MultiTransitionNode : public TransitionNode {
 //public:
 //	MultiTransitionNode(StaticDSLInfo* static_info,
@@ -744,70 +768,49 @@ private:
 //	}
 //};
 
+
 /********************************************************************************/
 
-class TransferUntilNode : public TransitionNode {
+//class TransferNextNode : public TransitionNode {
+//public:
+//	TransferNextNode(StaticDSLInfo* static_info,
+//					 const ThreadVarPtr& var = ThreadVarPtr(),
+//					 ExecutionTree* parent = NULL)
+//	: TransitionNode(static_info, TransitionPredicatePtr(), var, parent, 1) {}
+//
+//	~TransferNextNode() {}
+//
+//	const char* Kind() { return "TransferNextNode"; }
+//};
+
+/********************************************************************************/
+
+class RunThroughNode : public TransitionNode {
 public:
-	TransferUntilNode(StaticDSLInfo* static_info,
+	RunThroughNode(StaticDSLInfo* static_info,
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
 					 ExecutionTree* parent = NULL)
 	: TransitionNode(static_info, pred, var, parent, 1) {}
 
-	~TransferUntilNode() {}
+	~RunThroughNode() {}
 
-	void ToStream(FILE* file) {
-		fprintf(file, "TransferUntilNode.");
-		ExecutionTree::ToStream(file);
-	}
-
-	DotNode* UpdateDotGraph(DotGraph* g) {
-		DotNode* node = new DotNode("TransferUntilNode");
-		g->AddNode(node);
-		ExecutionTree* c = child();
-		DotNode* cn = NULL;
-		if(c != NULL) {
-			cn = c->UpdateDotGraph(g);
-		} else {
-			cn = new DotNode("NULL");
-		}
-		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, var_.get() == NULL ? "-" : var_.get()->ToString()));
-		return node;
-	}
+	const char* Kind() { return "RunThroughNode"; }
 };
 
 /********************************************************************************/
 
-class TransferUnlessNode : public TransitionNode {
+class RunUntilNode : public TransitionNode {
 public:
-	TransferUnlessNode(StaticDSLInfo* static_info,
+	RunUntilNode(StaticDSLInfo* static_info,
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
 					 ExecutionTree* parent = NULL)
 	: TransitionNode(static_info, pred, var, parent, 1) {}
 
-	~TransferUnlessNode() {}
+	~RunUntilNode() {}
 
-	void ToStream(FILE* file) {
-		fprintf(file, "TransferUnlessNode.");
-		ExecutionTree::ToStream(file);
-	}
-
-	DotNode* UpdateDotGraph(DotGraph* g) {
-		DotNode* node = new DotNode("TransferUnlessNode");
-		g->AddNode(node);
-		ExecutionTree* c = child();
-		DotNode* cn = NULL;
-		if(c != NULL) {
-			cn = c->UpdateDotGraph(g);
-		} else {
-			cn = new DotNode("NULL");
-		}
-		g->AddNode(cn);
-		g->AddEdge(new DotEdge(node, cn, var_.get() == NULL ? "-" : var_.get()->ToString()));
-		return node;
-	}
+	const char* Kind() { return "RunUntilNode"; }
 };
 
 /********************************************************************************/
