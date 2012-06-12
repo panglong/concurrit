@@ -134,13 +134,15 @@ public:
 				   const TransitionPredicatePtr& pred,
 				   const ThreadVarPtr& var = ThreadVarPtr(),
 				   ExecutionTree* parent = NULL, int num_children = 0)
-	: ExecutionTree(static_info, parent, num_children), pred_(pred), var_(var) {}
+	: ExecutionTree(static_info, parent, num_children) {
+		Init(pred, var);
+	}
 	virtual ~TransitionNode(){}
 
 	virtual void OnTaken(Coroutine* current, int child_index = 0);
 	virtual void OnConsumed(Coroutine* current, int child_index = 0);
 
-	void Update(const TransitionPredicatePtr& pred,
+	void Init(const TransitionPredicatePtr& pred,
 			   const ThreadVarPtr& var = ThreadVarPtr()) {
 		pred_ = pred;
 		var_ = var;
@@ -452,6 +454,17 @@ private:
 
 /********************************************************************************/
 
+class StaticSelectThreadInfo : public StaticDSLInfo {
+public:
+	StaticSelectThreadInfo(ThreadVarPtrSet scope, SourceLocation* loc = NULL, const char* code = NULL) : StaticDSLInfo(loc, code), scope_(scope) {}
+	~StaticSelectThreadInfo(){}
+
+private:
+	DECL_FIELD_REF(ThreadVarPtrSet, scope)
+};
+
+/********************************************************************************/
+
 class SelectThreadNode : public SelectionNode {
 public:
 	SelectThreadNode(StaticDSLInfo* static_info = NULL,
@@ -459,13 +472,11 @@ public:
 					 const TransitionPredicatePtr& pred = TransitionPredicatePtr(),
 					 ExecutionTree* parent = NULL, int num_children = 0)
 	: SelectionNode(static_info, parent, num_children) , lvar_(create_thread_var()) {
-		Update(scope, pred);
+		Init(scope, pred);
 	}
 	virtual ~SelectThreadNode() {}
 
-	void Update(ThreadVarPtrSet* scope = NULL, const TransitionPredicatePtr& pred = TransitionPredicatePtr()) {
-
-		CHECK(scope == NULL || !scope->empty()) << "EMPTY scope is given! Expecting NULL or NON_EMPTY scope!";
+	void Init(ThreadVarPtrSet* scope = NULL, const TransitionPredicatePtr& pred = TransitionPredicatePtr()) {
 
 		scope_ = scope;
 		pred_ = pred;
@@ -553,7 +564,7 @@ public:
 		// EXISTS does not consider child_index_in_stack!
 		safe_assert(child_index_in_stack == -1 || child_index_in_stack == 0);
 
-		if(scope_ != NULL) {
+		if(scope_ != NULL && !scope_->empty()) {
 			ThreadVarPtr t = scope_->FindByThread(thread);
 			if(t == NULL) {
 				return -1;
@@ -584,7 +595,7 @@ public:
 
 		Coroutine* thread = lvar_->thread();
 		ThreadVarPtr t;
-		if(scope_ != NULL) {
+		if(scope_ != NULL && !scope_->empty()) {
 			t = scope_->FindByThread(thread);
 		} else {
 			t = create_thread_var(thread);
@@ -652,7 +663,7 @@ public:
 		safe_assert(lvar_->is_empty());
 
 		ThreadVarPtr t;
-		if(scope_ != NULL) {
+		if(scope_ != NULL && !scope_->empty()) {
 			t = scope_->FindByThread(thread);
 			if(t == NULL) {
 				return -1;
@@ -719,33 +730,33 @@ private:
 
 /********************************************************************************/
 
-class MultiTransitionNode : public TransitionNode {
-public:
-	MultiTransitionNode(StaticDSLInfo* static_info,
-						 const TransitionPredicatePtr& pred,
-						 const ThreadVarPtr& var = ThreadVarPtr(),
-						 ExecutionTree* parent = NULL, int num_children = 1)
-	: TransitionNode(static_info, pred, var, parent, num_children) {}
-
-	virtual void ToStream(FILE* file) {
-		fprintf(file, "MultiTransitionNode.");
-		ExecutionTree::ToStream(file);
-	}
-};
+//class MultiTransitionNode : public TransitionNode {
+//public:
+//	MultiTransitionNode(StaticDSLInfo* static_info,
+//						 const TransitionPredicatePtr& pred,
+//						 const ThreadVarPtr& var = ThreadVarPtr(),
+//						 ExecutionTree* parent = NULL, int num_children = 1)
+//	: TransitionNode(static_info, pred, var, parent, num_children) {}
+//
+//	virtual void ToStream(FILE* file) {
+//		fprintf(file, "MultiTransitionNode.");
+//		ExecutionTree::ToStream(file);
+//	}
+//};
 
 /********************************************************************************/
 
-class TransferUntilNode : public MultiTransitionNode {
+class TransferUntilNode : public TransitionNode {
 public:
 	TransferUntilNode(StaticDSLInfo* static_info,
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
 					 ExecutionTree* parent = NULL)
-	: MultiTransitionNode(static_info, pred, var, parent, 1) {}
+	: TransitionNode(static_info, pred, var, parent, 1) {}
 
 	~TransferUntilNode() {}
 
-	virtual void ToStream(FILE* file) {
+	void ToStream(FILE* file) {
 		fprintf(file, "TransferUntilNode.");
 		ExecutionTree::ToStream(file);
 	}
@@ -768,17 +779,17 @@ public:
 
 /********************************************************************************/
 
-class TransferUnlessNode : public MultiTransitionNode {
+class TransferUnlessNode : public TransitionNode {
 public:
 	TransferUnlessNode(StaticDSLInfo* static_info,
 					 const TransitionPredicatePtr& pred,
 					 const ThreadVarPtr& var = ThreadVarPtr(),
 					 ExecutionTree* parent = NULL)
-	: MultiTransitionNode(static_info, pred, var, parent, 1) {}
+	: TransitionNode(static_info, pred, var, parent, 1) {}
 
 	~TransferUnlessNode() {}
 
-	virtual void ToStream(FILE* file) {
+	void ToStream(FILE* file) {
 		fprintf(file, "TransferUnlessNode.");
 		ExecutionTree::ToStream(file);
 	}
@@ -914,7 +925,6 @@ public:
 	inline bool IS_LOCKNODE(ExecutionTree* n) { return ((n) == (LOCKNODE())); }
 	inline bool IS_ENDNODE(ExecutionTree* n) { bool b = (INSTANCEOF(n, EndNode*)); safe_assert(!b || (n == ENDNODE())); return b; }
 	static inline bool IS_TRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, TransitionNode*)); }
-	static inline bool IS_MULTITRANSNODE(ExecutionTree* n) { return (INSTANCEOF(n, MultiTransitionNode*)); }
 	static inline bool IS_SELECTNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectionNode*)); }
 	static inline bool IS_SELECTTHREADNODE(ExecutionTree* n) { return (INSTANCEOF(n, SelectThreadNode*)); }
 

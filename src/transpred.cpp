@@ -386,6 +386,43 @@ THREADID ThreadVar::tid() {
 //}
 /********************************************************************************/
 
+// constructing coroutine sets from comma-separated arguments
+ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t1,
+									ThreadVarPtr t2,
+									ThreadVarPtr t3,
+									ThreadVarPtr t4,
+									ThreadVarPtr t5,
+									ThreadVarPtr t6,
+									ThreadVarPtr t7,
+									ThreadVarPtr t8
+									) {
+	ThreadVarPtrSet set;
+	if(t1.get() != NULL) set.insert(t1); else return set;
+	if(t2.get() != NULL) set.insert(t2); else return set;
+	if(t3.get() != NULL) set.insert(t3); else return set;
+	if(t4.get() != NULL) set.insert(t4); else return set;
+	if(t5.get() != NULL) set.insert(t5); else return set;
+	if(t6.get() != NULL) set.insert(t6); else return set;
+	if(t7.get() != NULL) set.insert(t7); else return set;
+	if(t8.get() != NULL) set.insert(t8); else return set;
+	return set;
+}
+
+
+//ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t, ...) {
+//	va_list args;
+//	ThreadVarPtrSet set;
+//	va_start(args, t);
+//	while (t.get() != NULL) {
+//	   set.insert(t);
+//	   t = va_arg(args, ThreadVarPtr);
+//	}
+//	va_end(args);
+//	return set;
+//}
+
+/********************************************************************************/
+
 } // end namespace
 
 

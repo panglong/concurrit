@@ -18,7 +18,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		FUNC(median, pkmedian);
 		FUNC(barrier, my_pthread_barrier_wait);
 
-		EXISTS(tm, IN_FUNC(ls), "Main");
+		WAIT_FOR_THREAD(tm, IN_FUNC(ls), "Main");
 		RUN_UNTIL(BY(tm), HITS_PC(1), "Main creates threads");
 
 		//---------------------------------
@@ -33,28 +33,26 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		//---------------------------------
 
-
-#define BY_ANY()			 (BY(t1) || BY(t2) || BY(t3))
 #define ENTERS_BARRIER(t)	 (ENTERS(barrier, t) || RETURNS(median, t))
 #define EXITS_BARRIER(t)	 (RETURNS(barrier, t) || RETURNS(median, t))
 
-#define COND()	 (READS() || WRITES() || CALLS() || BRK(TID))
-
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
+		// bind t1 to the first thread that enters the barrier, then 2, and then t3
 		RUN_UNTIL(NOT(tm), ENTERS_BARRIER(TID), t1, "until t1 enters");
 		RUN_UNTIL(NOT(tm) && NOT(t1), ENTERS_BARRIER(TID), t2, "until t2 enters");
 		RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), ENTERS_BARRIER(TID), t3, "until t3 enters");
 
 		WHILE_STAR // each phase
 		{
+			// bind t1 to the first thread that exits the barrier, then 2, and then t3
 			RUN_UNTIL(NOT(tm), EXITS_BARRIER(TID), t1, "until t1 enters");
 			RUN_UNTIL(NOT(tm) && NOT(t1), EXITS_BARRIER(TID), t2, "until t2 enters");
 			RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), EXITS_BARRIER(TID), t3, "until t3 enters");
 
-			FORALL(tt1, BY_ANY(), "Select tt1");
-			FORALL(tt2, BY_ANY() && NOT(tt1), "Select tt1");
-			FORALL(tt3, BY_ANY() && NOT(tt1) && NOT(tt2), "Select tt1");
+			SELECT_THREAD_BACKTRACK(tt1, TID == t1 || TID == t2 || TID == t3, "Select tt1");
+			FORALL(tt2, (TID == t1 || TID == t2 || TID == t3) && NOT(tt1), "Select tt1");
+			FORALL(tt3, (TID == t1 || TID == t2 || TID == t3) && NOT(tt1) && NOT(tt2), "Select tt1");
 
 			RUN_UNTIL(BY(tt1), ENTERS_BARRIER(tt1), "Run tt1 until ...");
 			RUN_UNTIL(BY(tt2), ENTERS_BARRIER(tt2), "Run tt2 until ...");

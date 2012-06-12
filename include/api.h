@@ -145,25 +145,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-// constructing coroutine sets from comma-separated arguments
-static inline
-ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t, ...) {
-	va_list args;
-	ThreadVarPtrSet set;
-	va_start(args, t);
-	while (t != NULL) {
-	   set.insert(t);
-	   t = va_arg(args, ThreadVarPtr);
-	}
-	va_end(args);
-	return set;
-}
-// use the following instead of MakeCoroutinePtrSet alone
-#define MAKE_THREADVARPTRSET(...) \
-	MakeThreadVarPtrSet(__VA_ARGS__, ThreadVarPtr())
-
-/********************************************************************************/
-
 // represents a set of coroutines to restrict the group to the rest of those
 class WithoutThreads {
 public:
@@ -347,19 +328,19 @@ inline TransitionPredicatePtr _NOT_BY(ThreadVarPtr t, ...) {
 
 /********************************************************************************/
 
-inline TransitionPredicatePtr _DISTINCT(ThreadVarScope* scope, ThreadVarPtr t = ThreadVarPtr()) {
-	if(scope->empty()) return PTRUE;
+inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = ThreadVarPtr()) {
+	if(scope.empty()) return PTRUE;
 
 	if(t == NULL) t = TID;
 
 	TransitionPredicatePtr p = TransitionPredicate::True();
-	for(ThreadVarScope::iterator itr = scope->begin(), end = scope->end(); itr != end; ++itr) {
+	for(ThreadVarScope::iterator itr = scope.begin(), end = scope.end(); itr != end; ++itr) {
 		p = p && (t != (*itr));
 	}
 	return p;
 }
 
-#define DISTINCT(...)		_DISTINCT(scope(), ## __VA_ARGS__)
+#define DISTINCT(s, ...)		_DISTINCT(MAKE_THREADVARPTRSET s, ##__VA_ARGS__)
 
 /********************************************************************************/
 
@@ -370,33 +351,30 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarScope* scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define TVAR(t)			static ThreadVarPtr t(new ThreadVar()); /***/ ThreadVarDef __def__##t(scope(), (t))
+#define TVAR(t)			static ThreadVarPtr t(new ThreadVar(NULL, #t));  t->clear_thread();
+// /***/ ThreadVarDef __def__##t(scope(), (t))
 
 /********************************************************************************/
 
 // core definitions for exists and forall
 
-#define _EXISTS(op, t, s, ...)		DECL_STATIC_DSL_INFO(op " " #t); TVAR(t); t << DSLExistsThread(&STATIC_DSL_INFO_NAME, (s), ## __VA_ARGS__);
+#define	DECL_STATIC_SELECT_THREAD_INFO(scope, code)		static StaticSelectThreadInfo STATIC_DSL_INFO_NAME (MAKE_THREADVARPTRSET scope, RECORD_SRCLOC(), (code));
 
-#define _FORALL(op, t, s, ...)		DECL_STATIC_DSL_INFO(op " " #t); TVAR(t); t << DSLForallThread(&STATIC_DSL_INFO_NAME, (s), ## __VA_ARGS__);
+#define _EXISTS(op, t, s, ...)					DECL_STATIC_SELECT_THREAD_INFO(s, op " " #t); t << DSLExistsThread(&STATIC_DSL_INFO_NAME, (STATIC_DSL_INFO_NAME.scope()), ## __VA_ARGS__);
 
-/********************************************************************************/
-
-#define EXISTS(t, ...)			_EXISTS("EXISTS", t, NULL, ## __VA_ARGS__)
-
-#define FORALL(t, ...)			_FORALL("FORALL", t, NULL, ## __VA_ARGS__)
+#define _FORALL(op, t, s, ...)					DECL_STATIC_SELECT_THREAD_INFO(s, op " " #t); t << DSLForallThread(&STATIC_DSL_INFO_NAME, (STATIC_DSL_INFO_NAME.scope()), ## __VA_ARGS__);
 
 /********************************************************************************/
 
-#define WAIT_FOR_THREAD(t, ...)					_EXISTS("WAIT_FOR_THREAD", t, NULL, ## __VA_ARGS__)
+#define EXISTS(t, ...)							_EXISTS("EXISTS", t, (), ## __VA_ARGS__)
 
-#define WAIT_FOR_DISTINCT_THREAD(t, p, ...)		_EXISTS("WAIT_FOR_DISTINCT_THREAD", t, NULL, ((p) && DISTINCT(TID)), ## __VA_ARGS__)
+#define FORALL(t, ...)							_FORALL("FORALL", t, (), ## __VA_ARGS__)
 
 /********************************************************************************/
 
-#define SELECT_THREAD(t, ...)					_EXISTS("SELECT_THREAD", t, scope(), ## __VA_ARGS__)
+#define SELECT_THREAD(t, s, ...)				_EXISTS("SELECT_THREAD", t, s, ## __VA_ARGS__)
 
-#define SELECT_THREAD_BACKTRACK(t, ...)			_FORALL("FORALL_THREAD", t, scope(), ## __VA_ARGS__)
+#define SELECT_THREAD_BACKTRACK(t, s, ...)		_FORALL("FORALL_THREAD", t, s, ## __VA_ARGS__)
 
 /********************************************************************************/
 
@@ -455,6 +433,12 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarScope* scope, ThreadVarPtr t = 
 #define RUN_THREAD_ONCE(t, ...)			RUN_UNTIL(BY(t), PTRUE, ## __VA_ARGS__)
 #define RUN_THREAD_UNTIL(t, q, ...)		RUN_UNTIL(BY(t), (q), ## __VA_ARGS__)
 #define RUN_THREAD_UNLESS(t, q, ...)	RUN_UNLESS(BY(t), (q), ## __VA_ARGS__)
+
+/********************************************************************************/
+
+#define WAIT_FOR_THREAD(t, ...)					_EXISTS("WAIT_FOR_THREAD", t, (), ## __VA_ARGS__)
+
+#define WAIT_FOR_DISTINCT_THREAD(t, s, p, ...)	_EXISTS("WAIT_FOR_DISTINCT_THREAD", t, (), ((p) && DISTINCT(s, TID)), ## __VA_ARGS__)
 
 /********************************************************************************/
 

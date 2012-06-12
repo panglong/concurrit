@@ -64,7 +64,9 @@ private:
 class ThreadVar {
 public:
 	explicit ThreadVar(Coroutine* thread = NULL, const std::string& name = "<unknown>")
-	: name_(name), thread_(thread) {} // , id_(ThreadVar::get_id()) {}
+	: name_(name), thread_(thread) {
+		MYLOG(1) << "Creating thread variable " << name;
+	} // , id_(ThreadVar::get_id()) {}
 	virtual ~ThreadVar() {}
 
 	std::string ToString();
@@ -127,6 +129,24 @@ public:
 		return ThreadVarPtr();
 	}
 };
+
+/********************************************************************************/
+
+// constructing coroutine sets from comma-separated arguments
+//ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t, ...);
+ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t1 = ThreadVarPtr(),
+									ThreadVarPtr t2 = ThreadVarPtr(),
+									ThreadVarPtr t3 = ThreadVarPtr(),
+									ThreadVarPtr t4 = ThreadVarPtr(),
+									ThreadVarPtr t5 = ThreadVarPtr(),
+									ThreadVarPtr t6 = ThreadVarPtr(),
+									ThreadVarPtr t7 = ThreadVarPtr(),
+									ThreadVarPtr t8 = ThreadVarPtr()
+									);
+
+// use the following instead of MakeCoroutinePtrSet alone
+#define MAKE_THREADVARPTRSET(...)		MakeThreadVarPtrSet(__VA_ARGS__)
+//#define MAKE_THREADVARPTRSET(...)		MakeThreadVarPtrSet(__VA_ARGS__, ThreadVarPtr())
 
 /********************************************************************************/
 

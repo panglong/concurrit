@@ -715,9 +715,6 @@ void Scenario::Start() {
 	trans_constraints_->clear();
 	trans_assertions_->clear();
 
-	// clear thread variables from the scope
-	scope_.clear();
-
 	// open trace file
 	if(Config::SaveExecutionTraceToFile) {
 		if(trace_file_ != NULL) {
@@ -2312,7 +2309,7 @@ void Scenario::DSLTransferUntil(StaticDSLInfo* static_info, const TransitionPred
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		trans->Update(pred, var);
+		trans->Init(pred, var);
 	} else {
 		trans = new TransferUntilNode(static_info, pred, var);
 	}
@@ -2388,7 +2385,7 @@ void Scenario::DSLTransferUnless(StaticDSLInfo* static_info, const TransitionPre
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		trans->Update(pred, var);
+		trans->Init(pred, var);
 	} else {
 		trans = new TransferUnlessNode(static_info, pred, var);
 	}
@@ -2472,7 +2469,7 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrS
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Update(scope, pred);
+		select->Init(scope, pred);
 	} else {
 		select = new ForallThreadNode(static_info, scope, pred);
 	}
@@ -2573,7 +2570,7 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrS
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Update(scope, pred);
+		select->Init(scope, pred);
 	} else {
 		select = new ExistsThreadNode(static_info, scope, pred);
 	}

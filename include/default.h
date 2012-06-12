@@ -48,46 +48,47 @@ public:
 
 	/* ============================================================================= */
 
-	void NDSequentialSearch(TransitionPredicatePtr select_criteria = PTRUE) {
-
-		WHILE_DTSTAR {
-			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
-			RUN_THREAD_UNTIL(t, ENDS(), __);
-		}
-	}
-
-	/* ============================================================================= */
-
-	void NDConcurrentSearch(TransitionPredicatePtr select_criteria = PTRUE,
-							TransitionPredicatePtr trans_criteria = PTRUE) {
-		WHILE_DTSTAR {
-			FORALL(t, select_criteria, "Forall thread");
-			RUN_THREAD_UNTIL(t, trans_criteria, __);
-		}
-	}
-
-	/* ============================================================================= */
-
-	void NDConcurrentContextBoundedSearch(unsigned bound,
-										  TransitionPredicatePtr select_criteria = PTRUE,
-										  TransitionPredicatePtr trans_criteria = PTRUE) {
-		CHECK(bound > 0) << "Context bound must be > 1!";
-
-		TVAR(t_old);
-		for(unsigned i = 0; i < bound && !ALL_ENDED; ) {
-
-			SELECT_THREAD_BACKTRACK(t, select_criteria && (TID != t_old), "Forall thread");
-			WHILE_DTSTAR {
-				RUN_THREAD_UNTIL(t, trans_criteria, __);
-			}
-			if(!HAS_ENDED(t)) {
-				++i;
-			}
-			t_old << t;
-		}
-
-		NDSequentialSearch();
-	}
+//	void NDSequentialSearch(TransitionPredicatePtr select_criteria = PTRUE) {
+//
+//		WHILE_DTSTAR {
+//			TVAR(t);
+//			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
+//			RUN_THREAD_UNTIL(t, ENDS(), __);
+//		}
+//	}
+//
+//	/* ============================================================================= */
+//
+//	void NDConcurrentSearch(TransitionPredicatePtr select_criteria = PTRUE,
+//							TransitionPredicatePtr trans_criteria = PTRUE) {
+//		WHILE_DTSTAR {
+//			FORALL(t, select_criteria, "Forall thread");
+//			RUN_THREAD_UNTIL(t, trans_criteria, __);
+//		}
+//	}
+//
+//	/* ============================================================================= */
+//
+//	void NDConcurrentContextBoundedSearch(unsigned bound,
+//										  TransitionPredicatePtr select_criteria = PTRUE,
+//										  TransitionPredicatePtr trans_criteria = PTRUE) {
+//		CHECK(bound > 0) << "Context bound must be > 1!";
+//
+//		TVAR(t_old);
+//		for(unsigned i = 0; i < bound && !ALL_ENDED; ) {
+//
+//			SELECT_THREAD_BACKTRACK(t, select_criteria && (TID != t_old), "Forall thread");
+//			WHILE_DTSTAR {
+//				RUN_THREAD_UNTIL(t, trans_criteria, __);
+//			}
+//			if(!HAS_ENDED(t)) {
+//				++i;
+//			}
+//			t_old << t;
+//		}
+//
+//		NDSequentialSearch();
+//	}
 
 	/* ============================================================================= */
 

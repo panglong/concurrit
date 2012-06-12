@@ -266,7 +266,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 				SELECT_THREAD_BACKTRACK(t, BY(TA) || BY(TC));
 
-				RUN_THREAD_UNTIL(t, READS() || WRITES(), "Run until true...");
+				RUN_THREAD_UNTIL(t, READS() || WRITES(), "Run until accesses memory...");
 		}
 	}
 
