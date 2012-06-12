@@ -1,10 +1,7 @@
 ***radbench_bug4: hashtable to store key/ADDRINT pairs for get info from the program.
 *** WITH_ALL_THREADS{..} scope should be treated NULL when it is empty
-*** until_ends scope'u kale alsin!!!
-*** run_thread().until()
 ***Test programin standard outputunu dosyaya yonlendir, sadece stderr ekrana yazilsin.
 ***Static counters to access them without using the hashmap
-***libproc-dev /usr/include/proc/readproc.h extern void look_up_our_self(proc_t *p);
 
 Notes:
 some effect: force program to a specific condition that will make some threads to contend. It will not lead to the bug, but help to reach a buggy situation

@@ -398,9 +398,9 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define RUN_ONCE(p, ...)			RUN_THROUGH2a((p), (p), ## __VA_ARGS__);
-
 #define RUN_THROUGH(q, r, ...) 		RUN_THROUGH2b((q), (r), ## __VA_ARGS__);
+
+#define RUN_UNTIL_NEXT(p, ...)		RUN_THROUGH((p), PTRUE, ## __VA_ARGS__);
 
 /********************************************************************************/
 
@@ -418,19 +418,19 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define RUN_ANY_THREAD_ONCE(...)		RUN_THROUGH(PTRUE, PTRUE, ## __VA_ARGS__)
+#define RUN_ANY_THREAD_UNTIL_NEXT(...)	RUN_UNTIL_NEXT(PTRUE, ## __VA_ARGS__)
 #define RUN_ANY_THREAD_THROUGH(q, ...)	RUN_THROUGH(PTRUE, (q), ## __VA_ARGS__)
 #define RUN_ANY_THREAD_UNTIL(q, ...)	RUN_UNTIL(PTRUE, (q), ## __VA_ARGS__)
 
 /********************************************************************************/
 
-#define RUN_ANY_THREAD_BUT_ONCE(t, ...)			RUN_THROUGH(NOT_BY(t), PTRUE, ## __VA_ARGS__)
+#define RUN_ANY_THREAD_BUT_UNTIL_NEXT(t, ...)	RUN_UNTIL_NEXT(NOT_BY(t), ## __VA_ARGS__)
 #define RUN_ANY_THREAD_BUT_THROUGH(t, q, ...)	RUN_THROUGH(NOT_BY(t), (q), ## __VA_ARGS__)
 #define RUN_ANY_THREAD_BUT_UNTIL(t, q, ...)		RUN_UNTIL(NOT_BY(t), (q), ## __VA_ARGS__)
 
 /********************************************************************************/
 
-#define RUN_THREAD_ONCE(t, ...)			RUN_THROUGH(BY(t), PTRUE, ## __VA_ARGS__)
+#define RUN_THREAD_UNTIL_NEXT(t, ...)	RUN_UNTIL_NEXT(BY(t), ## __VA_ARGS__)
 #define RUN_THREAD_THROUGH(t, q, ...)	RUN_THROUGH(BY(t), (q), ## __VA_ARGS__)
 #define RUN_THREAD_UNTIL(t, q, ...)		RUN_UNTIL(BY(t), (q), ## __VA_ARGS__)
 
