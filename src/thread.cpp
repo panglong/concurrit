@@ -116,7 +116,7 @@ void* ThreadEntry(void* arg) {
 	thread->detach_pthread(self);
 
 	// no need to call pthread_exit
-	Originals::pthread_exit(return_value);
+	PthreadOriginals::pthread_exit(return_value);
 	return return_value;
 }
 
@@ -178,7 +178,7 @@ void Thread::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NUL
 		attr_ptr = &attr_local;
 	}
 	return_value_ = NULL;
-	__pthread_errno__ = Originals::pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
+	__pthread_errno__ = PthreadOriginals::pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
 	if(__pthread_errno__ != PTH_SUCCESS) {
 		safe_fail("Create error: %s\n", PTHResultToString(__pthread_errno__));
 	}
@@ -189,7 +189,7 @@ void Thread::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NUL
 /********************************************************************************/
 
 void Thread::Join(void ** value_ptr /*= NULL*/) {
-	__pthread_errno__ = Originals::pthread_join(pthread_, value_ptr);
+	__pthread_errno__ = PthreadOriginals::pthread_join(pthread_, value_ptr);
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
 		safe_fail("Join error: %s\n", PTHResultToString(__pthread_errno__));
 	}
@@ -201,7 +201,7 @@ void Thread::Join(void ** value_ptr /*= NULL*/) {
 /********************************************************************************/
 
 void Thread::Cancel() {
-	__pthread_errno__ = Originals::pthread_cancel(pthread_);
+	__pthread_errno__ = PthreadOriginals::pthread_cancel(pthread_);
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
 		safe_fail("Cancel error: %s\n", PTHResultToString(__pthread_errno__));
 	}

@@ -139,7 +139,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	AuxState::Init();
 
-	Originals::initialize();
+	PthreadOriginals::initialize();
 
 	Thread::init_tls_key();
 

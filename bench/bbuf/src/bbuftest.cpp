@@ -10,7 +10,7 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 	TESTCASE() {
-		CALL_TEST(Final2);
+		CALL_TEST(Final1);
 	}
 
 	//============================================================//
