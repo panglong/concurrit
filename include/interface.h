@@ -39,6 +39,8 @@
 
 namespace concurrit {
 
+/***********************************************************************/
+
 struct PinToolOptions {
 	uint32_t TrackFuncCalls;
 	uint32_t InstrTopLevelFuncs;
@@ -65,6 +67,8 @@ const EventKind
 	Continue		= 12U,
 	TestShutdown	= 13U;
 
+/***********************************************************************/
+
 struct EventBuffer {
 	EventKind type;
 	THREADID threadid;
@@ -78,28 +82,6 @@ struct EventBuffer {
 	SourceLocation* loc_src;
 	SourceLocation* loc_target;
 };
-
-/********************************************************************************/
-
-// functions that are called by pin tool
-
-extern "C" void CallPinMonitor(EventBuffer* call_info);
-
-/********************************************************************************/
-
-// functions that are tracked by pin tool
-
-extern "C" void InitPinTool(PinToolOptions* options);
-
-extern "C" void EnablePinTool();
-extern "C" void DisablePinTool();
-
-extern "C" void ThreadRestart();
-
-extern "C" void ShutdownPinTool();
-
-extern "C" void StartInstrument();
-extern "C" void EndInstrument();
 
 /********************************************************************************/
 

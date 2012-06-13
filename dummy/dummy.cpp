@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "dummy.h"
+#include "instrument.h"
 
 /********************************************************************************/
 
@@ -44,6 +44,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void concurritStartTest() {dummy_error();}
+void concurritEndTest() {dummy_error();}
+
+void concurritEndSearch() {dummy_error();}
 
 void concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {dummy_error();}
 void concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {dummy_error();}

@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 
-#include "dummy.h"
+#include "instrument.h"
 
 typedef struct bounded_buf_tag
 {
@@ -369,12 +369,5 @@ int main0(int argc, char ** argv)
 
 //============================================
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(main0)
+

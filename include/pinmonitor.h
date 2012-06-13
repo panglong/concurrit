@@ -95,6 +95,30 @@ private:
 	static PinToolOptions options_;
 };
 
+/********************************************************************************/
+
+// functions that are called by pin tool
+
+extern "C" void CallPinMonitor(EventBuffer* call_info);
+
+/********************************************************************************/
+
+// functions that are tracked by pin tool
+
+extern "C" void InitPinTool(PinToolOptions* options);
+
+extern "C" void EnablePinTool();
+extern "C" void DisablePinTool();
+
+extern "C" void ThreadRestart();
+
+extern "C" void ShutdownPinTool();
+
+extern "C" void StartInstrument();
+extern "C" void EndInstrument();
+
+/********************************************************************************/
+
 } // end namespace
 
 

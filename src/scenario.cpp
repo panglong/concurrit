@@ -480,7 +480,7 @@ void Scenario::RunTearDown() throw() {
 void Scenario::RunTestCase() throw() {
 	test_status_ = TEST_CONTROLLED;
 
-	PinMonitor::Enable();
+//	PinMonitor::Enable(); // this is performed by StartTest instrumentation callback
 
 	//---------------------------
 

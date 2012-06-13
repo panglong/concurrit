@@ -34,12 +34,32 @@
 
 #include "concurrit.h"
 
-#include "dummy.h"
+#include "instrument.h"
 
 // functions implementing manual instrumentation routines
 // these functions overwrite functions in libdummy.so when concurrit is preloaded
 
 using namespace concurrit;
+
+/********************************************************************************/
+
+void concurritStartTest() {
+	MYLOG(1) << "concurritStartTest";
+
+	PinMonitor::Enable();
+}
+
+void concurritEndTest() {
+	MYLOG(1) << "concurritEndTest";
+
+	PinMonitor::Disable();
+}
+
+void concurritEndSearch() {
+	MYLOG(1) << "concurritEndSearch";
+
+	TRIGGER_TERMINATE_SEARCH();
+}
 
 /********************************************************************************/
 
