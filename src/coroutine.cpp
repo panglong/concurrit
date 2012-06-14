@@ -219,31 +219,57 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 
 /********************************************************************************/
 
+void Coroutine::SetStarted() {
+	safe_assert(PASSIVE <= status_ && status_ < TERMINATED);
+	status_ = ENABLED;
+
+	// notify main about our startup
+	MYLOG(2) << CO_TITLE << "Sending started message and waiting for a transfer.";
+	Transfer(&channel_, MSG_STARTED);
+
+	MYLOG(2) << CO_TITLE << "First transfer";
+
+	// notifies pintool about the restart,
+	// to reset pin related data structures
+	ThreadRestart();
+}
+
+/********************************************************************************/
+
+void Coroutine::SetEnded() {
+	CHANNEL_BEGIN_ATOMIC();
+
+	MYLOG(2) << CO_TITLE << " is ending...";
+	status_ = ENDED;
+
+	// second signal
+	sem_end_.Signal();
+
+	// last yield
+	if(ConcurritExecutionMode == COOPERATIVE) {
+		yield(ENDING_LABEL);
+	} else {
+		MessageType msg = channel_.WaitReceive();
+		HandleMessage(msg);
+	}
+
+	CHANNEL_END_ATOMIC();
+}
+
+/********************************************************************************/
+
 void* Coroutine::Run() {
 	safe_assert(!this->IsMain());
 	void* return_value = NULL;
 	CHECK(status_ == PASSIVE) << "Wrong status " << status_ << ", expected " << PASSIVE;
 
+	Scenario* scenario = Scenario::NotNullCurrent();
+
 	for(;true;) {
 		try {
-			safe_assert(PASSIVE <= status_ && status_ < TERMINATED);
-			status_ = ENABLED;
+			SetStarted();
 
 			return_value = NULL;
-
-			CoroutineGroup* group = safe_notnull(group_);
-
-			Scenario* scenario = safe_notnull(group->scenario());
-
-			// notify main about out startup
-			MYLOG(2) << CO_TITLE << "Sending started message and waiting for a transfer.";
-			Transfer(&channel_, MSG_STARTED);
-
-			MYLOG(2) << CO_TITLE << "First transfer";
-
-			// notifies pintool about the restart,
-			// to reset pin relared data structures
-			ThreadRestart();
 
 			try {
 				// run the actual function
@@ -267,7 +293,7 @@ void* Coroutine::Run() {
 					exception_ = e;
 					if(ConcurritExecutionMode == COOPERATIVE) {
 						// send main exception message
-						this->Transfer(group->main(), MSG_EXCEPTION);
+						this->Transfer(CoroutineGroup::main(), MSG_EXCEPTION);
 					} else {
 						// (immediatelly) notify all others that there is an exception
 						MYLOG(1) << "Coroutine threw exception, calling EndWithException...";
@@ -276,25 +302,7 @@ void* Coroutine::Run() {
 				}
 			}
 
-			//---------------
-			CHANNEL_BEGIN_ATOMIC();
-
-			MYLOG(2) << CO_TITLE << " is ending...";
-			status_ = ENDED;
-
-			// second signal
-			sem_end_.Signal();
-
-			// last yield
-			if(ConcurritExecutionMode == COOPERATIVE) {
-				yield(ENDING_LABEL);
-			} else {
-				MessageType msg = channel_.WaitReceive();
-				HandleMessage(msg);
-			}
-
-			CHANNEL_END_ATOMIC();
-			//---------------
+			SetEnded();
 
 		} catch(MessageType& m) {
 			// only terminate and restart messages are thrown

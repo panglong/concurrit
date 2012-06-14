@@ -75,6 +75,9 @@ public:
 	void FinishMain();
 	bool IsMain();
 
+	void SetStarted();
+	void SetEnded();
+
 	static Coroutine* Current();
 
 	void Transfer(Coroutine* target, MessageType msg = MSG_TRANSFER);

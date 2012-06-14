@@ -221,6 +221,7 @@ public:
 				safe_fail("Too many iterations for waiting event kind %d!", type);
 			}
 			++timer;
+			SendContinue();
 		}
 		SendContinue();
 	}
