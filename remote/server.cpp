@@ -33,7 +33,7 @@
 
 #include "concurrit.h"
 
-#include "ipc.h"
+#include "instrument.h"
 
 #include "tbb/concurrent_vector.h"
 
@@ -45,7 +45,6 @@ const THREADID MAINTID = THREADID(1);
 
 /********************************************************************************/
 
-class ShadowThread;
 typedef tbb::concurrent_vector<ShadowThread*> ShadowThreadPtrList;
 static ShadowThreadPtrList shadow_threads;
 
@@ -200,14 +199,6 @@ int main0(int argc, char* argv[]) {
 
 /********************************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return concurrit::main0(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(concurrit::main0)
 
 

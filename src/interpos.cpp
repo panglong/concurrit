@@ -53,8 +53,7 @@ public:
 
 	int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
 		if(!Concurrit::IsInitialized()) {
-			safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);
-			return PthreadOriginals::pthread_create(thread, attr, start_routine, arg);
+			return PthreadHandler::pthread_create(thread, attr, start_routine, arg);
 		}
 
 		MYLOG(2) << "Creating new thread via interpositioned pthread_create.";
@@ -73,8 +72,7 @@ public:
 
 	int pthread_join(pthread_t thread, void ** value_ptr) {
 		if(!Concurrit::IsInitialized()) {
-			safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_join != NULL);
-			return PthreadOriginals::pthread_join(thread, value_ptr);
+			return PthreadHandler::pthread_join(thread, value_ptr);
 		}
 
 		MYLOG(2) << "Joining thread via interpositioned pthread_join.";
@@ -88,8 +86,7 @@ public:
 
 	void pthread_exit(void * param0) {
 		if(!Concurrit::IsInitialized()) {
-			safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_exit != NULL);
-			PthreadOriginals::pthread_exit(param0);
+			return PthreadHandler::pthread_exit(param0);
 		}
 
 		MYLOG(2) << "Exiting thread via interpositioned pthread_exit.";
@@ -105,8 +102,7 @@ public:
 
 	int pthread_cancel(pthread_t thread) {
 		if(!Concurrit::IsInitialized()) {
-			safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_cancel != NULL);
-			return PthreadOriginals::pthread_cancel(thread);
+			return PthreadHandler::pthread_cancel(thread);
 		}
 
 		MYLOG(2) << "Exiting thread via interpositioned pthread_cancel.";

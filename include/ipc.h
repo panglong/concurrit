@@ -200,13 +200,36 @@ private:
 
 class ShadowThread {
 public:
-	ShadowThread(THREADID threadid, bool is_server);
+	ShadowThread(THREADID threadid, bool is_server) : tid_(threadid), thread_(NULL) {
+		memset(&event_, 0, sizeof(EventBuffer));
 
-	virtual ~ShadowThread();
+		PipeNamePair pipe_names = is_server ? PipeNamesForDSL(tid_) : PipeNamesForSUT(tid_);
+		pipe_.Init(pipe_names);
+		pipe_.Open();
+	}
 
-	void SendContinue();
+	virtual ~ShadowThread(){
+		if(pipe_.is_open()) {
+			pipe_.Close();
+		}
+	}
 
-	void WaitForEventAndSkip(EventKind type);
+	void WaitForEventAndSkip(EventKind type) {
+		int timer = 0;
+		for(pipe_.Recv(&event_); event_.type != type; pipe_.Recv(&event_)) {
+			if(timer > 1000) {
+				safe_fail("Too many iterations for waiting event kind %d!", type);
+			}
+			++timer;
+		}
+		SendContinue();
+	}
+
+	void SendContinue() {
+		event_.type = Continue;
+		event_.threadid = tid_;
+		pipe_.Send(&event_);
+	}
 
 	virtual void* Run() = 0;
 
@@ -217,9 +240,6 @@ private:
 	DECL_FIELD(Coroutine*, thread)
 };
 
-/********************************************************************************/
-/********************************************************************************/
-/********************************************************************************/
 /********************************************************************************/
 
 

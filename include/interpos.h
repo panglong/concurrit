@@ -50,24 +50,6 @@ namespace concurrit {
 //
 /********************************************************************************/
 
-class PthreadHandler {
-public:
-
-	virtual int pthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *) = 0;
-	virtual int pthread_join(pthread_t, void **) = 0;
-	virtual void pthread_exit(void *) = 0;
-	virtual int pthread_cancel(pthread_t) = 0;
-
-	PthreadHandler() {}
-	virtual ~PthreadHandler() {}
-
-	static PthreadHandler* Current;
-};
-
-#define PTHREADHANDLER_CURRENT_DEFINITION(o)	PthreadHandler* PthreadHandler::Current = (o);
-
-/********************************************************************************/
-
 #define init_original(f, type) \
 	{ \
     	_##f = (type) dlsym(RTLD_NEXT, #f); \
@@ -167,6 +149,42 @@ extern "C" int pthread_cancel(pthread_t thread);
 		return PthreadHandler::Current->pthread_cancel(thread);								\
 	}																						\
 
+/********************************************************************************/
+
+// default implementation calls original functions
+
+class PthreadHandler {
+public:
+
+	virtual int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
+		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);
+		return PthreadOriginals::pthread_create(thread, attr, start_routine, arg);
+	}
+
+	virtual int pthread_join(pthread_t thread, void ** value_ptr) {
+		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_join != NULL);
+		return PthreadOriginals::pthread_join(thread, value_ptr);
+	}
+
+	virtual void pthread_exit(void * param0) {
+		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_exit != NULL);
+		PthreadOriginals::pthread_exit(param0);
+	}
+
+	virtual int pthread_cancel(pthread_t thread) {
+		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_cancel != NULL);
+		return PthreadOriginals::pthread_cancel(thread);
+	}
+
+	PthreadHandler() {}
+	virtual ~PthreadHandler() {}
+
+	static PthreadHandler* Current;
+};
+
+/********************************************************************************/
+
+#define PTHREADHANDLER_CURRENT_DEFINITION(o)	PthreadHandler* PthreadHandler::Current = (o);
 
 /********************************************************************************/
 

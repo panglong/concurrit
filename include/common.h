@@ -264,6 +264,7 @@ const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
 /********************************************************************************/
 
 typedef int (*MainFuncType) (int, char**);
+typedef void* (*ThreadFuncType) (void*);
 
 /********************************************************************************/
 
