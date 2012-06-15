@@ -38,84 +38,159 @@ namespace concurrit {
 
 /********************************************************************************/
 
-PTHREADORIGINALS_STATIC_FIELD_DEFINITIONS
+volatile bool PthreadOriginals::_initialized = false;
+int (* volatile PthreadOriginals::_pthread_create) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *) = NULL;
+int (* volatile PthreadOriginals::_pthread_join) (pthread_t, void **) = NULL;
+void (* volatile PthreadOriginals::_pthread_exit) (void *) = NULL;
+int (* volatile PthreadOriginals::_pthread_cancel) (pthread_t) = NULL;
 
 /********************************************************************************/
 
-PTHREAD_FUNCTION_DEFINITIONS
+void PthreadOriginals::initialize() {
+	safe_assert(!_initialized);
+
+	init_original(pthread_create, int (* volatile) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *));
+
+	init_original(pthread_join, int (* volatile) (pthread_t, void **));
+
+	init_original(pthread_exit, void (* volatile) (void *));
+
+	init_original(pthread_cancel, int (* volatile) (pthread_t));
+
+	_initialized = true;
+}
 
 /********************************************************************************/
 
-class ConcurritPthreadHandler : public PthreadHandler {
-public:
-	ConcurritPthreadHandler() : PthreadHandler() {}
-	~ConcurritPthreadHandler() {}
+int PthreadOriginals::pthread_create(pthread_t * param0, const pthread_attr_t * param1, void *(* param2)(void *), void * param3) {
+	CHECK(_pthread_create != NULL) << "ERROR: original pthread_create is NULL\n";
 
-	int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
-		if(!Concurrit::IsInitialized()) {
-			return PthreadHandler::pthread_create(thread, attr, start_routine, arg);
-		}
+	return _pthread_create(param0, param1, param2, param3);
+}
 
-		MYLOG(2) << "Creating new thread via interpositioned pthread_create.";
+int PthreadOriginals::pthread_join(pthread_t param0, void ** param1) {
+	CHECK(_pthread_join != NULL) << "ERROR: original pthread_join is NULL\n";
 
-		Scenario* scenario = safe_notnull(Scenario::Current());
-		ThreadVarPtr var = scenario->CreatePThread(start_routine, arg, thread, attr);
-		safe_assert(var != NULL && !var->is_empty());
+	return _pthread_join(param0, param1);
+}
 
-		if(__pthread_errno__ != PTH_SUCCESS) {
-			safe_fail("Create error: %s\n", PTHResultToString(__pthread_errno__));
-		}
-		safe_assert(*thread != PTH_INVALID_THREAD);
+void PthreadOriginals::pthread_exit(void * param0) {
+	CHECK(_pthread_exit != NULL) << "ERROR: original pthread_exit is NULL\n";
 
-		return __pthread_errno__;
-	}
+	_pthread_exit(param0);
+}
 
-	int pthread_join(pthread_t thread, void ** value_ptr) {
-		if(!Concurrit::IsInitialized()) {
-			return PthreadHandler::pthread_join(thread, value_ptr);
-		}
+int PthreadOriginals::pthread_cancel(pthread_t thread) {
+	CHECK(_pthread_cancel != NULL) << "ERROR: original pthread_cancel is NULL\n";
 
-		MYLOG(2) << "Joining thread via interpositioned pthread_join.";
-
-		Scenario* scenario = safe_notnull(Scenario::Current());
-		Coroutine* co = safe_notnull(scenario->group())->GetMember(thread);
-		scenario->JoinPThread(co, value_ptr);
-
-		return __pthread_errno__;
-	}
-
-	void pthread_exit(void * param0) {
-		if(!Concurrit::IsInitialized()) {
-			return PthreadHandler::pthread_exit(param0);
-		}
-
-		MYLOG(2) << "Exiting thread via interpositioned pthread_exit.";
-
-		Coroutine* co = safe_notnull(Coroutine::Current());
-
-		// capture the return value
-		co->set_return_value(param0);
-
-		// trigger backtrackexception
-		TRIGGER_BACKTRACK(PTH_EXIT);
-	}
-
-	int pthread_cancel(pthread_t thread) {
-		if(!Concurrit::IsInitialized()) {
-			return PthreadHandler::pthread_cancel(thread);
-		}
-
-		MYLOG(2) << "Exiting thread via interpositioned pthread_cancel.";
-
-		CHECK(false) << "pthread_cancel is not supported yet!!!";
-
-		return -1;
-	}
-};
+	return _pthread_cancel(thread);
+}
 
 /********************************************************************************/
 
-PTHREADHANDLER_CURRENT_DEFINITION(new ConcurritPthreadHandler())
+int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
+	safe_assert(PthreadHandler::Current != NULL);
+	return PthreadHandler::Current->pthread_create(thread, attr, start_routine, arg);
+}
+int pthread_join(pthread_t thread, void ** value_ptr) {
+	safe_assert(PthreadHandler::Current != NULL);
+	return PthreadHandler::Current->pthread_join(thread, value_ptr);
+}
+void pthread_exit(void * param0) {
+	safe_assert(PthreadHandler::Current != NULL);
+	return PthreadHandler::Current->pthread_exit(param0);
+}
+int pthread_cancel(pthread_t thread) {
+	safe_assert(PthreadHandler::Current != NULL);
+	return PthreadHandler::Current->pthread_cancel(thread);
+}
+
+/********************************************************************************/
+
+PthreadHandler* PthreadHandler::Current = NULL;
+
+int PthreadHandler::pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
+	safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);
+	return PthreadOriginals::pthread_create(thread, attr, start_routine, arg);
+}
+
+int PthreadHandler::pthread_join(pthread_t thread, void ** value_ptr) {
+	safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_join != NULL);
+	return PthreadOriginals::pthread_join(thread, value_ptr);
+}
+
+void PthreadHandler::pthread_exit(void * param0) {
+	safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_exit != NULL);
+	PthreadOriginals::pthread_exit(param0);
+}
+
+int PthreadHandler::pthread_cancel(pthread_t thread) {
+	safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_cancel != NULL);
+	return PthreadOriginals::pthread_cancel(thread);
+}
+
+/********************************************************************************/
+
+int ConcurritPthreadHandler::pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
+	if(!Concurrit::IsInitialized()) {
+		return PthreadHandler::pthread_create(thread, attr, start_routine, arg);
+	}
+
+	MYLOG(2) << "Creating new thread via interpositioned pthread_create.";
+
+	Scenario* scenario = safe_notnull(Scenario::Current());
+	ThreadVarPtr var = scenario->CreatePThread(start_routine, arg, thread, attr);
+	safe_assert(var != NULL && !var->is_empty());
+
+	if(__pthread_errno__ != PTH_SUCCESS) {
+		safe_fail("Create error: %s\n", PTHResultToString(__pthread_errno__));
+	}
+	safe_assert(*thread != PTH_INVALID_THREAD);
+
+	return __pthread_errno__;
+}
+
+int ConcurritPthreadHandler::pthread_join(pthread_t thread, void ** value_ptr) {
+	if(!Concurrit::IsInitialized()) {
+		return PthreadHandler::pthread_join(thread, value_ptr);
+	}
+
+	MYLOG(2) << "Joining thread via interpositioned pthread_join.";
+
+	Scenario* scenario = safe_notnull(Scenario::Current());
+	Coroutine* co = safe_notnull(scenario->group())->GetMember(thread);
+	scenario->JoinPThread(co, value_ptr);
+
+	return __pthread_errno__;
+}
+
+void ConcurritPthreadHandler::pthread_exit(void * param0) {
+	if(!Concurrit::IsInitialized()) {
+		return PthreadHandler::pthread_exit(param0);
+	}
+
+	MYLOG(2) << "Exiting thread via interpositioned pthread_exit.";
+
+	Coroutine* co = safe_notnull(Coroutine::Current());
+
+	// capture the return value
+	co->set_return_value(param0);
+
+	// trigger backtrackexception
+	TRIGGER_BACKTRACK(PTH_EXIT);
+}
+
+int ConcurritPthreadHandler::pthread_cancel(pthread_t thread) {
+	if(!Concurrit::IsInitialized()) {
+		return PthreadHandler::pthread_cancel(thread);
+	}
+
+	MYLOG(2) << "Exiting thread via interpositioned pthread_cancel.";
+
+	CHECK(false) << "pthread_cancel is not supported yet!!!";
+
+	return -1;
+}
 
 /********************************************************************************/
 

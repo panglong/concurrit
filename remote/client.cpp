@@ -39,17 +39,14 @@
 
 #include <cstdatomic>
 
-#include "thread.cpp"
-#include "ipc.cpp"
-
 namespace concurrit {
 
 /********************************************************************************/
 
 const THREADID MAINTID = THREADID(1);
 
+static std::atomic<THREADID> next_threadid(2);
 static THREADID get_next_threadid() {
-	static std::atomic<THREADID> next_threadid(2);
 	return next_threadid.fetch_add(1);
 }
 
@@ -58,10 +55,14 @@ static THREADID get_next_threadid() {
 class ClientShadowThread;
 
 static pthread_key_t client_tls_key_;
+
+static ConcurrentPipe* pipe_ = NULL;
+
 static ClientShadowThread* main_shadow_thread_ = NULL;
 
 /********************************************************************************/
 
+// value may be NULL
 static void set_tls(ClientShadowThread* value) {
 	const pthread_key_t key = client_tls_key_;
 	safe_assert(NULL == pthread_getspecific(key));
@@ -71,6 +72,7 @@ static void set_tls(ClientShadowThread* value) {
 	}
 }
 
+// value may not be NULL
 static ClientShadowThread* get_tls() {
 	const pthread_key_t key = client_tls_key_;
 	ClientShadowThread* thread = static_cast<ClientShadowThread*>(pthread_getspecific(key));
@@ -87,28 +89,24 @@ public:
 
 	virtual ~ClientShadowThread(){}
 
-	// override
-	void* Run() {
-
+	void RunBegin() {
+		safe_assert(pipe_ != NULL);
 		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe_);
-		safe_assert(concpipe != NULL);
-
 		concpipe->RegisterShadowThread(this);
 
 		// set tls data
 		set_tls(this);
 
-		EventBuffer event;
-
 		// send thread start
+		EventBuffer event;
 		event.type = ThreadStart;
 		event.threadid = tid_;
 		SendRecvContinue(&event);
+	}
 
-		safe_assert(start_routine_ != NULL);
-		void* ret = start_routine_(arg_);
-
+	void RunEnd() {
 		// send thread end
+		EventBuffer event;
 		event.type = ThreadEnd;
 		event.threadid = tid_;
 		SendRecvContinue(&event);
@@ -116,7 +114,20 @@ public:
 		// clear tls data
 		set_tls(NULL);
 
+		safe_assert(pipe_ != NULL);
+		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe_);
 		concpipe->UnregisterShadowThread(this);
+	}
+
+	// override
+	void* Run() {
+
+		RunBegin();
+
+		safe_assert(start_routine_ != NULL);
+		void* ret = start_routine_(arg_);
+
+		RunEnd();
 
 		return ret;
 	}
@@ -126,47 +137,6 @@ private:
 	void *arg_;
 };
 
-
-/********************************************************************************/
-
-static ConcurrentPipe* pipe_ = NULL;
-
-extern "C"
-__attribute__((constructor))
-void initialize_client() {
-	PthreadOriginals::initialize();
-
-	if(pthread_key_create(&client_tls_key_, NULL) != PTH_SUCCESS) {
-		safe_fail("Count not create tls key!");
-	}
-
-	pipe_ = new ConcurrentPipe(PipeNamesForSUT(), NULL);
-
-	// create shadow thread for main thread
-	main_shadow_thread_ = new ClientShadowThread(MAINTID, pipe_);
-	set_tls(main_shadow_thread_);
-}
-
-/********************************************************************************/
-
-extern "C"
-__attribute__((destructor))
-void destroy_client() {
-
-	set_tls(NULL);
-
-	if(pthread_key_delete(client_tls_key_) != PTH_SUCCESS) {
-		safe_fail("Count not destroy tls key!");
-	}
-}
-
-/********************************************************************************/
-
-PTHREADORIGINALS_STATIC_FIELD_DEFINITIONS
-
-/********************************************************************************/
-
-PTHREAD_FUNCTION_DEFINITIONS
 
 /********************************************************************************/
 
@@ -187,10 +157,47 @@ public:
 
 /********************************************************************************/
 
-PTHREADHANDLER_CURRENT_DEFINITION(new ClientPthreadHandler())
+extern "C"
+__attribute__((constructor))
+void initialize_client() {
+
+	google::InitGoogleLogging("concurrit");
+
+	PthreadOriginals::initialize();
+
+	safe_assert(PthreadHandler::Current == NULL);
+	PthreadHandler::Current = new ClientPthreadHandler();
+
+	if(pthread_key_create(&client_tls_key_, NULL) != PTH_SUCCESS) {
+		safe_fail("Count not create tls key!");
+	}
+
+	pipe_ = new ConcurrentPipe(PipeNamesForSUT());
+	pipe_->Open();
+
+	main_shadow_thread_ = new ClientShadowThread(MAINTID, pipe_);
+
+	MYLOG(1) << "CLIENT: Initialized client library.";
+}
 
 /********************************************************************************/
-/********************************************************************************/
+
+extern "C"
+__attribute__((destructor))
+void destroy_client() {
+
+	safe_assert(pipe_ != NULL);
+	pipe_->Close();
+
+	safe_delete(pipe_);
+
+	if(pthread_key_delete(client_tls_key_) != PTH_SUCCESS) {
+		safe_fail("Count not destroy tls key!");
+	}
+
+	MYLOG(1) << "CLIENT: Destroyed client library.";
+}
+
 /********************************************************************************/
 
 void concurritStartTest() {
@@ -202,10 +209,12 @@ void concurritStartTest() {
 	// send test start
 	EventBuffer e;
 	e.type = TestStart;
-	e.threadid = MAINTID;
-	main_shadow_thread_->SendRecvContinue(&e);
+	e.threadid = 0;
+	pipe_->Send(NULL, &e);
 
-	// there is no ThreadStart event for the main thread
+	// we do not run Run() of main_shadow_thread_
+	// so do the things Run() would do here
+	main_shadow_thread_->RunBegin();
 }
 
 /********************************************************************************/
@@ -216,17 +225,15 @@ void concurritEndTest() {
 	safe_assert(get_tls() == main_shadow_thread_);
 	safe_assert(main_shadow_thread_->tid() == MAINTID);
 
-	EventBuffer e;
-
+	// here we do the things Run() would normally do for main
 	// send thread end for the main thread
-	e.type = ThreadEnd;
-	e.threadid = MAINTID;
-	main_shadow_thread_->SendRecvContinue(&e);
+	main_shadow_thread_->RunEnd();
 
 	// send test end
+	EventBuffer e;
 	e.type = TestEnd;
-	e.threadid = MAINTID;
-	main_shadow_thread_->SendRecvContinue(&e);
+	e.threadid = 0;
+	pipe_->Send(NULL, &e);
 }
 
 /********************************************************************************/

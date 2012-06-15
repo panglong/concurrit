@@ -65,45 +65,17 @@ namespace concurrit {
 class PthreadOriginals {
 public:
 
-	static void initialize() {
-		safe_assert(!_initialized);
-
-		init_original(pthread_create, int (* volatile) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *));
-
-		init_original(pthread_join, int (* volatile) (pthread_t, void **));
-
-		init_original(pthread_exit, void (* volatile) (void *));
-
-		init_original(pthread_cancel, int (* volatile) (pthread_t));
-
-		_initialized = true;
-	}
+	static void initialize();
 
 	static inline volatile bool is_initialized() { return _initialized; }
 
-	static int pthread_create(pthread_t * param0, const pthread_attr_t * param1, void *(* param2)(void *), void * param3) {
-	    CHECK(_pthread_create != NULL) << "ERROR: original pthread_create is NULL\n";
+	static int pthread_create(pthread_t * param0, const pthread_attr_t * param1, void *(* param2)(void *), void * param3);
 
-	    return _pthread_create(param0, param1, param2, param3);
-	}
+	static int pthread_join(pthread_t param0, void ** param1);
 
-	static int pthread_join(pthread_t param0, void ** param1) {
-		CHECK(_pthread_join != NULL) << "ERROR: original pthread_join is NULL\n";
+	static void pthread_exit(void * param0);
 
-	    return _pthread_join(param0, param1);
-	}
-
-	static void pthread_exit(void * param0) {
-		CHECK(_pthread_exit != NULL) << "ERROR: original pthread_exit is NULL\n";
-
-	    _pthread_exit(param0);
-	}
-
-	static int pthread_cancel(pthread_t thread) {
-		CHECK(_pthread_cancel != NULL) << "ERROR: original pthread_cancel is NULL\n";
-
-	    return _pthread_cancel(thread);
-	}
+	static int pthread_cancel(pthread_t thread);
 
 	static int (* volatile _pthread_create) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
 	static int (* volatile _pthread_join) (pthread_t, void **);
@@ -114,15 +86,6 @@ public:
 };
 
 /********************************************************************************/
-#define PTHREADORIGINALS_STATIC_FIELD_DEFINITIONS	\
-	volatile bool PthreadOriginals::_initialized = false;	\
-	int (* volatile PthreadOriginals::_pthread_create) (pthread_t *, const pthread_attr_t *, void *(*)(void *), void *) = NULL;	\
-	int (* volatile PthreadOriginals::_pthread_join) (pthread_t, void **) = NULL;	\
-	void (* volatile PthreadOriginals::_pthread_exit) (void *) = NULL;				\
-	int (* volatile PthreadOriginals::_pthread_cancel) (pthread_t) = NULL;			\
-
-
-/********************************************************************************/
 
 extern "C" int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
 extern "C" int pthread_join(pthread_t thread, void ** value_ptr);
@@ -131,50 +94,18 @@ extern "C" int pthread_cancel(pthread_t thread);
 
 /********************************************************************************/
 
-#define PTHREAD_FUNCTION_DEFINITIONS \
-	int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {	\
-		safe_assert(PthreadHandler::Current != NULL);										\
-		return PthreadHandler::Current->pthread_create(thread, attr, start_routine, arg);	\
-	}																						\
-	int pthread_join(pthread_t thread, void ** value_ptr) {									\
-		safe_assert(PthreadHandler::Current != NULL);										\
-		return PthreadHandler::Current->pthread_join(thread, value_ptr);					\
-	}																						\
-	void pthread_exit(void * param0) {														\
-		safe_assert(PthreadHandler::Current != NULL);										\
-		return PthreadHandler::Current->pthread_exit(param0);								\
-	}																						\
-	int pthread_cancel(pthread_t thread) {													\
-		safe_assert(PthreadHandler::Current != NULL);										\
-		return PthreadHandler::Current->pthread_cancel(thread);								\
-	}																						\
-
-/********************************************************************************/
-
 // default implementation calls original functions
 
 class PthreadHandler {
 public:
 
-	virtual int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
-		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);
-		return PthreadOriginals::pthread_create(thread, attr, start_routine, arg);
-	}
+	virtual int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
 
-	virtual int pthread_join(pthread_t thread, void ** value_ptr) {
-		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_join != NULL);
-		return PthreadOriginals::pthread_join(thread, value_ptr);
-	}
+	virtual int pthread_join(pthread_t thread, void ** value_ptr);
 
-	virtual void pthread_exit(void * param0) {
-		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_exit != NULL);
-		PthreadOriginals::pthread_exit(param0);
-	}
+	virtual void pthread_exit(void * param0);
 
-	virtual int pthread_cancel(pthread_t thread) {
-		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_cancel != NULL);
-		return PthreadOriginals::pthread_cancel(thread);
-	}
+	virtual int pthread_cancel(pthread_t thread);
 
 	PthreadHandler() {}
 	virtual ~PthreadHandler() {}
@@ -184,7 +115,20 @@ public:
 
 /********************************************************************************/
 
-#define PTHREADHANDLER_CURRENT_DEFINITION(o)	PthreadHandler* PthreadHandler::Current = (o);
+class ConcurritPthreadHandler : public PthreadHandler {
+public:
+	ConcurritPthreadHandler() : PthreadHandler() {}
+	~ConcurritPthreadHandler() {}
+
+	int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+
+	int pthread_join(pthread_t thread, void ** value_ptr);
+
+	void pthread_exit(void * param0);
+
+	int pthread_cancel(pthread_t thread);
+};
+
 
 /********************************************************************************/
 

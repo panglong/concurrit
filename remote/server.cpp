@@ -37,9 +37,6 @@
 
 #include "tbb/concurrent_vector.h"
 
-#include "thread.cpp"
-#include "ipc.cpp"
-
 namespace concurrit {
 
 /********************************************************************************/
@@ -114,6 +111,8 @@ public:
 
 		concpipe->UnregisterShadowThread(this);
 
+		MYLOG(1) << "SERVER: Thread is ending tid = " << tid_;
+
 		return NULL;
 	}
 };
@@ -134,24 +133,30 @@ public:
 		switch(event->type) {
 		case TestStart:
 		{
+			safe_assert(event->threadid == 0);
+
 			if(test_started) {
 				safe_fail("Received TestStart before TestEnd!");
 			}
 			test_started = true;
 
-			// create main thread and restart threads
-			ShadowThread* thread = CreateShadowThread(MAINTID);
-			thread->SendContinue();
+			MYLOG(1) << "SERVER: Test starting.";
+
+			concurritStartTest();
 
 			return false; // ignore it
 		}
 
 		case TestEnd:
 		{
+			safe_assert(event->threadid == 0);
+
 			if(!test_started) {
 				safe_fail("Received TestEnd before TestStart!");
 			}
 			test_started = false;
+
+			concurritEndTest();
 
 			// broadcast thread-end signal to all threads
 			EventBuffer e;
@@ -161,7 +166,7 @@ public:
 			// signal semaphore to end the program
 			test_end_sem_.Signal();
 
-			pipe_->SendContinue(MAINTID);
+			MYLOG(1) << "SERVER: Test ending.";
 
 			return false; // ignore it
 		}
@@ -198,6 +203,8 @@ public:
 	}
 
 	ShadowThread* CreateShadowThread(THREADID tid) {
+		MYLOG(1) << "SERVER: Starting new thread with tid " << tid;
+
 		// create new thread, imitating the interpositioned threads
 		ShadowThread* shadowthread = new ServerShadowThread(tid, safe_notnull(pipe_));
 		shadowthread->SpawnAsThread(false);
@@ -220,6 +227,8 @@ int main0(int argc, char* argv[]) {
 
 	test_started = false;
 
+	MYLOG(1) << "SERVER: main starting.";
+
 	// TODO(elmas): make them static and global
 	ServerEventHandler handler;
 
@@ -231,6 +240,8 @@ int main0(int argc, char* argv[]) {
 	handler.test_end_sem()->Wait();
 
 	pipe.Close();
+
+	MYLOG(1) << "SERVER: main exiting.";
 
 	return EXIT_SUCCESS;
 }

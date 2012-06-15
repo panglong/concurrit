@@ -50,19 +50,19 @@ Scenario* Concurrit::current_scenario_ = NULL;
 
 /********************************************************************************/
 
-extern "C"
-__attribute__((constructor))
-void Concurrit_Constructor() {
-	//...
-}
+//extern "C"
+//__attribute__((constructor))
+//void Concurrit_Constructor() {
+//	//...
+//}
 
 /********************************************************************************/
 
-extern "C"
-__attribute__((destructor))
-void Concurrit_Destructor() {
-	//...
-}
+//extern "C"
+//__attribute__((destructor))
+//void Concurrit_Destructor() {
+//	//...
+//}
 
 /********************************************************************************/
 
@@ -104,7 +104,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	}
 
 	// 2
-	if(strncmp(argv[i], "--", 2) == 0) {
+	if(i < argc && strncmp(argv[i], "--", 2) == 0) {
 		++i;
 	}
 	args.clear();
@@ -140,6 +140,8 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	AuxState::Init();
 
 	PthreadOriginals::initialize();
+	safe_assert(PthreadHandler::Current == NULL);
+	PthreadHandler::Current = new ConcurritPthreadHandler();
 
 	Thread::init_tls_key();
 
@@ -166,6 +168,8 @@ void Concurrit::Destroy() {
 	} while(false);
 
 	safe_delete(Concurrit::sem_driver_load_);
+
+	safe_delete(PthreadHandler::Current);
 
 	CoroutineGroup::delete_main();
 

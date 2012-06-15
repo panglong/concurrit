@@ -36,7 +36,7 @@
 
 namespace concurrit {
 
-enum ExecutionModeType {MODE_SINGLE = 0, MODE_SERVER = 1, MODE_CLIENT = 2};
+//enum ExecutionModeType {MODE_SINGLE = 0, MODE_SERVER = 1, MODE_CLIENT = 2};
 
 class Config {
 public:
@@ -56,7 +56,7 @@ public:
 	static bool ReloadTestLibraryOnRestart;
 	static bool MarkEndingBranchesCovered;
 	static bool SaveExecutionTraceToFile;
-	static ExecutionModeType ExecutionMode;
+//	static ExecutionModeType ExecutionMode;
 	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
 	static bool ParseCommandLine(const main_args& args);
 };

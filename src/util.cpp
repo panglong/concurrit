@@ -64,7 +64,7 @@ main_args ArgVectorToMainArgs(const std::vector<char*>& args) {
 
 	if(c > 0) {
 		m.argv_ = new char*[c];
-		for(int i = 0; i < c; ++i) m.argv_[i] = args[i];
+		for(size_t i = 0; i < c; ++i) m.argv_[i] = args[i];
 	}
 
 	return m;

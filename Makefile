@@ -75,9 +75,17 @@ makedirs:
 	mkdir -p $(CONCURRIT_OBJDIR)
 	mkdir -p $(CONCURRIT_WORKDIR)
 
-.PHONY: clean	
+.PHONY: clean clean-remote	
 clean:
 	rm -rf $(CONCURRIT_BINDIR)
 	rm -rf $(CONCURRIT_LIBDIR)
 	rm -rf $(CONCURRIT_OBJDIR)
 	rm -rf $(CONCURRIT_WORKDIR)
+	
+clean-remote:
+	rm -f $(CONCURRIT_BINDIR)/testloader $(CONCURRIT_LIBDIR)/libserver.so $(CONCURRIT_LIBDIR)/libclient.so
+
+clean-lib:
+	rm -rf $(CONCURRIT_OBJDIR)
+	rm -f $(CONCURRIT_LIBDIR)/libconcurrit.so $(CONCURRIT_LIBDIR)/libdummy.so
+	

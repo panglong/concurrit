@@ -1,15 +1,13 @@
 #!/bin/bash
 
-function is_running(pid) {
-	kill -0 $pid
-	return $?
-}
-
 ARGS=( $@ )
 # get and remove name of the benchmark from arguments
 BENCH=${ARGS[0]}
 echo "Running $BENCH"
 unset ARGS[0]
+
+echo "Benchmark is $BENCH"
+echo "Arguments are ${ARGS[*]}"
 
 BENCHDIR=$CONCURRIT_HOME/bench/$BENCH
 
@@ -22,29 +20,33 @@ then
 	BENCHARGS=`cat $BENCHDIR/bench_args.txt`
 fi
 
+#create fifo directory
+rm -rf /tmp/concurrit/*
+mkdir -p /tmp/concurrit/pipe
+
 # run concurrit in server mode
-# -e server makes concurrit load libserver.so
+ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" )
 LD_PRELOAD=$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD \
-	$BENCHDIR/bin/$BENCH "$ARGS -e server" &
+	$BENCHDIR/bin/$BENCH ${ARGS[*]} &
 TESTPID=$!
 
 # run in loop for loader
+I=1
 while true; do
+	echo "ITERATION $I"
+	I=$I+1
+	
 	# check if test is still running
-	if [ is_running($TESTPID) -ne "0" ];
+	kill -0 $TESTPID
+	if [ "$?" -ne "0" ];
 	then
-		echo "REMOTE: DSL ended. Breaking the loop."
 		break
 	fi
 	
-	echo "REMOTE: SUT starting."
-	
 	# run loader
 	# add bench's library path to the end of arguments
-	LD_PRELOAD=$CONCURRIT_HOME/lib/libclient.so:$LD_PRELOAD \
+	LD_PRELOAD=$CONCURRIT_HOME/lib/libclient.so:$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD \
 		$CONCURRIT_HOME/bin/testloader $BENCHARGS $BENCHDIR/lib/lib$BENCH.so
-		
-	echo "REMOTE: SUT ended."
 done
 
-echo "REMOTE: Search ended."
+echo "SEARCH ENDED."

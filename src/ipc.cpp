@@ -116,6 +116,7 @@ void EventPipe::MkFifo(const char* name) {
 	int ret_val = mkfifo(name, 0666);
 
 	if ((ret_val == -1) && (errno != EEXIST)) {
+		perror("Error in mkfifo\n");
 		safe_fail("Error creating the named pipe %s", name);
 	}
 }
@@ -248,6 +249,9 @@ int ShadowThread::SpawnAsThread(bool call_original) {
 /**********************************************************************************/
 
 void ConcurrentPipe::Send(ShadowThread* thread, EventBuffer* event) {
+	safe_assert(event != NULL);
+	safe_assert(thread == NULL || thread->tid() == event->threadid);
+
 	send_mutex_.Lock();
 
 	bool cancel = event_handler_ == NULL ? false : !event_handler_->OnSend(event);
@@ -262,6 +266,7 @@ void ConcurrentPipe::Send(ShadowThread* thread, EventBuffer* event) {
 /**********************************************************************************/
 
 void ConcurrentPipe::Recv(ShadowThread* thread, EventBuffer* event) {
+	safe_assert(thread != NULL && event != NULL);
 	thread->WaitRecv(event);
 }
 
@@ -330,7 +335,7 @@ void ConcurrentPipe::SendContinue(THREADID tid) {
 	EventBuffer e;
 	e.type = Continue;
 	e.threadid = tid;
-	EventPipe::Send(&e);
+	Send(NULL, &e);
 }
 
 /**********************************************************************************/
