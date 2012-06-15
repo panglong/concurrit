@@ -260,7 +260,10 @@ inline void* _FUNC(const char* func_name) {
 	if(handle == NULL) {
 		handle = RTLD_DEFAULT;
 	}
-	void* f = FuncAddressByName(func_name, handle, true);
+	void* f = FuncAddressByName(func_name, handle, false);
+	if(f == NULL && handle != RTLD_DEFAULT) {
+		f = FuncAddressByName(func_name, true, true, true);
+	}
 	safe_assert(f != NULL);
 	return f;
 }

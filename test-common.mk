@@ -9,7 +9,9 @@ BENCHDIR?=$(CONCURRIT_BENCHDIR)/$(BENCH)
 TARGET?=$(BENCH)
 SRCS?=src/$(TARGET)test.cpp
 
-TEST_FLAGS=$(CONCURRIT_TEST_INC_FLAGS) $(CONCURRIT_TEST_LIB_FLAGS) -I. -Isrc -L. -Llib -g -gdwarf-2 -O1 -w -fPIC -fexceptions $(CONCURRIT_C_STD)
+TEST_FLAGS=$(CONCURRIT_TEST_INC_FLAGS) $(CONCURRIT_TEST_LIB_FLAGS) $(CONCURRIT_C_STD) \
+			-I. -Isrc -L. -Llib \
+			-g -gdwarf-2 -O1 -w -fPIC -fexceptions
 
 #ifneq ($(wildcard lib/lib$(TARGET).so),)
 #    TEST_FLAGS+=-l$(TARGET)
@@ -47,7 +49,7 @@ pin: lib/$(TARGETLIB) bin/$(TARGET)
 	LD_PRELOAD=$(CONCURRIT_HOME)/lib/libconcurrit.so:$(LD_PRELOAD) \
 	PATH="$(BENCHDIR)/bin:$(PATH)" \
 	LD_LIBRARY_PATH="$(BENCHDIR)/lib:$(LD_LIBRARY_PATH)" \
-	DYLD_LIBRARY_PATH=="$(BENCHDIR)/lib:$(DYLD_LIBRARY_PATH)" \
+	DYLD_LIBRARY_PATH="$(BENCHDIR)/lib:$(DYLD_LIBRARY_PATH)" \
 		$(CONCURRIT_HOME)/scripts/run_pintool.sh $(BENCHDIR)/bin/$(TARGET) $(ARGS)
 
 LIBFLAGS+=-g -gdwarf-2 -O1 -w -fPIC -shared -ldummy -lpthread -fexceptions -I$(CONCURRIT_INCDIR) -L$(CONCURRIT_LIBDIR)

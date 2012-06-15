@@ -25,9 +25,14 @@ rm -rf /tmp/concurrit/*
 mkdir -p /tmp/concurrit/pipe
 
 # run concurrit in server mode
-ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" )
-LD_PRELOAD=$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD \
+ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" "-p0" "-m1")
+
+LD_PRELOAD=$CONCURRIT_HOME/lib/libconcurrit.so:$BENCHDIR/lib/lib$BENCH.so:$LD_PRELOAD \
+PATH="$BENCHDIR/bin:$PATH" \
+LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
+DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
 	$BENCHDIR/bin/$BENCH ${ARGS[*]} &
+
 TESTPID=$!
 
 # run in loop for loader
@@ -46,6 +51,9 @@ while true; do
 	# run loader
 	# add bench's library path to the end of arguments
 	LD_PRELOAD=$CONCURRIT_HOME/lib/libclient.so:$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD \
+	PATH="$BENCHDIR/bin:$PATH" \
+	LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
+	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
 		$CONCURRIT_HOME/bin/testloader $BENCHARGS $BENCHDIR/lib/lib$BENCH.so
 done
 
