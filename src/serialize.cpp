@@ -86,4 +86,27 @@ bool Serializer::Load<void*>(void** x) {
 	return r;
 }
 
+/********************************************************************************/
+
+void Serializable::Load(const char* filename, const char* flags /*= "r"*/) {
+	Serializer serializer(filename, flags);
+	Load(&serializer);
+}
+
+void Serializable::Store(const char* filename, const char* flags /*= "w"*/) {
+	Serializer serializer(filename, flags);
+	Store(&serializer);
+}
+
+void Serializable::Load(FILE* file) {
+	Serializer serializer(file);
+	Load(&serializer);
+}
+void Serializable::Store(FILE* file) {
+	Serializer serializer(file);
+	Store(&serializer);
+}
+
+/********************************************************************************/
+
 } // end namespace

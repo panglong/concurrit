@@ -38,6 +38,7 @@
 #include "tbb/concurrent_vector.h"
 
 #include "thread.cpp"
+#include "ipc.cpp"
 
 namespace concurrit {
 

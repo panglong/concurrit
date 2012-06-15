@@ -755,19 +755,9 @@ public:
 	TPInFunc(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr()) : TransitionPredicate(), tvar_(tvar), addr_(addr) {}
 	~TPInFunc() {}
 
-	bool EvalState(Coroutine* t = NULL) {
-		safe_assert(t != NULL);
+	bool EvalState(Coroutine* t = NULL);
 
-		THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
-
-		return AuxState::InFunc->get(addr_, tid) > 0;
-	}
-
-	static TransitionPredicatePtr create(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr()) {
-		safe_assert(addr != 0);
-		TransitionPredicatePtr p(new TPInFunc(addr, tvar));
-		return p;
-	}
+	static TransitionPredicatePtr create(const ADDRINT& addr, const ThreadVarPtr& tvar = ThreadVarPtr());
 
 private:
 	DECL_FIELD(ThreadVarPtr, tvar)

@@ -87,24 +87,14 @@ public:
 	Counter(std::string name = "") : name_(name), value_(0) {}
 	virtual ~Counter() {}
 
-	virtual void increment(unsigned long k = 1) {
-		value_ += k;
-	}
+	virtual void increment(unsigned long k = 1);
 
-	virtual void reset(std::string name = "") {
-		if(name != "") {
-			name_ = name;
-		}
-		value_ = 0;
-	}
+	virtual void reset(std::string name = "");
 
-	virtual std::string ToString() {
-		return format_string("%s: %lu", name_.c_str(), value_);
-	}
+	virtual std::string ToString();
 
-	virtual operator unsigned long () {
-		return value_;
-	}
+	virtual operator unsigned long ();
+
 private:
 	DECL_FIELD(std::string, name)
 	DECL_FIELD(unsigned long, value)
@@ -118,30 +108,15 @@ public:
 	~AvgCounter() {}
 
 	// override
-	void increment(unsigned long k = 1) {
-		Counter::increment(k);
-		if(k > max_) max_ = k;
-		if(k < min_) min_ = k;
-		++count_;
-	}
+	void increment(unsigned long k = 1);
 
 	// override
-	void reset(std::string name = "") {
-		Counter::reset(name);
-		count_ = 0;
-		min_ = ULONG_MAX;
-		max_ = 0L;
-	}
+	void reset(std::string name = "");
 
 	// override
-	std::string ToString() {
-		safe_assert(count_ > 0);
-		return format_string("%s: Num: %lu | Total: %lu | Avg: %lu | Min: %lu | Max: %lu", name_.c_str(), count_, value_, (value_/count_), min_, max_);
-	}
+	std::string ToString();
 
-	operator unsigned long () {
-		return (value_/count_);
-	}
+	operator unsigned long ();
 private:
 	DECL_FIELD(unsigned long, count)
 	DECL_FIELD(unsigned long, min)
@@ -160,59 +135,15 @@ public:
 	}
 	~Statistics() {}
 
-	void Reset() {
-		timers_.clear();
-		counters_.clear();
-		avgcounters_.clear();
-	}
+	void Reset();
 
-	std::string ToString() {
-		std::stringstream s;
+	std::string ToString();
 
-		s << "************* Statistics *************\n";
+	Timer& timer(const std::string& name);
 
-		for(TimerMap::iterator itr = timers_.begin(); itr != timers_.end(); ++itr) {
-			Timer& timer = itr->second;
-			s << timer.ToString() << std::endl;
-		}
+	Counter& counter(const std::string& name);
 
-		for(CounterMap::iterator itr = counters_.begin(); itr != counters_.end(); ++itr) {
-			Counter& counter = itr->second;
-			s << counter.ToString() << std::endl;
-		}
-
-		for(AvgCounterMap::iterator itr = avgcounters_.begin(); itr != avgcounters_.end(); ++itr) {
-			AvgCounter& avgcounter = itr->second;
-			s << avgcounter.ToString() << std::endl;
-		}
-
-		return s.str();
-	}
-
-	Timer& timer(const std::string& name) {
-		TimerMap::iterator itr = timers_.find(name);
-		if(itr == timers_.end()) {
-			timers_[name] = Timer(name);
-		}
-		return timers_[name];
-	}
-
-	Counter& counter(const std::string& name) {
-		CounterMap::iterator itr = counters_.find(name);
-		if(itr == counters_.end()) {
-			counters_[name] = Counter(name);
-		}
-		return counters_[name];
-	}
-
-	AvgCounter& avg_counter(const std::string& name) {
-		AvgCounterMap::iterator itr = avgcounters_.find(name);
-		if(itr == avgcounters_.end()) {
-			avgcounters_[name] = AvgCounter(name);
-		}
-		return avgcounters_[name];
-	}
-
+	AvgCounter& avg_counter(const std::string& name);
 
 	static unsigned long GetMemoryUsageInKB();
 
@@ -221,6 +152,8 @@ private:
 	DECL_FIELD_REF(CounterMap, counters)
 	DECL_FIELD_REF(AvgCounterMap, avgcounters)
 };
+
+/********************************************************************************/
 
 } // end namespace
 

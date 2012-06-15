@@ -306,4 +306,108 @@ unsigned long Statistics::GetMemoryUsageInKB() {
 
 /********************************************************************************/
 
+void Counter::increment(unsigned long k /*= 1*/) {
+	value_ += k;
+}
+
+void Counter::reset(std::string name /*= ""*/) {
+	if(name != "") {
+		name_ = name;
+	}
+	value_ = 0;
+}
+
+std::string Counter::ToString() {
+	return format_string("%s: %lu", name_.c_str(), value_);
+}
+
+Counter::operator unsigned long () {
+	return value_;
+}
+
+/********************************************************************************/
+
+// override
+void AvgCounter::increment(unsigned long k /*= 1*/) {
+	Counter::increment(k);
+	if(k > max_) max_ = k;
+	if(k < min_) min_ = k;
+	++count_;
+}
+
+// override
+void AvgCounter::reset(std::string name /*= ""*/) {
+	Counter::reset(name);
+	count_ = 0;
+	min_ = ULONG_MAX;
+	max_ = 0L;
+}
+
+// override
+std::string AvgCounter::ToString() {
+	safe_assert(count_ > 0);
+	return format_string("%s: Num: %lu | Total: %lu | Avg: %lu | Min: %lu | Max: %lu", name_.c_str(), count_, value_, (value_/count_), min_, max_);
+}
+
+AvgCounter::operator unsigned long () {
+	return (value_/count_);
+}
+
+/********************************************************************************/
+
+void Statistics::Reset() {
+	timers_.clear();
+	counters_.clear();
+	avgcounters_.clear();
+}
+
+std::string Statistics::ToString() {
+	std::stringstream s;
+
+	s << "************* Statistics *************\n";
+
+	for(TimerMap::iterator itr = timers_.begin(); itr != timers_.end(); ++itr) {
+		Timer& timer = itr->second;
+		s << timer.ToString() << std::endl;
+	}
+
+	for(CounterMap::iterator itr = counters_.begin(); itr != counters_.end(); ++itr) {
+		Counter& counter = itr->second;
+		s << counter.ToString() << std::endl;
+	}
+
+	for(AvgCounterMap::iterator itr = avgcounters_.begin(); itr != avgcounters_.end(); ++itr) {
+		AvgCounter& avgcounter = itr->second;
+		s << avgcounter.ToString() << std::endl;
+	}
+
+	return s.str();
+}
+
+Timer& Statistics::timer(const std::string& name) {
+	TimerMap::iterator itr = timers_.find(name);
+	if(itr == timers_.end()) {
+		timers_[name] = Timer(name);
+	}
+	return timers_[name];
+}
+
+Counter& Statistics::counter(const std::string& name) {
+	CounterMap::iterator itr = counters_.find(name);
+	if(itr == counters_.end()) {
+		counters_[name] = Counter(name);
+	}
+	return counters_[name];
+}
+
+AvgCounter& Statistics::avg_counter(const std::string& name) {
+	AvgCounterMap::iterator itr = avgcounters_.find(name);
+	if(itr == avgcounters_.end()) {
+		avgcounters_[name] = AvgCounter(name);
+	}
+	return avgcounters_[name];
+}
+
+/********************************************************************************/
+
 } // end namespace

@@ -83,31 +83,11 @@ public:
 
 class ExistsResult : public SuccessResult {
 public:
-	explicit ExistsResult(Schedule* schedule) {
-		schedule_ = schedule;
-		coverage_ = *(schedule_->coverage());
-	}
+	explicit ExistsResult(Schedule* schedule);
 
-	virtual ~ExistsResult() {
-		if(schedule_ != NULL) {
-			delete schedule_;
-		}
-	}
+	virtual ~ExistsResult();
 
-	std::string ToString() {
-		safe_assert(schedule_ != NULL);
-		std::stringstream s;
-		s << SuccessResult::ToString() << "\n";
-		s << "Found successful execution.\n";
-		s << statistics_.ToString() << "\n";
-
-//		schedule_->ToStream(InWorkDir("schedule.out"));
-//		s << "Schedule saved to schedule.out.\n";
-//
-//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
-
-		return s.str();
-	}
+	std::string ToString();
 
 private:
 	DECL_FIELD(Schedule*, schedule)
@@ -117,42 +97,13 @@ private:
 
 class ForallResult : public SuccessResult {
 public:
-	ForallResult() : num_all_schedules_(0) {
-	}
-	~ForallResult() {
-		for(std::vector<Schedule*>::iterator itr = schedules_.begin(); itr < schedules_.end(); ++itr) {
-			safe_assert(*itr != NULL);
-			delete *itr;
-		}
-	}
+	ForallResult() : num_all_schedules_(0) {}
 
-	void AddSchedule(Schedule* RESTRICT schedule) {
-		num_all_schedules_++;
-		if(coverage_.AddAll(schedule->coverage())) {
-			schedules_.push_back(static_cast<Schedule*>(schedule));
-		} else {
-			delete schedule;
-		}
-	}
+	~ForallResult();
 
-	std::string ToString() {
-		std::stringstream s;
-		s << SuccessResult::ToString() << "\n";
-		s << "Found " << num_all_schedules_ << " successful executions.\n";
-		s << statistics_.ToString() << "\n";
+	void AddSchedule(Schedule* RESTRICT schedule);
 
-//		s << "Found " << schedules_.size() << " coverage-increasing executions.\n";
-//		bool append = false;
-//		for(std::vector<Schedule*>::iterator itr = schedules_.begin(); itr < schedules_.end(); ++itr) {
-//			Schedule* schedule = (*itr);
-//			schedule->ToStream(InWorkDir("schedule.out"), append); append = true;
-//		}
-//		s << "Schedules saved to schedule.out.\n";
-//
-//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
-
-		return s.str();
-	}
+	std::string ToString();
 
 private:
 	DECL_FIELD(std::vector<Schedule*>, schedules)
@@ -169,13 +120,7 @@ public:
 
 	~SignalResult() {}
 
-	std::string ToString() {
-		std::stringstream s;
-		s << FailureResult::ToString() << "\n";
-		s << "Signal received: " << signal_number_ << "\n";
-		s << statistics_.ToString() << "\n";
-		return s.str();
-	}
+	std::string ToString();
 
 private:
 	DECL_FIELD(int, signal_number)
@@ -185,37 +130,12 @@ private:
 
 class AssertionViolationResult : public FailureResult {
 public:
-	explicit AssertionViolationResult(AssertionViolationException* cause, Schedule* schedule) {
-		cause_ = cause;
-		schedule_ = safe_notnull(schedule);
-		coverage_ = *(schedule_->coverage());
-	}
+	explicit AssertionViolationResult(AssertionViolationException* cause, Schedule* schedule);
 
-	virtual ~AssertionViolationResult() {
-		if(cause_ != NULL) {
-			delete cause_;
-		}
-		if(schedule_ != NULL) {
-			delete schedule_;
-		}
-	}
+	virtual ~AssertionViolationResult();
 
-	std::string ToString() {
-		safe_assert(cause_ != NULL);
-		safe_assert(schedule_ != NULL);
-		std::stringstream s;
-		s << FailureResult::ToString() << "\n";
-		s << "Assertion Failure.\n";
-		s << cause_->what() << "\n";
-		s << statistics_.ToString() << "\n";
 
-//		schedule_->ToStream(InWorkDir("schedule.out"));
-//		s << "Schedule saved to schedule.out.\n";
-//
-//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
-
-		return s.str();
-	}
+	std::string ToString();
 
 private:
 	DECL_FIELD(AssertionViolationException*, cause)
@@ -226,37 +146,11 @@ private:
 
 class RuntimeExceptionResult : public FailureResult {
 public:
-	explicit RuntimeExceptionResult(std::exception* cause, Schedule* schedule) {
-		cause_ = cause;
-		schedule_ = safe_notnull(schedule);
-		coverage_ = *(schedule_->coverage());
-	}
+	explicit RuntimeExceptionResult(std::exception* cause, Schedule* schedule);
 
-	virtual ~RuntimeExceptionResult() {
-		if(cause_ != NULL) {
-			delete cause_;
-		}
-		if(schedule_ != NULL) {
-			delete schedule_;
-		}
-	}
+	virtual ~RuntimeExceptionResult();
 
-	std::string ToString() {
-		safe_assert(cause_ != NULL);
-		safe_assert(schedule_ != NULL);
-		std::stringstream s;
-		s << FailureResult::ToString() << "\n";
-		s << "Runtime Exception.";
-		s << cause_->what() << "\n";
-		s << statistics_.ToString() << "\n";
-
-//		schedule_->ToStream(InWorkDir("schedule.out"));
-//		s << "Schedule saved to schedule.out.\n";
-//
-//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
-
-		return s.str();
-	}
+	std::string ToString();
 
 private:
 	DECL_FIELD(std::exception*, cause)
@@ -267,35 +161,17 @@ private:
 
 class NoFeasibleExecutionResult : public FailureResult {
 public:
-	explicit NoFeasibleExecutionResult(Schedule* schedule) {
-		schedule_ = safe_notnull(schedule);
-		coverage_ = *(schedule_->coverage());
-	}
+	explicit NoFeasibleExecutionResult(Schedule* schedule);
 
-	virtual ~NoFeasibleExecutionResult() {
-		if(schedule_ != NULL) {
-			delete schedule_;
-		}
-	}
+	virtual ~NoFeasibleExecutionResult();
 
-	std::string ToString() {
-		safe_assert(schedule_ != NULL);
-		std::stringstream s;
-		s << FailureResult::ToString() << "\n";
-		s << "No feasible execution found!\n";
-		s << statistics_.ToString() << "\n";
-
-//		schedule_->ToStream(InWorkDir("schedule.out"));
-//		s << "Schedule saved to schedule.out.\n";
-//
-//		s << "Total coverage:\n" << coverage_.ToString() << "\n";
-
-		return s.str();
-	}
+	std::string ToString();
 
 private:
 	DECL_FIELD(Schedule*, schedule)
 };
+
+/********************************************************************************/
 
 } // end namespace
 

@@ -126,19 +126,10 @@ private:
 // represents a set of coroutines to restrict the group to the rest of those
 class WithoutGroup {
 public:
-	WithoutGroup(CoroutineGroup* group, CoroutinePtrSet set) : group_(group), set_(set) {
-		for_each_coroutine(set_, co) {
-			// remove from the group
-			group_->TakeOutMember(co);
-		}
-	}
+	WithoutGroup(CoroutineGroup* group, CoroutinePtrSet set);
 
-	~WithoutGroup() {
-		for_each_coroutine(set_, co) {
-			// add back to the group
-			group_->PutBackMember(co);
-		}
-	}
+	~WithoutGroup();
+
 private:
 	DECL_FIELD(CoroutineGroup*, group)
 	DECL_FIELD_REF(CoroutinePtrSet, set)
@@ -149,21 +140,9 @@ private:
 // represents a set of coroutines to restrict the group to only those
 class WithGroup {
 public:
-	WithGroup(CoroutineGroup* group, CoroutinePtrSet set) {
-		CoroutinePtrSet others;
-		group->GetMemberSet(&others);
-		for_each_coroutine(set, co) {
-			CoroutinePtrSet::iterator iter = others.find(co);
-			if(iter != others.end()) {
-				others.erase(iter);
-			}
-		}
-		without_ = new WithoutGroup(group, others); // takes out others
-	}
+	WithGroup(CoroutineGroup* group, CoroutinePtrSet set);
 
-	~WithGroup() {
-		delete without_; // puts back others
-	}
+	~WithGroup();
 
 private:
 	DECL_FIELD_REF(WithoutGroup*, without)

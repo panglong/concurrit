@@ -831,28 +831,10 @@ public:
 	~PersistentSchedule() {}
 
 	// override
-	void Load(Serializer* serializer) {
-		int sz;
-		if(!serializer->Load<int>(&sz)) safe_fail("Error in reading schedule!\n");
-		safe_assert(sz >= 0);
-		if(sz > 0) {
-			for(int i = 0; i < sz; ++i) {
-				ScheduleItem item;
-				if(!serializer->Load<ScheduleItem>(&item)) safe_fail("Error in reading schedule!\n");
-				this->push_back(item);
-			}
-		}
-		MYLOG(2) << "PersistentSchedule: Loaded " << sz << " items";
-	}
+	void Load(Serializer* serializer);
 
 	//override
-	void Store(Serializer* serializer) {
-		serializer->Store<int>(int(this->size()));
-		for(iterator itr = begin(); itr < end(); ++itr) {
-			serializer->Store<ScheduleItem>(*itr);
-		}
-		MYLOG(2) << "PersistentSchedule: Stored " << size() << " items";
-	}
+	void Store(Serializer* serializer);
 
 };
 
@@ -863,26 +845,7 @@ public:
 	ExecutionTreePath() : std::vector<ChildLoc>() {}
 	virtual ~ExecutionTreePath() {}
 
-	PersistentSchedule* ComputeExecutionTreeStack(PersistentSchedule* schedule = NULL) {
-		if(schedule == NULL) {
-			schedule = new PersistentSchedule();
-		}
-		for(iterator itr = begin(); itr < end(); ++itr) {
-			ChildLoc& loc = (*itr);
-			safe_assert(!loc.empty());
-			ExecutionTree* parent = loc.parent();
-			int child_index = loc.child_index();
-			SelectThreadNode* select = ASINSTANCEOF(parent, SelectThreadNode*);
-			if(select != NULL) {
-				ThreadVarPtr var = select->var(child_index);
-				safe_assert(var != NULL || !var->is_empty());
-				schedule->push_back({ScheduleItem_ThreadId, var->tid()});
-			} else {
-				schedule->push_back({ScheduleItem_ChildIndex, child_index});
-			}
-		}
-		return schedule;
-	}
+	PersistentSchedule* ComputeExecutionTreeStack(PersistentSchedule* schedule = NULL);
 };
 
 /********************************************************************************/
@@ -963,16 +926,16 @@ public:
 	void SaveDotGraph(const char* filename);
 
 private:
-	ExecutionTree* GetRef(std::memory_order mo = memory_order_seq_cst) {
+	inline ExecutionTree* GetRef(std::memory_order mo = memory_order_seq_cst) {
 		return static_cast<ExecutionTree*>(atomic_ref_.load(mo));
 	}
 
-	ExecutionTree* ExchangeRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
+	inline ExecutionTree* ExchangeRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
 		return static_cast<ExecutionTree*>(atomic_ref_.exchange(node, mo));
 	}
 
 	// normally end node cannot be overwritten, unless overwrite_end flag is set
-	void SetRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
+	inline void SetRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
 		atomic_ref_.store(node, mo);
 	}
 

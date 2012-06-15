@@ -43,4 +43,81 @@ BacktrackException* __backtrack_exception__ = new BacktrackException();
 
 /********************************************************************************/
 
+ConcurritException::ConcurritException(std::exception* e, Coroutine* owner /*= NULL*/, const std::string& where /*= ""*/, ConcurritException* next /*= NULL*/) throw() : std::exception() {
+	safe_assert(e != NULL);
+	where_ = where;
+	cause_ = e;
+	owner_ = owner;
+	next_ = next;
+}
+
+ConcurritException::~ConcurritException() throw() {
+	// old comment: do not delete the cause!
+	BacktrackException* be = ASINSTANCEOF(cause_, BacktrackException*);
+	if(be != NULL) {
+		delete be;
+	}
+
+	// but can delete the next
+	if(next_ != NULL) {
+		delete next_;
+	}
+}
+
+const char* ConcurritException::what() const throw() {
+	std::string s = format_string("Exception in: %s\n"
+								  "Cause: %s\n"
+								  "%s",
+								  where_.c_str(),
+								  cause_->what(),
+								  (next_ != NULL ? next_->what() : ""));
+	return s.c_str();
+}
+
+// also assume exception
+BacktrackException* ConcurritException::get_backtrack() {
+	ConcurritException* ce = this;
+	while(ce != NULL) {
+		if(INSTANCEOF(ce->cause_, BacktrackException*)) {
+			return static_cast<BacktrackException*>(ce->cause_);
+		}
+		ce = ce->next_;
+	}
+	return NULL;
+}
+
+AssertionViolationException* ConcurritException::get_assertion_violation() {
+	ConcurritException* ce = this;
+	while(ce != NULL) {
+		if(INSTANCEOF(ce->cause_, AssertionViolationException*)) {
+			return static_cast<AssertionViolationException*>(ce->cause_);
+		}
+		ce = ce->next_;
+	}
+	return NULL;
+}
+
+InternalException* ConcurritException::get_internal() {
+	ConcurritException* ce = this;
+	while(ce != NULL) {
+		if(INSTANCEOF(ce->cause_, InternalException*)) {
+			return static_cast<InternalException*>(ce->cause_);
+		}
+		ce = ce->next_;
+	}
+	return NULL;
+}
+
+std::exception* ConcurritException::get_non_backtrack() {
+	ConcurritException* ce = this;
+	while(ce != NULL) {
+		if(!INSTANCEOF(ce->cause_, BacktrackException*)) {
+			return ce->cause_;
+		}
+		ce = ce->next_;
+	}
+	return NULL;
+}
+
+
 } // end namespace

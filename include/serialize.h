@@ -142,24 +142,13 @@ class Serializable {
 public:
 	virtual ~Serializable(){}
 
-	void Load(const char* filename, const char* flags = "r") {
-		Serializer serializer(filename, flags);
-		Load(&serializer);
-	}
+	void Load(const char* filename, const char* flags = "r");
 
-	void Store(const char* filename, const char* flags = "w") {
-		Serializer serializer(filename, flags);
-		Store(&serializer);
-	}
+	void Store(const char* filename, const char* flags = "w");
 
-	void Load(FILE* file) {
-		Serializer serializer(file);
-		Load(&serializer);
-	}
-	void Store(FILE* file) {
-		Serializer serializer(file);
-		Store(&serializer);
-	}
+	void Load(FILE* file);
+
+	void Store(FILE* file);
 
 	virtual void Load(Serializer* serializer) = 0;
 	virtual void Store(Serializer* serializer) = 0;

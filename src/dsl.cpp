@@ -995,6 +995,56 @@ bool ForallThreadNode::ComputeCoverage(bool call_parent /*= false*/) {
 
 /*************************************************************************************/
 
+PersistentSchedule* ExecutionTreePath::ComputeExecutionTreeStack(PersistentSchedule* schedule /*= NULL*/) {
+	if(schedule == NULL) {
+		schedule = new PersistentSchedule();
+	}
+	for(iterator itr = begin(); itr < end(); ++itr) {
+		ChildLoc& loc = (*itr);
+		safe_assert(!loc.empty());
+		ExecutionTree* parent = loc.parent();
+		int child_index = loc.child_index();
+		SelectThreadNode* select = ASINSTANCEOF(parent, SelectThreadNode*);
+		if(select != NULL) {
+			ThreadVarPtr var = select->var(child_index);
+			safe_assert(var != NULL || !var->is_empty());
+			schedule->push_back({ScheduleItem_ThreadId, var->tid()});
+		} else {
+			schedule->push_back({ScheduleItem_ChildIndex, child_index});
+		}
+	}
+	return schedule;
+}
+
+/*************************************************************************************/
+
+// override
+void PersistentSchedule::Load(Serializer* serializer) {
+	int sz;
+	if(!serializer->Load<int>(&sz)) safe_fail("Error in reading schedule!\n");
+	safe_assert(sz >= 0);
+	if(sz > 0) {
+		for(int i = 0; i < sz; ++i) {
+			ScheduleItem item;
+			if(!serializer->Load<ScheduleItem>(&item)) safe_fail("Error in reading schedule!\n");
+			this->push_back(item);
+		}
+	}
+	MYLOG(2) << "PersistentSchedule: Loaded " << sz << " items";
+}
+
+//override
+void PersistentSchedule::Store(Serializer* serializer) {
+	serializer->Store<int>(int(this->size()));
+	for(iterator itr = begin(); itr < end(); ++itr) {
+		serializer->Store<ScheduleItem>(*itr);
+	}
+	MYLOG(2) << "PersistentSchedule: Stored " << size() << " items";
+}
+
+/*************************************************************************************/
+
+
 } // end namespace
 
 

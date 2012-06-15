@@ -91,20 +91,6 @@ public:
 	// return the next access this coroutine will do when scheduled
 	AccessLocPair GetNextAccess();
 
-	// operations about delaying and resuming a coroutine
-	inline bool IsDelayed() {
-		return status_ < 0;
-	}
-
-	inline void MakeDelayed() {
-		CHECK(!IsDelayed());
-		status_ = 0 - status_;
-	}
-	inline void CancelDelayed() {
-		CHECK(IsDelayed());
-		status_ = abs(status_);
-	}
-
 	inline bool is_ended() {
 		return (status_ >= ENDED);
 	}
@@ -112,7 +98,7 @@ public:
 	void StartControlledTransition();
 	void FinishControlledTransition();
 
-	char* instr_callback_info() {
+	inline char* instr_callback_info() {
 		return instr_callback_info_;
 	}
 

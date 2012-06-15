@@ -40,6 +40,7 @@
 #include <cstdatomic>
 
 #include "thread.cpp"
+#include "ipc.cpp"
 
 namespace concurrit {
 

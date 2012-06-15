@@ -59,13 +59,9 @@ enum BacktrackReason { SEARCH_ENDS = 1,
 
 class BacktrackException : public std::exception {
 public:
-	BacktrackException(BacktrackReason reason = UNKNOWN) throw() : std::exception(), reason_(reason) {
+	BacktrackException(BacktrackReason reason = UNKNOWN) throw() : std::exception(), reason_(reason) {}
 
-	}
-
-	virtual ~BacktrackException() throw() {
-
-	}
+	virtual ~BacktrackException() throw() {}
 
 	virtual const char* what() const throw() {
 		return (std::string("Backtrack due to ") + ReasonToString(reason_)).c_str();
@@ -206,81 +202,20 @@ private:
 // general counit exception
 class ConcurritException : public std::exception {
 public:
-	ConcurritException(std::exception* e, Coroutine* owner = NULL, const std::string& where = "", ConcurritException* next = NULL) throw() : std::exception() {
-		safe_assert(e != NULL);
-		where_ = where;
-		cause_ = e;
-		owner_ = owner;
-		next_ = next;
-	}
+	ConcurritException(std::exception* e, Coroutine* owner = NULL, const std::string& where = "", ConcurritException* next = NULL) throw();
 
-	~ConcurritException() throw() {
-		// old comment: do not delete the cause!
-		BacktrackException* be = ASINSTANCEOF(cause_, BacktrackException*);
-		if(be != NULL) {
-			delete be;
-		}
+	~ConcurritException() throw();
 
-		// but can delete the next
-		if(next_ != NULL) {
-			delete next_;
-		}
-	}
-
-	virtual const char* what() const throw() {
-		std::string s = format_string("Exception in: %s\n"
-									  "Cause: %s\n"
-									  "%s",
-									  where_.c_str(),
-									  cause_->what(),
-									  (next_ != NULL ? next_->what() : ""));
-		return s.c_str();
-	}
+	virtual const char* what() const throw();
 
 	// also assume exception
-	BacktrackException* get_backtrack() {
-		ConcurritException* ce = this;
-		while(ce != NULL) {
-			if(INSTANCEOF(ce->cause_, BacktrackException*)) {
-				return static_cast<BacktrackException*>(ce->cause_);
-			}
-			ce = ce->next_;
-		}
-		return NULL;
-	}
+	BacktrackException* get_backtrack();
 
-	AssertionViolationException* get_assertion_violation() {
-		ConcurritException* ce = this;
-		while(ce != NULL) {
-			if(INSTANCEOF(ce->cause_, AssertionViolationException*)) {
-				return static_cast<AssertionViolationException*>(ce->cause_);
-			}
-			ce = ce->next_;
-		}
-		return NULL;
-	}
+	AssertionViolationException* get_assertion_violation();
 
-	InternalException* get_internal() {
-		ConcurritException* ce = this;
-		while(ce != NULL) {
-			if(INSTANCEOF(ce->cause_, InternalException*)) {
-				return static_cast<InternalException*>(ce->cause_);
-			}
-			ce = ce->next_;
-		}
-		return NULL;
-	}
+	InternalException* get_internal();
 
-	std::exception* get_non_backtrack() {
-		ConcurritException* ce = this;
-		while(ce != NULL) {
-			if(!INSTANCEOF(ce->cause_, BacktrackException*)) {
-				return ce->cause_;
-			}
-			ce = ce->next_;
-		}
-		return NULL;
-	}
+	std::exception* get_non_backtrack();
 
 private:
 	DECL_FIELD(std::string, where)
@@ -296,9 +231,7 @@ private:
 //extern ConcurritException*    __concurrit_exception__;
 
 inline BacktrackException* GetBacktrackException(BacktrackReason reason = UNKNOWN) {
-	BacktrackException* e = new BacktrackException(reason);
-	e->set_reason(reason);
-	return e;
+	return new BacktrackException(reason);
 }
 
 //inline TerminateSearchException* GetTerminateSearchException() {

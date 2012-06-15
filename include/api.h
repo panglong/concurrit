@@ -207,20 +207,6 @@ private:
 
 /********************************************************************************/
 
-/* delaying and resuming coroutines
- * usage:
- * DELAY(t);
- * ....
- * RESUME(t);
- */
-#define DELAY(t) \
-	t->MakeDelayed()
-
-#define RESUME(t) \
-	t->CancelDelayed()
-
-/********************************************************************************/
-
 // this is used for the pin instrumentation
 //extern void BeginStrand(const char* name);
 

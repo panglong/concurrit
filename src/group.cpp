@@ -324,4 +324,38 @@ void CoroutineGroup::KillAll(int signal_number, THREADID sender /*= 0*/) {
 
 /********************************************************************************/
 
+WithoutGroup::WithoutGroup(CoroutineGroup* group, CoroutinePtrSet set) : group_(group), set_(set) {
+	for_each_coroutine(set_, co) {
+		// remove from the group
+		group_->TakeOutMember(co);
+	}
+}
+
+WithoutGroup::~WithoutGroup() {
+	for_each_coroutine(set_, co) {
+		// add back to the group
+		group_->PutBackMember(co);
+	}
+}
+
+/********************************************************************************/
+
+WithGroup::WithGroup(CoroutineGroup* group, CoroutinePtrSet set) {
+	CoroutinePtrSet others;
+	group->GetMemberSet(&others);
+	for_each_coroutine(set, co) {
+		CoroutinePtrSet::iterator iter = others.find(co);
+		if(iter != others.end()) {
+			others.erase(iter);
+		}
+	}
+	without_ = new WithoutGroup(group, others); // takes out others
+}
+
+WithGroup::~WithGroup() {
+	delete without_; // puts back others
+}
+
+/********************************************************************************/
+
 } // end namespace

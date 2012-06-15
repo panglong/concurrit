@@ -423,6 +423,22 @@ ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t1,
 
 /********************************************************************************/
 
+bool TPInFunc::EvalState(Coroutine* t /*= NULL*/) {
+	safe_assert(t != NULL);
+
+	THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
+
+	return AuxState::InFunc->get(addr_, tid) > 0;
+}
+
+TransitionPredicatePtr TPInFunc::create(const ADDRINT& addr, const ThreadVarPtr& tvar /*= ThreadVarPtr()*/) {
+	safe_assert(addr != 0);
+	TransitionPredicatePtr p(new TPInFunc(addr, tvar));
+	return p;
+}
+
+/********************************************************************************/
+
 } // end namespace
 
 

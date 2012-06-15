@@ -53,25 +53,8 @@ struct PipeNamePair {
 	std::string out_name;
 };
 
-inline PipeNamePair PipeNamesForSUT(int id = 0) {
-	safe_assert(id >= 0);
-
-	PipeNamePair pair;
-	char buff[256];
-
-	snprintf(buff, 256, PIPEDIR "/in_%d", id);
-	pair.in_name = std::string(buff);
-
-	snprintf(buff, 256, PIPEDIR "/out_%d", id);
-	pair.out_name = std::string(buff);
-
-	return pair;
-}
-
-inline PipeNamePair PipeNamesForDSL(int id = 0) {
-	PipeNamePair pair = PipeNamesForSUT(id);
-	return {pair.out_name, pair.in_name};
-}
+PipeNamePair PipeNamesForSUT(int id = 0);
+PipeNamePair PipeNamesForDSL(int id = 0);
 
 /********************************************************************************/
 
@@ -79,83 +62,21 @@ class ShadowThread;
 
 class EventPipe {
 public:
-	EventPipe() {
-		Init(NULL, NULL);
-	}
+	EventPipe();
 
-	EventPipe(const PipeNamePair& names) {
-		Init(names);
-	}
+	EventPipe(const PipeNamePair& names);
 
-	void Init(const PipeNamePair& names) {
-		Init(names.in_name.c_str(), names.out_name.c_str());
-	}
+	void Init(const PipeNamePair& names);
 
+	void Init(const char* in_name, const char* out_name);
 
-	void Init(const char* in_name, const char* out_name) {
-		in_name_ = in_name;
-		if(in_name_ != NULL) {
-			in_name_ = strdup(in_name_);
-			MkFifo(in_name_);
-		}
+	virtual ~EventPipe();
 
-		out_name_ = out_name;
-		if(out_name_ != NULL) {
-			out_name_ = strdup(out_name_);
-			MkFifo(out_name_);
-		}
+	static void MkFifo(const char* name);
 
-		in_fd_ = out_fd_ = -1;
+	virtual void Open();
 
-		is_open_ = false;
-	}
-
-	virtual ~EventPipe() {
-		if(is_open_) {
-			Close();
-		}
-
-		if(in_name_ != NULL) delete in_name_;
-		if(out_name_ != NULL) delete out_name_;
-	}
-
-	static void MkFifo(const char* name) {
-		safe_assert(name != NULL);
-
-		int ret_val = mkfifo(name, 0666);
-
-		if ((ret_val == -1) && (errno != EEXIST)) {
-			safe_fail("Error creating the named pipe %s", name);
-		}
-	}
-
-	virtual void Open() {
-		safe_assert(!is_open_);
-
-		if(in_name_ != NULL) {
-			in_fd_ = open(in_name_, O_RDONLY);
-		}
-
-		if(out_name_ != NULL) {
-			out_fd_ = open(out_name_, O_WRONLY);
-		}
-
-		is_open_ = true;
-	}
-
-	virtual void Close() {
-		safe_assert(is_open_);
-
-		if(in_name_ != NULL) {
-			close(in_fd_);
-		}
-
-		if(out_name_ != NULL) {
-			close(out_fd_);
-		}
-
-		is_open_ = false;
-	}
+	virtual void Close();
 
 #define DoSend(x)	write(out_fd_, static_cast<void*>(&x), sizeof(x))
 #define DoRecv(x)	read(in_fd_, static_cast<void*>(&x), sizeof(x))
@@ -210,95 +131,30 @@ private:
 
 class ShadowThread {
 public:
-	ShadowThread(THREADID tid, EventPipe* pipe) : tid_(tid), pipe_(pipe), event_(NULL) {
-		memset(&event_, 0, sizeof(EventBuffer));
-		sem_.Init(0);
-	}
+	ShadowThread(THREADID tid, EventPipe* pipe);
 
 	virtual ~ShadowThread(){}
 
-//	void WaitForEventAndSkip(EventKind type) {
-//		int timer = 0;
-//		for(pipe_.Recv(&event_); event_.type != type; pipe_.Recv(&event_)) {
-//			if(timer > 1000) {
-//				safe_fail("Too many iterations for waiting event kind %d!", type);
-//			}
-//			++timer;
-//			SendContinue();
-//		}
-//		SendContinue();
-//	}
-//
-	void SendContinue() {
-		EventBuffer e;
-		e.type = Continue;
-		e.threadid = tid_;
-		Send(&e);
-	}
+	void SendContinue();
 
 	virtual void* Run() = 0;
 
-	void Send(EventBuffer* e) {
-		pipe_->Send(this, e);
-	}
+	void Send(EventBuffer* e);
 
-	void Recv(EventBuffer* e) {
-		pipe_->Recv(this, e);
-	}
+	void Recv(EventBuffer* e);
 
-	void SendRecvContinue(EventBuffer* e) {
-		// send the event
-		this->Send(e);
-
-		// wait for continue
-		this->Recv(e);
-
-		if(e->type != Continue) {
-			safe_fail("Unexpected event type: %d. Expected continue.", e->type);
-		}
-	}
+	void SendRecvContinue(EventBuffer* e);
 
 	// used by pipe implementation
 	// when thread wants to receive an event, it waits on its semaphore
-	void WaitRecv(EventBuffer* event) {
-		safe_assert(event_ == NULL);
-		safe_assert(event != NULL);
-		event_ = event;
-
-		safe_assert(sem_.Get() <= 1);
-		sem_.Wait();
-	}
+	void WaitRecv(EventBuffer* event);
 
 	// copy event from argument and signal the semaphore
-	void SignalRecv(EventBuffer* event) {
-		// copy
-		safe_assert(event_ != NULL);
-		*event_ = *event;
+	void SignalRecv(EventBuffer* event);
 
-		safe_assert(tid_ == event_->threadid);
+	static void* thread_func(void* arg);
 
-		event_ = NULL;
-
-		// signal
-		safe_assert(sem_.Get() <= 0);
-		sem_.Signal();
-	}
-
-	static void* thread_func(void* arg) {
-		safe_assert(arg != NULL);
-		ShadowThread* thread = static_cast<ShadowThread*>(arg);
-		safe_assert(thread != NULL);
-		return thread->Run();
-	}
-
-	int SpawnAsThread(bool call_original) {
-		pthread_t pt;
-		if(call_original) {
-			return PthreadOriginals::pthread_create(&pt, NULL, thread_func, this);
-		} else {
-			return pthread_create(&pt, NULL, thread_func, this);
-		}
-	}
+	int SpawnAsThread(bool call_original);
 
 private:
 	DECL_FIELD(THREADID, tid)
@@ -330,109 +186,32 @@ public:
 
 	~ConcurrentPipe() {}
 
-	void Send(ShadowThread* thread, EventBuffer* event) {
-		send_mutex_.Lock();
-
-		bool cancel = event_handler_ == NULL ? false : !event_handler_->OnSend(event);
-
-		if(!cancel) {
-			EventPipe::Send(event);
-		}
-
-		send_mutex_.Unlock();
-	}
-
-	void Recv(ShadowThread* thread, EventBuffer* event) {
-		thread->WaitRecv(event);
-	}
+	void Send(ShadowThread* thread, EventBuffer* event);
+	void Recv(ShadowThread* thread, EventBuffer* event);
 
 	/*****************************************************************/
 
 	//override
-	void Open() {
-		EventPipe::Open();
-
-		// start thread
-		worker_thread_ = new Thread(56789, ConcurrentPipe::thread_func, this);
-	}
-
+	void Open();
 	//override
-	void Close() {
-		if(worker_thread_ != NULL) {
-			worker_thread_->CancelJoin();
-		}
-		EventPipe::Close();
-	}
+	void Close();
 
 
-	static void* thread_func(void* arg) {
-		ConcurrentPipe* pipe = static_cast<ConcurrentPipe*>(arg);
-		safe_assert(pipe != NULL);
-
-		EventHandler* event_handler = pipe->event_handler();
-		safe_assert(event_handler != NULL);
-
-		EventBuffer event;
-
-		for(;;) {
-			// do receive
-			pipe->EventPipe::Recv(&event);
-
-			bool cancel = !event_handler->OnRecv(&event);
-
-			if(!cancel) {
-				// notify receiver
-				ShadowThread* thread = pipe->GetShadowThread(event.threadid);
-				if(thread != NULL) { // otherwise ignore the message
-
-					thread->SignalRecv(&event);
-				}
-			}
-		}
-
-		return NULL;
-	}
+	static void* thread_func(void* arg);
 
 	/*****************************************************************/
 
-	void Broadcast(EventBuffer* e) {
-		for(TidToShadowThreadMap::const_iterator itr = tid_to_shadowthread_.begin(), end = tid_to_shadowthread_.end(); itr != end; ++itr) {
-			ShadowThread* shadowthread = itr->second;
+	void Broadcast(EventBuffer* e);
 
-			e->threadid = shadowthread->tid();
-			shadowthread->SignalRecv(e);
-		}
-	}
-
-	void SendContinue(THREADID tid) {
-		EventBuffer e;
-		e.type = Continue;
-		e.threadid = tid;
-		EventPipe::Send(&e);
-	}
+	void SendContinue(THREADID tid);
 
 	/*****************************************************************/
 
-	ShadowThread* GetShadowThread(THREADID tid) {
-		TidToShadowThreadMap::accessor acc;
-		if(tid_to_shadowthread_.find(acc, tid)) {
-			return safe_notnull(acc->second);
-		}
-		return NULL;
-	}
+	ShadowThread* GetShadowThread(THREADID tid);
 
-	void RegisterShadowThread(ShadowThread* shadowthread) {
-		TidToShadowThreadMap::accessor acc;
-		if(!tid_to_shadowthread_.find(acc, shadowthread->tid())) {
-			tid_to_shadowthread_.insert(acc, shadowthread->tid());
-			acc->second = shadowthread;
-		}
-		safe_assert(acc->second == shadowthread);
-	}
+	void RegisterShadowThread(ShadowThread* shadowthread);
 
-	void UnregisterShadowThread(ShadowThread* shadowthread) {
-		tid_to_shadowthread_.erase(shadowthread->tid());
-	}
+	void UnregisterShadowThread(ShadowThread* shadowthread);
 
 private:
 	DECL_FIELD_REF(Mutex, send_mutex)
