@@ -65,7 +65,9 @@ const EventKind
 	TestEnd			= 11U,
 	// events from DSL to SUT
 	Continue		= 12U,
-	TestShutdown	= 13U;
+	TestShutdown	= 13U,
+	// events exchanged internally
+	ThreadEndInternal = 14U;
 
 /***********************************************************************/
 

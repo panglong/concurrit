@@ -37,6 +37,8 @@
 
 #include "tbb/concurrent_vector.h"
 
+#include "thread.cpp"
+
 namespace concurrit {
 
 /********************************************************************************/
@@ -45,150 +47,191 @@ const THREADID MAINTID = THREADID(1);
 
 /********************************************************************************/
 
-typedef tbb::concurrent_vector<ShadowThread*> ShadowThreadPtrList;
-static ShadowThreadPtrList shadow_threads;
+//typedef tbb::concurrent_vector<ShadowThread*> ShadowThreadPtrList;
+//static ShadowThreadPtrList shadow_threads;
+
+static volatile bool test_started = false;
 
 /********************************************************************************/
 
 class ServerShadowThread : public ShadowThread {
 public:
-	ServerShadowThread(THREADID threadid) : ShadowThread(threadid, true)  {}
+	ServerShadowThread(THREADID tid, EventPipe* pipe) : ShadowThread(tid, pipe)  {}
 
 	virtual ~ServerShadowThread(){}
 
 	// override
-	virtual void* Run();
+	void* Run() {
+
+		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe_);
+		safe_assert(concpipe != NULL);
+
+		concpipe->RegisterShadowThread(this);
+
+		EventBuffer event;
+
+		for(;;) {
+			Recv(&event);
+
+			// check threadid
+			safe_assert(event.type == tid_);
+
+			// handle event
+			switch(event.type) {
+				case ThreadEndInternal:
+				{
+					// exit loop and return
+					goto L_THREADEND;
+				}
+
+				case MemAccessBefore:
+				case MemAccessAfter:
+				case MemWrite:
+				case MemRead:
+				case FuncCall:
+				case FuncEnter:
+				case FuncReturn:
+				case ThreadEnd:
+
+					// notify concurrit
+					CallPinMonitor(&event);
+
+					// send continue to remote
+					this->SendContinue();
+
+					if(event.type == ThreadEnd) {
+						// exit loop and return
+						goto L_THREADEND;
+					}
+
+					break;
+
+				default:
+					safe_fail("Unexpected event type: %d", event.type);
+					break;
+			}
+		}
+
+	L_THREADEND:
+
+		concpipe->UnregisterShadowThread(this);
+
+		return NULL;
+	}
 };
 
 /********************************************************************************/
 
-void* shadow_thread_func(void* arg) {
-	safe_assert(arg != NULL);
-	ShadowThread* thread = static_cast<ShadowThread*>(arg);
-	safe_assert(thread != NULL);
+class ServerEventHandler : public EventHandler {
+public:
+	ServerEventHandler(ConcurrentPipe* pipe = NULL) : EventHandler(), pipe_(pipe) {
+		test_end_sem_.Init(0);
+	}
+	virtual ~ServerEventHandler(){}
 
-	return thread->Run();
-}
-
-/********************************************************************************/
-
-void* ServerShadowThread::Run() {
-	thread_ = Coroutine::Current();
-
-	// main loop
-	for(pipe_.Recv(&event_); event_.type != ThreadEnd; pipe_.Recv(&event_)) {
+	//override
+	bool OnRecv(EventBuffer* event) {
 
 		// handle event
-		switch(event_.type) {
+		switch(event->type) {
+		case TestStart:
+		{
+			if(test_started) {
+				safe_fail("Received TestStart before TestEnd!");
+			}
+			test_started = true;
+
+			// create main thread and restart threads
+			ShadowThread* thread = CreateShadowThread(MAINTID);
+			thread->SendContinue();
+
+			return false; // ignore it
+		}
+
+		case TestEnd:
+		{
+			if(!test_started) {
+				safe_fail("Received TestEnd before TestStart!");
+			}
+			test_started = false;
+
+			// broadcast thread-end signal to all threads
+			EventBuffer e;
+			e.type = ThreadEndInternal;
+			pipe_->Broadcast(&e);
+
+			// signal semaphore to end the program
+			test_end_sem_.Signal();
+
+			pipe_->SendContinue(MAINTID);
+
+			return false; // ignore it
+		}
+
 		case ThreadStart:
 		{
-			safe_assert(event_.threadid >= 0);
-			// create new thread, imitating the interpositioned threads
-			pthread_t pt;
-			ShadowThread* shadowthread = new ServerShadowThread(event_.threadid);
+			safe_assert(event->threadid >= 2);
 
-			// add shadow thread to shadow_threads
-			shadow_threads.push_back(shadowthread);
+			ShadowThread* thread = CreateShadowThread(event->threadid);
+			thread->SendContinue();
 
-			pthread_create(&pt, NULL, shadow_thread_func, shadowthread);
-
-			SendContinue();
-
-			break;
+			return false; // ignore it
 		}
-		case MemAccessBefore:
-		case MemAccessAfter:
-		case MemWrite:
-		case MemRead:
-		case FuncCall:
-		case FuncEnter:
-		case FuncReturn:
-
-			// notify concurrit
-			CallPinMonitor(&event_);
-
-			// send continue to remote
-			SendContinue();
-
-			break;
 
 		default:
-			safe_fail("Invalid event type: %d", event_.type);
-			break;
+			if(!test_started) {
+				// response immediately and ignore
+				pipe_->SendContinue(event->threadid);
+				return false;
+			}
+
+			// forward to the recipient
+
+			// before forwarding, check if the thread exists, otherwise, start it
+			ShadowThread* thread = pipe_->GetShadowThread(event->threadid);
+			if(thread == NULL) {
+				safe_assert(event->threadid >= 2);
+
+				CreateShadowThread(event->threadid);
+			}
+
+			return true;
 		}
 	}
 
-	return NULL;
-}
-
-/********************************************************************************/
-
-class MainShadowThread : public ServerShadowThread {
-public:
-	MainShadowThread() : ServerShadowThread(MAINTID) {}
-	~MainShadowThread(){}
-
-	// override
-	void* Run();
-
-	void StartShadowThreads();
-	void EndShadowThreads();
-};
-
-/********************************************************************************/
-
-void* MainShadowThread::Run() {
-	// wait for TestBegin
-	WaitForEventAndSkip(TestStart);
-
-	StartShadowThreads();
-
-	// main loop
-	ShadowThread::Run();
-
-	// uncontrolled mode
-	WaitForEventAndSkip(TestEnd);
-
-	EndShadowThreads();
-
-	return NULL;
-}
-
-/********************************************************************************/
-
-void MainShadowThread::StartShadowThreads() {
-	// imitate creating threads (but actually restarts coroutines)
-	for(ShadowThreadPtrList::iterator itr = shadow_threads.begin(), end = shadow_threads.end(); itr != end; ++itr) {
-		ShadowThread* shadowthread = (*itr);
-
+	ShadowThread* CreateShadowThread(THREADID tid) {
 		// create new thread, imitating the interpositioned threads
-		pthread_t pt;
-		pthread_create(&pt, NULL, shadow_thread_func, shadowthread);
+		ShadowThread* shadowthread = new ServerShadowThread(tid, safe_notnull(pipe_));
+		shadowthread->SpawnAsThread(false);
+
+		// wait a little
+		usleep(10);
+
+		return shadowthread;
 	}
-}
 
-/********************************************************************************/
-
-void MainShadowThread::EndShadowThreads() {
-	// send other threads ThreadEnd signal
-	for(ShadowThreadPtrList::iterator itr = shadow_threads.begin(), end = shadow_threads.end(); itr != end; ++itr) {
-		ShadowThread* shadowthread = (*itr);
-
-		EventBuffer e;
-		e.type = ThreadEnd;
-		e.threadid = tid_;
-		shadowthread->pipe()->Send(&e);
-	}
-}
-
+private:
+	DECL_FIELD_REF(Semaphore, test_end_sem)
+	DECL_FIELD(ConcurrentPipe*, pipe)
+};
 
 /********************************************************************************/
 
 static
 int main0(int argc, char* argv[]) {
 
-	MainShadowThread* thread = new MainShadowThread();
-	thread->Run();
+	test_started = false;
+
+	ServerEventHandler handler;
+
+	ConcurrentPipe pipe(PipeNamesForDSL(), &handler);
+	handler.set_pipe(&pipe);
+
+	pipe.Open();
+
+	handler.test_end_sem()->Wait();
+
+	pipe.Close();
 
 	return EXIT_SUCCESS;
 }
@@ -199,6 +242,9 @@ int main0(int argc, char* argv[]) {
 
 /********************************************************************************/
 
-CONCURRIT_TEST_MAIN(concurrit::main0)
+extern "C"
+int __main__(int argc, char* argv[]) {
+	return concurrit::main0(argc, argv);
+}
 
 

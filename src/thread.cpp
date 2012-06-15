@@ -103,13 +103,7 @@ void* ThreadEntry(void* arg) {
 	safe_assert(thread->pthread() == self);
 	thread->attach_pthread(self);
 
-	// set cancellable
-	int oldstate;
-	__pthread_errno__ = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
-	safe_assert(__pthread_errno__ == PTH_SUCCESS);
-
-	__pthread_errno__ = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
-	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+	Thread::SetCancellable();
 
 	void* return_value = thread->Run();
 
@@ -121,6 +115,16 @@ void* ThreadEntry(void* arg) {
 }
 
 /********************************************************************************/
+
+void Thread::SetCancellable() {
+	// set cancellable
+	int oldstate;
+	__pthread_errno__ = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+
+	__pthread_errno__ = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
+	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+}
 
 void Thread::attach_pthread(pthread_t self) {
 	safe_assert(pthread_ == self || pthread_ == PTH_INVALID_THREAD);
@@ -205,6 +209,13 @@ void Thread::Cancel() {
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
 		safe_fail("Cancel error: %s\n", PTHResultToString(__pthread_errno__));
 	}
+}
+
+/********************************************************************************/
+
+void Thread::CancelJoin() {
+	this->Cancel();
+	this->Join();
 }
 
 /********************************************************************************/

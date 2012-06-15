@@ -73,12 +73,15 @@ public:
 	virtual void Start(pthread_t* pid = NULL, const pthread_attr_t* attr = NULL);
 	void Join(void ** value_ptr = NULL);
 	void Cancel();
+	void CancelJoin();
 	void Kill(int signal_number);
 	virtual void* Run();
 	static void Yield(bool force = false);
 
 	static Thread* GetThread(pthread_t t);
 	static Thread* Current();
+
+	static void SetCancellable();
 
 protected:
 
