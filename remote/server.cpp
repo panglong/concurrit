@@ -47,9 +47,6 @@ const THREADID MAINTID = THREADID(1);
 
 /********************************************************************************/
 
-//typedef tbb::concurrent_vector<ShadowThread*> ShadowThreadPtrList;
-//static ShadowThreadPtrList shadow_threads;
-
 static volatile bool test_started = false;
 
 /********************************************************************************/
@@ -222,6 +219,7 @@ int main0(int argc, char* argv[]) {
 
 	test_started = false;
 
+	// TODO(elmas): make them static and global
 	ServerEventHandler handler;
 
 	ConcurrentPipe pipe(PipeNamesForDSL(), &handler);

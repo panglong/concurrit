@@ -19,23 +19,25 @@ FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions -rdynamic \
 
 all: makedirs lib remote
 
+remote: makedirs server client loader
+
 lib: makedirs dummy $(CONCURRIT_LIBDIR)/$(TARGET).so
 
 ############################
 
-#$(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
-#	$(CC) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
+$(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
+	$(CC) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
 #	ar rcs $(CONCURRIT_LIBDIR)/$(TARGET).a $^
-#	$(CONCURRIT_HOME)/scripts/compile_pintool.sh CONCURRIT_DEBUG_FLAGS='$(CONCURRIT_DEBUG_FLAGS)'
-#
-#$(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
-#	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
+	$(CONCURRIT_HOME)/scripts/compile_pintool.sh CONCURRIT_DEBUG_FLAGS='$(CONCURRIT_DEBUG_FLAGS)'
+
+$(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
+	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) -c -o $@ $(CONCURRIT_SRCDIR)/$*.cpp
 	
 ############################
 
-$(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_SRCS) $(CONCURRIT_HEADERS)
-	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $(CONCURRIT_SRCS)
-	$(CONCURRIT_HOME)/scripts/compile_pintool.sh CONCURRIT_DEBUG_FLAGS='$(CONCURRIT_DEBUG_FLAGS)'
+#$(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_SRCS) $(CONCURRIT_HEADERS)
+#	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $(CONCURRIT_SRCS)
+#	$(CONCURRIT_HOME)/scripts/compile_pintool.sh CONCURRIT_DEBUG_FLAGS='$(CONCURRIT_DEBUG_FLAGS)'
 
 ############################
 
@@ -58,7 +60,12 @@ client: makedirs $(CONCURRIT_LIBDIR)/libclient.so
 $(CONCURRIT_LIBDIR)/libclient.so: $(CONCURRIT_HOME)/remote/client.cpp
 	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
 
-remote: makedirs server client
+############################
+
+loader: makedirs $(CONCURRIT_BINDIR)/testloader
+
+$(CONCURRIT_BINDIR)/testloader: $(CONCURRIT_HOME)/remote/loader.cpp
+	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -o $@ $^
 
 ############################
 
