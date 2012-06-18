@@ -33,10 +33,6 @@
 
 #include "concurrit.h"
 
-#include "instrument.h"
-
-#include "tbb/concurrent_vector.h"
-
 #include <cstdatomic>
 
 namespace concurrit {
@@ -54,42 +50,56 @@ static THREADID get_next_threadid() {
 
 class ClientShadowThread;
 
-static pthread_key_t client_tls_key_;
+static pthread_key_t create_tls_key();
+static pthread_key_t client_tls_key_ = create_tls_key();
 
-static ConcurrentPipe* pipe_ = NULL;
-
-static ClientShadowThread* main_shadow_thread_ = NULL;
+static ConcurrentPipe* create_pipe();
+static ConcurrentPipe* pipe_ = create_pipe();
 
 /********************************************************************************/
 
-// value may be NULL
-static void set_tls(ClientShadowThread* value) {
-	const pthread_key_t key = client_tls_key_;
-	safe_assert(NULL == pthread_getspecific(key));
-
-	if(pthread_setspecific(key, value) != PTH_SUCCESS) {
-		safe_fail("Could not set tls value!");
+static pthread_key_t create_tls_key() {
+	pthread_key_t key;
+	if(pthread_key_create(&key, NULL) != PTH_SUCCESS) {
+		safe_fail("Count not create tls key!");
 	}
+	return key;
 }
 
 // value may not be NULL
 static ClientShadowThread* get_tls() {
-	const pthread_key_t key = client_tls_key_;
-	ClientShadowThread* thread = static_cast<ClientShadowThread*>(pthread_getspecific(key));
-	safe_assert(thread != NULL);
+	ClientShadowThread* thread = static_cast<ClientShadowThread*>(pthread_getspecific(client_tls_key_));
 	return thread;
+}
+
+// value may be NULL
+static void set_tls(ClientShadowThread* value) {
+	safe_assert(get_tls() == NULL);
+	if(pthread_setspecific(client_tls_key_, value) != PTH_SUCCESS) {
+		safe_fail("Could not set tls value!");
+	}
+}
+
+static void init_instr_handler();
+static ConcurrentPipe* create_pipe() {
+
+	init_instr_handler();
+
+	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT());
+	pipe->Open(false);
+	return pipe;
 }
 
 /********************************************************************************/
 
 class ClientShadowThread : public ShadowThread {
 public:
-	ClientShadowThread(THREADID tid, EventPipe* pipe, ThreadFuncType start_routine = NULL, void* arg = NULL)
-	: ShadowThread(tid, pipe), start_routine_(start_routine), arg_(arg)  {}
+	ClientShadowThread(THREADID tid, EventPipe* pipe)
+	: ShadowThread(tid, pipe)  {}
 
-	virtual ~ClientShadowThread(){}
+	~ClientShadowThread(){}
 
-	void RunBegin() {
+	void OnStart() {
 		safe_assert(pipe_ != NULL);
 		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe_);
 		concpipe->RegisterShadowThread(this);
@@ -104,7 +114,7 @@ public:
 		SendRecvContinue(&event);
 	}
 
-	void RunEnd() {
+	void OnEnd() {
 		// send thread end
 		EventBuffer event;
 		event.type = ThreadEnd;
@@ -121,63 +131,143 @@ public:
 
 	// override
 	void* Run() {
-
-		RunBegin();
-
-		safe_assert(start_routine_ != NULL);
-		void* ret = start_routine_(arg_);
-
-		RunEnd();
-
-		return ret;
+		unimplemented();
+		return NULL;
 	}
-
-private:
-	ThreadFuncType start_routine_;
-	void *arg_;
 };
 
 
 /********************************************************************************/
 
-class ClientPthreadHandler : public PthreadHandler {
+//class ClientPthreadHandler : public PthreadHandler {
+//public:
+//	ClientPthreadHandler() : PthreadHandler() {}
+//	~ClientPthreadHandler() {}
+//
+//	// override
+//	int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
+//		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);
+//
+//		safe_assert(pipe_ != NULL);
+//		ClientShadowThread* shadowthread = new ClientShadowThread(get_next_threadid(), pipe_, start_routine, arg);
+//		return shadowthread->SpawnAsThread(true);
+//	}
+//};
+
+/********************************************************************************/
+class ClientInstrHandler : public InstrHandler {
 public:
-	ClientPthreadHandler() : PthreadHandler() {}
-	~ClientPthreadHandler() {}
+	ClientInstrHandler() : InstrHandler() {}
+	~ClientInstrHandler() {}
+
+	/********************************************************************************/
+
+	static ClientShadowThread* GetShadowThread() {
+		ClientShadowThread* thread = get_tls();
+		if(thread == NULL) {
+			safe_assert(pipe_ != NULL);
+			thread = new ClientShadowThread(get_next_threadid(), pipe_);
+			thread->OnStart();
+		}
+		return thread;
+	}
+
+	/********************************************************************************/
 
 	// override
-	int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
-		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);
+	void concurritStartTest() {
+//		MYLOG(1) << "CLIENT: Entering concurritStartTest.";
 
-		safe_assert(pipe_ != NULL);
-		ClientShadowThread* shadowthread = new ClientShadowThread(get_next_threadid(), pipe_, start_routine, arg);
-		return shadowthread->SpawnAsThread(true);
+		// send test start
+		EventBuffer e;
+		e.type = TestStart;
+		e.threadid = 0;
+		pipe_->Send(NULL, &e);
+
+//		MYLOG(1) << "CLIENT: Exiting concurritStartTest.";
 	}
+
+	/********************************************************************************/
+
+	// override
+	void concurritEndTest() {
+//		MYLOG(1) << "CLIENT: Exiting concurritEndTest.";
+
+		// send test end
+		EventBuffer e;
+		e.type = TestEnd;
+		e.threadid = 0;
+		pipe_->Send(NULL, &e);
+
+//		MYLOG(1) << "CLIENT: Exiting concurritEndTest.";
+	}
+
+	/********************************************************************************/
+
+//	void concurritEndSearch();
+//
+//	void concurritStartInstrumentEx(const char* filename, const char* funcname, int line);
+//	void concurritEndInstrumentEx(const char* filename, const char* funcname, int line);
+//
+//	void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line);
+//
+	void concurritFuncEnterEx(void* addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {
+		ClientShadowThread* thread = GetShadowThread();
+
+		// send event
+		EventBuffer e;
+		e.type = FuncEnter;
+		e.addr = PTR2ADDRINT(addr);
+		e.arg0 = arg0;
+		e.arg1 = arg1;
+		thread->SendRecvContinue(&e);
+
+	}
+	void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {
+		ClientShadowThread* thread = GetShadowThread();
+
+		// send event
+		EventBuffer e;
+		e.type = FuncReturn;
+		e.addr = PTR2ADDRINT(addr);
+		e.retval = retval;
+		thread->SendRecvContinue(&e);
+	}
+//
+//	void concurritFuncCallEx(void* from_addr, void* to_addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line);
+//
+//	void concurritMemReadEx(void* addr, size_t size, const char* filename, const char* funcname, int line);
+//	void concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line);
+//
+//	void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line);
+//	void concurritMemAccessAfterEx(const char* filename, const char* funcname, int line);
+//
+	// override
+	void concurritThreadStartEx(const char* filename, const char* funcname, int line) {
+		ClientShadowThread* thread = GetShadowThread();
+
+		// GetShadowThread does all
+	}
+
+	// override
+	void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
+		ClientShadowThread* thread = GetShadowThread();
+
+		// this call does all
+		thread->OnEnd();
+	}
+
+//
+//	void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
 };
 
 /********************************************************************************/
 
-extern "C"
-__attribute__((constructor))
-void initialize_client() {
-
-	google::InitGoogleLogging("concurrit");
+static void init_instr_handler() {
 
 	PthreadOriginals::initialize();
 
-	safe_assert(PthreadHandler::Current == NULL);
-	PthreadHandler::Current = new ClientPthreadHandler();
-
-	if(pthread_key_create(&client_tls_key_, NULL) != PTH_SUCCESS) {
-		safe_fail("Count not create tls key!");
-	}
-
-	pipe_ = new ConcurrentPipe(PipeNamesForSUT());
-	pipe_->Open();
-
-	main_shadow_thread_ = new ClientShadowThread(MAINTID, pipe_);
-
-	MYLOG(1) << "CLIENT: Initialized client library.";
+	InstrHandler::Current = new ClientInstrHandler();
 }
 
 /********************************************************************************/
@@ -185,7 +275,6 @@ void initialize_client() {
 extern "C"
 __attribute__((destructor))
 void destroy_client() {
-
 	safe_assert(pipe_ != NULL);
 	pipe_->Close();
 
@@ -194,103 +283,10 @@ void destroy_client() {
 	if(pthread_key_delete(client_tls_key_) != PTH_SUCCESS) {
 		safe_fail("Count not destroy tls key!");
 	}
-
-	MYLOG(1) << "CLIENT: Destroyed client library.";
 }
-
-/********************************************************************************/
-
-void concurritStartTest() {
-	// this thread is main
-	safe_assert(main_shadow_thread_ != NULL);
-	safe_assert(get_tls() == main_shadow_thread_);
-	safe_assert(main_shadow_thread_->tid() == MAINTID);
-
-	// send test start
-	EventBuffer e;
-	e.type = TestStart;
-	e.threadid = 0;
-	pipe_->Send(NULL, &e);
-
-	// we do not run Run() of main_shadow_thread_
-	// so do the things Run() would do here
-	main_shadow_thread_->RunBegin();
-}
-
-/********************************************************************************/
-
-void concurritEndTest() {
-	// this thread is main
-	safe_assert(main_shadow_thread_ != NULL);
-	safe_assert(get_tls() == main_shadow_thread_);
-	safe_assert(main_shadow_thread_->tid() == MAINTID);
-
-	// here we do the things Run() would normally do for main
-	// send thread end for the main thread
-	main_shadow_thread_->RunEnd();
-
-	// send test end
-	EventBuffer e;
-	e.type = TestEnd;
-	e.threadid = 0;
-	pipe_->Send(NULL, &e);
-}
-
-/********************************************************************************/
-
-void concurritEndSearch() {
-	//...
-}
-
-void concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritFuncEnterEx(void* addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {
-	//...
-}
-void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritFuncCallEx(void* from_addr, void* to_addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritMemReadEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
-	//...
-}
-void concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line) {
-	//...
-}
-void concurritMemAfterBeforeEx(const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
-	//...
-}
-
-void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
-	//...
-}
-
 
 /********************************************************************************/
 
 } // end namespace
 
-/********************************************************************************/
 

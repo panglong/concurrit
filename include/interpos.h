@@ -38,29 +38,6 @@
 namespace concurrit {
 
 /********************************************************************************/
-// EXAMPLE .cpp file (see interpos.cpp)
-//
-// PTHREADORIGINALS_STATIC_FIELD_DEFINITIONS
-//
-// PTHREAD_FUNCTION_DEFINITIONS
-//
-// class ConcurritPthreadHandler : public PthreadInterpos { ... };
-//
-// PTHREADHANDLER_CURRENT_DEFINITION(new ConcurritPthreadHandler())
-//
-/********************************************************************************/
-
-#define init_original(f, type) \
-	{ \
-    	_##f = (type) dlsym(RTLD_NEXT, #f); \
-		if(_##f == NULL) { \
-			fprintf(stderr, "originals RTLD_NEXT init of %s failed, using the RTLD_DEFAULT init.\n", #f); \
-			_##f = (type) dlsym(RTLD_DEFAULT, #f); \
-		} \
-		CHECK(_##f != NULL) << "originals " << #f << " init failed!"; \
-    }\
-
-/********************************************************************************/
 
 class PthreadOriginals {
 public:

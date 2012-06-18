@@ -41,7 +41,6 @@
 
 #include <sys/stat.h>
 #include <fcntl.h>
-// #include <fullduplex.h>
 
 namespace concurrit {
 
@@ -74,12 +73,12 @@ public:
 
 	static void MkFifo(const char* name);
 
-	virtual void Open();
+	virtual void Open(bool open_for_read_first);
 
 	virtual void Close();
 
-#define DoSend(x)	write(out_fd_, static_cast<void*>(&x), sizeof(x))
-#define DoRecv(x)	read(in_fd_, static_cast<void*>(&x), sizeof(x))
+#define DoSend(x)	write(out_fd_, (&x), sizeof(x))
+#define DoRecv(x)	read(in_fd_, (&x), sizeof(x))
 
 #define DECL_SEND_RECV(F) 			\
 	void F(EventBuffer* event) {	\
@@ -154,12 +153,12 @@ public:
 
 	static void* thread_func(void* arg);
 
-	int SpawnAsThread(bool call_original);
+	int SpawnAsThread();
 
 private:
 	DECL_FIELD(THREADID, tid)
 	DECL_FIELD(EventPipe*, pipe)
-	DECL_FIELD_REF(EventBuffer*, event)
+	DECL_FIELD(EventBuffer*, event)
 	DECL_FIELD_REF(Semaphore, sem)
 };
 
@@ -177,12 +176,11 @@ public:
 /********************************************************************************/
 
 class ConcurrentPipe : public EventPipe {
-	typedef tbb::concurrent_hash_map<THREADID, ShadowThread*> TidToShadowThreadMap;
+//	typedef tbb::concurrent_hash_map<THREADID, ShadowThread*> TidToShadowThreadMap;
+	typedef std::map<THREADID, ShadowThread*> TidToShadowThreadMap;
 public:
-	ConcurrentPipe(EventHandler* event_handler = NULL)
-	: EventPipe(), event_handler_(event_handler != NULL ? event_handler : new EventHandler()) {}
 
-	ConcurrentPipe(const PipeNamePair& names, EventHandler* event_handler = NULL) : EventPipe(names), event_handler_(event_handler) {}
+	ConcurrentPipe(const PipeNamePair& names, EventHandler* event_handler = NULL);
 
 	~ConcurrentPipe() {}
 
@@ -192,7 +190,7 @@ public:
 	/*****************************************************************/
 
 	//override
-	void Open();
+	void Open(bool open_for_read_first);
 	//override
 	void Close();
 
@@ -218,6 +216,7 @@ private:
 	DECL_FIELD_REF(TidToShadowThreadMap, tid_to_shadowthread)
 	DECL_FIELD(Thread*, worker_thread)
 	DECL_FIELD(EventHandler*, event_handler)
+	DECL_FIELD(Mutex, map_mutex)
 };
 
 /********************************************************************************/

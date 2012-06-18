@@ -120,6 +120,8 @@ namespace concurrit {
 #include "modular.h"
 #include "dsl.h"
 #include "transpred.h"
+#include "instrument.h"
+#include "manual.h"
 #include "interpos.h"
 #include "default.h"
 #include "ipc.h"

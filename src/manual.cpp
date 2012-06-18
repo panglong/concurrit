@@ -34,28 +34,24 @@
 
 #include "concurrit.h"
 
-#include "instrument.h"
 
-// functions implementing manual instrumentation routines
-// these functions overwrite functions in libdummy.so when concurrit is preloaded
-
-using namespace concurrit;
+namespace concurrit {
 
 /********************************************************************************/
 
-void concurritStartTest() {
+void ConcurritInstrHandler::concurritStartTest() {
 	MYLOG(1) << "concurritStartTest";
 
 	PinMonitor::Enable();
 }
 
-void concurritEndTest() {
+void ConcurritInstrHandler::concurritEndTest() {
 	MYLOG(1) << "concurritEndTest";
 
 	PinMonitor::Disable();
 }
 
-void concurritEndSearch() {
+void ConcurritInstrHandler::concurritEndSearch() {
 	MYLOG(1) << "concurritEndSearch";
 
 	TRIGGER_TERMINATE_SEARCH();
@@ -63,7 +59,7 @@ void concurritEndSearch() {
 
 /********************************************************************************/
 
-void concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -74,7 +70,7 @@ void concurritStartInstrumentEx(const char* filename, const char* funcname, int 
 
 /********************************************************************************/
 
-void concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -88,7 +84,7 @@ void concurritEndInstrumentEx(const char* filename, const char* funcname, int li
 
 /********************************************************************************/
 
-void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -99,7 +95,7 @@ void concurritAtPcEx(int pc, const char* filename, const char* funcname, int lin
 
 /********************************************************************************/
 
-void concurritFuncEnterEx(void* addr, ADDRINT arg0, ADDRINT arg1, const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritFuncEnterEx(void* addr, ADDRINT arg0, ADDRINT arg1, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -110,7 +106,7 @@ void concurritFuncEnterEx(void* addr, ADDRINT arg0, ADDRINT arg1, const char* fi
 
 /********************************************************************************/
 
-void concurritFuncReturnEx(void* addr, ADDRINT retval, const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritFuncReturnEx(void* addr, ADDRINT retval, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -121,7 +117,7 @@ void concurritFuncReturnEx(void* addr, ADDRINT retval, const char* filename, con
 
 /********************************************************************************/
 
-void concurritFuncCallEx(void* from_addr, void* to_addr, ADDRINT arg0, ADDRINT arg1, const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritFuncCallEx(void* from_addr, void* to_addr, ADDRINT arg0, ADDRINT arg1, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -132,7 +128,7 @@ void concurritFuncCallEx(void* from_addr, void* to_addr, ADDRINT arg0, ADDRINT a
 
 /********************************************************************************/
 
-void concurritMemReadEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritMemReadEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -143,7 +139,7 @@ void concurritMemReadEx(void* addr, size_t size, const char* filename, const cha
 
 /********************************************************************************/
 
-void concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -154,7 +150,7 @@ void concurritMemWriteEx(void* addr, size_t size, const char* filename, const ch
 
 /********************************************************************************/
 
-void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -165,7 +161,7 @@ void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int 
 
 /********************************************************************************/
 
-void concurritMemAfterBeforeEx(const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritMemAccessAfterEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -176,14 +172,19 @@ void concurritMemAfterBeforeEx(const char* filename, const char* funcname, int l
 
 /********************************************************************************/
 
-void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {
 	MYLOG(1) << "Triggering assertion violation!";
 	TRIGGER_ASSERTION_VIOLATION(expr, filename, funcname, line);
 }
 
 /********************************************************************************/
 
-void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
+void ConcurritInstrHandler::concurritThreadStartEx(const char* filename, const char* funcname, int line) {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+	// noop
+}
+
+void ConcurritInstrHandler::concurritThreadEndEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
@@ -195,4 +196,5 @@ void concurritThreadEndEx(const char* filename, const char* funcname, int line) 
 
 /********************************************************************************/
 
+} // end namespace
 

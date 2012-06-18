@@ -140,8 +140,10 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	AuxState::Init();
 
 	PthreadOriginals::initialize();
-	safe_assert(PthreadHandler::Current == NULL);
+
 	PthreadHandler::Current = new ConcurritPthreadHandler();
+
+	InstrHandler::Current = new ConcurritInstrHandler();
 
 	Thread::init_tls_key();
 
@@ -169,7 +171,11 @@ void Concurrit::Destroy() {
 
 	safe_delete(Concurrit::sem_driver_load_);
 
+	safe_assert(INSTANCEOF(PthreadHandler::Current, ConcurritPthreadHandler*));
 	safe_delete(PthreadHandler::Current);
+
+	safe_assert(INSTANCEOF(InstrHandler::Current, ConcurritInstrHandler*));
+	safe_delete(InstrHandler::Current);
 
 	CoroutineGroup::delete_main();
 

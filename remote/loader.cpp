@@ -31,37 +31,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "concurrit.h"
+#include <cstdlib>
+#include <cstdio>
+#include <dlfcn.h>
+#include <assert.h>
 
-#include "util.cpp"
+#include <glog/logging.h>
 
-/********************************************************************************/
-
-namespace concurrit {
-
-static int do_load(int argc, char* argv[]) {
-	safe_assert(argc >= 2 && argv != NULL && argv[argc-1] != NULL);
-	char* library_path = argv[argc-1];
-
-	void* handle = dlopen(library_path, RTLD_LAZY | RTLD_LOCAL);
-	if(handle == NULL) {
-		safe_fail("Cannot load the test library %s!\n", library_path);
-	}
-	MainFuncType main_func = (MainFuncType) FuncAddressByName("__main__", handle, true);
-	dlerror(); // Clear any existing error
-
-	// do call
-	return main_func(argc-1, argv);
-}
-
-
-} // end namespace
+typedef int (*MainFuncType) (int, char**);
 
 /********************************************************************************/
 
 extern "C"
 int main(int argc, char* argv[]) {
-	return concurrit::do_load(argc, argv);
+
+	google::InitGoogleLogging("concurrit-client");
+
+	MainFuncType main_func = reinterpret_cast<MainFuncType>(dlsym(RTLD_DEFAULT, "__main__"));
+	if(main_func == NULL) {
+		assert("dlsym init of __main__ failed.\n");
+	}
+	dlerror(); // Clear any existing error
+
+	// do call
+	return main_func(argc, argv);
 }
 
+/********************************************************************************/
 

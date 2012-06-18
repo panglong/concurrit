@@ -113,25 +113,52 @@ EventPipe::~EventPipe() {
 void EventPipe::MkFifo(const char* name) {
 	safe_assert(name != NULL);
 
-	int ret_val = mkfifo(name, 0666);
+	MYLOG(1) << "Creating fifo " << name;
 
-	if ((ret_val == -1) && (errno != EEXIST)) {
-		perror("Error in mkfifo\n");
-		safe_fail("Error creating the named pipe %s", name);
+	struct stat stt;
+
+	if(stat(name, &stt) != 0) {
+		if(errno == ENOENT) {
+			int ret_val = mkfifo(name, 0666);
+
+			if ((ret_val == -1) && (errno != EEXIST)) {
+				perror("Error in mkfifo\n");
+				safe_fail("Error creating the named pipe %s", name);
+			}
+			safe_assert(stat(name, &stt) == 0);
+		} else {
+			perror("Could not stat fifo file!\n");
+			safe_fail("Error creating the named pipe %s", name);
+		}
 	}
+
+	MYLOG(1) << "Created fifo " << name;
 }
 
 /**********************************************************************************/
 
-void EventPipe::Open() {
+void EventPipe::Open(bool open_for_read_first) {
 	safe_assert(!is_open_);
 
-	if(in_name_ != NULL) {
-		in_fd_ = open(in_name_, O_RDONLY);
-	}
+	if(open_for_read_first) {
 
-	if(out_name_ != NULL) {
-		out_fd_ = open(out_name_, O_WRONLY);
+		if(in_name_ != NULL) {
+			in_fd_ = open(in_name_, O_RDONLY & ~O_NONBLOCK);
+		}
+
+		if(out_name_ != NULL) {
+			out_fd_ = open(out_name_, O_WRONLY & ~O_NONBLOCK);
+		}
+
+	} else {
+
+		if(out_name_ != NULL) {
+			out_fd_ = open(out_name_, O_WRONLY & ~O_NONBLOCK);
+		}
+
+		if(in_name_ != NULL) {
+			in_fd_ = open(in_name_, O_RDONLY & ~O_NONBLOCK);
+		}
 	}
 
 	is_open_ = true;
@@ -215,7 +242,7 @@ void ShadowThread::WaitRecv(EventBuffer* event) {
 void ShadowThread::SignalRecv(EventBuffer* event) {
 	// copy
 	safe_assert(event_ != NULL);
-	*event_ = *event;
+	memcpy(event_, event, sizeof(EventBuffer));
 
 	safe_assert(tid_ == event_->threadid);
 
@@ -237,13 +264,16 @@ void* ShadowThread::thread_func(void* arg) {
 
 /**********************************************************************************/
 
-int ShadowThread::SpawnAsThread(bool call_original) {
+int ShadowThread::SpawnAsThread() {
 	pthread_t pt;
-	if(call_original) {
-		return PthreadOriginals::pthread_create(&pt, NULL, thread_func, this);
-	} else {
-		return pthread_create(&pt, NULL, thread_func, this);
-	}
+	return pthread_create(&pt, NULL, thread_func, this);
+}
+
+/**********************************************************************************/
+
+ConcurrentPipe::ConcurrentPipe(const PipeNamePair& names, EventHandler* event_handler /*= NULL*/)
+: EventPipe(names), event_handler_(event_handler != NULL ? event_handler : new EventHandler()), worker_thread_(NULL) {
+	safe_assert(event_handler_ != NULL);
 }
 
 /**********************************************************************************/
@@ -254,7 +284,8 @@ void ConcurrentPipe::Send(ShadowThread* thread, EventBuffer* event) {
 
 	send_mutex_.Lock();
 
-	bool cancel = event_handler_ == NULL ? false : !event_handler_->OnSend(event);
+	safe_assert(event_handler_ != NULL);
+	bool cancel = !event_handler_->OnSend(event);
 
 	if(!cancel) {
 		EventPipe::Send(event);
@@ -273,11 +304,15 @@ void ConcurrentPipe::Recv(ShadowThread* thread, EventBuffer* event) {
 /**********************************************************************************/
 
 //override
-void ConcurrentPipe::Open() {
-	EventPipe::Open();
+void ConcurrentPipe::Open(bool open_for_read_first) {
+	EventPipe::Open(open_for_read_first);
+
+	MYLOG(1) << "Creating worker thread";
 
 	// start thread
+	safe_assert(event_handler_ != NULL);
 	worker_thread_ = new Thread(56789, ConcurrentPipe::thread_func, this);
+	worker_thread_->Start();
 }
 
 /**********************************************************************************/
@@ -301,6 +336,8 @@ void* ConcurrentPipe::thread_func(void* arg) {
 
 	EventBuffer event;
 
+	MYLOG(1) << "ConcurrentPipe worker thread starting";
+
 	for(;;) {
 		// do receive
 		pipe->EventPipe::Recv(&event);
@@ -317,18 +354,22 @@ void* ConcurrentPipe::thread_func(void* arg) {
 		}
 	}
 
+	MYLOG(1) << "ConcurrentPipe worker thread ending";
+
 	return NULL;
 }
 
 /**********************************************************************************/
 
 void ConcurrentPipe::Broadcast(EventBuffer* e) {
+	map_mutex_.Lock();
 	for(TidToShadowThreadMap::const_iterator itr = tid_to_shadowthread_.begin(), end = tid_to_shadowthread_.end(); itr != end; ++itr) {
 		ShadowThread* shadowthread = itr->second;
 
 		e->threadid = shadowthread->tid();
 		shadowthread->SignalRecv(e);
 	}
+	map_mutex_.Unlock();
 }
 
 void ConcurrentPipe::SendContinue(THREADID tid) {
@@ -341,28 +382,35 @@ void ConcurrentPipe::SendContinue(THREADID tid) {
 /**********************************************************************************/
 
 ShadowThread* ConcurrentPipe::GetShadowThread(THREADID tid) {
-	TidToShadowThreadMap::accessor acc;
-	if(tid_to_shadowthread_.find(acc, tid)) {
-		return safe_notnull(acc->second);
+	ShadowThread* thread = NULL;
+	map_mutex_.Lock();
+	TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.find(tid);
+	if(itr != tid_to_shadowthread_.end()) {
+		thread = itr->second;
 	}
-	return NULL;
+	map_mutex_.Unlock();
+	return thread;
 }
 
 /**********************************************************************************/
 
 void ConcurrentPipe::RegisterShadowThread(ShadowThread* shadowthread) {
-	TidToShadowThreadMap::accessor acc;
-	if(!tid_to_shadowthread_.find(acc, shadowthread->tid())) {
-		tid_to_shadowthread_.insert(acc, shadowthread->tid());
-		acc->second = shadowthread;
+	const THREADID tid = shadowthread->tid();
+	map_mutex_.Lock();
+	TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.find(tid);
+	if(itr == tid_to_shadowthread_.end()) {
+		tid_to_shadowthread_[tid] = shadowthread;
 	}
-	safe_assert(acc->second == shadowthread);
+	map_mutex_.Unlock();
 }
 
 /**********************************************************************************/
 
 void ConcurrentPipe::UnregisterShadowThread(ShadowThread* shadowthread) {
-	tid_to_shadowthread_.erase(shadowthread->tid());
+	map_mutex_.Lock();
+	size_t num = tid_to_shadowthread_.erase(shadowthread->tid());
+	map_mutex_.Unlock();
+	safe_assert(num == 1);
 }
 
 /**********************************************************************************/

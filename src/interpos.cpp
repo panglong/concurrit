@@ -46,6 +46,18 @@ int (* volatile PthreadOriginals::_pthread_cancel) (pthread_t) = NULL;
 
 /********************************************************************************/
 
+#define init_original(f, type) \
+	{ \
+    	_##f = (type) dlsym(RTLD_NEXT, #f); \
+		if(_##f == NULL) { \
+			fprintf(stderr, "originals RTLD_NEXT init of %s failed, using the RTLD_DEFAULT init.\n", #f); \
+			_##f = (type) dlsym(RTLD_DEFAULT, #f); \
+		} \
+		CHECK(_##f != NULL) << "originals " << #f << " init failed!"; \
+    }\
+
+/********************************************************************************/
+
 void PthreadOriginals::initialize() {
 	safe_assert(!_initialized);
 
@@ -107,7 +119,10 @@ int pthread_cancel(pthread_t thread) {
 
 /********************************************************************************/
 
-PthreadHandler* PthreadHandler::Current = NULL;
+static PthreadHandler DefaultPthreadHandler;
+PthreadHandler* PthreadHandler::Current = &DefaultPthreadHandler;
+
+/********************************************************************************/
 
 int PthreadHandler::pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
 	safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);

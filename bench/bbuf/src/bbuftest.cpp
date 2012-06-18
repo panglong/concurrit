@@ -27,6 +27,9 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		MAX_WAIT_TIME(0);
 
+		WAIT_FOR_THREAD(t1, PTRUE, "Select t1");
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Select t2");
+
 		WAIT_FOR_THREAD(t1, IN_FUNC(f_get), "Select t1");
 		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f_get), "Select t2");
 

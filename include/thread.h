@@ -83,6 +83,9 @@ public:
 
 	static void SetCancellable();
 
+	static void CleanupHandler(void* arg);
+	static void* ThreadEntry(void* arg);
+
 protected:
 
 	void* call_function();

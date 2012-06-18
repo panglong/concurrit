@@ -161,11 +161,12 @@ int bounded_buf_put(bounded_buf_t * bbuf, void *item)
   return (status == 0)? status2 : status;
 }
 
-
 int bounded_buf_get(bounded_buf_t *bbuf, void **item)
 {
   int status = 0,status1 = 0, status2 = 0;
   
+  concurritFuncEnter(bounded_buf_get, bbuf, item);
+
   if (bbuf == NULL || item == NULL || bbuf->valid != BOUNDED_BUF_VALID)
     return EINVAL;
 
@@ -207,7 +208,12 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
 
   //  printf("%x:unlock:%x\n", pthread_self(), (int)&bbuf->mutex);
   status2 = pthread_mutex_unlock(&bbuf->mutex);
-  return (status != 0)? status : (status1 != 0)? status1 : status2;
+
+  status = (status != 0)? status : (status1 != 0)? status1 : status2;
+
+  concurritFuncReturn(bounded_buf_get, status);
+
+  return status;
 }
 
 

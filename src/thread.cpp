@@ -91,12 +91,30 @@ void* Thread::Run() {
 
 /********************************************************************************/
 
-void* ThreadEntry(void* arg) {
-	// sometimes the threads starts before pthread_creates takes affect,
+void Thread::CleanupHandler(void* arg) {
+	safe_assert(arg != NULL);
+
+	Thread* thread = reinterpret_cast<Thread*>(arg);
+
+	pthread_t self = pthread_self();
+	safe_assert(self != PTH_INVALID_THREAD);
+	safe_assert(thread->pthread() == self);
+
+	thread->detach_pthread(self);
+}
+
+/********************************************************************************/
+
+void* Thread::ThreadEntry(void* arg) {
+	// sometimes the threads starts before pthread_create takes affect,
 	// so ensure that we give enough time to pthread_create
 	sched_yield();
 
+	void* ret_val = NULL;
+
 	Thread* thread = reinterpret_cast<Thread*>(arg);
+
+	pthread_cleanup_push(Thread::CleanupHandler, thread);
 
 	pthread_t self = pthread_self();
 	safe_assert(self != PTH_INVALID_THREAD);
@@ -105,13 +123,12 @@ void* ThreadEntry(void* arg) {
 
 	Thread::SetCancellable();
 
-	void* return_value = thread->Run();
+	ret_val = thread->Run();
 
-	thread->detach_pthread(self);
+	// runs CleanupHandler
+	pthread_cleanup_pop(1);
 
-	// no need to call pthread_exit
-	PthreadOriginals::pthread_exit(return_value);
-	return return_value;
+	return ret_val;
 }
 
 /********************************************************************************/
@@ -182,7 +199,7 @@ void Thread::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NUL
 		attr_ptr = &attr_local;
 	}
 	return_value_ = NULL;
-	__pthread_errno__ = PthreadOriginals::pthread_create(&pthread_, attr_ptr, ThreadEntry, static_cast<void*>(this));
+	__pthread_errno__ = PthreadOriginals::pthread_create(&pthread_, attr_ptr, Thread::ThreadEntry, static_cast<void*>(this));
 	if(__pthread_errno__ != PTH_SUCCESS) {
 		safe_fail("Create error: %s\n", PTHResultToString(__pthread_errno__));
 	}

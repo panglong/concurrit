@@ -132,8 +132,6 @@ void* FuncAddressByName(const char* name, void* handle, bool fail_on_null /*= fa
 	if(addr == NULL) {
 		if(fail_on_null) {
 			safe_fail("dlsym init of %s failed.\n", name);
-		} else {
-			MYLOG(2) << "dlsym init of " << name << " failed.";
 		}
 	}
 	return addr;

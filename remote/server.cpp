@@ -33,10 +33,6 @@
 
 #include "concurrit.h"
 
-#include "instrument.h"
-
-#include "tbb/concurrent_vector.h"
-
 namespace concurrit {
 
 /********************************************************************************/
@@ -188,6 +184,8 @@ public:
 				return false;
 			}
 
+			MYLOG(1) << "SERVER: Received event " << event->type;
+
 			// forward to the recipient
 
 			// before forwarding, check if the thread exists, otherwise, start it
@@ -207,7 +205,7 @@ public:
 
 		// create new thread, imitating the interpositioned threads
 		ShadowThread* shadowthread = new ServerShadowThread(tid, safe_notnull(pipe_));
-		shadowthread->SpawnAsThread(false);
+		shadowthread->SpawnAsThread();
 
 		// wait a little
 		usleep(10);
@@ -227,7 +225,7 @@ int main0(int argc, char* argv[]) {
 
 	test_started = false;
 
-	MYLOG(1) << "SERVER: main starting.";
+	MYLOG(1) << "SERVER: __main__ starting.";
 
 	// TODO(elmas): make them static and global
 	ServerEventHandler handler;
@@ -235,13 +233,15 @@ int main0(int argc, char* argv[]) {
 	ConcurrentPipe pipe(PipeNamesForDSL(), &handler);
 	handler.set_pipe(&pipe);
 
-	pipe.Open();
+	pipe.Open(true);
+
+	MYLOG(1) << "SERVER: Done with initialization. Waiting on test_end_semaphore.";
 
 	handler.test_end_sem()->Wait();
 
 	pipe.Close();
 
-	MYLOG(1) << "SERVER: main exiting.";
+	MYLOG(1) << "SERVER: __main__ exiting.";
 
 	return EXIT_SUCCESS;
 }

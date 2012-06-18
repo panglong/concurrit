@@ -64,8 +64,9 @@ void concurritMemReadEx(void* addr, size_t size, const char* filename, const cha
 void concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line) {dummy_error();}
 
 void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line) {dummy_error();}
-void concurritMemAfterBeforeEx(const char* filename, const char* funcname, int line) {dummy_error();}
+void concurritMemAccessAfterEx(const char* filename, const char* funcname, int line) {dummy_error();}
 
+void concurritThreadStartEx(const char* filename, const char* funcname, int line)  {dummy_error();}
 void concurritThreadEndEx(const char* filename, const char* funcname, int line)  {dummy_error();}
 
 void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line) {dummy_error();}

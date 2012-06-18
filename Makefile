@@ -51,21 +51,21 @@ $(CONCURRIT_LIBDIR)/libdummy.so: $(CONCURRIT_HOME)/dummy/dummy.cpp
 server: makedirs $(CONCURRIT_LIBDIR)/libserver.so
 
 $(CONCURRIT_LIBDIR)/libserver.so: $(CONCURRIT_HOME)/remote/server.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
+	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -shared -o $@ $^
 
 ############################
 
 client: makedirs $(CONCURRIT_LIBDIR)/libclient.so
 
 $(CONCURRIT_LIBDIR)/libclient.so: $(CONCURRIT_HOME)/remote/client.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
+	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -shared -o $@ $^
 
 ############################
 
 loader: makedirs $(CONCURRIT_BINDIR)/testloader
 
 $(CONCURRIT_BINDIR)/testloader: $(CONCURRIT_HOME)/remote/loader.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -o $@ $^
+	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -o $@ $^
 
 ############################
 

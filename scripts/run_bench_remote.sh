@@ -27,7 +27,7 @@ mkdir -p /tmp/concurrit/pipe
 # run concurrit in server mode
 ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" "-p0" "-m1")
 
-LD_PRELOAD=$CONCURRIT_HOME/lib/libconcurrit.so:$BENCHDIR/lib/lib$BENCH.so:$LD_PRELOAD \
+LD_PRELOAD="$CONCURRIT_HOME/lib/libconcurrit.so:$BENCHDIR/lib/lib$BENCH.so:$LD_PRELOAD" \
 PATH="$BENCHDIR/bin:$PATH" \
 LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
 DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
@@ -39,7 +39,7 @@ TESTPID=$!
 I=1
 while true; do
 	echo "ITERATION $I"
-	I=$I+1
+	(( I=$I+1 ))
 	
 	# check if test is still running
 	kill -0 $TESTPID
@@ -48,13 +48,23 @@ while true; do
 		break
 	fi
 	
+	echo "Runnning loader with SUT."
+	
 	# run loader
 	# add bench's library path to the end of arguments
-	LD_PRELOAD=$CONCURRIT_HOME/lib/libclient.so:$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD \
+	LD_PRELOAD="$CONCURRIT_HOME/lib/libclient.so:$BENCHDIR/lib/lib$BENCH.so:$LD_PRELOAD" \
 	PATH="$BENCHDIR/bin:$PATH" \
 	LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
 	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
 		$CONCURRIT_HOME/bin/testloader $BENCHARGS $BENCHDIR/lib/lib$BENCH.so
+		
+	if [ "$?" -ne "0" ];
+	then
+		kill -9 $TESTPID
+		break
+	fi
+		
+	echo "SUT ended."
 done
 
 echo "SEARCH ENDED."
