@@ -107,7 +107,7 @@ public:
 
 		concpipe->UnregisterShadowThread(this);
 
-		MYLOG(1) << "SERVER: Thread is ending tid = " << tid_;
+		fprintf(stderr, "SERVER: Thread is ending tid = %d\n", tid_);
 
 		return NULL;
 	}
@@ -136,7 +136,7 @@ public:
 			}
 			test_started = true;
 
-			MYLOG(1) << "SERVER: Test starting.";
+			fprintf(stderr, "SERVER: Test starting.\n");
 
 			concurritStartTest();
 
@@ -162,7 +162,7 @@ public:
 			// signal semaphore to end the program
 			test_end_sem_.Signal();
 
-			MYLOG(1) << "SERVER: Test ending.";
+			fprintf(stderr, "SERVER: Test ending.\n");
 
 			return false; // ignore it
 		}
@@ -184,7 +184,7 @@ public:
 				return false;
 			}
 
-			MYLOG(1) << "SERVER: Received event " << event->type;
+			fprintf(stderr, "SERVER: Received event %d\n", event->type);
 
 			// forward to the recipient
 
@@ -201,7 +201,7 @@ public:
 	}
 
 	ShadowThread* CreateShadowThread(THREADID tid) {
-		MYLOG(1) << "SERVER: Starting new thread with tid " << tid;
+		fprintf(stderr, "SERVER: Starting new thread with tid = %d\n", tid);
 
 		// create new thread, imitating the interpositioned threads
 		ShadowThread* shadowthread = new ServerShadowThread(tid, safe_notnull(pipe_));
@@ -225,7 +225,7 @@ int main0(int argc, char* argv[]) {
 
 	test_started = false;
 
-	MYLOG(1) << "SERVER: __main__ starting.";
+	fprintf(stderr, "SERVER: __main__ starting.\n");
 
 	// TODO(elmas): make them static and global
 	ServerEventHandler handler;
@@ -235,13 +235,13 @@ int main0(int argc, char* argv[]) {
 
 	pipe.Open(true);
 
-	MYLOG(1) << "SERVER: Done with initialization. Waiting on test_end_semaphore.";
+	fprintf(stderr, "SERVER: Done with initialization. Waiting on test_end_semaphore.\n");
 
 	handler.test_end_sem()->Wait();
 
 	pipe.Close();
 
-	MYLOG(1) << "SERVER: __main__ exiting.";
+	fprintf(stderr, "SERVER: __main__ exiting.\n");
 
 	return EXIT_SUCCESS;
 }

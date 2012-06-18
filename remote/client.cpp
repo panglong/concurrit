@@ -176,7 +176,7 @@ public:
 
 	// override
 	void concurritStartTest() {
-//		MYLOG(1) << "CLIENT: Entering concurritStartTest.";
+		fprintf(stderr, "CLIENT: Entering concurritStartTest.\n");
 
 		// send test start
 		EventBuffer e;
@@ -184,14 +184,14 @@ public:
 		e.threadid = 0;
 		pipe_->Send(NULL, &e);
 
-//		MYLOG(1) << "CLIENT: Exiting concurritStartTest.";
+		fprintf(stderr, "CLIENT: Exiting concurritStartTest.\n");
 	}
 
 	/********************************************************************************/
 
 	// override
 	void concurritEndTest() {
-//		MYLOG(1) << "CLIENT: Exiting concurritEndTest.";
+		fprintf(stderr, "CLIENT: Exiting concurritEndTest.\n");
 
 		// send test end
 		EventBuffer e;
@@ -199,7 +199,7 @@ public:
 		e.threadid = 0;
 		pipe_->Send(NULL, &e);
 
-//		MYLOG(1) << "CLIENT: Exiting concurritEndTest.";
+		fprintf(stderr, "CLIENT: Exiting concurritEndTest.\n");
 	}
 
 	/********************************************************************************/

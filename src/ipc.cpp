@@ -113,8 +113,6 @@ EventPipe::~EventPipe() {
 void EventPipe::MkFifo(const char* name) {
 	safe_assert(name != NULL);
 
-	MYLOG(1) << "Creating fifo " << name;
-
 	struct stat stt;
 
 	if(stat(name, &stt) != 0) {
@@ -131,8 +129,6 @@ void EventPipe::MkFifo(const char* name) {
 			safe_fail("Error creating the named pipe %s", name);
 		}
 	}
-
-	MYLOG(1) << "Created fifo " << name;
 }
 
 /**********************************************************************************/
@@ -307,8 +303,6 @@ void ConcurrentPipe::Recv(ShadowThread* thread, EventBuffer* event) {
 void ConcurrentPipe::Open(bool open_for_read_first) {
 	EventPipe::Open(open_for_read_first);
 
-	MYLOG(1) << "Creating worker thread";
-
 	// start thread
 	safe_assert(event_handler_ != NULL);
 	worker_thread_ = new Thread(56789, ConcurrentPipe::thread_func, this);
@@ -336,8 +330,6 @@ void* ConcurrentPipe::thread_func(void* arg) {
 
 	EventBuffer event;
 
-	MYLOG(1) << "ConcurrentPipe worker thread starting";
-
 	for(;;) {
 		// do receive
 		pipe->EventPipe::Recv(&event);
@@ -353,8 +345,6 @@ void* ConcurrentPipe::thread_func(void* arg) {
 			}
 		}
 	}
-
-	MYLOG(1) << "ConcurrentPipe worker thread ending";
 
 	return NULL;
 }
