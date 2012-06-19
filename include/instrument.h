@@ -86,13 +86,13 @@ extern void concurritTriggerAssert(const char* expr, const char* filename, const
 
 #define concurritAtPc(c)				concurritAtPcEx((c), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
-#define concurritFuncEnter(a, b, c)		concurritFuncEnterEx((a), (uintptr_t)(b), (uintptr_t)(c), __FILE__, __PRETTY_FUNCTION__, __LINE__)
-#define concurritFuncReturn(a, b)		concurritFuncReturnEx((a), (uintptr_t)(b), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritFuncEnter(a, b, c)		concurritFuncEnterEx((void*)(a), (uintptr_t)(b), (uintptr_t)(c), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritFuncReturn(a, b)		concurritFuncReturnEx((void*)(a), (uintptr_t)(b), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
-#define concurritFuncCall(a, b, c, d)	concurritFuncCallEx((a), (b), (uintptr_t)(c), (uintptr_t)(d), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritFuncCall(a, b, c, d)	concurritFuncCallEx((void*)(a), (void*)(b), (uintptr_t)(c), (uintptr_t)(d), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
-#define concurritMemRead(a, s)			concurritMemReadEx((a), (s), __FILE__, __PRETTY_FUNCTION__, __LINE__)
-#define concurritMemWrite(a, s)			concurritMemWriteEx((a), (s), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritMemRead(a, s)			concurritMemReadEx((void*)(a), (s), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritMemWrite(a, s)			concurritMemWriteEx((void*)(a), (s), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
 #define concurritMemAccessBefore()		concurritMemAccessBeforeEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define concurritMemAccessAfter()		concurritMemAccessAfterEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)

@@ -81,6 +81,8 @@ public:
 	ConcurritInstrHandler() {}
 	~ConcurritInstrHandler() {}
 
+	void concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr);
+
 	void concurritStartTest();
 	void concurritEndTest();
 

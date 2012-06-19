@@ -56,12 +56,11 @@ private:
 
 public:
 
-	static Coroutine* GetCoroutineByTid(THREADID tid);
+//	static Coroutine* GetCoroutineByTid(THREADID tid);
+//	static MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
+//	static SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);
 
 	static void Init();
-
-	static MemoryCellBase* GetMemoryCell(void* addr, uint32_t size);
-	static SharedAccess* GetSharedAccess(AccessType type, MemoryCellBase* cell);
 
 	static void Shutdown();
 	static void Enable();
@@ -97,7 +96,7 @@ public:
 	/******************************************************************************************/
 
 private:
-	static Coroutine* tid_to_coroutine_[MAX_THREADS];
+//	static Coroutine* tid_to_coroutine_[MAX_THREADS];
 	static volatile bool enabled_;
 	static volatile bool down_;
 	static PinToolOptions options_;

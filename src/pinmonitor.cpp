@@ -36,7 +36,7 @@
 
 namespace concurrit {
 
-Coroutine* PinMonitor::tid_to_coroutine_[MAX_THREADS];
+//Coroutine* PinMonitor::tid_to_coroutine_[MAX_THREADS];
 volatile bool PinMonitor::enabled_ = false;
 volatile bool PinMonitor::down_ = false;
 SymbolToAddressMap PinMonitor::symbol_to_address_;
@@ -51,7 +51,7 @@ PinToolOptions PinMonitor::options_ = {
 
 void PinMonitor::Init() {
 	// clean tid_to_coroutine
-	memset(tid_to_coroutine_, NULL, (sizeof(Coroutine*) * MAX_THREADS));
+//	memset(tid_to_coroutine_, NULL, (sizeof(Coroutine*) * MAX_THREADS));
 //	for(int i = 0; i < MAX_THREADS; ++i) {
 //		tid_to_coroutine_[i] = NULL;
 //	}
@@ -61,37 +61,37 @@ void PinMonitor::Init() {
 	}
 }
 
-Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
-	safe_assert(0 <= tid && tid < MAX_THREADS);
-	Coroutine* co = tid_to_coroutine_[tid];
-	if(co == NULL) {
-		co = Coroutine::Current();
-		tid_to_coroutine_[tid] = safe_notnull(co);
-	}
-	return co;
-}
-
-
-MemoryCellBase* PinMonitor::GetMemoryCell(void* addr, uint32_t size) {
-	switch(size) {
-	case 1:
-		return new MemoryCell<uint8_t>(static_cast<uint8_t*>(addr));
-	case 2:
-		return new MemoryCell<uint16_t>(static_cast<uint16_t*>(addr));
-	case 4:
-		return new MemoryCell<uint32_t>(static_cast<uint32_t*>(addr));
-	case 8:
-		return new MemoryCell<uint64_t>(static_cast<uint64_t*>(addr));
-	default:
-		safe_assert(false);
-		break;
-	}
-	return NULL;
-}
-
-SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell) {
-	return new SharedAccess(type, cell);
-}
+//Coroutine* PinMonitor::GetCoroutineByTid(THREADID tid) {
+//	safe_assert(0 <= tid && tid < MAX_THREADS);
+//	Coroutine* co = tid_to_coroutine_[tid];
+//	if(co == NULL) {
+//		co = Coroutine::Current();
+//		tid_to_coroutine_[tid] = safe_notnull(co);
+//	}
+//	return co;
+//}
+//
+//
+//MemoryCellBase* PinMonitor::GetMemoryCell(void* addr, uint32_t size) {
+//	switch(size) {
+//	case 1:
+//		return new MemoryCell<uint8_t>(static_cast<uint8_t*>(addr));
+//	case 2:
+//		return new MemoryCell<uint16_t>(static_cast<uint16_t*>(addr));
+//	case 4:
+//		return new MemoryCell<uint32_t>(static_cast<uint32_t*>(addr));
+//	case 8:
+//		return new MemoryCell<uint64_t>(static_cast<uint64_t*>(addr));
+//	default:
+//		safe_assert(false);
+//		break;
+//	}
+//	return NULL;
+//}
+//
+//SharedAccess* PinMonitor::GetSharedAccess(AccessType type, MemoryCellBase* cell) {
+//	return new SharedAccess(type, cell);
+//}
 
 /******************************************************************************************/
 
@@ -332,51 +332,51 @@ void PinMonitor::AtPc(Coroutine* current, Scenario* scenario, int pc, SourceLoca
 
 /********************************************************************************/
 
-void CallPinMonitor(EventBuffer* info) {
-	safe_assert(info != NULL);
+void CallPinMonitor(EventBuffer* event) {
+	safe_assert(event != NULL);
+	safe_assert(!PinMonitor::IsDown());
 
 	if(!PinMonitor::IsEnabled()) {
 		return;
 	}
 
-	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(info->threadid));
+//	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(event->threadid));
+	Coroutine* current = safe_notnull(Coroutine::Current());
 	safe_assert(!current->IsMain());
+	Scenario* scenario = safe_notnull(Scenario::Current());
 
-	CoroutineGroup* group = safe_notnull(current->group());
-	Scenario* scenario = safe_notnull(group->scenario());
-
-	switch(info->type) {
+	switch(event->type) {
 		case MemAccessBefore:
-			PinMonitor::MemAccessBefore(current, scenario, info->loc_src);
+			PinMonitor::MemAccessBefore(current, scenario, event->loc_src);
 			break;
 		case MemAccessAfter:
-			PinMonitor::MemAccessAfter(current, scenario, info->loc_src);
+			PinMonitor::MemAccessAfter(current, scenario, event->loc_src);
 			break;
 		case MemWrite:
-			PinMonitor::MemWrite(current, scenario, info->addr, info->size, info->loc_src);
+			PinMonitor::MemWrite(current, scenario, event->addr, event->size, event->loc_src);
 			break;
 		case MemRead:
-			PinMonitor::MemRead(current, scenario, info->addr, info->size, info->loc_src);
+			PinMonitor::MemRead(current, scenario, event->addr, event->size, event->loc_src);
 			break;
 		case FuncEnter:
-			PinMonitor::FuncEnter(current, scenario, info->addr, info->loc_src, info->arg0, info->arg1);
+			PinMonitor::FuncEnter(current, scenario, event->addr, event->loc_src, event->arg0, event->arg1);
 			break;
 		case FuncReturn:
-			PinMonitor::FuncReturn(current, scenario, info->addr, info->loc_src, info->retval);
+			PinMonitor::FuncReturn(current, scenario, event->addr, event->loc_src, event->retval);
 			break;
 		case FuncCall:
-			PinMonitor::FuncCall(current, scenario, info->addr, info->addr_target, info->direct == TRUE, info->loc_src, info->loc_target, info->arg0, info->arg1);
+			PinMonitor::FuncCall(current, scenario, event->addr, event->addr_target, event->direct == TRUE, event->loc_src, event->loc_target, event->arg0, event->arg1);
 			break;
 		case ThreadEnd:
 			PinMonitor::ThreadEnd(current, scenario);
 			break;
 		case AtPc:
-			PinMonitor::AtPc(current, scenario, info->pc, info->loc_src);
+			PinMonitor::AtPc(current, scenario, event->pc, event->loc_src);
 			break;
 		case AddressOfSymbol:
-			PinMonitor::AddressOfSymbol(info->str, info->addr);
+			PinMonitor::AddressOfSymbol(event->str, event->addr);
 		default:
-			safe_fail("Unrecognized pinmonitor call type: %d\n", info->type);
+			safe_fail("Unrecognized event type: %d\n", event->type);
 			break;
 	}
 }

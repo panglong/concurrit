@@ -73,42 +73,65 @@ public:
 			// handle event
 			switch(event.type) {
 				case ThreadEndIntern:
-				{
 					// exit loop and return
 					goto L_THREADEND;
-				}
 
 				case MemAccessBefore:
+					concurritMemAccessBefore();
+					break;
+
 				case MemAccessAfter:
+					concurritMemAccessAfter();
+					break;
+
 				case MemWrite:
+					concurritMemWrite(event.addr, event.size);
+					break;
+
 				case MemRead:
+					concurritMemRead(event.addr, event.size);
+					break;
+
 				case FuncCall:
+					concurritFuncCall(event.addr, event.addr_target, event.arg0, event.arg1);
+					break;
+
 				case FuncEnter:
+					concurritFuncEnter(event.addr, event.arg0, event.arg1);
+					break;
+
 				case FuncReturn:
+					concurritFuncReturn(event.addr, event.retval);
+					break;
+
 				case ThreadEnd:
+					concurritThreadEnd();
+					break;
+
 				case AtPc:
+					concurritAtPc(event.pc);
+					break;
+
 				case AddressOfSymbol:
-
-					// notify concurrit
-					CallPinMonitor(&event);
-
-					MYLOG(1) << "SERVER: Thread " << tid_ << " handled event kind " << EventKindToString(event.type);
-
-					// send continue to remote
-					this->SendContinue();
-
-					if(event.type == ThreadEnd) {
-						// exit loop and return
-						goto L_THREADEND;
-					}
-
+					concurritAddressOfSymbol(event.str, event.addr);
 					break;
 
 				default:
 					safe_fail("Unexpected event type: %d", event.type);
 					break;
 			}
-		}
+
+			MYLOG(1) << "SERVER: Thread " << tid_ << " handled event kind " << EventKindToString(event.type);
+
+			// send continue to remote
+			this->SendContinue();
+
+			if(event.type == ThreadEnd) {
+				// exit loop and return
+				goto L_THREADEND;
+			}
+
+		} // end for(;;)
 
 	L_THREADEND:
 

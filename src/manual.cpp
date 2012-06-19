@@ -59,6 +59,14 @@ void ConcurritInstrHandler::concurritEndSearch() {
 
 /********************************************************************************/
 
+void ConcurritInstrHandler::concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr) {
+	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+
+	PinMonitor::AddressOfSymbol(symbol, addr);
+}
+
+/********************************************************************************/
+
 void ConcurritInstrHandler::concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {
 	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
 
