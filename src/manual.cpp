@@ -40,12 +40,19 @@ namespace concurrit {
 /********************************************************************************/
 
 void ConcurritInstrHandler::concurritStartTest() {
+	if(Config::RunUncontrolled) return;
+
 	MYLOG(1) << "concurritStartTest";
 
 	PinMonitor::Enable();
+
+	// signal test_start condition
+	Concurrit::sem_test_start()->Signal();
 }
 
 void ConcurritInstrHandler::concurritEndTest() {
+	if(Config::RunUncontrolled) return;
+
 	MYLOG(1) << "concurritEndTest";
 
 	PinMonitor::Disable();
@@ -60,7 +67,7 @@ void ConcurritInstrHandler::concurritEndSearch() {
 /********************************************************************************/
 
 void ConcurritInstrHandler::concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr) {
-	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+	if(Config::RunUncontrolled) return;
 
 	PinMonitor::AddressOfSymbol(symbol, addr);
 }
@@ -68,7 +75,7 @@ void ConcurritInstrHandler::concurritAddressOfSymbolEx(const char* symbol, uintp
 /********************************************************************************/
 
 void ConcurritInstrHandler::concurritStartInstrumentEx(const char* filename, const char* funcname, int line) {
-	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+	if(!PinMonitor::IsEnabled() || Config::RunUncontrolled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
 	if(filename != NULL) current->set_srcloc(new SourceLocation(filename, funcname, line));
@@ -79,7 +86,7 @@ void ConcurritInstrHandler::concurritStartInstrumentEx(const char* filename, con
 /********************************************************************************/
 
 void ConcurritInstrHandler::concurritEndInstrumentEx(const char* filename, const char* funcname, int line) {
-	if(!PinMonitor::IsEnabled() || !Config::ManualInstrEnabled) return;
+	if(!PinMonitor::IsEnabled() || Config::RunUncontrolled) return;
 
 	Coroutine* current = safe_notnull(Coroutine::Current());
 	if(filename != NULL) current->set_srcloc(new SourceLocation(filename, funcname, line));

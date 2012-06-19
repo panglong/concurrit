@@ -127,6 +127,19 @@ ThreadVarPtr Scenario::RunTestDriver() {
 }
 
 /********************************************************************************/
+
+void Scenario::WaitForTestStart() {
+	// wait for start_test signal
+	int result = Concurrit::sem_test_start()->WaitTimed(60*USECSPERSEC);
+	if(result == ETIMEDOUT) {
+		fprintf(stderr, "No TestStart event has been received! Ending the search.\n");
+		TRIGGER_TERMINATE_SEARCH();
+	}
+	safe_assert(result == PTH_SUCCESS);
+}
+
+/********************************************************************************/
+
 ThreadVarPtr Scenario::CreateThread(ThreadEntryFunction function, void* arg /*= NULL*/, pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
 	return CreateThread(-1, function, arg, pid, attr);
 }
@@ -498,6 +511,11 @@ void Scenario::RunTestCase() throw() {
 			if(!Config::RunUncontrolled) {
 				// put a single dot to indicate progress
 				fprintf(stderr, ".");
+
+				// first wait for the TestStart event
+				WaitForTestStart();
+
+				// then run the actual test case
 				TestCase();
 			}
 
@@ -775,8 +793,7 @@ void Scenario::Finish(Result* result) {
 void Scenario::OnSignal(int signal_number) {
 
 	if(BETWEEN(TEST_SETUP, test_status_, TEST_TEARDOWN)) {
-		fprintf(stderr, "Signal %d caught! Finishing...\n", signal_number);
-		fflush(stderr);
+		psignal(signal_number, "Signal caught! Finishing.");
 		safe_assert(Scenario::Current() == this);
 		Finish(new SignalResult(signal_number));
 	}
@@ -1840,7 +1857,7 @@ void Scenario::OnControlledTransition(Coroutine* current) {
 //		safe_assert(current->current_node() == NULL);
 
 		//=================================================================
-		MYLOG(2) << "Acquiring Ref with EXIT_ON_FULL";
+		MYLOG(3) << "Acquiring Ref with EXIT_ON_FULL";
 		// get the node
 		ExecutionTree* node = exec_tree_.AcquireRef(EXIT_ON_FULL);
 
@@ -1899,7 +1916,7 @@ void Scenario::OnControlledTransition(Coroutine* current) {
 			exec_tree_.ReleaseRef(node, child_index);
 
 		} else {
-			MYLOG(2) << "Releasing transition back";
+			MYLOG(3) << "Releasing transition back";
 			exec_tree_.ReleaseRef(node);
 		}
 

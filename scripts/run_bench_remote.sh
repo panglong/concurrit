@@ -25,7 +25,7 @@ rm -rf /tmp/concurrit/*
 mkdir -p /tmp/concurrit/pipe
 
 # run concurrit in server mode
-ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" "-p0" "-m1")
+ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" "-p0" "-m1" "-r")
 
 LD_PRELOAD="$CONCURRIT_HOME/lib/libconcurrit.so:$BENCHDIR/lib/lib$BENCH.so:$LD_PRELOAD" \
 PATH="$BENCHDIR/bin:$PATH" \

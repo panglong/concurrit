@@ -81,6 +81,8 @@ public:
 
 	ThreadVarPtr RunTestDriver();
 
+	void WaitForTestStart();
+
 	/*
 	 * methods defining the test scenario, the initialization, termination, and the actual testcase
 	 */

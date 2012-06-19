@@ -377,6 +377,7 @@ int main0(int argc, char ** argv)
 
 int __main__(int argc, char* argv[]) {
 	concurritAddressOfSymbol("bounded_buf_get", bounded_buf_get);
+	concurritAddressOfSymbol("bounded_buf_put", bounded_buf_put);
 	concurritStartTest();
 	int ret = main0(argc, argv);
 	concurritEndTest();

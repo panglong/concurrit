@@ -161,7 +161,7 @@ public:
 
 	// override
 	void concurritEndTest() {
-		MYLOG(1) << "CLIENT: concurritStartTest.";
+		MYLOG(1) << "CLIENT: concurritEndTest.";
 
 		// send test end
 		EventBuffer e;

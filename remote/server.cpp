@@ -137,7 +137,7 @@ public:
 
 		concpipe->UnregisterShadowThread(this);
 
-		MYLOG(1) << "SERVER: Thread " << tid_ << "is ending.";
+		MYLOG(1) << "SERVER: Thread " << tid_ << " is ending.";
 
 		// ending the thread will trigger the event ThreadEnd in concurrit.
 

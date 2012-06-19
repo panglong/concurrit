@@ -46,6 +46,7 @@ MainFuncType Concurrit::driver_main_ = NULL;
 //MainFuncType Concurrit::driver_init_ = NULL;
 //MainFuncType Concurrit::driver_fini_ = NULL;
 Semaphore Concurrit::sem_driver_load_;
+Semaphore Concurrit::sem_test_start_;
 Scenario* Concurrit::current_scenario_ = NULL;
 
 /********************************************************************************/
@@ -127,6 +128,8 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	//==========================================
 
 	Concurrit::sem_driver_load_.Init(0);
+
+	Concurrit::sem_test_start_.Init(0);
 
 	// init test library. the library is to be loaded by RunTestDriver
 	Concurrit::driver_handle_ = NULL;

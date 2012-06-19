@@ -237,7 +237,8 @@ void ShadowThread::WaitRecv(EventBuffer* event) {
 // copy event from argument and signal the semaphore
 void ShadowThread::SignalRecv(EventBuffer* event) {
 	// copy
-	safe_assert(event_ != NULL && event != NULL);
+	safe_assert(event_ != NULL);
+	safe_assert(event != NULL);
 //	*event_ = *event;
 	memcpy(event_, event, sizeof(EventBuffer));
 
