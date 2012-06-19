@@ -41,6 +41,7 @@
 #include "coroutine.h"
 #include "transpred.h"
 #include "pinmonitor.h"
+#include "threadvar.h"
 
 namespace concurrit {
 

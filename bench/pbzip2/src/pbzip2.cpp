@@ -89,7 +89,7 @@
 #include <windows.h>
 #endif
 
-#include "dummy.h"
+#include "instrument.h"
 
 // uncomment for debug output
 //#define PBZIP_DEBUG
@@ -1978,13 +1978,5 @@ int main0(int argc, char* argv[])
 
 //============================================
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(main0);
 
