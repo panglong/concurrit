@@ -74,7 +74,7 @@ CoroutineGroup:: CoroutineGroup() {
 void CoroutineGroup::AddMember(Coroutine* member) {
 	// check if not our member
 	safe_assert(!member->IsMain()); // cannot add main in here
-	CHECK(!HasMember(member));
+	safe_check(!HasMember(member));
 
 	// set thread id if not set yet
 	THREADID tid = member->tid();
@@ -134,7 +134,7 @@ Coroutine* CoroutineGroup::GetNthCreatedMember(int i, THREADID tid /*= -1*/) {
 
 void CoroutineGroup::TakeOutMember(Coroutine* member) {
 	// check if already our member
-	CHECK(HasMember(member));
+	safe_check(HasMember(member));
 	safe_assert(!member->IsMain()); // cannot add main in here
 	MembersMap::iterator itr = members_.find(member->tid());
 	safe_assert(itr != members_.end());
@@ -143,7 +143,7 @@ void CoroutineGroup::TakeOutMember(Coroutine* member) {
 
 void CoroutineGroup::PutBackMember(Coroutine* member) {
 	// check if not our member
-	CHECK(!HasMember(member));
+	safe_check(!HasMember(member));
 	safe_assert(!member->IsMain()); // cannot add main in here
 	members_[member->tid()] = member;
 }

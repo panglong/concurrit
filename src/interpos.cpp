@@ -209,7 +209,7 @@ int ConcurritPthreadHandler::pthread_cancel(pthread_t thread) {
 
 	MYLOG(2) << "Exiting thread via interpositioned pthread_cancel.";
 
-	CHECK(false) << "pthread_cancel is not supported yet!!!";
+	safe_fail("pthread_cancel is not supported yet!!!");
 
 	return -1;
 }

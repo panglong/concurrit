@@ -149,7 +149,7 @@ namespace concurrit {
 class WithoutThreads {
 public:
 	WithoutThreads(ThreadVarScope* scope, ThreadVarPtrSet set) : scope_(scope), set_(set) {
-		CHECK(!set.empty());
+		safe_check(!set.empty());
 		for(ThreadVarPtrSet::iterator itr = set_.begin(), end = set_.end(); itr != end; ++itr) {
 			scope_->Remove(*itr);
 		}
@@ -171,7 +171,7 @@ private:
 class WithThreads {
 public:
 	WithThreads(ThreadVarScope* scope, ThreadVarPtrSet set) {
-		CHECK(!set.empty());
+		safe_check(!set.empty());
 		ThreadVarPtrSet others = *scope;
 		for(ThreadVarPtrSet::iterator itr = set.begin(), end = set.end(); itr != end; ++itr) {
 			others.erase(*itr);

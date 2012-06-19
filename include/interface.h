@@ -63,11 +63,12 @@ const EventKind
 	ThreadEnd		= 9U,
 	TestStart		= 10U,
 	TestEnd			= 11U,
+	AtPc			= 12U,
 	// events from DSL to SUT
-	Continue		= 12U,
-	TestShutdown	= 13U,
+	Continue		= 13U,
+	TestShutdown	= 14U,
 	// events exchanged internally
-	ThreadEndInternal = 14U;
+	ThreadEndInternal = 15U;
 
 /***********************************************************************/
 
@@ -109,6 +110,7 @@ struct EventBuffer {
 	ADDRINT arg0;
 	ADDRINT arg1;
 	ADDRINT retval;
+	int pc;
 	SourceLocation* loc_src;
 	SourceLocation* loc_target;
 
@@ -122,6 +124,7 @@ struct EventBuffer {
 		arg0(0),
 		arg1(0),
 		retval(0),
+		pc(0),
 		loc_src(NULL),
 		loc_target(NULL) {}
 };

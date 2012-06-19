@@ -335,13 +335,14 @@ void* ConcurrentPipe::thread_func(void* arg) {
 
 		bool cancel = !event_handler->OnRecv(&event);
 
-		safe_assert(event.threadid >= 0);
+		const THREADID tid = event.threadid;
+		safe_assert(tid >= 0);
 
 		if(!cancel) {
 			// notify receiver
-			ShadowThread* thread = pipe->GetShadowThread(event.threadid);
+			ShadowThread* thread = pipe->GetShadowThread(tid);
 			if(thread != NULL) { // otherwise ignore the message
-
+				safe_assert(thread->tid() == tid);
 				thread->SignalRecv(&event);
 			}
 		}
@@ -375,6 +376,7 @@ ShadowThread* ConcurrentPipe::GetShadowThread(THREADID tid) {
 	TidToShadowThreadMap::accessor acc;
 	if(tid_to_shadowthread_.find(acc, tid)) {
 		thread = acc->second;
+		safe_assert(thread != NULL);
 	}
 	return thread;
 }

@@ -148,30 +148,26 @@ public:
 
 	// override
 	void concurritStartTest() {
-		fprintf(stderr, "CLIENT: Entering concurritStartTest.\n");
+		MYLOG(1) << "CLIENT: concurritStartTest.";
 
 		// send test start
 		EventBuffer e;
 		e.type = TestStart;
 		e.threadid = 0;
 		pipe_->Send(NULL, &e);
-
-		fprintf(stderr, "CLIENT: Exiting concurritStartTest.\n");
 	}
 
 	/********************************************************************************/
 
 	// override
 	void concurritEndTest() {
-		fprintf(stderr, "CLIENT: Exiting concurritEndTest.\n");
+		MYLOG(1) << "CLIENT: concurritStartTest.";
 
 		// send test end
 		EventBuffer e;
 		e.type = TestEnd;
 		e.threadid = 0;
 		pipe_->Send(NULL, &e);
-
-		fprintf(stderr, "CLIENT: Exiting concurritEndTest.\n");
 	}
 
 	/********************************************************************************/
@@ -181,8 +177,16 @@ public:
 //	void concurritStartInstrumentEx(const char* filename, const char* funcname, int line);
 //	void concurritEndInstrumentEx(const char* filename, const char* funcname, int line);
 //
-//	void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line);
-//
+	void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
+		ClientShadowThread* thread = GetShadowThread();
+
+		// send event
+		EventBuffer e;
+		e.type = AtPc;
+		e.pc = pc;
+		thread->SendRecvContinue(&e);
+	}
+
 	void concurritFuncEnterEx(void* addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 

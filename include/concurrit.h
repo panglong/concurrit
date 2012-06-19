@@ -35,6 +35,7 @@
 #define COUNIT_H_
 
 #include "common.h"
+#include "thread.h"
 
 /********************************************************************************/
 
@@ -62,7 +63,7 @@ namespace concurrit {
 		DECL_STATIC_FIELD(MainFuncType, driver_main)
 	//	DECL_STATIC_FIELD(MainFuncType, driver_init)
 	//	DECL_STATIC_FIELD(MainFuncType, driver_fini)
-		DECL_STATIC_FIELD(Semaphore*, sem_driver_load)
+		DECL_STATIC_FIELD_REF(Semaphore, sem_driver_load)
 		DECL_STATIC_FIELD(Scenario*, current_scenario)
 	};
 } // end namespace

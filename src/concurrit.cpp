@@ -45,7 +45,7 @@ void* Concurrit::driver_handle_ = NULL;
 MainFuncType Concurrit::driver_main_ = NULL;
 //MainFuncType Concurrit::driver_init_ = NULL;
 //MainFuncType Concurrit::driver_fini_ = NULL;
-Semaphore* Concurrit::sem_driver_load_;
+Semaphore Concurrit::sem_driver_load_;
 Scenario* Concurrit::current_scenario_ = NULL;
 
 /********************************************************************************/
@@ -126,7 +126,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	//==========================================
 
-	Concurrit::sem_driver_load_ = new Semaphore(0);
+	Concurrit::sem_driver_load_.Init(0);
 
 	// init test library. the library is to be loaded by RunTestDriver
 	Concurrit::driver_handle_ = NULL;
@@ -169,8 +169,6 @@ void Concurrit::Destroy() {
 	do { // need a fence here
 		initialized_ = false;
 	} while(false);
-
-	safe_delete(Concurrit::sem_driver_load_);
 
 	safe_assert(INSTANCEOF(PthreadHandler::Current, ConcurritPthreadHandler*));
 	safe_delete(PthreadHandler::Current);

@@ -564,12 +564,12 @@ void ExecutionTreeManager::AddToNodeStack(const ChildLoc& current) {
 	const int sz = node_stack_.size();
 
 	// if we are adding end node, then the stack must have been truncated
-	CHECK(!IS_ENDNODE(current.parent()) || stack_index_ == sz);
+	safe_check(!IS_ENDNODE(current.parent()) || stack_index_ == sz);
 
 	if(stack_index_ == sz) {
 		node_stack_.push_back(current);
 	} else {
-		CHECK(BETWEEN(0, stack_index_, (sz-1)) && node_stack_[stack_index_] == current);
+		safe_check(BETWEEN(0, stack_index_, (sz-1)) && node_stack_[stack_index_] == current);
 	}
 	++stack_index_;
 //	current_node_ = current;

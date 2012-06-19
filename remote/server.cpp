@@ -57,6 +57,10 @@ public:
 
 		EventBuffer event;
 
+		// signal the creator
+		sem_.Signal();
+		sem_.Wait();
+
 		for(;;) {
 			Recv(&event);
 
@@ -103,7 +107,9 @@ public:
 
 		concpipe->UnregisterShadowThread(this);
 
-		fprintf(stderr, "SERVER: Thread is ending tid = %d\n", tid_);
+		MYLOG(1) << "SERVER: Thread is ending tid = " << tid_;
+
+		// ending the thread will trigger the event ThreadEnd in concurrit.
 
 		return NULL;
 	}
@@ -121,7 +127,7 @@ public:
 	//override
 	bool OnRecv(EventBuffer* event) {
 
-		fprintf(stderr, "SERVER: Received event %s\n", EventKindToString(event->type));
+		MYLOG(1) << "SERVER: Received event " << EventKindToString(event->type);
 
 		// handle event
 		switch(event->type) {
@@ -134,8 +140,9 @@ public:
 			}
 			test_started = true;
 
-			fprintf(stderr, "SERVER: Test starting.\n");
+			MYLOG(1) << "SERVER: Test starting.";
 
+			// run monitor callback
 			concurritStartTest();
 
 			return false; // ignore it
@@ -150,6 +157,7 @@ public:
 			}
 			test_started = false;
 
+			// run monitor callback
 			concurritEndTest();
 
 			// broadcast thread-end signal to all threads
@@ -160,7 +168,7 @@ public:
 			// signal semaphore to end the program
 			test_end_sem_.Signal();
 
-			fprintf(stderr, "SERVER: Test ending.\n");
+			MYLOG(1) << "SERVER: Test ending.";
 
 			return false; // ignore it
 		}
@@ -183,7 +191,7 @@ public:
 			}
 
 			// forward to the recipient
-			fprintf(stderr, "SERVER: Handling event %s\n", EventKindToString(event->type));
+			MYLOG(1) << "SERVER: Handling event " << EventKindToString(event->type);
 
 			// before forwarding, check if the thread exists, otherwise, start it
 			ShadowThread* thread = pipe_->GetShadowThread(event->threadid);
@@ -198,14 +206,17 @@ public:
 	}
 
 	ShadowThread* CreateShadowThread(THREADID tid) {
-		fprintf(stderr, "SERVER: Starting new thread with tid = %d\n", tid);
+		MYLOG(1) << "SERVER: Starting new thread with tid = " << tid;
 
 		// create new thread, imitating the interpositioned threads
 		ShadowThread* shadowthread = new ServerShadowThread(tid, safe_notnull(pipe_));
+
+		// this triggers the thread creation callback
 		shadowthread->SpawnAsThread();
 
-		// wait a little
-		usleep(10);
+		// wait for the thread to start waiting
+		shadowthread->sem()->Wait();
+		shadowthread->sem()->Signal();
 
 		return shadowthread;
 	}
@@ -222,7 +233,7 @@ int main0(int argc, char* argv[]) {
 
 	test_started = false;
 
-	fprintf(stderr, "SERVER: __main__ starting.\n");
+	MYLOG(1) << "SERVER: __main__ starting.";
 
 	// TODO(elmas): make them static and global
 	ServerEventHandler handler;
@@ -232,13 +243,13 @@ int main0(int argc, char* argv[]) {
 
 	pipe.Open(true);
 
-	fprintf(stderr, "SERVER: Done with initialization. Waiting on test_end_semaphore.\n");
+	MYLOG(1) << "SERVER: Done with initialization. Waiting on test_end_semaphore.";
 
 	handler.test_end_sem()->Wait();
 
 	pipe.Close();
 
-	fprintf(stderr, "SERVER: __main__ exiting.\n");
+	MYLOG(1) << "SERVER: __main__ exiting.";
 
 	return EXIT_SUCCESS;
 }

@@ -105,6 +105,9 @@ public:
 			DO##F(event->arg0);		\
 			DO##F(event->arg1);		\
 			break;					\
+		case AtPc:					\
+			DO##F(event->pc);		\
+			break;					\
 		default:					\
 			break;					\
 		}							\

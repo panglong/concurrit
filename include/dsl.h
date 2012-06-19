@@ -264,7 +264,7 @@ public:
 	StaticEndNode() : EndNode(NULL) {}
 
 	~StaticEndNode(){
-		CHECK(false) << "StaticEndNode should not be deleted!!!";
+		safe_fail("StaticEndNode should not be deleted!!!");
 	}
 
 	DISALLOW_COPY_AND_ASSIGN(StaticEndNode)

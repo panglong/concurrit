@@ -202,6 +202,7 @@ void print_stack_trace();
 
 #define safe_exit(c)	fprintf(stderr, "Terminating with exit-code: %s.\n", #c); _Exit(c)
 #define safe_fail(...) 	fprintf(stderr, __VA_ARGS__); fprintf(stderr, " \n\tfunction: %s\n\tfile: %s\n\tline: %d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); raise(SIGTERM);
+#define safe_check(cond, ...) 	if (!(cond))  { safe_fail("\nCounit: safe check fail: safe_check(%s):", #cond); }
 
 #ifdef SAFE_ASSERT
 #define NDEBUG

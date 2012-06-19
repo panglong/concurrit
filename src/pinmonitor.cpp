@@ -49,11 +49,12 @@ PinToolOptions PinMonitor::options_ = {
 
 
 void PinMonitor::Init() {
+	// clean tid_to_coroutine
+	memset(tid_to_coroutine_, NULL, (sizeof(Coroutine*) * MAX_THREADS));
+//	for(int i = 0; i < MAX_THREADS; ++i) {
+//		tid_to_coroutine_[i] = NULL;
+//	}
 	if(!down_) {
-		// clean tid_to_coroutine
-		for(int i = 0; i < MAX_THREADS; ++i) {
-			tid_to_coroutine_[i] = NULL;
-		}
 		// init pin tool options, detected by Pin
 		InitPinTool(&PinMonitor::options_);
 	}
@@ -348,6 +349,9 @@ void CallPinMonitor(EventBuffer* info) {
 			break;
 		case ThreadEnd:
 			PinMonitor::ThreadEnd(current, scenario);
+			break;
+		case AtPc:
+			PinMonitor::AtPc(current, scenario, info->pc, info->loc_src);
 			break;
 		default:
 			safe_fail("Unrecognized pinmonitor call type: %d\n", info->type);
