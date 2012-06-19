@@ -77,33 +77,33 @@ public:
 
 	virtual void Close();
 
-#define DoSend(x)	write(out_fd_, (&x), sizeof(x))
-#define DoRecv(x)	read(in_fd_, (&x), sizeof(x))
+#define DOSend(x)	write(out_fd_, (&x), sizeof(x))
+#define DORecv(x)	read(in_fd_, (&x), sizeof(x))
 
 #define DECL_SEND_RECV(F) 			\
 	void F(EventBuffer* event) {	\
-		Do##F(event->type);			\
-		Do##F(event->threadid);		\
+		DO##F(event->type);			\
+		DO##F(event->threadid);		\
 		switch(event->type) {		\
 		case MemRead:				\
 		case MemWrite:				\
-			Do##F(event->addr);		\
-			Do##F(event->size);		\
+			DO##F(event->addr);		\
+			DO##F(event->size);		\
 			break;					\
 		case FuncEnter:				\
-			Do##F(event->addr);		\
-			Do##F(event->arg0);		\
-			Do##F(event->arg1);		\
+			DO##F(event->addr);		\
+			DO##F(event->arg0);		\
+			DO##F(event->arg1);		\
 			break;					\
 		case FuncReturn:			\
-			Do##F(event->addr);		\
-			Do##F(event->retval);	\
+			DO##F(event->addr);		\
+			DO##F(event->retval);	\
 			break;					\
 		case FuncCall:				\
-			Do##F(event->addr);		\
-			Do##F(event->addr_target); \
-			Do##F(event->arg0);		\
-			Do##F(event->arg1);		\
+			DO##F(event->addr);		\
+			DO##F(event->addr_target); \
+			DO##F(event->arg0);		\
+			DO##F(event->arg1);		\
 			break;					\
 		default:					\
 			break;					\
@@ -176,8 +176,7 @@ public:
 /********************************************************************************/
 
 class ConcurrentPipe : public EventPipe {
-//	typedef tbb::concurrent_hash_map<THREADID, ShadowThread*> TidToShadowThreadMap;
-	typedef std::map<THREADID, ShadowThread*> TidToShadowThreadMap;
+	typedef tbb::concurrent_hash_map<THREADID, ShadowThread*> TidToShadowThreadMap;
 public:
 
 	ConcurrentPipe(const PipeNamePair& names, EventHandler* event_handler = NULL);

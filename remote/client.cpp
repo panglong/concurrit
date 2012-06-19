@@ -43,27 +43,29 @@ const THREADID MAINTID = THREADID(1);
 
 static std::atomic<THREADID> next_threadid(2);
 static THREADID get_next_threadid() {
-	return next_threadid.fetch_add(1);
+	return next_threadid.fetch_add(1, std::memory_order_seq_cst);
 }
 
 /********************************************************************************/
 
 class ClientShadowThread;
 
-static pthread_key_t create_tls_key();
-static pthread_key_t client_tls_key_ = create_tls_key();
+static pthread_key_t client_tls_key_;
 
-static ConcurrentPipe* create_pipe();
-static ConcurrentPipe* pipe_ = create_pipe();
+static ConcurrentPipe* pipe_ = NULL;
 
 /********************************************************************************/
 
-static pthread_key_t create_tls_key() {
-	pthread_key_t key;
-	if(pthread_key_create(&key, NULL) != PTH_SUCCESS) {
+static void create_tls_key() {
+	if(pthread_key_create(&client_tls_key_, NULL) != PTH_SUCCESS) {
 		safe_fail("Count not create tls key!");
 	}
-	return key;
+}
+
+static void delete_tls_key() {
+	if(pthread_key_delete(client_tls_key_) != PTH_SUCCESS) {
+		safe_fail("Count not destroy tls key!");
+	}
 }
 
 // value may not be NULL
@@ -78,16 +80,6 @@ static void set_tls(ClientShadowThread* value) {
 	if(pthread_setspecific(client_tls_key_, value) != PTH_SUCCESS) {
 		safe_fail("Could not set tls value!");
 	}
-}
-
-static void init_instr_handler();
-static ConcurrentPipe* create_pipe() {
-
-	init_instr_handler();
-
-	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT());
-	pipe->Open(false);
-	return pipe;
 }
 
 /********************************************************************************/
@@ -167,7 +159,7 @@ public:
 		if(thread == NULL) {
 			safe_assert(pipe_ != NULL);
 			thread = new ClientShadowThread(get_next_threadid(), pipe_);
-			thread->OnStart();
+//			thread->OnStart();
 		}
 		return thread;
 	}
@@ -215,23 +207,23 @@ public:
 		ClientShadowThread* thread = GetShadowThread();
 
 		// send event
-		EventBuffer e;
-		e.type = FuncEnter;
-		e.addr = PTR2ADDRINT(addr);
-		e.arg0 = arg0;
-		e.arg1 = arg1;
-		thread->SendRecvContinue(&e);
+//		EventBuffer e;
+//		e.type = FuncEnter;
+//		e.addr = PTR2ADDRINT(addr);
+//		e.arg0 = arg0;
+//		e.arg1 = arg1;
+//		thread->SendRecvContinue(&e);
 
 	}
 	void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
 		// send event
-		EventBuffer e;
-		e.type = FuncReturn;
-		e.addr = PTR2ADDRINT(addr);
-		e.retval = retval;
-		thread->SendRecvContinue(&e);
+//		EventBuffer e;
+//		e.type = FuncReturn;
+//		e.addr = PTR2ADDRINT(addr);
+//		e.retval = retval;
+//		thread->SendRecvContinue(&e);
 	}
 //
 //	void concurritFuncCallEx(void* from_addr, void* to_addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line);
@@ -243,19 +235,19 @@ public:
 //	void concurritMemAccessAfterEx(const char* filename, const char* funcname, int line);
 //
 	// override
-	void concurritThreadStartEx(const char* filename, const char* funcname, int line) {
-		ClientShadowThread* thread = GetShadowThread();
-
-		// GetShadowThread does all
-	}
-
-	// override
-	void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
-		ClientShadowThread* thread = GetShadowThread();
-
-		// this call does all
-		thread->OnEnd();
-	}
+//	void concurritThreadStartEx(const char* filename, const char* funcname, int line) {
+//		ClientShadowThread* thread = GetShadowThread();
+//
+//		// GetShadowThread does all
+//	}
+//
+//	// override
+//	void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
+//		ClientShadowThread* thread = GetShadowThread();
+//
+//		// this call does all
+//		thread->OnEnd();
+//	}
 
 //
 //	void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line);
@@ -263,11 +255,18 @@ public:
 
 /********************************************************************************/
 
-static void init_instr_handler() {
+extern "C"
+__attribute__((constructor))
+void construct_client() {
 
 	PthreadOriginals::initialize();
 
 	InstrHandler::Current = new ClientInstrHandler();
+
+	create_tls_key();
+
+	pipe_ = new ConcurrentPipe(PipeNamesForSUT());
+	pipe_->Open(false);
 }
 
 /********************************************************************************/
@@ -280,9 +279,7 @@ void destroy_client() {
 
 	safe_delete(pipe_);
 
-	if(pthread_key_delete(client_tls_key_) != PTH_SUCCESS) {
-		safe_fail("Count not destroy tls key!");
-	}
+	delete_tls_key();
 }
 
 /********************************************************************************/

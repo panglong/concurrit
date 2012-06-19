@@ -100,19 +100,26 @@ int PthreadOriginals::pthread_cancel(pthread_t thread) {
 
 /********************************************************************************/
 
+// we ensure that pthread calls that we interpose run atomically
+static Mutex concurrit_pthread_lock;
+
 int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
+	ScopeMutex m(&concurrit_pthread_lock);
 	safe_assert(PthreadHandler::Current != NULL);
 	return PthreadHandler::Current->pthread_create(thread, attr, start_routine, arg);
 }
 int pthread_join(pthread_t thread, void ** value_ptr) {
+	ScopeMutex m(&concurrit_pthread_lock);
 	safe_assert(PthreadHandler::Current != NULL);
 	return PthreadHandler::Current->pthread_join(thread, value_ptr);
 }
 void pthread_exit(void * param0) {
+	ScopeMutex m(&concurrit_pthread_lock);
 	safe_assert(PthreadHandler::Current != NULL);
 	return PthreadHandler::Current->pthread_exit(param0);
 }
 int pthread_cancel(pthread_t thread) {
+	ScopeMutex m(&concurrit_pthread_lock);
 	safe_assert(PthreadHandler::Current != NULL);
 	return PthreadHandler::Current->pthread_cancel(thread);
 }

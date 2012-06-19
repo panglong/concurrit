@@ -179,7 +179,6 @@ void EventPipe::Close() {
 /**********************************************************************************/
 
 ShadowThread::ShadowThread(THREADID tid, EventPipe* pipe) : tid_(tid), pipe_(pipe), event_(NULL) {
-	memset(&event_, 0, sizeof(EventBuffer));
 	sem_.Init(0);
 }
 
@@ -237,7 +236,8 @@ void ShadowThread::WaitRecv(EventBuffer* event) {
 // copy event from argument and signal the semaphore
 void ShadowThread::SignalRecv(EventBuffer* event) {
 	// copy
-	safe_assert(event_ != NULL);
+	safe_assert(event_ != NULL && event != NULL);
+//	*event_ = *event;
 	memcpy(event_, event, sizeof(EventBuffer));
 
 	safe_assert(tid_ == event_->threadid);
@@ -278,7 +278,7 @@ void ConcurrentPipe::Send(ShadowThread* thread, EventBuffer* event) {
 	safe_assert(event != NULL);
 	safe_assert(thread == NULL || thread->tid() == event->threadid);
 
-	send_mutex_.Lock();
+	ScopeMutex m(&send_mutex_);
 
 	safe_assert(event_handler_ != NULL);
 	bool cancel = !event_handler_->OnSend(event);
@@ -286,8 +286,6 @@ void ConcurrentPipe::Send(ShadowThread* thread, EventBuffer* event) {
 	if(!cancel) {
 		EventPipe::Send(event);
 	}
-
-	send_mutex_.Unlock();
 }
 
 /**********************************************************************************/
@@ -336,6 +334,8 @@ void* ConcurrentPipe::thread_func(void* arg) {
 
 		bool cancel = !event_handler->OnRecv(&event);
 
+		safe_assert(event.threadid >= 0);
+
 		if(!cancel) {
 			// notify receiver
 			ShadowThread* thread = pipe->GetShadowThread(event.threadid);
@@ -352,14 +352,12 @@ void* ConcurrentPipe::thread_func(void* arg) {
 /**********************************************************************************/
 
 void ConcurrentPipe::Broadcast(EventBuffer* e) {
-	map_mutex_.Lock();
 	for(TidToShadowThreadMap::const_iterator itr = tid_to_shadowthread_.begin(), end = tid_to_shadowthread_.end(); itr != end; ++itr) {
 		ShadowThread* shadowthread = itr->second;
 
 		e->threadid = shadowthread->tid();
 		shadowthread->SignalRecv(e);
 	}
-	map_mutex_.Unlock();
 }
 
 void ConcurrentPipe::SendContinue(THREADID tid) {
@@ -373,12 +371,10 @@ void ConcurrentPipe::SendContinue(THREADID tid) {
 
 ShadowThread* ConcurrentPipe::GetShadowThread(THREADID tid) {
 	ShadowThread* thread = NULL;
-	map_mutex_.Lock();
-	TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.find(tid);
-	if(itr != tid_to_shadowthread_.end()) {
-		thread = itr->second;
+	TidToShadowThreadMap::accessor acc;
+	if(tid_to_shadowthread_.find(acc, tid)) {
+		thread = acc->second;
 	}
-	map_mutex_.Unlock();
 	return thread;
 }
 
@@ -386,21 +382,22 @@ ShadowThread* ConcurrentPipe::GetShadowThread(THREADID tid) {
 
 void ConcurrentPipe::RegisterShadowThread(ShadowThread* shadowthread) {
 	const THREADID tid = shadowthread->tid();
-	map_mutex_.Lock();
-	TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.find(tid);
-	if(itr == tid_to_shadowthread_.end()) {
-		tid_to_shadowthread_[tid] = shadowthread;
+	TidToShadowThreadMap::accessor acc;
+	if(!tid_to_shadowthread_.find(acc, tid)) {
+		tid_to_shadowthread_.insert(acc, tid);
+		acc->second = shadowthread;
 	}
-	map_mutex_.Unlock();
+	safe_assert(acc->second = shadowthread);
 }
 
 /**********************************************************************************/
 
 void ConcurrentPipe::UnregisterShadowThread(ShadowThread* shadowthread) {
-	map_mutex_.Lock();
-	size_t num = tid_to_shadowthread_.erase(shadowthread->tid());
-	map_mutex_.Unlock();
-	safe_assert(num == 1);
+	const THREADID tid = shadowthread->tid();
+	TidToShadowThreadMap::accessor acc;
+	bool found  = tid_to_shadowthread_.find(acc, tid);
+	safe_assert(found);
+	tid_to_shadowthread_.erase(acc);
 }
 
 /**********************************************************************************/
