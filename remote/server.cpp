@@ -43,7 +43,9 @@ static volatile bool test_started = false;
 
 class ServerShadowThread : public ShadowThread {
 public:
-	ServerShadowThread(THREADID tid, EventPipe* pipe) : ShadowThread(tid, pipe)  {}
+	ServerShadowThread(THREADID tid, EventPipe* pipe) : ShadowThread(tid, pipe)  {
+		start_sem_.Init(0);
+	}
 
 	virtual ~ServerShadowThread(){}
 
@@ -58,14 +60,15 @@ public:
 		EventBuffer event;
 
 		// signal the creator
-		sem_.Signal();
-		sem_.Wait();
+		start_sem_.Signal();
 
 		for(;;) {
 			Recv(&event);
 
 			// check threadid
 			safe_assert(event.threadid == tid_);
+
+			MYLOG(1) << "CLIENT: Thread " << tid_ << " received event kind " << EventKindToString(event.type);
 
 			// handle event
 			switch(event.type) {
@@ -83,9 +86,12 @@ public:
 				case FuncEnter:
 				case FuncReturn:
 				case ThreadEnd:
+				case AtPc:
 
 					// notify concurrit
 					CallPinMonitor(&event);
+
+					MYLOG(1) << "CLIENT: Thread " << tid_ << " handled event kind " << EventKindToString(event.type);
 
 					// send continue to remote
 					this->SendContinue();
@@ -107,33 +113,40 @@ public:
 
 		concpipe->UnregisterShadowThread(this);
 
-		MYLOG(1) << "SERVER: Thread is ending tid = " << tid_;
+		MYLOG(1) << "SERVER: Thread " << tid_ << "is ending.";
 
 		// ending the thread will trigger the event ThreadEnd in concurrit.
 
 		return NULL;
 	}
+private:
+	DECL_FIELD_REF(Semaphore, start_sem)
 };
 
 /********************************************************************************/
 
 class ServerEventHandler : public EventHandler {
 public:
-	ServerEventHandler(ConcurrentPipe* pipe = NULL) : EventHandler(), pipe_(pipe) {
+	ServerEventHandler() : EventHandler() {
 		test_end_sem_.Init(0);
 	}
 	virtual ~ServerEventHandler(){}
 
 	//override
-	bool OnRecv(EventBuffer* event) {
+	bool OnRecv(EventPipe* pipe, EventBuffer* event) {
+
+		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe);
+		safe_assert(concpipe != NULL);
 
 		MYLOG(1) << "SERVER: Received event " << EventKindToString(event->type);
+
+		const THREADID tid = event->threadid;
 
 		// handle event
 		switch(event->type) {
 		case TestStart:
 		{
-			safe_assert(event->threadid == 0);
+			safe_assert(tid == 0);
 
 			if(test_started) {
 				safe_fail("Received TestStart before TestEnd!");
@@ -150,7 +163,7 @@ public:
 
 		case TestEnd:
 		{
-			safe_assert(event->threadid == 0);
+			safe_assert(tid == 0);
 
 			if(!test_started) {
 				safe_fail("Received TestEnd before TestStart!");
@@ -163,7 +176,7 @@ public:
 			// broadcast thread-end signal to all threads
 			EventBuffer e;
 			e.type = ThreadEndInternal;
-			pipe_->Broadcast(&e);
+			concpipe->Broadcast(&e);
 
 			// signal semaphore to end the program
 			test_end_sem_.Signal();
@@ -175,9 +188,9 @@ public:
 
 		case ThreadStart:
 		{
-			safe_assert(event->threadid >= 2);
+			safe_assert(tid >= 2);
 
-			ShadowThread* thread = CreateShadowThread(event->threadid);
+			ShadowThread* thread = CreateShadowThread(concpipe, tid);
 			thread->SendContinue();
 
 			return false; // ignore it
@@ -186,44 +199,42 @@ public:
 		default:
 			if(!test_started) {
 				// response immediately and ignore
-				pipe_->SendContinue(event->threadid);
+				concpipe->SendContinue(tid);
 				return false;
 			}
 
-			// forward to the recipient
 			MYLOG(1) << "SERVER: Handling event " << EventKindToString(event->type);
 
 			// before forwarding, check if the thread exists, otherwise, start it
-			ShadowThread* thread = pipe_->GetShadowThread(event->threadid);
+			ShadowThread* thread = concpipe->GetShadowThread(tid);
 			if(thread == NULL) {
-				safe_assert(event->threadid >= 2);
+				safe_assert(tid >= 2);
 
-				CreateShadowThread(event->threadid);
+				CreateShadowThread(concpipe, tid);
 			}
 
+			// forward to the recipient
 			return true;
 		}
 	}
 
-	ShadowThread* CreateShadowThread(THREADID tid) {
+	ShadowThread* CreateShadowThread(ConcurrentPipe* pipe, THREADID tid) {
 		MYLOG(1) << "SERVER: Starting new thread with tid = " << tid;
 
 		// create new thread, imitating the interpositioned threads
-		ShadowThread* shadowthread = new ServerShadowThread(tid, safe_notnull(pipe_));
+		ServerShadowThread* shadowthread = new ServerShadowThread(tid, pipe);
 
 		// this triggers the thread creation callback
 		shadowthread->SpawnAsThread();
 
 		// wait for the thread to start waiting
-		shadowthread->sem()->Wait();
-		shadowthread->sem()->Signal();
+		shadowthread->start_sem()->Wait();
 
 		return shadowthread;
 	}
 
 private:
 	DECL_FIELD_REF(Semaphore, test_end_sem)
-	DECL_FIELD(ConcurrentPipe*, pipe)
 };
 
 /********************************************************************************/
@@ -238,16 +249,15 @@ int main0(int argc, char* argv[]) {
 	// TODO(elmas): make them static and global
 	ServerEventHandler handler;
 
-	ConcurrentPipe pipe(PipeNamesForDSL(), &handler);
-	handler.set_pipe(&pipe);
-
-	pipe.Open(true);
+	ConcurrentPipe* pipe = ConcurrentPipe::OpenForDSL(&handler);
 
 	MYLOG(1) << "SERVER: Done with initialization. Waiting on test_end_semaphore.";
 
 	handler.test_end_sem()->Wait();
 
-	pipe.Close();
+	pipe->Close();
+
+	delete(pipe);
 
 	MYLOG(1) << "SERVER: __main__ exiting.";
 

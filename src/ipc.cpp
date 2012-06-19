@@ -269,9 +269,7 @@ int ShadowThread::SpawnAsThread() {
 /**********************************************************************************/
 
 ConcurrentPipe::ConcurrentPipe(const PipeNamePair& names, EventHandler* event_handler /*= NULL*/)
-: EventPipe(names), event_handler_(event_handler != NULL ? event_handler : new EventHandler()), worker_thread_(NULL) {
-	safe_assert(event_handler_ != NULL);
-}
+: EventPipe(names), event_handler_(event_handler), worker_thread_(NULL) {}
 
 /**********************************************************************************/
 
@@ -281,8 +279,7 @@ void ConcurrentPipe::Send(ShadowThread* thread, EventBuffer* event) {
 
 	ScopeMutex m(&send_mutex_);
 
-	safe_assert(event_handler_ != NULL);
-	bool cancel = !event_handler_->OnSend(event);
+	bool cancel = event_handler_ == NULL ? false : !event_handler_->OnSend(this, event);
 
 	if(!cancel) {
 		EventPipe::Send(event);
@@ -303,9 +300,20 @@ void ConcurrentPipe::Open(bool open_for_read_first) {
 	EventPipe::Open(open_for_read_first);
 
 	// start thread
-	safe_assert(event_handler_ != NULL);
 	worker_thread_ = new Thread(56789, ConcurrentPipe::thread_func, this);
 	worker_thread_->Start();
+}
+
+ConcurrentPipe* ConcurrentPipe::OpenForDSL(EventHandler* event_handler /*= NULL*/) {
+	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForDSL(), event_handler);
+	pipe->Open(true);
+	return pipe;
+}
+
+ConcurrentPipe* ConcurrentPipe::OpenForSUT(EventHandler* event_handler /*= NULL*/) {
+	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT(), event_handler);
+	pipe->Open(false);
+	return pipe;
 }
 
 /**********************************************************************************/
@@ -325,7 +333,6 @@ void* ConcurrentPipe::thread_func(void* arg) {
 	safe_assert(pipe != NULL);
 
 	EventHandler* event_handler = pipe->event_handler();
-	safe_assert(event_handler != NULL);
 
 	EventBuffer event;
 
@@ -333,7 +340,7 @@ void* ConcurrentPipe::thread_func(void* arg) {
 		// do receive
 		pipe->EventPipe::Recv(&event);
 
-		bool cancel = !event_handler->OnRecv(&event);
+		bool cancel = event_handler == NULL ? false : !event_handler->OnRecv(pipe, &event);
 
 		const THREADID tid = event.threadid;
 		safe_assert(tid >= 0);

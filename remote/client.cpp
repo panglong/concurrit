@@ -247,8 +247,7 @@ void construct_client() {
 
 	create_tls_key();
 
-	pipe_ = new ConcurrentPipe(PipeNamesForSUT());
-	pipe_->Open(false);
+	pipe_ = ConcurrentPipe::OpenForSUT();
 }
 
 /********************************************************************************/

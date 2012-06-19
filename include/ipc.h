@@ -172,8 +172,8 @@ class EventHandler {
 public:
 	EventHandler(){}
 	virtual ~EventHandler(){}
-	virtual bool OnSend(EventBuffer* event) { return true; };
-	virtual bool OnRecv(EventBuffer* event) { return true; };
+	virtual bool OnSend(EventPipe* pipe, EventBuffer* event) { return true; };
+	virtual bool OnRecv(EventPipe* pipe, EventBuffer* event) { return true; };
 };
 
 /********************************************************************************/
@@ -196,8 +196,9 @@ public:
 	//override
 	void Close();
 
+	static ConcurrentPipe* OpenForDSL(EventHandler* event_handler = NULL);
 
-	static void* thread_func(void* arg);
+	static ConcurrentPipe* OpenForSUT(EventHandler* event_handler = NULL);
 
 	/*****************************************************************/
 
@@ -212,6 +213,10 @@ public:
 	void RegisterShadowThread(ShadowThread* shadowthread);
 
 	void UnregisterShadowThread(ShadowThread* shadowthread);
+
+protected:
+
+	static void* thread_func(void* arg);
 
 private:
 	DECL_FIELD_REF(Mutex, send_mutex)
