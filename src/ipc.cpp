@@ -405,10 +405,8 @@ void ConcurrentPipe::RegisterShadowThread(ShadowThread* shadowthread) {
 
 void ConcurrentPipe::UnregisterShadowThread(ShadowThread* shadowthread) {
 	const THREADID tid = shadowthread->tid();
-	TidToShadowThreadMap::accessor acc;
-	bool found  = tid_to_shadowthread_.find(acc, tid);
-	safe_assert(found);
-	tid_to_shadowthread_.erase(acc);
+	bool erased = tid_to_shadowthread_.erase(tid);
+	safe_assert(erased);
 }
 
 /**********************************************************************************/

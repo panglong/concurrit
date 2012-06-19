@@ -81,22 +81,6 @@ Scenario::~Scenario() {
 
 /********************************************************************************/
 
-Scenario* Scenario::GetInstance() {
-	// get current coroutine
-	Coroutine* current = Coroutine::Current();
-	safe_assert(current != NULL);
-
-	CoroutineGroup* group = current->group();
-	safe_assert(group != NULL);
-
-	Scenario* scenario = group->scenario();
-	safe_assert(scenario != NULL);
-
-	return scenario;
-}
-
-/********************************************************************************/
-
 void Scenario::LoadScheduleFromFile(const char* filename) {
 	CHECK(filename != NULL) << "Filename is NULL!";
 	if(schedule_ == NULL) {

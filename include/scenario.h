@@ -158,8 +158,6 @@ public:
 		return safe_notnull(yield_impl_)->Yield(this, group, current, target, label, loc, access);
 	}
 
-	static Scenario* GetInstance();
-
 	/******************************************************************/
 
 	// run before and after each controlled transition
