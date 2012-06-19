@@ -239,6 +239,8 @@ T* NOTNULL(T* ptr) {
 typedef int THREADID;
 #endif
 
+const THREADID INVALID_THREADID = THREADID(-1);
+
 #ifndef ADDRINT
 typedef uintptr_t ADDRINT;
 #endif

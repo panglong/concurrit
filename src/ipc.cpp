@@ -195,6 +195,7 @@ void ShadowThread::SendContinue() {
 /**********************************************************************************/
 
 void ShadowThread::Send(EventBuffer* e) {
+	e->threadid = tid_;
 	pipe_->Send(this, e);
 }
 

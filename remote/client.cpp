@@ -39,8 +39,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-const THREADID MAINTID = THREADID(1);
-
 static std::atomic<THREADID> next_threadid(2);
 static THREADID get_next_threadid() {
 	return next_threadid.fetch_add(1, std::memory_order_seq_cst);
@@ -128,24 +126,6 @@ public:
 	}
 };
 
-
-/********************************************************************************/
-
-//class ClientPthreadHandler : public PthreadHandler {
-//public:
-//	ClientPthreadHandler() : PthreadHandler() {}
-//	~ClientPthreadHandler() {}
-//
-//	// override
-//	int pthread_create(pthread_t* thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
-//		safe_assert(PthreadOriginals::is_initialized() && PthreadOriginals::_pthread_create != NULL);
-//
-//		safe_assert(pipe_ != NULL);
-//		ClientShadowThread* shadowthread = new ClientShadowThread(get_next_threadid(), pipe_, start_routine, arg);
-//		return shadowthread->SpawnAsThread(true);
-//	}
-//};
-
 /********************************************************************************/
 class ClientInstrHandler : public InstrHandler {
 public:
@@ -159,7 +139,7 @@ public:
 		if(thread == NULL) {
 			safe_assert(pipe_ != NULL);
 			thread = new ClientShadowThread(get_next_threadid(), pipe_);
-//			thread->OnStart();
+			thread->OnStart();
 		}
 		return thread;
 	}
@@ -207,23 +187,23 @@ public:
 		ClientShadowThread* thread = GetShadowThread();
 
 		// send event
-//		EventBuffer e;
-//		e.type = FuncEnter;
-//		e.addr = PTR2ADDRINT(addr);
-//		e.arg0 = arg0;
-//		e.arg1 = arg1;
-//		thread->SendRecvContinue(&e);
+		EventBuffer e;
+		e.type = FuncEnter;
+		e.addr = PTR2ADDRINT(addr);
+		e.arg0 = arg0;
+		e.arg1 = arg1;
+		thread->SendRecvContinue(&e);
 
 	}
 	void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
 		// send event
-//		EventBuffer e;
-//		e.type = FuncReturn;
-//		e.addr = PTR2ADDRINT(addr);
-//		e.retval = retval;
-//		thread->SendRecvContinue(&e);
+		EventBuffer e;
+		e.type = FuncReturn;
+		e.addr = PTR2ADDRINT(addr);
+		e.retval = retval;
+		thread->SendRecvContinue(&e);
 	}
 //
 //	void concurritFuncCallEx(void* from_addr, void* to_addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line);
@@ -258,8 +238,6 @@ public:
 extern "C"
 __attribute__((constructor))
 void construct_client() {
-
-	PthreadOriginals::initialize();
 
 	InstrHandler::Current = new ClientInstrHandler();
 

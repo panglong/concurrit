@@ -83,6 +83,19 @@ struct EventBuffer {
 	ADDRINT retval;
 	SourceLocation* loc_src;
 	SourceLocation* loc_target;
+
+	EventBuffer() :
+		type(InvalidEventKind),
+		threadid(INVALID_THREADID),
+		addr(0),
+		addr_target(0),
+		size(0),
+		direct(true),
+		arg0(0),
+		arg1(0),
+		retval(0),
+		loc_src(NULL),
+		loc_target(NULL) {}
 };
 
 /********************************************************************************/

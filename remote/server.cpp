@@ -37,10 +37,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-const THREADID MAINTID = THREADID(1);
-
-/********************************************************************************/
-
 static volatile bool test_started = false;
 
 /********************************************************************************/
@@ -65,7 +61,7 @@ public:
 			Recv(&event);
 
 			// check threadid
-			safe_assert(event.type == tid_);
+			safe_assert(event.threadid == tid_);
 
 			// handle event
 			switch(event.type) {

@@ -50,32 +50,35 @@ Scenario* Concurrit::current_scenario_ = NULL;
 
 /********************************************************************************/
 
-//extern "C"
-//__attribute__((constructor))
-//void Concurrit_Constructor() {
-//	//...
-//}
+extern "C"
+__attribute__((constructor))
+void Concurrit_Constructor() {
+
+	// init logging
+	google::InitGoogleLogging("concurrit");
+
+	PthreadOriginals::initialize();
+}
 
 /********************************************************************************/
 
-//extern "C"
-//__attribute__((destructor))
-//void Concurrit_Destructor() {
-//	//...
-//}
+extern "C"
+__attribute__((destructor))
+void Concurrit_Destructor() {
+
+	// finalize google logging
+	google::ShutdownGoogleLogging();
+}
 
 /********************************************************************************/
 
 void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 	safe_assert(!IsInitialized());
 
-	// init work dir
-	CONCURRIT_HOME = std::string(safe_notnull(getenv("CONCURRIT_HOME")));
-
 	//==========================================
 
-	// init logging
-	google::InitGoogleLogging("concurrit");
+	// init work dir
+	CONCURRIT_HOME = std::string(safe_notnull(getenv("CONCURRIT_HOME")));
 
 	//==========================================
 
@@ -139,8 +142,6 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	AuxState::Init();
 
-	PthreadOriginals::initialize();
-
 	PthreadHandler::Current = new ConcurritPthreadHandler();
 
 	InstrHandler::Current = new ConcurritInstrHandler();
@@ -180,9 +181,6 @@ void Concurrit::Destroy() {
 	CoroutineGroup::delete_main();
 
 	Thread::delete_tls_key();
-
-	// finalize google logging
-	google::ShutdownGoogleLogging();
 
 //	int pth_kill_result = pth_kill();
 //	safe_assert(pth_kill_result == TRUE);

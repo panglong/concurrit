@@ -124,7 +124,7 @@ void PinMonitor::Shutdown() {
 
 void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
 	safe_assert(current != NULL && scenario != NULL);
-	safe_assert(loc != NULL);
+//	safe_assert(loc != NULL);
 
 	current->set_srcloc(loc);
 	scenario->OnControlledTransition(current);
@@ -144,7 +144,7 @@ void PinMonitor::MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLo
 
 void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, ADDRINT addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
 	safe_assert(current != NULL && scenario != NULL);
-	safe_assert(loc != NULL);
+//	safe_assert(loc != NULL);
 
 	if(Config::SaveExecutionTraceToFile) {
 		snprintf(current->instr_callback_info(), 256,
@@ -163,7 +163,7 @@ void PinMonitor::MemWrite(Coroutine* current, Scenario* scenario, ADDRINT addr, 
 
 void PinMonitor::MemRead(Coroutine* current, Scenario* scenario, ADDRINT addr, uint32_t size, SourceLocation* loc /*= NULL*/) {
 	safe_assert(current != NULL && scenario != NULL);
-	safe_assert(loc != NULL);
+//	safe_assert(loc != NULL);
 
 	if(Config::SaveExecutionTraceToFile) {
 		snprintf(current->instr_callback_info(), 256,
@@ -205,7 +205,7 @@ void PinMonitor::FuncCall(Coroutine* current, Scenario* scenario, ADDRINT addr_s
 
 void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, ADDRINT addr, SourceLocation* loc, ADDRINT arg0, ADDRINT arg1) {
 	safe_assert(current != NULL && scenario != NULL);
-	safe_assert(loc != NULL);
+//	safe_assert(loc != NULL);
 
 	if(Config::SaveExecutionTraceToFile) {
 		snprintf(current->instr_callback_info(), 256,
@@ -236,7 +236,7 @@ void PinMonitor::FuncEnter(Coroutine* current, Scenario* scenario, ADDRINT addr,
 
 void PinMonitor::FuncReturn(Coroutine* current, Scenario* scenario, ADDRINT addr, SourceLocation* loc, ADDRINT retval) {
 	safe_assert(current != NULL && scenario != NULL);
-	safe_assert(loc != NULL);
+//	safe_assert(loc != NULL);
 
 	if(Config::SaveExecutionTraceToFile) {
 		snprintf(current->instr_callback_info(), 256,
@@ -317,7 +317,6 @@ void CallPinMonitor(EventBuffer* info) {
 	if(!PinMonitor::IsEnabled()) {
 		return;
 	}
-	safe_assert(!PinMonitor::IsDown());
 
 	Coroutine* current = safe_notnull(PinMonitor::GetCoroutineByTid(info->threadid));
 	safe_assert(!current->IsMain());

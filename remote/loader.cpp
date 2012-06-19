@@ -45,8 +45,6 @@ typedef int (*MainFuncType) (int, char**);
 extern "C"
 int main(int argc, char* argv[]) {
 
-	google::InitGoogleLogging("concurrit-client");
-
 	MainFuncType main_func = reinterpret_cast<MainFuncType>(dlsym(RTLD_DEFAULT, "__main__"));
 	if(main_func == NULL) {
 		assert("dlsym init of __main__ failed.\n");
