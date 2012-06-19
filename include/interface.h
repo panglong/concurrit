@@ -71,6 +71,34 @@ const EventKind
 
 /***********************************************************************/
 
+inline const char* EventKindToString(EventKind& kind) {
+#define EventKindToStringMacro(k)	case k: return #k;
+	switch(kind) {
+	EventKindToStringMacro(InvalidEventKind)
+	EventKindToStringMacro(MemAccessBefore)
+	EventKindToStringMacro(MemAccessAfter)
+	EventKindToStringMacro(MemWrite)
+	EventKindToStringMacro(MemRead)
+	EventKindToStringMacro(FuncCall)
+	EventKindToStringMacro(FuncEnter)
+	EventKindToStringMacro(FuncReturn)
+	EventKindToStringMacro(ThreadStart)
+	EventKindToStringMacro(ThreadEnd)
+	EventKindToStringMacro(TestStart)
+	EventKindToStringMacro(TestEnd)
+	EventKindToStringMacro(Continue)
+	EventKindToStringMacro(TestShutdown)
+	EventKindToStringMacro(ThreadEndInternal)
+	default:
+		safe_fail("Unknown event kind %d\n", kind);
+		break;
+	}
+	return "unknown";
+#undef EventKindToStringMacro
+}
+
+/***********************************************************************/
+
 struct EventBuffer {
 	EventKind type;
 	THREADID threadid;

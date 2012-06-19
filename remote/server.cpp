@@ -121,6 +121,8 @@ public:
 	//override
 	bool OnRecv(EventBuffer* event) {
 
+		fprintf(stderr, "SERVER: Received event %s\n", EventKindToString(event->type));
+
 		// handle event
 		switch(event->type) {
 		case TestStart:
@@ -180,9 +182,8 @@ public:
 				return false;
 			}
 
-			fprintf(stderr, "SERVER: Received event %d\n", event->type);
-
 			// forward to the recipient
+			fprintf(stderr, "SERVER: Handling event %s\n", EventKindToString(event->type));
 
 			// before forwarding, check if the thread exists, otherwise, start it
 			ShadowThread* thread = pipe_->GetShadowThread(event->threadid);
