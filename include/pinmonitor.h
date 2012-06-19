@@ -46,6 +46,8 @@ namespace concurrit {
 class Coroutine;
 class Scenario;
 
+typedef std::map<std::string,ADDRINT> SymbolToAddressMap;
+
 /// class to handle pin events
 class PinMonitor {
 private:
@@ -71,6 +73,8 @@ public:
 	/******************************************************************************************/
 
 	// callbacks
+	static void AddressOfSymbol(const char* symbol, ADDRINT addr);
+
 	static void MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
 	static void MemAccessAfter(Coroutine* current, Scenario* scenario, SourceLocation* loc = NULL);
 
@@ -88,11 +92,16 @@ public:
 
 	/******************************************************************************************/
 
+	static ADDRINT GetAddressOfSymbol(const std::string& symbol, ADDRINT addr = ADDRINT(0));
+
+	/******************************************************************************************/
+
 private:
 	static Coroutine* tid_to_coroutine_[MAX_THREADS];
 	static volatile bool enabled_;
 	static volatile bool down_;
 	static PinToolOptions options_;
+	static SymbolToAddressMap symbol_to_address_;
 };
 
 /********************************************************************************/

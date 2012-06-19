@@ -43,6 +43,8 @@ public:
 	InstrHandler() {}
 	virtual ~InstrHandler() {}
 
+	virtual void concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr) {}
+
 	virtual void concurritStartTest() {}
 	virtual void concurritEndTest() {}
 

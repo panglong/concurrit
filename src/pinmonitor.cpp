@@ -39,6 +39,7 @@ namespace concurrit {
 Coroutine* PinMonitor::tid_to_coroutine_[MAX_THREADS];
 volatile bool PinMonitor::enabled_ = false;
 volatile bool PinMonitor::down_ = false;
+SymbolToAddressMap PinMonitor::symbol_to_address_;
 PinToolOptions PinMonitor::options_ = {
 		TRUE, // TrackFuncCalls;
 		TRUE,  // InstrTopLevelFuncs
@@ -122,6 +123,25 @@ void PinMonitor::Shutdown() {
 /******************************************************************************************/
 
 // callbacks
+
+void PinMonitor::AddressOfSymbol(const char* symbol, ADDRINT addr) {
+	safe_assert(symbol != NULL);
+	safe_check(strnlen(symbol, 64) < 64);
+
+	symbol_to_address_[std::string(symbol)] = addr;
+
+	MYLOG(1) << "Updated address of symbol " << symbol << " to " << ADDRINT2PTR(addr);
+}
+
+ADDRINT PinMonitor::GetAddressOfSymbol(const std::string& symbol, ADDRINT addr /*= ADDRINT(0)*/) {
+	SymbolToAddressMap::iterator itr = symbol_to_address_.find(symbol);
+	if(itr != symbol_to_address_.end()) {
+		return itr->second;
+	}
+	return addr;
+}
+
+/********************************************************************************/
 
 void PinMonitor::MemAccessBefore(Coroutine* current, Scenario* scenario, SourceLocation* loc /*= NULL*/) {
 	safe_assert(current != NULL && scenario != NULL);
@@ -353,6 +373,8 @@ void CallPinMonitor(EventBuffer* info) {
 		case AtPc:
 			PinMonitor::AtPc(current, scenario, info->pc, info->loc_src);
 			break;
+		case AddressOfSymbol:
+			PinMonitor::AddressOfSymbol(info->str, info->addr);
 		default:
 			safe_fail("Unrecognized pinmonitor call type: %d\n", info->type);
 			break;

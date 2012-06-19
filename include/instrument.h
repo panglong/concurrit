@@ -45,6 +45,8 @@
 extern "C" {
 #endif
 
+extern void concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr);
+
 extern void concurritStartTest();
 extern void concurritEndTest();
 
@@ -76,6 +78,8 @@ extern void concurritTriggerAssert(const char* expr, const char* filename, const
 #endif
 
 /********************************************************************************/
+
+#define concurritAddressOfSymbol(s, a)	concurritAddressOfSymbolEx((s), (uintptr_t)(a))
 
 #define concurritStartInstrument()		concurritStartInstrumentEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define concurritEndInstrument()		concurritEndInstrumentEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)

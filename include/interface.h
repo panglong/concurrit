@@ -68,7 +68,8 @@ const EventKind
 	Continue		= 13U,
 	TestShutdown	= 14U,
 	// events exchanged internally
-	ThreadEndInternal = 15U;
+	ThreadEndIntern = 15U,
+	AddressOfSymbol = 16U;
 
 /***********************************************************************/
 
@@ -87,9 +88,11 @@ inline const char* EventKindToString(EventKind& kind) {
 	EventKindToStringMacro(ThreadEnd)
 	EventKindToStringMacro(TestStart)
 	EventKindToStringMacro(TestEnd)
+	EventKindToStringMacro(AtPc)
 	EventKindToStringMacro(Continue)
 	EventKindToStringMacro(TestShutdown)
-	EventKindToStringMacro(ThreadEndInternal)
+	EventKindToStringMacro(ThreadEndIntern)
+	EventKindToStringMacro(AddressOfSymbol)
 	default:
 		safe_fail("Unknown event kind %d\n", kind);
 		break;
@@ -110,9 +113,10 @@ struct EventBuffer {
 	ADDRINT arg0;
 	ADDRINT arg1;
 	ADDRINT retval;
-	int pc;
+	int32_t pc;
 	SourceLocation* loc_src;
 	SourceLocation* loc_target;
+	char str[64];
 
 	EventBuffer() :
 		type(InvalidEventKind),
@@ -126,7 +130,10 @@ struct EventBuffer {
 		retval(0),
 		pc(0),
 		loc_src(NULL),
-		loc_target(NULL) {}
+		loc_target(NULL) {
+		memset(str, 0, 64 * sizeof(char));
+		str[0] = '\0';
+	}
 };
 
 /********************************************************************************/

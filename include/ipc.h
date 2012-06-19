@@ -80,6 +80,9 @@ public:
 #define DOSend(x)	write(out_fd_, (&x), sizeof(x))
 #define DORecv(x)	read(in_fd_, (&x), sizeof(x))
 
+#define DOSendARRAY(x, n)	write(out_fd_, (x), sizeof(x[0])*(n))
+#define DORecvARRAY(x, n)	read(in_fd_, (x), sizeof(x[0])*(n))
+
 #define DECL_SEND_RECV(F) 			\
 	void F(EventBuffer* event) {	\
 		DO##F(event->type);			\
@@ -108,6 +111,9 @@ public:
 		case AtPc:					\
 			DO##F(event->pc);		\
 			break;					\
+		case AddressOfSymbol:		\
+			DO##F(event->addr);		\
+			DO##F##ARRAY(event->str, 64); \
 		default:					\
 			break;					\
 		}							\

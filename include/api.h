@@ -40,6 +40,7 @@
 #include "exception.h"
 #include "coroutine.h"
 #include "transpred.h"
+#include "pinmonitor.h"
 
 namespace concurrit {
 
@@ -256,6 +257,14 @@ private:
 /********************************************************************************/
 
 inline void* _FUNC(const char* func_name) {
+
+	// first check PinMonitor
+	ADDRINT addr = PinMonitor::GetAddressOfSymbol(std::string(func_name), 0);
+	if(addr != 0) {
+		return ADDRINT2PTR(addr);
+	}
+
+	// check check current address space
 	void* handle = Concurrit::driver_handle();
 	if(handle == NULL) {
 		handle = RTLD_DEFAULT;

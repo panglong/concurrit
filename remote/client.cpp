@@ -172,11 +172,25 @@ public:
 
 	/********************************************************************************/
 
-//	void concurritEndSearch();
-//
-//	void concurritStartInstrumentEx(const char* filename, const char* funcname, int line);
-//	void concurritEndInstrumentEx(const char* filename, const char* funcname, int line);
-//
+	// override
+	void concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr) {
+		// size of symbol must be at most 63
+		safe_check(strnlen(symbol, 64) < 64);
+
+		ClientShadowThread* thread = GetShadowThread();
+
+		MYLOG(1) << "CLIENT: Sending AddressOfSymbol for function addr " << addr;
+
+		// send event
+		EventBuffer e;
+		e.type = AddressOfSymbol;
+		e.addr = addr;
+		strncpy(e.str, symbol, 63);
+		thread->SendRecvContinue(&e);
+	}
+
+	/********************************************************************************/
+
 	void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
@@ -186,6 +200,8 @@ public:
 		e.pc = pc;
 		thread->SendRecvContinue(&e);
 	}
+
+	/********************************************************************************/
 
 	void concurritFuncEnterEx(void* addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
@@ -201,6 +217,9 @@ public:
 		thread->SendRecvContinue(&e);
 
 	}
+
+	/********************************************************************************/
+
 	void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
@@ -213,29 +232,23 @@ public:
 		e.retval = retval;
 		thread->SendRecvContinue(&e);
 	}
-//
-//	void concurritFuncCallEx(void* from_addr, void* to_addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line);
-//
-//	void concurritMemReadEx(void* addr, size_t size, const char* filename, const char* funcname, int line);
-//	void concurritMemWriteEx(void* addr, size_t size, const char* filename, const char* funcname, int line);
-//
-//	void concurritMemAccessBeforeEx(const char* filename, const char* funcname, int line);
-//	void concurritMemAccessAfterEx(const char* filename, const char* funcname, int line);
-//
+
+	/********************************************************************************/
+
 	// override
-//	void concurritThreadStartEx(const char* filename, const char* funcname, int line) {
-//		ClientShadowThread* thread = GetShadowThread();
-//
-//		// GetShadowThread does all
-//	}
-//
-//	// override
-//	void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
-//		ClientShadowThread* thread = GetShadowThread();
-//
-//		// this call does all
-//		thread->OnEnd();
-//	}
+	void concurritThreadStartEx(const char* filename, const char* funcname, int line) {
+		// GetShadowThread does all
+		ClientShadowThread* thread = GetShadowThread();
+		USE(thread);
+	}
+
+	// override
+	void concurritThreadEndEx(const char* filename, const char* funcname, int line) {
+		ClientShadowThread* thread = GetShadowThread();
+
+		// this call does all
+		thread->OnEnd();
+	}
 
 //
 //	void concurritTriggerAssert(const char* expr, const char* filename, const char* funcname, int line);

@@ -42,6 +42,11 @@ using namespace concurrit;
 
 /********************************************************************************/
 
+void concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr) {
+	safe_assert(InstrHandler::Current != NULL);
+	InstrHandler::Current->concurritAddressOfSymbolEx(symbol, addr);
+}
+
 void concurritStartTest() {
 	safe_assert(InstrHandler::Current != NULL);
 	InstrHandler::Current->concurritStartTest();

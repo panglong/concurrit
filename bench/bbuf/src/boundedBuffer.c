@@ -375,5 +375,11 @@ int main0(int argc, char ** argv)
 
 //============================================
 
-CONCURRIT_TEST_MAIN(main0)
+int __main__(int argc, char* argv[]) {
+	concurritAddressOfSymbol("bounded_buf_get", bounded_buf_get);
+	concurritStartTest();
+	int ret = main0(argc, argv);
+	concurritEndTest();
+	return ret;
+}
 

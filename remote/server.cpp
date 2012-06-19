@@ -72,7 +72,7 @@ public:
 
 			// handle event
 			switch(event.type) {
-				case ThreadEndInternal:
+				case ThreadEndIntern:
 				{
 					// exit loop and return
 					goto L_THREADEND;
@@ -87,6 +87,7 @@ public:
 				case FuncReturn:
 				case ThreadEnd:
 				case AtPc:
+				case AddressOfSymbol:
 
 					// notify concurrit
 					CallPinMonitor(&event);
@@ -175,7 +176,7 @@ public:
 
 			// broadcast thread-end signal to all threads
 			EventBuffer e;
-			e.type = ThreadEndInternal;
+			e.type = ThreadEndIntern;
 			concpipe->Broadcast(&e);
 
 			// signal semaphore to end the program
@@ -196,6 +197,13 @@ public:
 			return false; // ignore it
 		}
 
+		case AddressOfSymbol:
+		{
+			HandleEvent(concpipe, event, tid);
+
+			return true;
+		}
+
 		default:
 			if(!test_started) {
 				// response immediately and ignore
@@ -203,18 +211,22 @@ public:
 				return false;
 			}
 
-			MYLOG(1) << "SERVER: Handling event " << EventKindToString(event->type);
-
-			// before forwarding, check if the thread exists, otherwise, start it
-			ShadowThread* thread = concpipe->GetShadowThread(tid);
-			if(thread == NULL) {
-				safe_assert(tid >= 2);
-
-				CreateShadowThread(concpipe, tid);
-			}
+			HandleEvent(concpipe, event, tid);
 
 			// forward to the recipient
 			return true;
+		}
+	}
+
+	void HandleEvent(ConcurrentPipe* pipe, EventBuffer* event, const THREADID tid) {
+		MYLOG(1) << "SERVER: Handling event " << EventKindToString(event->type);
+
+		// before forwarding, check if the thread exists, otherwise, start it
+		ShadowThread* thread = pipe->GetShadowThread(tid);
+		if(thread == NULL) {
+			safe_assert(tid >= 2);
+
+			CreateShadowThread(pipe, tid);
 		}
 	}
 
