@@ -68,7 +68,7 @@ public:
 			// check threadid
 			safe_assert(event.threadid == tid_);
 
-			MYLOG(1) << "CLIENT: Thread " << tid_ << " received event kind " << EventKindToString(event.type);
+			MYLOG(1) << "SERVER: Thread " << tid_ << " received event kind " << EventKindToString(event.type);
 
 			// handle event
 			switch(event.type) {
@@ -91,7 +91,7 @@ public:
 					// notify concurrit
 					CallPinMonitor(&event);
 
-					MYLOG(1) << "CLIENT: Thread " << tid_ << " handled event kind " << EventKindToString(event.type);
+					MYLOG(1) << "SERVER: Thread " << tid_ << " handled event kind " << EventKindToString(event.type);
 
 					// send continue to remote
 					this->SendContinue();

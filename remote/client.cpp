@@ -190,6 +190,8 @@ public:
 	void concurritFuncEnterEx(void* addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
+		MYLOG(1) << "CLIENT: Sending FuncEnter for function addr " << addr;
+
 		// send event
 		EventBuffer e;
 		e.type = FuncEnter;
@@ -201,6 +203,8 @@ public:
 	}
 	void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
+
+		MYLOG(1) << "CLIENT: Sending FuncReturn for function addr " << addr;
 
 		// send event
 		EventBuffer e;
