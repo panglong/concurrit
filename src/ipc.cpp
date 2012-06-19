@@ -411,5 +411,11 @@ void ConcurrentPipe::UnregisterShadowThread(ShadowThread* shadowthread) {
 
 /**********************************************************************************/
 
+size_t ConcurrentPipe::NumShadowThreads() {
+	return tid_to_shadowthread_.size();
+}
+
+/**********************************************************************************/
+
 } // end namespace
 

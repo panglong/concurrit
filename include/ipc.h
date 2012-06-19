@@ -220,6 +220,8 @@ public:
 
 	void UnregisterShadowThread(ShadowThread* shadowthread);
 
+	size_t NumShadowThreads();
+
 protected:
 
 	static void* thread_func(void* arg);

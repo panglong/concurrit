@@ -202,6 +202,11 @@ public:
 			e.type = ThreadEndIntern;
 			concpipe->Broadcast(&e);
 
+			// wait until all threads end
+			while(concpipe->NumShadowThreads() > 0) {
+				Thread::Yield(true);
+			}
+
 			// signal semaphore to end the program
 			test_end_sem_.Signal();
 
