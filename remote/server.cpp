@@ -205,14 +205,10 @@ public:
 			e.type = ThreadEndIntern;
 			concpipe->Broadcast(&e);
 
-			MYLOG(1) << "SERVER: after broadcast.";
-
 			// wait until all threads end
 			while(concpipe->NumShadowThreads() > 0) {
 				Thread::Yield(true);
 			}
-
-			MYLOG(1) << "SERVER: Signaling test_end_sem_.";
 
 			// signal semaphore to end the program
 			test_end_sem_.Signal();
@@ -304,8 +300,6 @@ int main0(int argc, char* argv[]) {
 	MYLOG(1) << "SERVER: Done with initialization. Waiting on test_end_semaphore.";
 
 	handler.test_end_sem()->Wait();
-
-	MYLOG(1) << "SERVER: After waiting test_end_semaphore.";
 
 	pipe->Close();
 
