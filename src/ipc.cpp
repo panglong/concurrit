@@ -236,7 +236,7 @@ void ShadowThread::WaitRecv(EventBuffer* event) {
 
 // copy event from argument and signal the semaphore
 void ShadowThread::SignalRecv(EventBuffer* event) {
-	// copy
+	// check if currently waiting
 	safe_assert(event_ != NULL);
 	safe_assert(event != NULL);
 //	*event_ = *event;
@@ -362,7 +362,7 @@ void* ConcurrentPipe::thread_func(void* arg) {
 /**********************************************************************************/
 
 void ConcurrentPipe::Broadcast(EventBuffer* e) {
-	for(TidToShadowThreadMap::const_iterator itr = tid_to_shadowthread_.begin(), end = tid_to_shadowthread_.end(); itr != end; ++itr) {
+	for(TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.begin(), end = tid_to_shadowthread_.end(); itr != end; ++itr) {
 		ShadowThread* shadowthread = itr->second;
 
 		e->threadid = shadowthread->tid();

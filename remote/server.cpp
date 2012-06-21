@@ -41,13 +41,15 @@ static volatile bool test_started = false;
 
 /********************************************************************************/
 
+// TODO(elmas): delete unused shadow threads
+
 class ServerShadowThread : public ShadowThread {
 public:
 	ServerShadowThread(THREADID tid, EventPipe* pipe) : ShadowThread(tid, pipe)  {
 		start_sem_.Init(0);
 	}
 
-	virtual ~ServerShadowThread(){}
+	~ServerShadowThread(){}
 
 	// override
 	void* Run() {
@@ -55,7 +57,7 @@ public:
 		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe_);
 		safe_assert(concpipe != NULL);
 
-		concpipe->RegisterShadowThread(this);
+		// already registered to pipe in the constructor
 
 		EventBuffer event;
 
@@ -263,6 +265,9 @@ public:
 
 		// create new thread, imitating the interpositioned threads
 		ServerShadowThread* shadowthread = new ServerShadowThread(tid, pipe);
+
+		// we do not register it in Run() of the thread, but here to avoid an ordering problem
+		pipe->RegisterShadowThread(shadowthread);
 
 		// this triggers the thread creation callback
 		shadowthread->SpawnAsThread();

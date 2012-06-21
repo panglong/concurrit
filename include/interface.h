@@ -118,19 +118,21 @@ struct EventBuffer {
 	SourceLocation* loc_target;
 	char str[64];
 
-	EventBuffer() :
-		type(InvalidEventKind),
-		threadid(INVALID_THREADID),
-		addr(0),
-		addr_target(0),
-		size(0),
-		direct(true),
-		arg0(0),
-		arg1(0),
-		retval(0),
-		pc(0),
-		loc_src(NULL),
-		loc_target(NULL) {
+	EventBuffer() { Clear(); }
+
+	void Clear() {
+		type = (InvalidEventKind);
+		threadid = (INVALID_THREADID);
+		addr = (0);
+		addr_target = (0);
+		size = (0);
+		direct = (true);
+		arg0 = (0);
+		arg1 = (0);
+		retval = (0);
+		pc = (0);
+		loc_src = (NULL);
+		loc_target = (NULL);
 		memset(str, 0, 64 * sizeof(char));
 		str[0] = '\0';
 	}

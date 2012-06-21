@@ -117,6 +117,9 @@ bool generate_random_bool();
 #define format_string_buff_size	(256)
 std::string format_string (const char* format, ...);
 
+void my_write(int fd, const void *buff, size_t size);
+void my_read(int fd, void *buff, size_t size);
+
 } // end namespace
 
 

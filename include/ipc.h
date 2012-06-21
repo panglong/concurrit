@@ -77,14 +77,13 @@ public:
 
 	virtual void Close();
 
-#define DOSend(x)	write(out_fd_, (&x), sizeof(x))
-#define DORecv(x)	read(in_fd_, (&x), sizeof(x))
+#define DOSend(x)	my_write(out_fd_, (&x), sizeof(x))
+#define DORecv(x)	my_read(in_fd_, (&x), sizeof(x))
 
-#define DOSendARRAY(x, n)	write(out_fd_, (x), sizeof(x[0])*(n))
-#define DORecvARRAY(x, n)	read(in_fd_, (x), sizeof(x[0])*(n))
+#define DOSendARRAY(x, n)	my_write(out_fd_, (x), sizeof(x[0])*(n))
+#define DORecvARRAY(x, n)	my_read(in_fd_, (x), sizeof(x[0])*(n))
 
 #define DECL_SEND_RECV(F) 			\
-	void F(EventBuffer* event) {	\
 		DO##F(event->type);			\
 		DO##F(event->threadid);		\
 		switch(event->type) {		\
@@ -117,11 +116,24 @@ public:
 		default:					\
 			break;					\
 		}							\
-	}								\
 
-	DECL_SEND_RECV(Send)
+	inline void Send(EventBuffer* event) {
+		safe_assert(event->type != InvalidEventKind);
+		safe_assert(event->threadid != INVALID_THREADID);
 
-	DECL_SEND_RECV(Recv)
+		DECL_SEND_RECV(Send);
+
+		event->Clear();
+	}
+
+	inline void Recv(EventBuffer* event) {
+		event->Clear();
+
+		DECL_SEND_RECV(Recv);
+
+		safe_assert(event->type != InvalidEventKind);
+		safe_assert(event->threadid != INVALID_THREADID);
+	}
 
 	virtual void Send(ShadowThread*, EventBuffer*) = 0;
 

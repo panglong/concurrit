@@ -188,6 +188,29 @@ void my_fclose(FILE* file, bool exit_on_fail /*= true*/) {
 }
 
 /********************************************************************************/
+void my_write(int fd, const void *buff, size_t size) {
+	ssize_t offset = 0;
+	while(size > 0) {
+		ssize_t sz = write(fd, buff + offset, size);
+		safe_check(sz >= 0);
+		size = size - sz;
+		offset = offset + sz;
+	}
+}
+
+/********************************************************************************/
+
+void my_read(int fd, void *buff, size_t size) {
+	ssize_t offset = 0;
+	while(size > 0) {
+		ssize_t sz = read(fd, buff + offset, size);
+		safe_check(sz >= 0);
+		size = size - sz;
+		offset = offset + sz;
+	}
+}
+
+/********************************************************************************/
 
 bool generate_random_bool() {
 	static MTRand rn_gen;
