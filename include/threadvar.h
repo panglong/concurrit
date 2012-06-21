@@ -55,6 +55,8 @@ public:
 	operator ADDRINT() { return addr_; }
 	operator void*() { return ADDRINT2PTR(addr_); }
 
+	void set_addr(void* addr) { set_addr(PTR2ADDRINT(addr)); }
+
 private:
 	DECL_FIELD(ADDRINT, addr)
 };

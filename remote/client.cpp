@@ -179,7 +179,7 @@ public:
 
 		ClientShadowThread* thread = GetShadowThread();
 
-		MYLOG(1) << "CLIENT: Sending AddressOfSymbol for function addr " << addr;
+		MYLOG(1) << "CLIENT: Sending AddressOfSymbol for function addr " << ADDRINT2PTR(addr);
 
 		// send event
 		EventBuffer e;
