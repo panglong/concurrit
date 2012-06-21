@@ -236,9 +236,13 @@ void ShadowThread::WaitRecv(EventBuffer* event) {
 
 // copy event from argument and signal the semaphore
 void ShadowThread::SignalRecv(EventBuffer* event) {
-	// check if currently waiting
-	safe_assert(event_ != NULL);
 	safe_assert(event != NULL);
+
+	MYLOG(1) << "SignalRecv to thread " << event->threadid << " for event " << EventKindToString(event->type);
+
+	// check if currently waiting
+	safe_check(event_ != NULL);
+
 //	*event_ = *event;
 	memcpy(event_, event, sizeof(EventBuffer));
 

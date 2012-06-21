@@ -97,6 +97,8 @@ public:
 		// set tls data
 		set_tls(this);
 
+		MYLOG(1) << "CLIENT: Sending ThreadStart to thread " << tid_;
+
 		// send thread start
 		EventBuffer event;
 		event.type = ThreadStart;
@@ -105,6 +107,8 @@ public:
 	}
 
 	void OnEnd() {
+		MYLOG(1) << "CLIENT: Sending ThreadEnd to thread " << tid_;
+
 		// send thread end
 		EventBuffer event;
 		event.type = ThreadEnd;
@@ -179,7 +183,7 @@ public:
 
 		ClientShadowThread* thread = GetShadowThread();
 
-		MYLOG(1) << "CLIENT: Sending AddressOfSymbol for function addr " << ADDRINT2PTR(addr);
+		MYLOG(1) << "CLIENT: Sending AddressOfSymbol for function addr " << ADDRINT2PTR(addr) << " to thread " << thread->tid();
 
 		// send event
 		EventBuffer e;
@@ -206,7 +210,7 @@ public:
 	void concurritFuncEnterEx(void* addr, uintptr_t arg0, uintptr_t arg1, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
-		MYLOG(1) << "CLIENT: Sending FuncEnter for function addr " << addr;
+		MYLOG(1) << "CLIENT: Sending FuncEnter for function addr " << addr << " to thread " << thread->tid();
 
 		// send event
 		EventBuffer e;
@@ -223,7 +227,7 @@ public:
 	void concurritFuncReturnEx(void* addr, uintptr_t retval, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
-		MYLOG(1) << "CLIENT: Sending FuncReturn for function addr " << addr;
+		MYLOG(1) << "CLIENT: Sending FuncReturn for function addr " << addr << " to thread " << thread->tid();
 
 		// send event
 		EventBuffer e;

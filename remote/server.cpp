@@ -160,6 +160,7 @@ public:
 
 	//override
 	bool OnRecv(EventPipe* pipe, EventBuffer* event) {
+		safe_assert(event != NULL);
 
 		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe);
 		safe_assert(concpipe != NULL);
