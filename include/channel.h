@@ -82,16 +82,28 @@ public:
 
 	// send value to this channel
 	void SendNoWait(const T& value) {
-			// acquire lock
-			mutex_.Lock();
+		// acquire lock
+		mutex_.Lock();
 
-			// send
-			this->put(value);
-			this->cv_.Signal();
+		// send
+		this->put(value);
+		this->cv_.Signal();
 
-			// unlock me
-			mutex_.Unlock();
-		}
+		// unlock me
+		mutex_.Unlock();
+	}
+
+	void SendNoWait(const T* value) {
+		// acquire lock
+		mutex_.Lock();
+
+		// send
+		this->put(value);
+		this->cv_.Signal();
+
+		// unlock me
+		mutex_.Unlock();
+	}
 
 	// send value to target and wait to receive from any other source
 	T& SendWaitReceive(Channel<T>* target, const T& value) {
@@ -125,6 +137,12 @@ public:
 	void put(const T& value) {
 		safe_assert(IsEmpty());
 		buffer_ = value;
+		value_ = &buffer_;
+	}
+
+	void put(const T* value) {
+		safe_assert(IsEmpty());
+		buffer_ = *value;
 		value_ = &buffer_;
 	}
 
