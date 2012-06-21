@@ -95,12 +95,12 @@ void short_sleep(long nanoseconds, bool continue_on_signal) {
 /********************************************************************************/
 
 void print_stack_trace() {
-	void *array[10];
+	void *array[32];
 	size_t size;
 	char **strings;
 	size_t i;
 
-	size = backtrace (array, 10);
+	size = backtrace (array, 32);
 	strings = backtrace_symbols (array, size);
 
 	fprintf(stderr, "Stack trace (of %zd frames):\n", size);
