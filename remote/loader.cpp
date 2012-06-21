@@ -36,6 +36,8 @@
 #include <dlfcn.h>
 #include <assert.h>
 
+#include "concurrit.h"
+
 #include <glog/logging.h>
 
 typedef int (*MainFuncType) (int, char**);
@@ -44,6 +46,8 @@ typedef int (*MainFuncType) (int, char**);
 
 extern "C"
 int main(int argc, char* argv[]) {
+
+	concurrit::Concurrit::InstallSignalHandler();
 
 	MainFuncType main_func = reinterpret_cast<MainFuncType>(dlsym(RTLD_DEFAULT, "__main__"));
 	if(main_func == NULL) {

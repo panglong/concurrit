@@ -136,6 +136,52 @@ struct EventBuffer {
 		memset(str, 0, 64 * sizeof(char));
 		str[0] = '\0';
 	}
+
+	bool Check() {
+		return type != InvalidEventKind && threadid != INVALID_THREADID;
+	}
+
+	EventBuffer& operator=(const EventBuffer& e) {
+		if(this != &e) {
+			type = e.type;
+			threadid = e.threadid;
+			loc_src = e.loc_src;
+			switch(e.type) {
+			case MemRead:
+			case MemWrite:
+				addr = e.addr;
+				size = e.size;
+				break;
+			case FuncEnter:
+				addr = e.addr;
+				arg0 = e.arg0;
+				arg1 = e.arg1;
+				break;
+			case FuncReturn:
+				addr = e.addr;
+				retval = e.retval;
+				break;
+			case FuncCall:
+				addr = e.addr;
+				addr_target = e.addr_target;
+				direct = e.direct;
+				arg0 = e.arg0;
+				arg1 = e.arg1;
+				loc_target = e.loc_target;
+				break;
+			case AtPc:
+				pc = e.pc;
+				break;
+			case AddressOfSymbol:
+				addr = e.addr;
+				memcpy(str, e.str, 64);
+				break;
+			default:
+				break;
+			}
+		}
+		return *this;
+	}
 };
 
 /********************************************************************************/

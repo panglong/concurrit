@@ -161,13 +161,13 @@ void Thread::detach_pthread(pthread_t self) {
 	safe_assert(self != PTH_INVALID_THREAD);
 	safe_assert(pthread_ == self);
 
-	set_pthread(PTH_INVALID_THREAD);
-
 	pthread_key_t key = Thread::tls_key();
 	safe_assert(NULL != pthread_getspecific(key));
 
 	__pthread_errno__ = pthread_setspecific(key, NULL);
 	safe_assert(__pthread_errno__ == PTH_SUCCESS);
+
+	set_pthread(PTH_INVALID_THREAD);
 }
 
 /********************************************************************************/
@@ -210,7 +210,13 @@ void Thread::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NUL
 /********************************************************************************/
 
 void Thread::Join(void ** value_ptr /*= NULL*/) {
-	__pthread_errno__ = PthreadOriginals::pthread_join(pthread_, value_ptr);
+	pthread_t pth = pthread_;
+	if(pth == PTH_INVALID_THREAD) {
+		// already cancelled or ended, so just exit
+		return;
+	}
+
+	__pthread_errno__ = PthreadOriginals::pthread_join(pth, value_ptr);
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
 		safe_fail("Join error: %s\n", PTHResultToString(__pthread_errno__));
 	}

@@ -60,6 +60,7 @@ while true; do
 		
 	if [ "$?" -ne "0" ];
 	then
+		echo "SUT aborted. Killing Concurrit."
 		kill -9 $TESTPID
 		break
 	fi

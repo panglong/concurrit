@@ -178,8 +178,9 @@ void EventPipe::Close() {
 
 /**********************************************************************************/
 
-ShadowThread::ShadowThread(THREADID tid, EventPipe* pipe) : tid_(tid), pipe_(pipe), event_(NULL) {
+ShadowThread::ShadowThread(THREADID tid, EventPipe* pipe) : tid_(tid), pipe_(pipe) {
 	sem_.Init(0);
+	event_.Clear();
 }
 
 
@@ -224,12 +225,16 @@ void ShadowThread::SendRecvContinue(EventBuffer* e) {
 // used by pipe implementation
 // when thread wants to receive an event, it waits on its semaphore
 void ShadowThread::WaitRecv(EventBuffer* event) {
-	safe_assert(event_ == NULL);
 	safe_assert(event != NULL);
-	event_ = event;
 
 	safe_assert(sem_.Get() <= 1);
 	sem_.Wait();
+
+	*event = event_;
+//	memcpy(event, &event_, sizeof(EventBuffer));
+
+	safe_check(event->Check());
+	safe_check(event->threadid == tid_);
 }
 
 /**********************************************************************************/
@@ -240,15 +245,9 @@ void ShadowThread::SignalRecv(EventBuffer* event) {
 
 	MYLOG(1) << "SignalRecv to thread " << event->threadid << " for event " << EventKindToString(event->type);
 
-	// check if currently waiting
-	safe_check(event_ != NULL);
-
-//	*event_ = *event;
-	memcpy(event_, event, sizeof(EventBuffer));
-
-	safe_assert(tid_ == event_->threadid);
-
-	event_ = NULL;
+	// copy to the buffer
+	event_ = *event;
+//	memcpy(&event_, event_, sizeof(EventBuffer));
 
 	// signal
 	safe_assert(sem_.Get() <= 0);
@@ -366,8 +365,9 @@ void* ConcurrentPipe::thread_func(void* arg) {
 /**********************************************************************************/
 
 void ConcurrentPipe::Broadcast(EventBuffer* e) {
-	for(TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.begin(), end = tid_to_shadowthread_.end(); itr != end; ++itr) {
+	for(TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.begin(); itr != tid_to_shadowthread_.end(); ++itr) {
 		ShadowThread* shadowthread = itr->second;
+		safe_assert(shadowthread != NULL);
 
 		e->threadid = shadowthread->tid();
 		shadowthread->SignalRecv(e);

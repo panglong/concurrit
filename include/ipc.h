@@ -179,7 +179,7 @@ public:
 private:
 	DECL_FIELD(THREADID, tid)
 	DECL_FIELD(EventPipe*, pipe)
-	DECL_FIELD(EventBuffer*, event)
+	DECL_FIELD(EventBuffer, event)
 	DECL_FIELD_REF(Semaphore, sem)
 };
 
