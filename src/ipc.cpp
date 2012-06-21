@@ -364,16 +364,6 @@ void* ConcurrentPipe::thread_func(void* arg) {
 
 /**********************************************************************************/
 
-void ConcurrentPipe::Broadcast(EventBuffer* e) {
-	for(TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.begin(); itr != tid_to_shadowthread_.end(); ++itr) {
-		ShadowThread* shadowthread = itr->second;
-		safe_assert(shadowthread != NULL);
-
-		e->threadid = shadowthread->tid();
-		shadowthread->SignalRecv(e);
-	}
-}
-
 void ConcurrentPipe::SendContinue(THREADID tid) {
 	EventBuffer e;
 	e.type = Continue;
@@ -383,7 +373,23 @@ void ConcurrentPipe::SendContinue(THREADID tid) {
 
 /**********************************************************************************/
 
+void ConcurrentPipe::Broadcast(EventBuffer* e) {
+	ScopeMutex m(&map_mutex_);
+
+	for(TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.begin(); itr != tid_to_shadowthread_.end(); ++itr) {
+		ShadowThread* shadowthread = itr->second;
+		safe_assert(shadowthread != NULL);
+
+		e->threadid = shadowthread->tid();
+		shadowthread->SignalRecv(e);
+	}
+}
+
+/**********************************************************************************/
+
 ShadowThread* ConcurrentPipe::GetShadowThread(THREADID tid) {
+	ScopeMutex m(&map_mutex_);
+
 	ShadowThread* thread = NULL;
 	TidToShadowThreadMap::accessor acc;
 	if(tid_to_shadowthread_.find(acc, tid)) {
@@ -396,6 +402,8 @@ ShadowThread* ConcurrentPipe::GetShadowThread(THREADID tid) {
 /**********************************************************************************/
 
 void ConcurrentPipe::RegisterShadowThread(ShadowThread* shadowthread) {
+	ScopeMutex m(&map_mutex_);
+
 	const THREADID tid = shadowthread->tid();
 	TidToShadowThreadMap::accessor acc;
 	if(!tid_to_shadowthread_.find(acc, tid)) {
@@ -408,6 +416,8 @@ void ConcurrentPipe::RegisterShadowThread(ShadowThread* shadowthread) {
 /**********************************************************************************/
 
 void ConcurrentPipe::UnregisterShadowThread(ShadowThread* shadowthread) {
+	ScopeMutex m(&map_mutex_);
+
 	const THREADID tid = shadowthread->tid();
 	bool erased = tid_to_shadowthread_.erase(tid);
 	safe_assert(erased);
@@ -416,6 +426,8 @@ void ConcurrentPipe::UnregisterShadowThread(ShadowThread* shadowthread) {
 /**********************************************************************************/
 
 size_t ConcurrentPipe::NumShadowThreads() {
+	ScopeMutex m(&map_mutex_);
+
 	return tid_to_shadowthread_.size();
 }
 

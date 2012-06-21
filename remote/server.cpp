@@ -210,10 +210,12 @@ public:
 				Thread::Yield(true);
 			}
 
+			MYLOG(1) << "SERVER: Test ending.";
+
 			// signal semaphore to end the program
 			test_end_sem_.Signal();
 
-			MYLOG(1) << "SERVER: Test ending.";
+			PthreadOriginals::pthread_exit(NULL);
 
 			return false; // ignore it
 		}

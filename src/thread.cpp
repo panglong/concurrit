@@ -228,7 +228,12 @@ void Thread::Join(void ** value_ptr /*= NULL*/) {
 /********************************************************************************/
 
 void Thread::Cancel() {
-	__pthread_errno__ = PthreadOriginals::pthread_cancel(pthread_);
+	pthread_t pth = pthread_;
+	if(pth == PTH_INVALID_THREAD) {
+		// already cancelled or ended, so just exit
+		return;
+	}
+	__pthread_errno__ = PthreadOriginals::pthread_cancel(pth);
 	if(__pthread_errno__ != PTH_SUCCESS && __pthread_errno__ != ESRCH) {
 		safe_fail("Cancel error: %s\n", PTHResultToString(__pthread_errno__));
 	}
