@@ -35,6 +35,8 @@ DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
 
 TESTPID=$!
 
+cd $BENCHDIR
+
 # run in loop for loader
 I=1
 while true; do
@@ -56,7 +58,7 @@ while true; do
 	PATH="$BENCHDIR/bin:$PATH" \
 	LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
 	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
-		$CONCURRIT_HOME/bin/testloader $BENCHARGS $BENCHDIR/lib/lib$BENCH.so
+		$CONCURRIT_HOME/bin/testloader $BENCHARGS
 		
 	if [ "$?" -ne "0" ];
 	then
@@ -68,4 +70,5 @@ while true; do
 	echo "SUT ended."
 done
 
+cd $CONCURRIT_HOME
 echo "SEARCH ENDED."
