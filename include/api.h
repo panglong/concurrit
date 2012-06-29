@@ -339,7 +339,7 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 	return p;
 }
 
-#define DISTINCT(s, ...)		_DISTINCT(MAKE_THREADVARPTRSET s, ##__VA_ARGS__)
+#define DISTINCT(s, ...)		_DISTINCT(MakeThreadVarPtrSet s, ##__VA_ARGS__)
 
 /********************************************************************************/
 
