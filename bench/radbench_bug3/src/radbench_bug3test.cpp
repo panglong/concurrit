@@ -12,6 +12,10 @@ CONCURRIT_BEGIN_MAIN()
 
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
+	TESTCASE() {
+		CALL_TEST(Exact);
+	}
+
 //	TESTCASE() { // 6 schedules
 //
 //		MAX_WAIT_TIME(0);
@@ -198,7 +202,87 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 //************************************************************************************
 
-	TESTCASE() {
+	TEST(SearchInBuggy) {
+
+		MAX_WAIT_TIME(0);
+
+		FVAR(f_newcontext, JS_NewContext);
+		FVAR(f_beginrequest, JS_BeginRequest);
+		FVAR(f_gc, js_GC);
+		FVAR(f_GC, JS_GC);
+		FVAR(f_destroycontext, JS_DestroyContext);
+
+		TVAR(TA);
+		TVAR(TB);
+		TVAR(TC);
+
+//		Now suppose there are 3 threads, A, B, C.
+		WAIT_FOR_THREAD(TA, IN_FUNC(f_newcontext), "Select TA");
+
+		WAIT_FOR_DISTINCT_THREAD(TB, (TA), IN_FUNC(f_newcontext), "Select TB");
+
+		WAIT_FOR_DISTINCT_THREAD(TC, (TA, TB), IN_FUNC(f_newcontext), "Select TC");
+
+		//======================================================
+
+		JSRuntime* rt = static_cast<JSRuntime*>(ADDRINT2PTR(ARG0(TA, f_newcontext)));
+		safe_assert(rt != NULL);
+		void* RT_STATE = &(rt->state);
+//		printf("rtstate: %lx\n", RT_STATE);
+		void* RT_GCLOCK = ADDRINT2PTR(PTR2ADDRINT(&(rt->gcLock)) + 0x10L);
+//		printf("gclock: %lx\n", RT_GCLOCK);
+		void* RT_GCTHREAD = ADDRINT2PTR(PTR2ADDRINT(&(rt->gcThread)) + 0x10L);
+//		printf("gcthread: %lx\n", RT_GCTHREAD);
+
+		MAX_WAIT_TIME(20*USECSPERSEC);
+
+		//======================================================
+
+//		Threads A and B calls js_DestroyContext and thread C calls js_NewContext.
+		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext), __);
+
+		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext), __);
+
+		//======================================================
+
+//		First thread A removes its context from the runtime list. That context is not
+//		the last one so thread does not touch rt->state and eventually calls js_GC. The
+//		latter skips the above check and tries to to take the GC lock.
+		RUN_THREAD_UNTIL(TA, IN_FUNC(f_gc) && READS(RT_STATE), "Run TA until js_GC");
+
+//		Before this moment the thread B takes the lock, removes its context from the
+//		runtime list, discovers that it is the last, sets rt->state to LANDING, runs
+//		the-last-context-cleanup, runs the GC and then sets rt->state to DOWN.
+		RUN_THREAD_UNTIL(TB, ENDS(), "Run TB ends");
+
+//		At this stage the thread A gets the GC lock, setup itself as the thread that
+//		runs the GC and releases the GC lock to proceed with the GC when rt->state is
+//		DOWN.
+		RUN_THREAD_UNTIL(TA, IN_FUNC(f_gc) && WRITES(RT_GCTHREAD), "Run TA until writes to rt->gcThread");
+
+//		Now the thread C enters the picture. It discovers under the GC lock in
+//		js_NewContext that the newly allocated context is the first one. Since
+//		rt->state is DOWN, it releases the GC lock and starts the first context
+//		initialization procedure.
+
+		MAX_WAIT_TIME(3*USECSPERSEC);
+
+//		That procedure includes the allocation of the initial
+//		atoms and it will happen when the thread A runs the GC. This may lead precisely
+//		to the first stack trace from the comment 4.
+		WHILE(!HAS_ENDED(TA) || !HAS_ENDED(TC)) {
+
+				TVAR(t);
+
+				SELECT_THREAD_BACKTRACK(t, (TA, TC));
+
+				RUN_THREAD_THROUGH(t, READS() || WRITES() /*|| CALLS() || ENDS()*/, "Run until accesses memory...");
+		}
+	}
+
+//************************************************************************************
+
+	TEST(Exact) {
 
 		MAX_WAIT_TIME(0);
 
@@ -271,38 +355,19 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
-		RUN_THREAD_UNTIL(TA, WRITES(RT_GCMALLOCBYTES), "Run TA");
-
-		RUN_THREAD_UNTIL(TC, READS(RT_STATE), "Run TC");
-
-		RUN_THREAD_UNTIL(TA, RETURNS(f_flushpropertycache), "RUN TA");
-
-		RUN_THREAD_UNTIL(TC, READS(RT_CONTEXTLIST), "Run TC");
+//		RUN_THREAD_UNTIL(TA, WRITES(RT_GCMALLOCBYTES), "Run TA");
+//		RUN_THREAD_UNTIL(TC, READS(RT_STATE), "Run TC");
+//		RUN_THREAD_UNTIL(TA, RETURNS(f_flushpropertycache), "RUN TA");
+//		RUN_THREAD_UNTIL(TC, READS(RT_CONTEXTLIST), "Run TC");
 
 		RUN_THREAD_UNTIL(TA, WRITES(RT_GCNUMBER), "Run TA");
-
 		RUN_THREAD_UNTIL(TC, ENTERS(f_addroot), "Run TC");
 		RUN_THREAD_UNTIL(TA, ENDS(), "RUN TA ENDS");
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
 
+//		RUN_THREAD_UNTIL(TC, ENDS(), "RUN TC ENDS");
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
-
-
-
-//		That procedure includes the allocation of the initial
-//		atoms and it will happen when the thread A runs the GC. This may lead precisely
-//		to the first stack trace from the comment 4.
-		WHILE(!HAS_ENDED(TA) || !HAS_ENDED(TC)) {
-
-				TVAR(t);
-
-				SELECT_THREAD_BACKTRACK(t, (TA, TC));
-
-				RUN_THREAD_THROUGH(t, READS() || WRITES() /*|| CALLS() || ENDS()*/, "Run until accesses memory...");
-		}
 	}
+
 
 CONCURRIT_END_TEST(MyScenario)
 
