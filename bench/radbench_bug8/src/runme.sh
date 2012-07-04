@@ -23,11 +23,9 @@ then
     exit 0
 fi
 
-RUN_DIR=`pwd`
+RUN_DIR=/home/elmas/radbench/Benchmarks/bug8
 
-DIR=`dirname $0`
-cd $DIR
-BIN_DIR=`pwd`
+BIN_DIR=$RUN_DIR/bin
 
 MEMSERVER=$BIN_DIR/install/bin/memcached
 if [ ! -e "$MEMSERVER" ]; then
@@ -72,9 +70,13 @@ function waitUntilTimeout {
 }
 
 function setup {
-    $MEMSERVER -U 0 -p 11211 -r 4 -d
+	echo "Launching memcached server"
+	LD_PRELOAD="$CONCURRIT_HOME/lib/libclient.so:$LD_PRELOAD" \
+	PATH="$BENCHDIR/bin:$PATH" \
+	LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
+	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
+    	$MEMSERVER -U 0 -p 11211 -r 4 -d
     sleep .5
-    export LD_LIBRARY_PATH=$LIBPATH
     return 0
 }
 
@@ -90,9 +92,99 @@ function cleanup {
     killall memcached
 }
 
+#setup
+#runtest
+#RESULT=$?
+#cleanup
+
+#exit $RESULT
+
+
+################################################################################
+################################################################################
+
+
+ARGS=( $@ )
+# get and remove name of the benchmark from arguments
+BENCH=radbench_bug8
+echo "Running $BENCH"
+unset ARGS[0]
+
+echo "Benchmark is $BENCH"
+echo "Arguments are ${ARGS[*]}"
+
+BENCHDIR=$CONCURRIT_HOME/bench/$BENCH
+
+# copy configuration files (if exist)
+rm -rf $CONCURRIT_HOME/work/*
+
+BENCHARGS=
+if [ -f "$BENCHDIR/bench_args.txt" ];
+then
+	BENCHARGS=`cat $BENCHDIR/bench_args.txt`
+fi
+
+#create fifo directory
+rm -rf /tmp/concurrit/*
+mkdir -p /tmp/concurrit/pipe
+
+# run concurrit in server mode
+ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" "-p0" "-m1" "-r")
+
+echo "Running concurrit in server mode"
+
+LD_PRELOAD="$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD" \
+PATH="$BENCHDIR/bin:$PATH" \
+LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
+DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
+	$BENCHDIR/bin/$BENCH ${ARGS[*]} &
+
+TESTPID=$!
+
+sleep 1
+
+echo "Running memcached server"
+# run server
 setup
-runtest
-RESULT=$?
+
+
+
+cd $BENCHDIR
+
+# run in loop for loader
+I=1
+while true; do
+	echo "ITERATION $I"
+	(( I=$I+1 ))
+	
+	# check if test is still running
+	kill -0 $TESTPID
+	if [ "$?" -ne "0" ];
+	then
+		break
+	fi
+	
+	echo "Running request process."
+	
+	# run loader
+	# add bench's library path to the end of arguments
+	LD_PRELOAD="$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD" \
+	PATH="$BENCHDIR/bin:$PATH" \
+	LD_LIBRARY_PATH="$BENCHDIR/lib:$LIBPATH:$LD_LIBRARY_PATH" \
+	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
+		$BIN_DIR/test-memcached
+		
+	if [ "$?" -ne "0" ];
+	then
+		echo "SUT aborted. Killing Concurrit."
+		kill -9 $TESTPID
+		break
+	fi
+		
+	echo "SUT ended."
+done
+
 cleanup
 
-exit $RESULT
+echo "SEARCH ENDED."
+

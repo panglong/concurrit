@@ -198,6 +198,8 @@ public:
 	void concurritAtPcEx(int pc, const char* filename, const char* funcname, int line) {
 		ClientShadowThread* thread = GetShadowThread();
 
+		MYLOG(1) << "CLIENT: Sending concurritAtPc: " << pc;
+
 		// send event
 		EventBuffer e;
 		e.type = AtPc;
@@ -268,7 +270,11 @@ void construct_client() {
 
 	create_tls_key();
 
+	MYLOG(1) << "CLIENT: Opening pipe";
+
 	pipe_ = ConcurrentPipe::OpenForSUT();
+
+	MYLOG(1) << "CLIENT: Pipe opened";
 }
 
 /********************************************************************************/

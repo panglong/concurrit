@@ -309,13 +309,25 @@ void ConcurrentPipe::Open(bool open_for_read_first) {
 }
 
 ConcurrentPipe* ConcurrentPipe::OpenForDSL(EventHandler* event_handler /*= NULL*/) {
-	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForDSL(), event_handler);
+	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForDSL(0), event_handler);
 	pipe->Open(true);
 	return pipe;
 }
 
 ConcurrentPipe* ConcurrentPipe::OpenForSUT(EventHandler* event_handler /*= NULL*/) {
-	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT(), event_handler);
+	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT(0), event_handler);
+	pipe->Open(false);
+	return pipe;
+}
+
+ConcurrentPipe* ConcurrentPipe::OpenControlForDSL(EventHandler* event_handler /*= NULL*/) {
+	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForDSL(1), event_handler);
+	pipe->Open(true);
+	return pipe;
+}
+
+ConcurrentPipe* ConcurrentPipe::OpenControlForSUT(EventHandler* event_handler /*= NULL*/) {
+	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT(1), event_handler);
 	pipe->Open(false);
 	return pipe;
 }

@@ -298,14 +298,17 @@ int main0(int argc, char* argv[]) {
 	ServerEventHandler handler;
 
 	ConcurrentPipe* pipe = ConcurrentPipe::OpenForDSL(&handler);
+	ConcurrentPipe* controlpipe = ConcurrentPipe::OpenControlForDSL(&handler);
 
 	MYLOG(1) << "SERVER: Done with initialization. Waiting on test_end_semaphore.";
 
 	handler.test_end_sem()->Wait();
 
 	pipe->Close();
+	controlpipe->Close();
 
 	delete(pipe);
+	delete(controlpipe);
 
 	MYLOG(1) << "SERVER: __main__ exiting.";
 

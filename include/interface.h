@@ -36,6 +36,7 @@
 #define INTERFACE_H_
 
 #include "common.h"
+#include "sharedaccess.h"
 
 namespace concurrit {
 

@@ -7,6 +7,9 @@
 #include <assert.h>
 #include <libmemcached/memcached.h>
 
+#include "interface.h"
+#include "ipc.h"
+
 const char* g_host = "127.0.0.1";
 unsigned short g_port = 11211;
 bool g_binary = false;
@@ -53,6 +56,17 @@ static void* worker(void* trash)
 
 int main(int argc, char* argv[])
 {
+
+	concurrit::ConcurrentPipe* controlpipe = concurrit::ConcurrentPipe::OpenControlForSUT();
+
+	concurrit::EventBuffer e;
+	e.type = concurrit::TestStart;
+	e.threadid = 0;
+	controlpipe->Send(NULL, &e);
+
+	//====================================================
+	//====================================================
+
 	{
 		memcached_return ret;
 		memcached_st* st = create_st();
@@ -108,6 +122,15 @@ int main(int argc, char* argv[])
 		memcached_free(st);
                 assert(expected_value == retrieved_value);
 	}
+
+	//====================================================
+	//====================================================
+
+	e.type = concurrit::TestEnd;
+	e.threadid = 0;
+	controlpipe->Send(NULL, &e);
+
+	delete(controlpipe);
 
 	return 0;
 }

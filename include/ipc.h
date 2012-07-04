@@ -36,8 +36,9 @@
 #define IPC_H_
 
 #include "common.h"
-
+#include "interface.h"
 #include "thread.h"
+#include "tbb/concurrent_hash_map.h"
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -215,8 +216,10 @@ public:
 	void Close();
 
 	static ConcurrentPipe* OpenForDSL(EventHandler* event_handler = NULL);
-
 	static ConcurrentPipe* OpenForSUT(EventHandler* event_handler = NULL);
+
+	static ConcurrentPipe* OpenControlForDSL(EventHandler* event_handler = NULL);
+	static ConcurrentPipe* OpenControlForSUT(EventHandler* event_handler = NULL);
 
 	/*****************************************************************/
 

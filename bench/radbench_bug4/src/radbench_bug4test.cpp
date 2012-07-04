@@ -33,8 +33,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
-//		WHILE_STAR {
-		WHILE(!HAS_ENDED(t1) && !HAS_ENDED(t2)) {
+		WHILE_STAR {
+//		WHILE(!HAS_ENDED(t1) && !HAS_ENDED(t2)) {
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run t once");

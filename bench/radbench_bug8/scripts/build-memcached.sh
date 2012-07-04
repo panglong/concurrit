@@ -45,6 +45,10 @@ if [ ! -d "$LIBMEMCACHED_SRC" ]; then
     fi
 fi
 
+CFLAGS="-g -gdwarf-2 -lclient -I$CONCURRIT_HOME/include -L$CONCURRIT_HOME/lib $CFLAGS" 
+
+cp -rf $CONCURRIT_HOME/bench/radbench_bug8/src/memcached.c $MEMCACHED_SRC/memcached.c
+
 echo
 echo "Starting Building Libevent..."
 cd $LIBEVENT_SRC
