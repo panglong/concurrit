@@ -481,7 +481,7 @@ static uint_t _unitmax = 0;		/* size of trace unit array */
 //	if(!_hashreads) \
 //		sem_wait(&_hashsem); \
 //	_hashreads++;
-#include "dummy.h"
+#include "instrument.h"
 void HASH_READ_ENTER() {
 	if(!_hashreads)
 		sem_wait(&_hashsem);
@@ -1471,6 +1471,5 @@ int main0(int argc, char **argv)
 }
 
 //============================================
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
+
+CONCURRIT_TEST_MAIN(main0)

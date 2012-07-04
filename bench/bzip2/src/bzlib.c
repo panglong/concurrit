@@ -78,8 +78,8 @@
 #include "bzlib_private.h"
 
 #ifdef ERR1
-#define malloc thrilleMallocC
-void * thrilleMallocC(size_t);
+//#define malloc thrilleMallocC
+//void * thrilleMallocC(size_t);
 #endif
 
 /*---------------------------------------------------*/

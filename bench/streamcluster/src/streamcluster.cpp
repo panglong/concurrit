@@ -35,18 +35,16 @@ using namespace tbb;
 #include <hooks.h>
 #endif
 
-#include "dummy.h"
+#include "instrument.h"
 
 extern "C" int my_pthread_barrier_wait(pthread_barrier_t *barrier);
 
 int my_pthread_barrier_wait(pthread_barrier_t *barrier) {
-	concurritFuncEnter(reinterpret_cast<void*>(my_pthread_barrier_wait));
-	concurritControl();
+	concurritFuncEnter(reinterpret_cast<void*>(my_pthread_barrier_wait), 0, 0);
 
 	pthread_barrier_wait(barrier);
 
-	concurritFuncReturn(reinterpret_cast<void*>(my_pthread_barrier_wait));
-	concurritControl();
+	concurritFuncReturn(reinterpret_cast<void*>(my_pthread_barrier_wait), 0);
 }
 
 
@@ -1441,7 +1439,9 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
     }
 
 
+    int _i_ = 0;
   while(1) {
+	 _i_++;
     /* first get a rough estimate on the FL solution */
     lastcost = cost;
     cost = pFL(points, feasible, numfeasible,
@@ -1472,7 +1472,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
 
     /* if k is good, return the result */
     /* if we're stuck, just give up and return what we have */
-    if (((k <= kmax)&&(k >= kmin))||((loz >= (0.999)*hiz)) )
+    if (((k <= kmax)&&(k >= kmin))||((loz >= (0.999)*hiz)) || _i_ >= 2)
       { 
 	break;
       }
@@ -1507,6 +1507,8 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
   static int *feasible;
   static int numfeasible;
   static double* hizs;
+
+  concurritFuncEnter(pkmedian, 0, 0);
 
   if( pid==0 ) hizs = (double*)calloc(nproc,sizeof(double));
   hiz = loz = 0.0;
@@ -1551,6 +1553,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
       free(hizs); 
       *kfinal = k;
     }
+    concurritFuncReturn(pkmedian, 0);
     return cost;
   }
 
@@ -1585,14 +1588,15 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
       }
     }
 
-  concurritAtPc(42);
-  concurritAtPc(421);
-
 #ifdef ENABLE_THREADS
   my_pthread_barrier_wait(barrier);
 #endif
 
+  concurritAtPc(42);
+
+  int _i_ = 0;
   while(1) {
+	  _i_++;
 
     /* first get a rough estimate on the FL solution */
     lastcost = cost;
@@ -1624,7 +1628,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
 
     /* if k is good, return the result */
     /* if we're stuck, just give up and return what we have */
-    if (((k <= kmax)&&(k >= kmin))||((loz >= (0.999)*hiz)) )
+    if (((k <= kmax)&&(k >= kmin))||((loz >= (0.999)*hiz)) || (_i_ >= 2))
       { 
 	break;
       }
@@ -1634,12 +1638,13 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
   }
 
   //clean up...
-  if( pid==0 ) {
+  if( pid==2 ) {
     free(feasible); 
     free(hizs);
     *kfinal = k;
   }
 
+  concurritFuncReturn(pkmedian, 0);
   return cost;
 }
 
@@ -1741,6 +1746,8 @@ void localSearch( Points* points, long kmin, long kmax, long* kfinal ) {
     pthread_t* threads = new pthread_t[nproc];
     pkmedian_arg_t* arg = new pkmedian_arg_t[nproc];
 
+    concurritFuncEnter(localSearch, 0, 0);
+
 #ifdef ENABLE_THREADS
     pthread_barrier_init(&barrier,NULL,nproc);
 #endif
@@ -1780,6 +1787,8 @@ void localSearch( Points* points, long kmin, long kmax, long* kfinal ) {
 #ifdef ENABLE_THREADS
     pthread_barrier_destroy(&barrier);
 #endif
+
+    concurritFuncReturn(localSearch, 0);
 }
 #endif // TBB_VERSION
 
@@ -1978,22 +1987,23 @@ void streamCluster( PStream* stream,
     if( stream->feof() ) {
       break;
     }
+    break;
   }
 
   //finally cluster all temp centers
-#ifdef TBB_VERSION
-  switch_membership = (bool*)memoryBool.allocate(centers.num*sizeof(bool));
-  is_center = (bool*)calloc(centers.num,sizeof(bool));
-  center_table = (int*)memoryInt.allocate(centers.num*sizeof(int));
-#else
-  switch_membership = (bool*)malloc(centers.num*sizeof(bool));
-  is_center = (bool*)calloc(centers.num,sizeof(bool));
-  center_table = (int*)malloc(centers.num*sizeof(int));
-#endif
-
-  localSearch( &centers, kmin, kmax ,&kfinal ); // parallel
-  contcenters(&centers);
-  outcenterIDs( &centers, centerIDs, outfile);
+//#ifdef TBB_VERSION
+//  switch_membership = (bool*)memoryBool.allocate(centers.num*sizeof(bool));
+//  is_center = (bool*)calloc(centers.num,sizeof(bool));
+//  center_table = (int*)memoryInt.allocate(centers.num*sizeof(int));
+//#else
+//  switch_membership = (bool*)malloc(centers.num*sizeof(bool));
+//  is_center = (bool*)calloc(centers.num,sizeof(bool));
+//  center_table = (int*)malloc(centers.num*sizeof(int));
+//#endif
+//
+//  localSearch( &centers, kmin, kmax ,&kfinal ); // parallel
+//  contcenters(&centers);
+//  outcenterIDs( &centers, centerIDs, outfile);
 }
 
 static
@@ -2084,12 +2094,4 @@ int main0(int argc, char **argv)
 
 //============================================
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(main0)

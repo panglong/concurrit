@@ -1,3 +1,5 @@
-PR_RWLock_Wlock
-PR_RWLock_Rlock
-PR_RWLock_Unlock
+#PR_RWLock_Wlock
+#PR_RWLock_Rlock
+#PR_RWLock_Unlock
+reader_main
+writer_main

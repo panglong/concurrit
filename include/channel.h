@@ -38,16 +38,15 @@
 
 namespace concurrit {
 
-#define CHANNEL_BEGIN_ATOMIC()	Channel<MessageType>::BeginAtomic(); \
-								try { \
+#define CHANNEL_BEGIN_ATOMIC()		ScopeMutex m(Channel<MessageType>::mutex()); \
+//									pthread_cleanup_push(Mutex::CleanupHandlerToUnlock, (Channel<MessageType>::mutex())); \
 
+#define CHANNEL_END_ATOMIC()		//pthread_cleanup_pop(0);
 
-#define CHANNEL_END_ATOMIC()	} catch(...) { \
-									Channel<MessageType>::EndAtomic(); \
-									throw; \
-								} \
-								Channel<MessageType>::EndAtomic(); \
+#define CHANNEL_T_BEGIN_ATOMIC()	ScopeMutex m(&mutex_); \
+//									pthread_cleanup_push(Mutex::CleanupHandlerToUnlock, (&mutex_)); \
 
+#define CHANNEL_T_END_ATOMIC()		//pthread_cleanup_pop(0);
 
 // channel for sending and receiving primitive types (T must be primitive)
 template <class T>
@@ -68,14 +67,14 @@ public:
 
 	T& WaitReceive() {
 		// acquire lock
-		mutex_.Lock();
+		CHANNEL_T_BEGIN_ATOMIC();
 
 		// receive
 		this->cv_.Wait(&mutex_);
 		this->take();
 
 		// unlock me
-		mutex_.Unlock();
+		CHANNEL_T_END_ATOMIC();
 
 		return this->buffer_;
 	}
@@ -83,26 +82,26 @@ public:
 	// send value to this channel
 	void SendNoWait(const T& value) {
 		// acquire lock
-		mutex_.Lock();
+		CHANNEL_T_BEGIN_ATOMIC();
 
 		// send
 		this->put(value);
 		this->cv_.Signal();
 
 		// unlock me
-		mutex_.Unlock();
+		CHANNEL_T_END_ATOMIC();
 	}
 
 	void SendNoWait(const T* value) {
 		// acquire lock
-		mutex_.Lock();
+		CHANNEL_T_BEGIN_ATOMIC();
 
 		// send
 		this->put(value);
 		this->cv_.Signal();
 
 		// unlock me
-		mutex_.Unlock();
+		CHANNEL_T_END_ATOMIC();
 	}
 
 	// send value to target and wait to receive from any other source
@@ -110,7 +109,7 @@ public:
 		safe_assert(target != NULL);
 
 		// acquire lock
-		mutex_.Lock();
+		CHANNEL_T_BEGIN_ATOMIC();
 
 		// send
 		target->put(value);
@@ -121,7 +120,7 @@ public:
 		this->take();
 
 		// unlock me
-		mutex_.Unlock();
+		CHANNEL_T_END_ATOMIC();
 
 		return this->buffer_;
 	}
@@ -153,7 +152,7 @@ public:
 	}
 
 private:
-	DECL_STATIC_FIELD(Mutex, mutex)
+	DECL_STATIC_FIELD_REF(Mutex, mutex)
 	DECL_FIELD_REF(T*, value)
 	DECL_FIELD_REF(T, buffer)
 	DECL_FIELD_REF(ConditionVar, cv)

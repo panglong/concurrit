@@ -1,2 +1,4 @@
 HASH_READ_ENTER
 HASH_READ_EXIT
+foo
+bar

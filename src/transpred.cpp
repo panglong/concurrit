@@ -424,7 +424,7 @@ ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t1,
 /********************************************************************************/
 
 bool TPInFunc::EvalState(Coroutine* t /*= NULL*/) {
-	safe_assert(t != NULL);
+//	safe_assert(t != NULL);
 
 	THREADID tid = tvar_ == NULL ? t->tid() : safe_notnull(tvar_->thread())->tid();
 

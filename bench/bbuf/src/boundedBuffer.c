@@ -165,7 +165,7 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
 {
   int status = 0,status1 = 0, status2 = 0;
   
-  concurritFuncEnter(bounded_buf_get, bbuf, item);
+//  concurritFuncEnter(bounded_buf_get, bbuf, item);
 
   if (bbuf == NULL || item == NULL || bbuf->valid != BOUNDED_BUF_VALID)
     return EINVAL;
@@ -211,7 +211,7 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
 
   status = (status != 0)? status : (status1 != 0)? status1 : status2;
 
-  concurritFuncReturn(bounded_buf_get, status);
+//  concurritFuncReturn(bounded_buf_get, status);
 
   return status;
 }
@@ -262,8 +262,6 @@ int bounded_buf_is_full(bounded_buf_t* bbuf)
   status = pthread_mutex_unlock(&bbuf->mutex);  
   return (status == 0)? retval : -1;
 }
-
-
 
 
 #define PRODUCER_SUM  2
@@ -375,12 +373,13 @@ int main0(int argc, char ** argv)
 
 //============================================
 
-int __main__(int argc, char* argv[]) {
-	concurritAddressOfSymbol("bounded_buf_get", bounded_buf_get);
-	concurritAddressOfSymbol("bounded_buf_put", bounded_buf_put);
-	concurritStartTest();
-	int ret = main0(argc, argv);
-	concurritEndTest();
-	return ret;
-}
+//int __main__(int argc, char* argv[]) {
+////	concurritAddressOfSymbol("bounded_buf_get", bounded_buf_get);
+////	concurritAddressOfSymbol("bounded_buf_put", bounded_buf_put);
+//	concurritStartTest();
+//	int ret = main0(argc, argv);
+//	concurritEndTest();
+//	return ret;
+//}
 
+CONCURRIT_TEST_MAIN(main0)

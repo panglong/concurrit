@@ -79,6 +79,7 @@ public:
 			print_enum(TIMEOUT)
 			print_enum(EXCEPTION)
 			print_enum(PTH_EXIT)
+			print_enum(REPLAY_FAILS)
 			print_enum(UNKNOWN)
 		default:
 			safe_fail("UnknownBacktrackReason");

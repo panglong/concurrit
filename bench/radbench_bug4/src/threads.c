@@ -49,6 +49,8 @@
 #define THREAD_COUNT 2
 //PRInt32 alive;
 
+#include "instrument.h"
+
 void
 PR_CALLBACK
 DumbThread(void *arg)
@@ -109,9 +111,8 @@ int main0(int argc, char **argv) {
 }
 
 //============================================
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
+
+CONCURRIT_TEST_MAIN(main0)
 
 __attribute__((constructor))
 void __init__() {

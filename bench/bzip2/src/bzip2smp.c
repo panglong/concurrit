@@ -17,6 +17,10 @@ See LICENSE file for details.
 #include "detectht.h"
 #include "bzlib.h"
 
+#include "instrument.h"
+
+static volatile int done = 0;
+
 //#ifdef ERR1
 //#define malloc thrilleMallocC
 //void * thrilleMallocC(size_t);
@@ -58,9 +62,6 @@ static volatile int outChunksTail = -1; /* -1 means that the buffer is empty */
 static pthread_mutex_t inOutChunksAllocationMutex = PTHREAD_MUTEX_INITIALIZER;
 FILE * nullout = NULL;
 
-static volatile int done = 0;
-
-
 /* Wraps around a negative index within the ring buffer */
 int wrapChunkIndex( int idx )
 {
@@ -93,6 +94,8 @@ void * threadFunction()
   int outChunk;
   bz_stream * strm;
 
+  concurritFuncEnter(threadFunction, 0, 0);
+
   for( ; !done ; )
   {
     /* Take the mutex to make the in-out chunk acquisition operation atomic */
@@ -106,9 +109,16 @@ void * threadFunction()
 
     if ( inChunksTail == -1 )
     {
+    	if(done) { pthread_mutex_unlock( &inOutChunksAllocationMutex ); pthread_mutex_unlock( &inChunksMutex ); break; }
       printf("THREAD INPUT STARVATION_____________\n" );
+      concurritAtPc(42);
       pthread_cond_wait( &inChunksAvailableCondition, &inChunksMutex );
+      if(done) { pthread_mutex_unlock( &inOutChunksAllocationMutex ); pthread_mutex_unlock( &inChunksMutex ); break; }
     }
+
+    pthread_mutex_unlock( &inChunksMutex );
+    concurritAtPc(43);
+    pthread_mutex_lock( &inChunksMutex );
 
     strm = inChunks[ inChunksTail ];
 
@@ -117,10 +127,14 @@ void * threadFunction()
     if ( inChunksTail == inChunksCount )
       inChunksTail = 0;
 
-    if ( inChunksTail == inChunksHead )
+    if ( inChunksTail == inChunksHead ) {
       inChunksTail = -1;
+      concurritAtPc(44);
+    }
 
     pthread_mutex_unlock( &inChunksMutex );
+
+    concurritAtPc(45);
 
     /* Allocate the out chunk */
 
@@ -128,9 +142,11 @@ void * threadFunction()
 
     if ( outChunksHead == outChunksTail )
     {
+    	if(done) { pthread_mutex_unlock( &inOutChunksAllocationMutex ); pthread_mutex_unlock( &outChunksMutex ); break; }
       printf("THREAD OUTPUT STARVATION.............\n" );
       /* No free chunk available, wait for one */
       pthread_cond_wait( &outChunksAvailableCondition, &outChunksMutex );
+      if(done) { pthread_mutex_unlock( &inOutChunksAllocationMutex ); pthread_mutex_unlock( &outChunksMutex ); break; }
     }
 
     if ( outChunksTail == -1 )
@@ -175,6 +191,8 @@ void * threadFunction()
     }
     pthread_mutex_unlock( &outChunksMutex );
   }
+
+  concurritFuncReturn(threadFunction, 0);
 }
 
 /* This thread is only writing the results to stdout */
@@ -186,12 +204,18 @@ void * writerThread()
   bz_stream_state_out savedState;
   int wasStateSaved = 0;
 
+  concurritFuncEnter(writerThread, 0, 0);
+
   pthread_mutex_lock( &outChunksMutex );
 
   for( ; !done ; )
   {
-    if ( outChunksTail == -1 || ! outChunks[ outChunksTail ] )
+    if ( outChunksTail == -1 || ! outChunks[ outChunksTail ] ) {
+    	if(done) { pthread_mutex_unlock( &outChunksMutex ); break; }
+      concurritAtPc(46);
       pthread_cond_wait( &outChunksFlushCondition, &outChunksMutex );
+      if(done) { pthread_mutex_unlock( &outChunksMutex ); break; }
+    }
 
     pthread_mutex_unlock( &outChunksMutex );
 
@@ -243,7 +267,11 @@ void * writerThread()
     /* If we empty the ring buffer out, mark it as empty */
     if ( outChunksTail == outChunksHead )
       outChunksTail = -1;
+
+    concurritAtPc(47);
   }
+
+  concurritFuncReturn(writerThread, 0);
 }
 
 static char helpText[] =
@@ -620,23 +648,25 @@ int main0( int argc, char *argv[] )
   pthread_mutex_unlock( &outChunksMutex );
 
   /* Done */
+  printf("Done.\n");
 
   /* No further semantic cleanup is required.
   Don't care freeing up the resources, the OS must do it anyway. */
-
   done = 1;
+
+  pthread_mutex_lock( &outChunksMutex );
+  pthread_mutex_lock( &inChunksMutex );
+  done = 1;
+  pthread_cond_broadcast( &outChunksAvailableCondition );
+  pthread_cond_broadcast( &outChunksFlushCondition );
+  pthread_cond_broadcast( &inChunksAvailableCondition );
+  pthread_mutex_unlock( &outChunksMutex );
+  pthread_mutex_unlock( &inChunksMutex );
 
   return 0;
 }
 
 //============================================
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(main0)
+

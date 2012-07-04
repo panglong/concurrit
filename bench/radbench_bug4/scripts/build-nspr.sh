@@ -68,6 +68,15 @@ if [ "$BUILD" == "patch" ]; then
     echo "NSPR patched to fix bug"
 fi
 
+if [ ! -e "$NSPR_ORIGINAL_PRTIME" ]; then
+  echo "ERROR: can't find original prtime.c at $NSPR_ORIGINAL_PRTIME"
+  exit 1
+fi
+cp $CONCURRIT_HOME/bench/radbench_bug4/src/prtime.c $NSPR_ORIGINAL_PRTIME
+
+CFLAGS="-I$CONCURRIT_HOME/include $CFLAGS"
+LDFLAGS="-L$CONCURRIT_HOME/lib -ldummy"
+
 echo
 echo "Starting Building NSPR..."
 mkdir -p $NSPR_TARGET

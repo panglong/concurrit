@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-#include "dummy.h"
+#include "instrument.h"
 
 #define XP_UNIX
 #define JS_THREADSAFE
@@ -90,12 +90,4 @@ int main0(int argc, char* argv[]) {
 
 //============================================
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(main0)

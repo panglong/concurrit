@@ -15,6 +15,8 @@
 #include <hooks.h>
 #endif
 
+#include "instrument.h"
+
 config * conf;
 
 static int
@@ -43,7 +45,7 @@ usage(char* prog)
 /*--------------------------------------------------------------------------*/
 static
 int 
-main(int argc, char** argv)
+main0(int argc, char** argv)
 {
 #ifdef PARSEC_VERSION
 #define __PARSEC_STRING(x) #x
@@ -143,12 +145,4 @@ main(int argc, char** argv)
 
 //============================================
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(main0)

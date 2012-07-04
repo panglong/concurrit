@@ -64,6 +64,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "instrument.h"
+
 /***********************************************************************
 ** PRIVATE FUNCTION:    Test_Result
 ** DESCRIPTION: Used in conjunction with the regress tool, prints out the
@@ -108,7 +110,22 @@ static void PR_CALLBACK highPriority(void *arg)
 
 static void PR_CALLBACK unjoinable(void *arg)
 {
-    PR_Sleep(PR_INTERVAL_NO_TIMEOUT);
+//	PR_Sleep(PR_INTERVAL_NO_TIMEOUT);
+
+	PRCondVar *cv;
+	PRIntervalTime timein;
+	PRStatus rv;
+
+	PRLock *lock = PR_NewLock();
+	PR_ASSERT(lock != NULL);
+	cv = PR_NewCondVar(lock);
+	PR_ASSERT(cv != NULL);
+
+	PR_Lock(lock);
+	rv = PR_WaitCondVar(cv, PR_INTERVAL_NO_TIMEOUT);
+	PR_Unlock(lock);
+	PR_DestroyCondVar(cv);
+	PR_DestroyLock(lock);
 }
 
 void runTest(PRThreadScope scope1, PRThreadScope scope2)
@@ -200,6 +217,7 @@ void joinWithUnjoinable(void)
 void joinWithUnjoinable2(void)
 {
     PRThread *thread;
+    debug_mode = 1;
 
     /* create the unjoinable thread */
 
@@ -292,6 +310,6 @@ int main0(int argc, char **argv)
 
 
 //============================================
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
+
+CONCURRIT_TEST_MAIN(main0)
+

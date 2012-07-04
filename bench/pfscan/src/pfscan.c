@@ -35,7 +35,7 @@
 #include "pqueue.h"
 #include "bm.h"
 
-
+#include "instrument.h"
 
 extern char version[];
 
@@ -513,7 +513,7 @@ Command line options:\n", out);
 
 static
 int
-main(int argc,
+main0(int argc,
      char *argv[])
 {
     int i, j;
@@ -664,12 +664,5 @@ main(int argc,
 
 //============================================
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int __main__(int argc, char* argv[]) {
-	return main(argc, argv);
-}
-#ifdef __cplusplus
-} // extern "C"
-#endif
+CONCURRIT_TEST_MAIN(main0)
+

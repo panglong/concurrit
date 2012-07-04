@@ -10,55 +10,59 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 	TESTCASE() {
-		CALL_TEST(Final4);
+		CALL_TEST(SearchLargeSteps);
 	}
+
+	//============================================================//
+
+	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m1 -p1 -f1000
+	TEST(SearchAll) {
+		MAX_WAIT_TIME(3*USECSPERSEC);
+
+		TVAR(t1);
+		TVAR(t2);
+
+		FVAR(foo, foo);
+		FVAR(bar, bar);
+
+		WAIT_FOR_THREAD(t1, IN_FUNC(foo));
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(bar));
+
+		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
+
+			TVAR(t);
+			SELECT_THREAD_BACKTRACK(t, (t1, t2));
+
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENTERS() || RETURNS() || ENDS(), "Run unless");
+		}
+	}
+
+	//============================================================//
 
 	// deadlock in 54-90 executions
-	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m1 -p1
-	TEST(Final1) {
+	// GLOG_v=1 scripts/run_bench.sh ctrace -s -c -r -m1 -p1 -f1000
+	TEST(SearchLargeSteps) {
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
-		WAIT_FOR_THREAD(t1);
-		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE);
+		TVAR(t1);
+		TVAR(t2);
+
+		FVAR(foo, foo);
+		FVAR(bar, bar);
+
+		WAIT_FOR_THREAD(t1, IN_FUNC(foo));
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(bar));
 
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
 
-			SELECT_THREAD_BACKTRACK(t);
+			TVAR(t);
+			SELECT_THREAD_BACKTRACK(t, (t1, t2));
 
-			RUN_THREAD_ONCE(t, "Run once");
-			RUN_THREAD_UNLESS(t, HITS_PC() || RETURNS() || ENDS(), "Run unless");
+			RUN_THREAD_THROUGH(t, HITS_PC() || ENTERS() || RETURNS() || ENDS(), "Run unless");
 		}
 	}
 
-	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m0 -p1
-	TEST(Final2) {
-		MAX_WAIT_TIME(3*USECSPERSEC);
-
-		WAIT_FOR_THREAD(t1);
-		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE);
-
-		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
-
-			SELECT_THREAD_BACKTRACK(t);
-
-			RUN_THREAD_UNTIL(t, READS() || WRITES() || RETURNS() || ENDS(), "Run until");
-		}
-	}
-
-	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m1 -p1
-	TEST(Final3) {
-		MAX_WAIT_TIME(3*USECSPERSEC);
-
-		WAIT_FOR_THREAD(t1);
-		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE);
-
-		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
-
-			SELECT_THREAD_BACKTRACK(t);
-
-			RUN_THREAD_UNTIL(t, READS() || WRITES() || HITS_PC() || RETURNS() || ENDS(), "Run until");
-		}
-	}
+	//============================================================//
 
 //	canonical bug trace:
 //
@@ -103,20 +107,23 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 
 	// GLOG_v=1 scripts/run_bench.sh ctrace -s -c -r -m1 -p1
-	TEST(Final4) {
+	TEST(ExactSchedule) {
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
 		FVAR(f_enter, HASH_READ_ENTER);
 		FVAR(f_exit, HASH_READ_EXIT);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(f_enter));
-		WAIT_FOR_DISTINCT_THREAD(t2, IN_FUNC(f_enter));
+		TVAR(t1);
+		TVAR(t2);
 
-		RUN_THREAD_UNLESS(t1, HITS_PC(43) && IN_FUNC(f_exit), "Run t1 unless 43 in f_exit");
+		WAIT_FOR_THREAD(t1, IN_FUNC(f_enter));
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f_enter));
+
+		RUN_THREAD_UNTIL(t1, HITS_PC(43) && IN_FUNC(f_exit), "Run t1 unless 43 in f_exit");
 
 		RUN_THREAD_UNTIL(t2, RETURNS(f_enter), "Run t2 until returns");
 
-		RUN_THREAD_UNLESS(t1, READS() && IN_FUNC(f_enter), "Run t1 until reads in f_enter");
+		RUN_THREAD_UNTIL(t1, READS() && IN_FUNC(f_enter), "Run t1 until reads in f_enter");
 
 		RUN_THREAD_UNTIL(t2, RETURNS(f_exit), "Run t2 until returns from f_exit");
 

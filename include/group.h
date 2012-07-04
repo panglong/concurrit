@@ -57,6 +57,9 @@ public:
 	Coroutine* GetNextCreatedMember(THREADID tid = -1);
 	Coroutine* GetNthCreatedMember(int i, THREADID tid = -1);
 
+	void DeleteMember(Coroutine* member);
+	void DeleteAllMembers();
+
 	// these are for already added members
 	void TakeOutMember(Coroutine* member);
 	void PutBackMember(Coroutine* member);
@@ -64,6 +67,7 @@ public:
 	void Restart();
 	void Finish();
 	int WaitForAllEnd(long timeout = -1);
+	void CancelJoinAll();
 
 	bool HasMember(Coroutine* member);
 	bool HasMember(THREADID tid);

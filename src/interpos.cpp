@@ -164,6 +164,9 @@ int ConcurritPthreadHandler::pthread_create(pthread_t* thread, const pthread_att
 	ThreadVarPtr var = scenario->CreatePThread(start_routine, arg, thread, attr);
 	safe_assert(var != NULL && !var->is_empty());
 
+	// update counter
+	scenario->counter("Num Threads").increment();
+
 	if(__pthread_errno__ != PTH_SUCCESS) {
 		safe_fail("Create error: %s\n", PTHResultToString(__pthread_errno__));
 	}

@@ -98,6 +98,32 @@ void CoroutineGroup::AddMember(Coroutine* member) {
 
 /********************************************************************************/
 
+void CoroutineGroup::DeleteMember(Coroutine* member) {
+	// check if not our member
+	safe_assert(!member->IsMain()); // cannot add main in here
+	safe_check(HasMember(member));
+
+	// set thread id if not set yet
+	THREADID tid = member->tid();
+	safe_assert(tid >= 0);
+
+	members_.erase(tid);
+	member->set_group(NULL);
+
+	member_tidseq_[tid] = NULL;
+}
+
+/********************************************************************************/
+
+void CoroutineGroup::DeleteAllMembers() {
+	members_.clear();
+	member_tidseq_.clear();
+	next_tid_ = 1;
+	next_idx_ = 0;
+}
+
+/********************************************************************************/
+
 Coroutine* CoroutineGroup::GetNextCreatedMember(THREADID tid /*= -1*/) {
 	Coroutine* member = NULL;
 	safe_assert(BETWEEN(0, next_idx_, member_tidseq_.size()));
@@ -160,6 +186,23 @@ void CoroutineGroup::Finish() {
 	}
 }
 
+
+/********************************************************************************/
+
+void CoroutineGroup::CancelJoinAll() {
+	MYLOG(1) << "Cancelling all members";
+
+	for_each_member(co) {
+		if(co->status() > PASSIVE) {
+			MYLOG(1) << "Cancelling member " << co->tid();
+			co->CancelJoin();
+			// TODO(elmas): ensure that coroutine is no longer used and delete it
+		}
+	}
+	// clean the members
+	DeleteAllMembers();
+	MYLOG(1) << "Done with cancel join all";
+}
 
 /********************************************************************************/
 

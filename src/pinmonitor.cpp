@@ -336,6 +336,11 @@ void CallPinMonitor(EventBuffer* event) {
 	safe_assert(event != NULL);
 	safe_assert(!PinMonitor::IsDown());
 
+	if(event->type == AddressOfSymbol) {
+		PinMonitor::AddressOfSymbol(event->str, event->addr);
+		return;
+	}
+
 	if(!PinMonitor::IsEnabled()) {
 		return;
 	}
@@ -373,8 +378,6 @@ void CallPinMonitor(EventBuffer* event) {
 		case AtPc:
 			PinMonitor::AtPc(current, scenario, event->pc, event->loc_src);
 			break;
-		case AddressOfSymbol:
-			PinMonitor::AddressOfSymbol(event->str, event->addr);
 		default:
 			safe_fail("Unrecognized event type: %d\n", event->type);
 			break;

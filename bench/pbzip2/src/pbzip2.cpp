@@ -687,7 +687,7 @@ void *fileWriter(void *outname)
 	int currBlock = 0;
 	int ret = -1;
 
-	concurritFuncEnter(reinterpret_cast<void*>(fileWriter), 0, 0);
+	concurritFuncEnter(fileWriter, 0, 0);
 
 	OutFilename = (char *) outname;
 
@@ -700,7 +700,7 @@ void *fileWriter(void *outname)
 		{
 			fprintf(stderr, " *ERROR: Could not create output file [%s]!\n", OutFilename);
 
-			concurritFuncReturn(reinterpret_cast<void*>(fileWriter), 0);
+			concurritFuncReturn(fileWriter, 0);
 
 			return (NULL);
 		}
@@ -736,7 +736,7 @@ void *fileWriter(void *outname)
 				delete [] OutputBuffer[currBlock].buf;
 			pthread_mutex_unlock(MemMutex);
 
-			concurritFuncReturn(reinterpret_cast<void*>(fileWriter), 0);
+			concurritFuncReturn(fileWriter, 0);
 
 			return (NULL);
 		}
@@ -763,7 +763,7 @@ void *fileWriter(void *outname)
 		fprintf(stderr, "    Output Size: %llu bytes\n", (unsigned long long)CompressedSize);
 	}
 
-	concurritFuncReturn(reinterpret_cast<void*>(fileWriter), 0);
+	concurritFuncReturn(fileWriter, 0);
 
 	printf("WRITERRRRR\n");
 
@@ -898,7 +898,7 @@ void *consumer (void *q)
 
 	fifo = (queue *)q;
 
-	concurritFuncEnter(reinterpret_cast<void*>(consumer), 0, 0);
+	concurritFuncEnter(consumer, 0, 0);
 
 	for (;;)
 	{
@@ -999,7 +999,7 @@ void *consumer (void *q)
 	printf ("consumer: exiting\n");
 	#endif
 
-	concurritFuncReturn(reinterpret_cast<void*>(consumer), 0);
+	concurritFuncReturn(consumer, 0);
 
 	return (NULL);
 }
@@ -1062,6 +1062,8 @@ queue *queueInit(int queueSize)
  */
 void queueDelete (queue *q)
 {
+	concurritFuncEnter(queueDelete, 0, 0);
+
 	if (q == NULL)
 		return;
 
@@ -1090,6 +1092,8 @@ void queueDelete (queue *q)
 
 	delete q;
 	q = NULL;
+
+	concurritFuncReturn(queueDelete, 0);
 
 	return;
 }
@@ -1978,5 +1982,14 @@ int main0(int argc, char* argv[])
 
 //============================================
 
-CONCURRIT_TEST_MAIN(main0);
+extern "C"
+int __main__(int argc, char* argv[]) {
+//	concurritAddressOfSymbol("consumer", consumer);
+//	concurritAddressOfSymbol("queueDelete", queueDelete);
+//	concurritAddressOfSymbol("fileWriter", fileWriter);
+	concurritStartTest();
+	int ret = main0(argc, argv);
+//	concurritEndTest();
+	return ret;
+}
 

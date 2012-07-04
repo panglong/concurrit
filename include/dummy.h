@@ -31,38 +31,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CONFIG_H_
-#define CONFIG_H_
 
-namespace concurrit {
+#ifndef DUMMY_H_
+#define DUMMY_H_
 
-//enum ExecutionModeType {MODE_SINGLE = 0, MODE_SERVER = 1, MODE_CLIENT = 2};
-
-class Config {
-public:
-	static bool OnlyShowHelp;
-	static int ExitOnFirstExecution;
-	static bool DeleteCoveredSubtrees;
-	static char* SaveDotGraphToFile;
-	static long MaxWaitTimeUSecs;
-	static bool RunUncontrolled;
-	static char* TestLibraryFile;
-	static bool IsStarNondeterministic;
-	static bool KeepExecutionTree;
-//	static bool TrackAlternatePaths;
-	static int MaxTimeOutsBeforeDeadlock;
-	static bool ManualInstrEnabled;
-	static bool PinInstrEnabled;
-	static bool ReloadTestLibraryOnRestart;
-	static bool MarkEndingBranchesCovered;
-	static bool SaveExecutionTraceToFile;
-	static bool CancelThreadsToRestart;
-//	static ExecutionModeType ExecutionMode;
-	static bool ParseCommandLine(int argc = -1, char **argv = NULL);
-	static bool ParseCommandLine(const main_args& args);
-};
-
-} // end namespace
+#include "instrument.h"
 
 
-#endif /* CONFIG_H_ */
+#endif /* DUMMY_H_ */

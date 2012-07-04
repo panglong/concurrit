@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include "nspr.h"
 
+#include "instrument.h"
+
 /* Function Prototypes */
-static void reader_main(void *arg);
-static void writer_main(void *arg);
+extern void reader_main(void *arg);
+extern void writer_main(void *arg);
 
 /* Globals */
 static PRRWLock *thelock;
@@ -67,12 +69,23 @@ bail:
  * is waiting on the writer lock before we attempt to
  * get the second reader lock.
  */
-static void reader_main(void *arg)
+void reader_main(void *arg)
 {
+	concurritFuncEnter(PR_RWLock_Rlock, 0, 0);
     PR_RWLock_Rlock(thelock);
+    concurritFuncReturn(PR_RWLock_Rlock, 0);
+
+    concurritFuncEnter(PR_RWLock_Rlock, 0, 0);
     PR_RWLock_Rlock(thelock);
+    concurritFuncReturn(PR_RWLock_Rlock, 0);
+
+    concurritFuncEnter(PR_RWLock_Unlock, 0, 0);
     PR_RWLock_Unlock(thelock);
+    concurritFuncReturn(PR_RWLock_Unlock, 0);
+
+    concurritFuncEnter(PR_RWLock_Unlock, 0, 0);
     PR_RWLock_Unlock(thelock);
+    concurritFuncReturn(PR_RWLock_Unlock, 0);
 }
 
 /*
@@ -82,15 +95,18 @@ static void reader_main(void *arg)
  * we expect to be blocked by the reader thread since
  * it should already hold it's first reader lock.
  */
-static void writer_main(void *arg)
+void writer_main(void *arg)
 {
+	concurritFuncEnter(PR_RWLock_Wlock, 0, 0);
     PR_RWLock_Wlock(thelock);
+    concurritFuncReturn(PR_RWLock_Wlock, 0);
+
+    concurritFuncEnter(PR_RWLock_Unlock, 0, 0);
     PR_RWLock_Unlock(thelock);
+    concurritFuncReturn(PR_RWLock_Unlock, 0);
 }
 
 //============================================
-int __main__(int argc, char* argv[]) {
-	return main0(argc, argv);
-}
 
+CONCURRIT_TEST_MAIN(main0)
 

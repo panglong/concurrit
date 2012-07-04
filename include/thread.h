@@ -132,6 +132,11 @@ public:
 	virtual void FullLockAux(pthread_t* self, int* times);
 	virtual void FullUnlockAux(pthread_t* self, int* times);
 
+	static void CleanupHandlerToUnlock(void* arg) {
+		safe_assert(arg != NULL);
+		reinterpret_cast<Mutex*>(arg)->Unlock();
+	}
+
 private:
 	DECL_FIELD(pthread_mutex_t, mutex)
 	DECL_VOL_FIELD(pthread_t, owner)

@@ -244,6 +244,7 @@ void Thread::Cancel() {
 void Thread::CancelJoin() {
 	this->Cancel();
 	this->Join();
+	MYLOG(1) << "Cancelled and joined " << tid_;
 }
 
 /********************************************************************************/

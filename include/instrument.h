@@ -115,7 +115,6 @@ extern void concurritTriggerAssert(const char* expr, const char* filename, const
 	extern "C" int __main__(int argc, char* argv[]) { \
 		concurritStartTest(); 				\
 		int ret = main_func(argc, argv);	\
-		concurritEndTest();					\
 		return ret;							\
 	}
 #else
@@ -123,7 +122,6 @@ extern void concurritTriggerAssert(const char* expr, const char* filename, const
 	int __main__(int argc, char* argv[]) {	\
 		concurritStartTest(); 				\
 		int ret = main_func(argc, argv);	\
-		concurritEndTest(); 				\
 		return ret;							\
 	}
 #endif

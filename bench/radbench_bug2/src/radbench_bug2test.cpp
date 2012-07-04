@@ -10,12 +10,12 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
-		CALL_TEST(Final2);
+		CALL_TEST(SearchTwoContextBoundedInBuggy);
 	}
 
 	//============================================================//
 
-	TEST(Modelcheck) {
+	TEST(SearchAll) {
 
 		FVAR(f_newcontext, js_NewContext);
 		FVAR(f_setcontextthread, js_SetContextThread);
@@ -43,15 +43,16 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 	//		}
 
 			UNTIL_ALL_END {
+				TVAR(t);
 				FORALL(t, PTRUE);
-				RUN_THREAD_UNTIL(t, READS() || WRITES() || ENDS(), "Run t until");
+				RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");
 			}
 	}
 
 	//============================================================//
 
 	// GLOG_v=1 scripts/run_bench.sh radbench_bug2 -s -c -r
-	TEST(Final1) {
+	TEST(SearchInFunc) {
 
 //		What I suspect is happening is that one thread is calling JS_GC while a second
 //		is calling JS_EndRequest and JS_ClearContextThread (in returning a context to
@@ -66,26 +67,29 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(0);
 
+		TVAR(t1);
 		WAIT_FOR_THREAD(t1, PTRUE, "Select t1 main");
 
-		RUN_THREAD_UNLESS(t1, ENTERS(f_gc), "Run t1 until gc");
+		RUN_THREAD_UNTIL(t1, ENTERS(f_gc), "Run t1 until gc");
 
-		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE, "Select t2");
+		TVAR(t2);
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Select t2");
 
-		RUN_THREAD_UNLESS(t2, ENTERS(f_clearcontextthread), "Run until clear context");
+		RUN_THREAD_UNTIL(t2, ENTERS(f_clearcontextthread), "Run until clear context");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
 
-			SELECT_THREAD_BACKTRACK(t, PTRUE);
+			TVAR(t);
+			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE);
 
-			RUN_THREAD_UNTIL(t, READS() || WRITES() || ENDS(), "Run t until");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");
 		}
 	}
 
 	// GLOG_v=1 scripts/run_bench.sh radbench_bug2 -s -c -r
-	TEST(Final2) {
+	TEST(SearchTwoContextBoundedInFunc) {
 
 //		What I suspect is happening is that one thread is calling JS_GC while a second
 //		is calling JS_EndRequest and JS_ClearContextThread (in returning a context to
@@ -100,29 +104,74 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(0);
 
+		TVAR(t1);
 		WAIT_FOR_THREAD(t1, PTRUE, "Select t1 main");
 
-		RUN_THREAD_UNLESS(t1, ENTERS(f_gc), "Run t1 until gc");
+		RUN_THREAD_UNTIL(t1, ENTERS(f_gc), "Run t1 until gc");
 
-		WAIT_FOR_DISTINCT_THREAD(t2, PTRUE, "Select t2");
+		TVAR(t2);
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Select t2");
 
-		RUN_THREAD_UNLESS(t2, ENTERS(f_clearcontextthread), "Run until clear context");
+		RUN_THREAD_UNTIL(t2, ENTERS(f_clearcontextthread), "Run until clear context");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
-		SELECT_THREAD_BACKTRACK(t, PTRUE, "Select t");
+		TVAR(t);
+		SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 
 		WHILE_STAR {
-			RUN_THREAD_UNTIL(t, READS() || WRITES() || ENDS(), "Run t until");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");
 		}
 
-		SELECT_THREAD_BACKTRACK(tt, TID != t, "Select tt");
+		t = (t == t1) ? t2 : t1;
+
+		RUN_THREAD_THROUGH(t, ENDS(), "Run t");
+	}
+
+	// GLOG_v=1 scripts/run_bench.sh radbench_bug2 -s -c -r
+	TEST(SearchThreeContextBoundedInFunc) {
+
+//		What I suspect is happening is that one thread is calling JS_GC while a second
+//		is calling JS_EndRequest and JS_ClearContextThread (in returning a context to
+//		the pool). The call to JS_GC will block until JS_EndRequest finishes.. JS_GC
+//		then resumes.. but while JS_GC is running JS_ClearContextThread also runs (no
+//		locking is done in this?), modifying the value of acx->thread as the code above
+//		runs. acx->thread becomes NULL just before it gets dereferenced and the
+//		application exits.
+
+		FVAR(f_clearcontextthread, JS_ClearContextThread);
+		FVAR(f_gc, JS_GC);
+
+		MAX_WAIT_TIME(0);
+
+		TVAR(t1);
+		WAIT_FOR_THREAD(t1, PTRUE, "Select t1 main");
+
+		RUN_THREAD_UNTIL(t1, ENTERS(f_gc), "Run t1 until gc");
+
+		TVAR(t2);
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Select t2");
+
+		RUN_THREAD_UNTIL(t2, ENTERS(f_clearcontextthread), "Run until clear context");
+
+		MAX_WAIT_TIME(USECSPERSEC);
+
+		TVAR(t);
+		SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 
 		WHILE_STAR {
-			RUN_THREAD_UNTIL(tt, READS() || WRITES() || ENDS(), "Run tt until");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");
 		}
 
-//		RUN_THREAD_UNTIL(t, ENDS(), "Run t until ends");
+		t = (t == t1) ? t2 : t1;
+
+		WHILE_STAR {
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");
+		}
+
+		t = (t == t1) ? t2 : t1;
+
+		RUN_THREAD_THROUGH(t, ENDS(), "Run t");
 	}
 
 CONCURRIT_END_TEST(MyScenario)

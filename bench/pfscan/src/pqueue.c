@@ -81,7 +81,7 @@ pqueue_put(PQUEUE *qp,
     return 1;
 }
 
-#include "dummy.h"
+#include "instrument.h"
 
 int
 pqueue_get(PQUEUE *qp,

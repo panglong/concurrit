@@ -608,7 +608,7 @@ inline TransitionPredicatePtr _HITS_PC(int pc = -1, ThreadVarPtr t = ThreadVarPt
 		return safe_notnull(AuxState::AtPc.get())->TP0(AuxState::AtPc, t);
 	else
 		return safe_notnull(AuxState::AtPc.get())->TP0(AuxState::AtPc, t)
-			&& safe_notnull(AuxState::AtPc.get())->TP1(AuxState::AtPc, pc, t);
+			&& safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, t);
 }
 
 #define HITS_PC(...)	_HITS_PC(__VA_ARGS__)
@@ -699,6 +699,19 @@ inline ADDRINT _RETVAL(ThreadVarPtr& t, ADDRINT f = 0) {
 inline bool HAS_ENDED(ThreadVarPtr t) {
 	safe_assert(t != NULL && !t->is_empty());
 	return t->thread()->is_ended();
+}
+
+inline bool HAVE_ENDED(ThreadVarPtr t1,
+					   ThreadVarPtr t2 = ThreadVarPtr(),
+					   ThreadVarPtr t3 = ThreadVarPtr(),
+					   ThreadVarPtr t4 = ThreadVarPtr(),
+					   ThreadVarPtr t5 = ThreadVarPtr()) {
+	if(!HAS_ENDED(t1)) return false;
+	if(t2 != NULL && !HAS_ENDED(t2)) return false;
+	if(t3 != NULL && !HAS_ENDED(t3)) return false;
+	if(t4 != NULL && !HAS_ENDED(t4)) return false;
+	if(t5 != NULL && !HAS_ENDED(t5)) return false;
+	return true;
 }
 
 /********************************************************************************/

@@ -264,6 +264,23 @@ AddrToLocMap PinSourceLocation::addrToLoc_;
 
 /* ===================================================================== */
 
+typedef void (*NativePinMonitorFunType)(concurrit::EventBuffer*);
+static AFUNPTR NativePinMonitorFunPtr = NULL;
+static const char* NativePinMonitorFunName = "CallPinMonitor"; // _ZN9concurrit14CallPinMonitorEPNS_18PinMonitorCallInfoE
+
+LOCALFUN INLINE
+VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::EventBuffer* info) {
+	if(NativePinMonitorFunPtr != NULL) {
+
+//		reinterpret_cast<NativePinMonitorFunType>(NativePinMonitorFunPtr)(info);
+		PIN_CallApplicationFunction(ctxt, tid,
+			CALLINGSTD_DEFAULT, AFUNPTR(NativePinMonitorFunPtr),
+			PIN_PARG(void), PIN_PARG(concurrit::EventBuffer*), (info), PIN_PARG_END());
+	}
+}
+
+/* ===================================================================== */
+
 //LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
 
 typedef std::set< std::string > RTNNamesToInstrumentType;
@@ -310,6 +327,18 @@ public:
 			RTNIdsToInstrumentType::accessor acc;
 			RTNIdsToInstrument.insert(acc, addr);
 			acc->second = TRUE;
+
+			// communicate the access to the pin monitor in concurrit
+			safe_check(name.size() < 64);
+			concurrit::EventBuffer info;
+			info.type = concurrit::AddressOfSymbol;
+			info.threadid = 0;
+			info.addr = addr;
+			strncpy(info.str, name.c_str(), 63);
+
+			reinterpret_cast<NativePinMonitorFunType>(NativePinMonitorFunPtr)(&info);
+//			CallNativePinMonitor(ctxt, info->threadid, &info);
+
 			return true;
 		} else
 		if(RTNNamesToSkip.find(name) != RTNNamesToSkip.end()) {
@@ -487,23 +516,6 @@ If_OnFuncReturn(THREADID threadid, ADDRINT rtn_addr) {
 ADDRINT PIN_FAST_ANALYSIS_CALL
 If_OnInstruction(THREADID threadid) {
 	return BOOL2ADDRINT(InstParams::OnInstruction(threadid));
-}
-
-/* ===================================================================== */
-
-typedef void (*NativePinMonitorFunType)(concurrit::EventBuffer*);
-static AFUNPTR NativePinMonitorFunPtr = NULL;
-static const char* NativePinMonitorFunName = "CallPinMonitor"; // _ZN9concurrit14CallPinMonitorEPNS_18PinMonitorCallInfoE
-
-LOCALFUN INLINE
-VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::EventBuffer* info) {
-	if(NativePinMonitorFunPtr != NULL) {
-
-//		reinterpret_cast<NativePinMonitorFunType>(NativePinMonitorFunPtr)(info);
-		PIN_CallApplicationFunction(ctxt, tid,
-			CALLINGSTD_DEFAULT, AFUNPTR(NativePinMonitorFunPtr),
-			PIN_PARG(void), PIN_PARG(concurrit::EventBuffer*), (info), PIN_PARG_END());
-	}
 }
 
 /* ===================================================================== */

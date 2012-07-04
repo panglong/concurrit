@@ -1,3 +1,6 @@
+* need construct to permute threads
+* checkpoint messages for long executions, for example after 1000 events, etc.
+* take which test method to call from the command line arguments
 ***radbench_bug4: hashtable to store key/ADDRINT pairs for get info from the program.
 *** WITH_ALL_THREADS{..} scope should be treated NULL when it is empty
 ***Test programin standard outputunu dosyaya yonlendir, sadece stderr ekrana yazilsin.

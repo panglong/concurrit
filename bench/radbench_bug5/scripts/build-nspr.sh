@@ -63,6 +63,14 @@ if [ "$BUILD" == "sleep" ]; then
     echo "NSPR built with sleeps to make bug more likely to occur"
 fi
 
+if [ ! -e "$NSPR_ORIGINAL_PTSYNCH" ]; then
+  echo "ERROR: can't find original ptsynch.c at $NSPR_ORIGINAL_PTSYNCH"
+  exit 1
+fi
+
+cp -rf ~/concurrit/bench/radbench_bug5/src/ptsynch.c $NSPR_ORIGINAL_PTSYNCH
+
+CFLAGS="-I$CONCURRIT_HOME/include -g -gdwarf-2 $CFLAGS"
 
 echo
 echo "Starting Building NSPR..."

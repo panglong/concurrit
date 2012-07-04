@@ -2,7 +2,7 @@
 #include "queue.h"
 #include "config.h"
 
-#include "dummy.h"
+#include "instrument.h"
 
 #ifdef PARALLEL
 #include <pthread.h>

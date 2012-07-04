@@ -20,7 +20,7 @@ echo "Building Test Harness..."
 
 gcc -Wall -pthread -g -fno-inline -fPIC  -UNDEBUG -DDEBUG_najalber  -DDEBUG=1 -DXP_UNIX=1 -D_GNU_SOURCE=1 -DHAVE_FCNTL_FILE_LOCKING=1 -DLINUX=1 -Di386=1 -DHAVE_LCHOWN=1 -DHAVE_STRERROR=1 -D_REENTRANT=1  -DFORCE_PR_LOG -D_PR_PTHREADS -UHAVE_CVAR_BUILT_ON_SEM -I$NSPR_DIST/include/nspr -I$NSPR_SRC/mozilla/nsprpub/pr/include -I$NSPR_SRC/mozilla/nsprpub/pr/include/private $TEST_SRC \
 	-Xlinker -rpath $NSPR_DIST/lib -L$NSPR_DIST/lib -lplc4 -L$NSPR_DIST/lib -lnspr4 -lpthread \
-	-o $TARGETLIBPATH -g -gdwarf-2 -O1 -w -fPIC -shared -ldummy -I$CONCURRIT_HOME/include -L$CONCURRIT_HOME/lib
+	-o $TARGETLIBPATH -g -gdwarf-2 -O1 -w -fPIC -shared -ldummy -I$CONCURRIT_HOME/include -L$CONCURRIT_HOME/lib -L/home/elmas/radbench/Benchmarks/bug5/src/nspr-4.8.6/target/lib
 
 EXECUTE_CMD="$BIN_DIR/$OUTNAME"
 

@@ -237,6 +237,18 @@ void Scenario::JoinPThread(Coroutine* co, void ** value_ptr /*= NULL*/) {
 /********************************************************************************/
 
 void Scenario::JoinAllThreads(long timeout /*= -1*/) {
+	if(Config::CancelThreadsToRestart) {
+		// wait main thread
+		Coroutine* driver = group_.GetMember(THREADID(1));
+		driver->WaitForEnd();
+		driver->Finish();
+		// cancel others
+		group_.CancelJoinAll();
+		return;
+	}
+
+	//=======================================================
+
 	if(timeout == -1) timeout = (Config::RunUncontrolled ? 0 : Config::MaxWaitTimeUSecs);
 
 	int num_timed_out = -1; // set to -1 to start with 0 in the first iteration.
@@ -280,6 +292,8 @@ Result* Scenario::Explore() {
 
 	Result* result = new ForallResult();
 
+	counter("Num replay fails").reset();
+
 	for(;true;) {
 
 		/************************************************************************/
@@ -289,8 +303,6 @@ Result* Scenario::Explore() {
 				MYLOG(1) << "Exploring new execution...";
 
 				ConcurritException* exc = RunOnce();
-
-				counter("Num executions explored").increment();
 
 				// RunOnce should not throw an exception, so throw it here
 				if(exc != NULL) {
@@ -493,9 +505,6 @@ void Scenario::RunTestCase() throw() {
 
 			// run test case when RunUncontrolled flag is not set
 			if(!Config::RunUncontrolled) {
-				// put a single dot to indicate progress
-				fprintf(stderr, ".");
-
 				// first wait for the TestStart event
 				WaitForTestStart();
 
@@ -689,7 +698,7 @@ void Scenario::Start() {
 	if(test_status_ == TEST_BEGIN) {
 		// first start
 		// reset statistics
-		statistics_.Reset();
+//		statistics_.Reset();
 		timer("Search time").start();
 	} else {
 		// restart
@@ -700,6 +709,13 @@ void Scenario::Start() {
 	}
 
 	test_status_ = TEST_BEGIN;
+
+	// reset counters per execution
+	counter("Num Threads").reset();
+	counter("Num Events").reset();
+
+	counter("Num Execs").increment();
+	fprintf(stderr, "\n\n\n\n\nEXPLORING EXECUTION -- %d -- \n\n\n\n\n", counter("Num Execs").value());
 
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();
@@ -2177,6 +2193,7 @@ bool Scenario::DSLConditional(StaticDSLInfo* static_info, bool value, const char
 	if(choice->value() != value) {
 		// release lock
 		exec_tree_.ReleaseRef(NULL);
+		Scenario::NotNullCurrent()->counter("Num replay fails").increment();
 		TRIGGER_BACKTRACK(REPLAY_FAILS);
 	}
 
@@ -2337,7 +2354,7 @@ void Scenario::DSLRunThrough(StaticDSLInfo* static_info, const TransitionPredica
 /********************************************************************************/
 
 void Scenario::DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message /*= NULL*/) {
-	DSLRunThrough(static_info, pred, ThreadVarPtr(), message);
+	DSLRunUntil(static_info, pred, ThreadVarPtr(), message);
 }
 
 /********************************************************************************/

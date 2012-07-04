@@ -289,6 +289,9 @@ void TransitionNode::OnTaken(Coroutine* current, int child_index /*= 0*/) {
 		var_->set_thread(current);
 	}
 
+	// update counter
+	Scenario::NotNullCurrent()->counter("Num Events").increment();
+
 	if(static_info_->message() != "") {
 		MYLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 	}

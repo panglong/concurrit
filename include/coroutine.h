@@ -48,7 +48,7 @@ class ExecutionTree;
 
 #define MAIN_TID 	0
 
-enum MessageType {MSG_STARTED = 1, MSG_TRANSFER = 2, MSG_RESTART = 3, MSG_TERMINATE = 4, MSG_EXCEPTION = 5};
+enum MessageType {MSG_INVALID = 0, MSG_STARTED = 1, MSG_TRANSFER = 2, MSG_RESTART = 3, MSG_TERMINATE = 4, MSG_EXCEPTION = 5};
 
 // absent means does not exist, an existing coroutine does not take absent status
 typedef int StatusType;

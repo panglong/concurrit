@@ -13,29 +13,62 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 	// GLOG_v=0 scripts/run_bench.sh radbench_bug4 -s -c -r
 	// finfile: PR_LocalTimeParameters MT_safe_localtime
 	TESTCASE() {
+		CALL_TEST(SearchInFunc);
+	}
 
-	FUNC(f_pr, PR_LocalTimeParameters);
+	//====================================================================
 
-	MAX_WAIT_TIME(0);
+	// GLOG_v=0 scripts/run_bench.sh radbench_bug4 -s -c -r
+	TEST(SearchInFunc) {
+		FUNC(f_mt, MT_safe_localtime);
+		FUNC(f_pr, PR_LocalTimeParameters);
 
-	WAIT_FOR_THREAD(t1, IN_FUNC(f_pr), "Select t1");
-	WAIT_FOR_DISTINCT_THREAD(t2, IN_FUNC(f_pr), "Select t2");
+		MAX_WAIT_TIME(0);
 
-	MAX_WAIT_TIME(USECSPERSEC);
+		TVAR(t1);
+		TVAR(t2);
 
-	TVAR(t_old);
+		WAIT_FOR_THREAD(t1, ENTERS(f_mt), "Select t1");
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_mt), "Select t2");
 
-	WHILE(!HAS_ENDED(t1) && !HAS_ENDED(t2)) {
+		MAX_WAIT_TIME(USECSPERSEC);
 
-		IF(t_old->is_empty()) {
-			SELECT_THREAD_BACKTRACK(t, PTRUE, "Select t");
-		} ELSE {
-			SELECT_THREAD_BACKTRACK(t, TID != t_old, "Select t");
+//		WHILE_STAR {
+		WHILE(!HAS_ENDED(t1) && !HAS_ENDED(t2)) {
+			TVAR(t);
+			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run t once");
+		}
+	}
+
+	//====================================================================
+
+	// GLOG_v=0 scripts/run_bench.sh radbench_bug4 -s -c -r
+	TEST(SearchTwoContext) {
+		FUNC(f_mt, MT_safe_localtime);
+		FUNC(f_pr, PR_LocalTimeParameters);
+
+		MAX_WAIT_TIME(0);
+
+		TVAR(t1);
+		TVAR(t2);
+
+		WAIT_FOR_THREAD(t1, ENTERS(f_mt), "Select t1");
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_mt), "Select t2");
+
+		MAX_WAIT_TIME(USECSPERSEC);
+
+		TVAR(t);
+		SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+
+		WHILE_STAR {
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run t until");
 		}
 
-		RUN_THREAD_UNTIL(t, READS() || WRITES() || ENDS(), t_old, "Run t once");
+		t = (t == t1) ? t2 : t1;
+
+		RUN_THREAD_THROUGH(t, ENDS(), "Run t until ends");
 	}
-}
 
 CONCURRIT_END_TEST(MyScenario)
 

@@ -52,6 +52,7 @@ bool Config::PinInstrEnabled = true;
 bool Config::ReloadTestLibraryOnRestart = false;
 bool Config::MarkEndingBranchesCovered = true;
 bool Config::SaveExecutionTraceToFile = false;
+bool Config::CancelThreadsToRestart = false;
 //ExecutionModeType Config::ExecutionMode = ExecutionModeType::MODE_SINGLE;
 
 /********************************************************************************/
@@ -66,6 +67,7 @@ static void usage() {
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
 //			"-eMODE: Execution mode. MODE in [server, client]"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
+			"-k: Cancel threads to restart SUT.\n"
 			"-l: Test program as shared (.so) library.\n"
 			"-m: Enable manual instrumentation (ManuelInstrEnabled)\n"
 			"-p: Enable pin-tool instrumentation (PinInstrEnabled)\n"
@@ -89,7 +91,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "cd::f::hl:m::p::rstuv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "cd::f::hkl:m::p::rstuv:w:")) != -1) {
 		switch(c) {
 //		case 'a':
 ////			Config::KeepExecutionTree = true;
@@ -135,6 +137,12 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 				Config::SaveDotGraphToFile = strdup(const_cast<char*>(InConcurritWorkDir("exec_tree.dot").c_str()));
 			}
 			safe_assert(Config::SaveDotGraphToFile != NULL);
+			break;
+		case 'k':
+			Config::CancelThreadsToRestart = true;
+			// killing threads may corrupt the state, so reload the library
+			Config::ReloadTestLibraryOnRestart = true;
+			printf("Will kill threads to restart.\n");
 			break;
 		case 'm':
 			if(optarg == NULL || strncmp(optarg, "1", 1) == 0) {
