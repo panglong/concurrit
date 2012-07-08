@@ -256,6 +256,8 @@ private:
 	DECL_FIELD_GET_REF(ExecutionTreeManager, exec_tree)
 
 	DECL_STATIC_FIELD(FILE*, trace_file)
+
+//	DECL_FIELD_REF(Semaphore, test_end_sem)
 };
 
 /************************************************************************************/

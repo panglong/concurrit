@@ -56,81 +56,113 @@ static void* worker(void* trash)
 
 int main(int argc, char* argv[])
 {
+	fprintf(stderr, "HARNESS: Openning pipe\n");
 
-	concurrit::ConcurrentPipe* controlpipe = concurrit::ConcurrentPipe::OpenControlForSUT();
+	concurrit::ConcurrentPipe* controlpipe = concurrit::ConcurrentPipe::OpenControlForSUT(NULL, false);
 
-	concurrit::EventBuffer e;
-	e.type = concurrit::TestStart;
-	e.threadid = 0;
-	controlpipe->Send(NULL, &e);
+	fprintf(stderr, "HARNESS: Starting\n");
 
 	//====================================================
 	//====================================================
 
-	{
-		memcached_return ret;
-		memcached_st* st = create_st();
+	for(;;) {
 
-		ret = memcached_set(st, g_key, g_key_len, "0",1, 0, 0);
-		if(ret != MEMCACHED_SUCCESS) {
-			fprintf(stderr, "set failed: %s\n", memcached_strerror(st, ret));
+		{
+			memcached_return ret;
+			memcached_st* st = create_st();
+
+			ret = memcached_set(st, g_key, g_key_len, "0",1, 0, 0);
+			if(ret != MEMCACHED_SUCCESS) {
+				fprintf(stderr, "set failed: %s\n", memcached_strerror(st, ret));
+			}
+
+			memcached_free(st);
 		}
 
-		memcached_free(st);
-	}
+		//====================================================
+		//====================================================
 
-	{
-		int i;
-		pthread_t threads[g_threads];
+		fprintf(stderr, "HARNESS: Sending TestStart event\n");
 
-		for(i=0; i < g_threads; ++i) {
-			int err = pthread_create(&threads[i], NULL, worker, NULL);
-			if(err != 0) {
-				fprintf(stderr, "failed to create thread: %s\n", strerror(err));
-				exit(1);
+		concurrit::EventBuffer e;
+		e.type = concurrit::TestStart;
+		e.threadid = 0;
+		controlpipe->Send(NULL, &e);
+
+		controlpipe->Recv(NULL, &e);
+		safe_assert(e.type == Continue);
+
+		fprintf(stderr, "HARNESS: Sent TestStart event\n");
+
+		//====================================================
+		//====================================================
+
+		{
+			int i;
+			pthread_t threads[g_threads];
+
+			for(i=0; i < g_threads; ++i) {
+				int err = pthread_create(&threads[i], NULL, worker, NULL);
+				if(err != 0) {
+					fprintf(stderr, "failed to create thread: %s\n", strerror(err));
+					exit(1);
+				}
+			}
+
+			for(i=0; i < g_threads; ++i) {
+				void* ret;
+				fprintf(stderr, "HARNESS: Joining thread %d\n", i);
+				int err = pthread_join(threads[i], &ret);
+				if(err != 0) {
+					fprintf(stderr, "failed to join thread: %s\n", strerror(err));
+				}
 			}
 		}
 
-		for(i=0; i < g_threads; ++i) {
-			void* ret;
-			int err = pthread_join(threads[i], &ret);
-			if(err != 0) {
-				fprintf(stderr, "failed to join thread: %s\n", strerror(err));
+		fprintf(stderr, "HARNESS: Joined threads\n");
+
+		{
+			memcached_return ret;
+			char* value;
+			size_t vallen;
+			uint32_t flags;
+			memcached_st* st = create_st();
+
+			value = memcached_get(st, g_key, g_key_len,
+					&vallen, &flags, &ret);
+			if(ret != MEMCACHED_SUCCESS) {
+				fprintf(stderr, "get failed: %s\n", memcached_strerror(st, ret));
 			}
+
+					int expected_value = g_threads * g_loop;
+					int retrieved_value = atoi(value);
+
+					printf("expected: %d\n", expected_value);
+			printf("result:   %d\n", retrieved_value);
+
+			memcached_free(st);
+					assert(expected_value == retrieved_value);
 		}
-	}
 	
-	{
-		memcached_return ret;
-		char* value;
-		size_t vallen;
-		uint32_t flags;
-		memcached_st* st = create_st();
+		//====================================================
+		//====================================================
 
-		value = memcached_get(st, g_key, g_key_len,
-				&vallen, &flags, &ret);
-		if(ret != MEMCACHED_SUCCESS) {
-			fprintf(stderr, "get failed: %s\n", memcached_strerror(st, ret));
-		}
+		e.type = concurrit::TestEnd;
+		e.threadid = 0;
+		controlpipe->Send(NULL, &e);
 
-                int expected_value = g_threads * g_loop;
-                int retrieved_value = atoi(value);
-                
-                printf("expected: %d\n", expected_value);
-		printf("result:   %d\n", retrieved_value);
+		controlpipe->Recv(NULL, &e);
+		safe_assert(e.type == Continue);
 
-		memcached_free(st);
-                assert(expected_value == retrieved_value);
-	}
+		fprintf(stderr, "HARNESS: Sent TestEnd event\n");
 
-	//====================================================
-	//====================================================
+	} // end for
 
-	e.type = concurrit::TestEnd;
-	e.threadid = 0;
-	controlpipe->Send(NULL, &e);
+	controlpipe->Close();
 
 	delete(controlpipe);
+
+	fprintf(stderr, "HARNESS: Exiting\n");
 
 	return 0;
 }

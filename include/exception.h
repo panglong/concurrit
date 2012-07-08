@@ -218,6 +218,8 @@ public:
 
 	std::exception* get_non_backtrack();
 
+	bool contains(std::exception* e);
+
 private:
 	DECL_FIELD(std::string, where)
 	DECL_FIELD(std::exception*, cause)

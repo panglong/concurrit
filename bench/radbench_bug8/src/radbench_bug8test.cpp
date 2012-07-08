@@ -13,18 +13,21 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 		MAX_WAIT_TIME(10*USECSPERSEC);
 
+		void* f_increment = ADDRINT2PTR(12345U); // ENTERS(f_add_delta)
+
 		TVAR(t1);
 		TVAR(t2);
 
-		WAIT_FOR_THREAD(t1, PTRUE, "Wait t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Wait t2");
+		WAIT_FOR_THREAD(t1, ENTERS(f_increment), "Wait t1");
+//		RUN_UNTIL(PTRUE, ENTERS(f_increment) && NOT_BY(t1), t2, "Wait t2");
+		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_increment), "Wait t2");
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
 		WHILE_STAR {
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
-			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run t");
+			RUN_THREAD_THROUGH(t, HITS_PC() || RETURNS(f_increment), "Run t");
 		}
 	}
 

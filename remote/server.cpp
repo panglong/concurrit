@@ -1,4 +1,4 @@
-/**
+	/**
  * Copyright (c) 2010-2011,
  * Tayfun Elmas    <elmas@cs.berkeley.edu>
  * All rights reserved.
@@ -38,6 +38,8 @@ namespace concurrit {
 /********************************************************************************/
 
 static volatile bool test_started = false;
+static ConcurrentPipe* clientpipe_ = NULL;
+static ConcurrentPipe* controlpipe_ = NULL;
 
 /********************************************************************************/
 
@@ -54,7 +56,9 @@ public:
 	// override
 	void* Run() {
 
-		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe_);
+		MYLOG(1) << "SERVER: Thread " << tid_ << " is starting!";
+
+		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(clientpipe_);
 		safe_assert(concpipe != NULL);
 
 		// already registered to pipe in the constructor
@@ -65,6 +69,8 @@ public:
 		start_sem_.Signal();
 
 		for(;;) {
+			if(!test_started) goto L_THREADEND;
+
 			Recv(&event);
 
 			// check threadid
@@ -154,13 +160,16 @@ private:
 class ServerEventHandler : public EventHandler {
 public:
 	ServerEventHandler() : EventHandler() {
-		test_end_sem_.Init(0);
+		end_sem_.Init(0);
 	}
+
 	virtual ~ServerEventHandler(){}
 
 	//override
 	bool OnRecv(EventPipe* pipe, EventBuffer* event) {
 		safe_assert(event != NULL);
+
+		ScopeMutex m(&mutex_);
 
 		ConcurrentPipe* concpipe = static_cast<ConcurrentPipe*>(pipe);
 		safe_assert(concpipe != NULL);
@@ -169,21 +178,15 @@ public:
 
 		const THREADID tid = event->threadid;
 
+		safe_check(event->type != Continue);
+
 		// handle event
 		switch(event->type) {
 		case TestStart:
 		{
 			safe_assert(tid == 0);
 
-			if(test_started) {
-				safe_fail("Received TestStart before TestEnd!");
-			}
-			test_started = true;
-
-			MYLOG(1) << "SERVER: Test starting.";
-
-			// run monitor callback
-			concurritStartTest();
+			StartTest(concpipe);
 
 			return false; // ignore it
 		}
@@ -192,40 +195,24 @@ public:
 		{
 			safe_assert(tid == 0);
 
-			if(!test_started) {
-				safe_fail("Received TestEnd before TestStart!");
-			}
-			test_started = false;
-
-			// run monitor callback
-			concurritEndTest();
-
-			// broadcast thread-end signal to all threads
-			EventBuffer e;
-			e.type = ThreadEndIntern;
-			concpipe->Broadcast(&e);
-
-			// wait until all threads end
-			while(concpipe->NumShadowThreads() > 0) {
-				Thread::Yield(true);
-			}
-
-			MYLOG(1) << "SERVER: Test ending.";
-
-			// signal semaphore to end the program
-			test_end_sem_.Signal();
-
-			PthreadOriginals::pthread_exit(NULL);
+			EndTest(concpipe);
 
 			return false; // ignore it
 		}
 
 		case ThreadStart:
 		{
+			if(!test_started) {
+				// response immediately and ignore
+				concpipe->SendContinue(tid);
+				return false;
+			}
 			safe_assert(tid >= 2);
 
 			ShadowThread* thread = CreateShadowThread(concpipe, tid);
-			thread->SendContinue();
+			MYLOG(1) << "Sending continue signal to ThreadStart";
+			concpipe->SendContinue(tid);
+			MYLOG(1) << "Sent continue signal to ThreadStart";
 
 			return false; // ignore it
 		}
@@ -275,44 +262,148 @@ public:
 		// this triggers the thread creation callback
 		shadowthread->SpawnAsThread();
 
-		// wait for the thread to start waiting
+		// wait for the thread to start running
 		shadowthread->start_sem()->Wait();
+
+		MYLOG(1) << "SERVER: Started new thread with tid = " << tid;
 
 		return shadowthread;
 	}
 
+	void StartTest(ConcurrentPipe* concpipe) {
+		if(test_started) {
+			// we ignore this event, but let control thread continue
+			controlpipe_->SendContinue(0);
+			return;
+		}
+
+		MYLOG(1) << "SERVER: Test starting.";
+
+		test_started = true;
+
+		// run monitor callback
+		concurritStartTest();
+
+		MYLOG(1) << "SERVER: Notifying client about TestStart";
+		// notify the client
+		EventBuffer e;
+		e.type = TestStart;
+		e.threadid = 0;
+		clientpipe_->Send(NULL, &e);
+
+		MYLOG(1) << "SERVER: Replying TestStart with continue";
+		// let control thread continue
+		controlpipe_->SendContinue(0);
+
+		MYLOG(1) << "SERVER: Test started.";
+	}
+
+	void EndTest(ConcurrentPipe* concpipe) {
+		if(!test_started) {
+			// we ignore this event, but let control thread continue
+			controlpipe_->SendContinue(0);
+			return;
+		}
+
+		ScopeMutex m(&mutex_);
+
+		MYLOG(1) << "SERVER: Test ending.";
+
+		test_started = false;
+
+		EventBuffer e;
+
+		MYLOG(1) << "SERVER: Notifying client about TestEnd";
+		// notify the client
+		e.type = TestEnd;
+		e.threadid = 0;
+		clientpipe_->Send(NULL, &e);
+
+		// broadcast thread-end signal to all threads
+		e.type = ThreadEndIntern;
+		clientpipe_->Broadcast(&e);
+
+		MYLOG(1) << "SERVER: Broadcast to threads";
+
+		// wait until all threads end
+		while(clientpipe_->NumShadowThreads() > 0) {
+			Thread::Yield(true);
+		}
+
+		if(concpipe != clientpipe_) {
+			e.type = ThreadEndIntern;
+			concpipe->Broadcast(&e);
+
+			while(concpipe->NumShadowThreads() > 0) {
+				Thread::Yield(true);
+			}
+		}
+
+		// signal semaphore to end the program
+//		Scenario::NotNullCurrent()->test_end_sem()->Signal();
+
+		MYLOG(1) << "SERVER: Replying TestEnd with continue";
+		// let control thread continue
+		controlpipe_->SendContinue(0);
+
+		MYLOG(1) << "SERVER: Test ended.";
+
+		end_sem_.Signal();
+
+//		PthreadOriginals::pthread_exit(NULL);
+	}
+
 private:
-	DECL_FIELD_REF(Semaphore, test_end_sem)
+	DECL_FIELD(Mutex, mutex)
+	DECL_FIELD_REF(Semaphore, end_sem)
 };
+
+/********************************************************************************/
+
+ServerEventHandler handler_;
+static ConcurrentPipe* clientpipe__ = ConcurrentPipe::OpenForDSL(&handler_);
+static ConcurrentPipe* controlpipe__ = ConcurrentPipe::OpenControlForDSL(&handler_);
 
 /********************************************************************************/
 
 static
 int main0(int argc, char* argv[]) {
 
-	test_started = false;
+	clientpipe_ = clientpipe__;
+	controlpipe_ = controlpipe__;
+
+	safe_assert(handler_.end_sem()->Get() == 0);
 
 	MYLOG(1) << "SERVER: __main__ starting.";
 
-	// TODO(elmas): make them static and global
-	ServerEventHandler handler;
+//	Scenario::NotNullCurrent()->test_end_sem()->Wait();
+	handler_.end_sem()->Wait();
 
-	ConcurrentPipe* pipe = ConcurrentPipe::OpenForDSL(&handler);
-	ConcurrentPipe* controlpipe = ConcurrentPipe::OpenControlForDSL(&handler);
+	MYLOG(1) << "SERVER: end_sem signalled!";
 
-	MYLOG(1) << "SERVER: Done with initialization. Waiting on test_end_semaphore.";
+//	if(test_started) {
+//		handler.EndTest(clientpipe_);
+//	}
 
-	handler.test_end_sem()->Wait();
+	// run monitor callback
+	concurritEndTest();
 
-	pipe->Close();
-	controlpipe->Close();
-
-	delete(pipe);
-	delete(controlpipe);
-
+	safe_check(!test_started);
 	MYLOG(1) << "SERVER: __main__ exiting.";
 
 	return EXIT_SUCCESS;
+}
+
+extern "C"
+__attribute__((destructor))
+void destroy_client() {
+	MYLOG(2) << "SERVER: Destroying server!";
+
+	clientpipe_->Close();
+	controlpipe_->Close();
+
+	delete(clientpipe_);
+	delete(controlpipe_);
 }
 
 /********************************************************************************/

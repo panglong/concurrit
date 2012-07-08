@@ -10,12 +10,12 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 	TESTCASE() {
-		CALL_TEST(SearchLargeSteps);
+		CALL_TEST(SearchAll);
 	}
 
 	//============================================================//
 
-	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r -m1 -p1 -f1000
+	// GLOG_v=0 scripts/run_bench.sh ctrace -s -c -r
 	TEST(SearchAll) {
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
@@ -33,14 +33,14 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2));
 
-			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENTERS() || RETURNS() || ENDS(), "Run unless");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run unless");
 		}
 	}
 
 	//============================================================//
 
 	// deadlock in 54-90 executions
-	// GLOG_v=1 scripts/run_bench.sh ctrace -s -c -r -m1 -p1 -f1000
+	// GLOG_v=1 scripts/run_bench.sh ctrace -s -c -r
 	TEST(SearchLargeSteps) {
 		MAX_WAIT_TIME(3*USECSPERSEC);
 

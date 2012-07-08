@@ -10,7 +10,7 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
-		CALL_TEST(SearchInLargeSteps);
+		CALL_TEST(SearchAll);
 	}
 
 	//============================================================//
@@ -19,7 +19,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 	// finfile: queueDelete consumer fileWriter
 	TEST(SearchAll) {
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
+		MAX_WAIT_TIME(5*USECSPERSEC);
 
 		WHILE_STAR {
 			TVAR(t);

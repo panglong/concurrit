@@ -398,6 +398,8 @@ Result* Scenario::Explore() {
 
 LOOP_DONE:
 
+	MYLOG(2) << "End of exploration, calling Finish.";
+
 	safe_assert(result != NULL);
 	Finish(result); // deletes schedule_
 
@@ -446,6 +448,9 @@ void Scenario::RunUncontrolled() {
 	test_status_ = TEST_UNCONTROLLED;
 
 	PinMonitor::Disable();
+
+	// this is used to signal the server thread in the server mode
+//	test_end_sem_.Signal();
 
 	//---------------------------
 
@@ -510,6 +515,8 @@ void Scenario::RunTestCase() throw() {
 
 				// then run the actual test case
 				TestCase();
+
+				MYLOG(2) << "TestCase ended!";
 			}
 
 		} catch(std::exception* e) {
@@ -523,9 +530,9 @@ void Scenario::RunTestCase() throw() {
 				exec_tree_.EndWithException(group_.main(), e);
 				return;
 			}
-			MYLOG(2) << "RunTestCase throw backtrack exception, handling...";
 			reason = be->reason();
 			safe_assert(reason != SUCCESS);
+			MYLOG(2) << "RunTestCase throw backtrack exception, handling with reason " << BacktrackException::ReasonToString(reason);
 			// if backtrack due to timeout (at some place) and all threads have ended meanwhile,
 			// then change the backtrack type to THREADS_ALLENDED
 			if(reason == TIMEOUT && group_.IsAllEnded()) {
@@ -709,6 +716,8 @@ void Scenario::Start() {
 	}
 
 	test_status_ = TEST_BEGIN;
+
+//	test_end_sem_.Init(0);
 
 	// reset counters per execution
 	counter("Num Threads").reset();

@@ -74,6 +74,18 @@ const char* ConcurritException::what() const throw() {
 	return s.c_str();
 }
 
+bool ConcurritException::contains(std::exception* e) {
+	ConcurritException* ce = this;
+	while(ce != NULL) {
+		if(ce->cause_ == e) {
+			return true;
+		}
+		ce = ce->next_;
+	}
+	return false;
+}
+
+
 // also assume exception
 BacktrackException* ConcurritException::get_backtrack() {
 	ConcurritException* ce = this;

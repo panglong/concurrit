@@ -45,6 +45,8 @@
 extern "C" {
 #endif
 
+void concurritInit() {dummy_error();}
+
 void concurritAddressOfSymbolEx(const char* symbol, uintptr_t addr) {dummy_error();}
 
 void concurritStartTest() {dummy_error();}

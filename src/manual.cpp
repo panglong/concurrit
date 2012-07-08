@@ -56,6 +56,9 @@ void ConcurritInstrHandler::concurritEndTest() {
 	MYLOG(1) << "concurritEndTest";
 
 	PinMonitor::Disable();
+
+	// throw backtrack if there is a node waiting to be consumed
+	Scenario::NotNullCurrent()->exec_tree()->EndWithBacktrack(Coroutine::Current(), THREADS_ALLENDED, "concurritEndTest");
 }
 
 void ConcurritInstrHandler::concurritEndSearch() {

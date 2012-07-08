@@ -10,11 +10,12 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
-		CALL_TEST(SearchLargeStep);
+		CALL_TEST(SearchInFunc);
 	}
 
 	//============================================================//
 
+	// GLOG_v=1 scripts/run_bench.sh bzip2 -s -c -r
 	TEST(SearchAll) {
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
@@ -22,8 +23,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		WHILE_STAR {
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (), PTRUE, "Select");
-			RUN_THREAD_UNTIL_NEXT(t, "Next");
-			RUN_THREAD_UNTIL(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t");
 		}
 
 	}
@@ -49,8 +49,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		WHILE(!HAVE_ENDED(t1, t2, t3)) {
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2, t3), PTRUE, "Select");
-			RUN_THREAD_UNTIL_NEXT(t, "Next");
-			RUN_THREAD_UNTIL(t, READS() || WRITES() || CALLS() || ENDS(), "Run t");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run t");
 		}
 
 	}
@@ -77,8 +76,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2, t3), PTRUE, "Select");
 
-			RUN_THREAD_UNTIL_NEXT(t, "Next");
-			RUN_THREAD_UNTIL(t, HITS_PC() || ENDS(), "Run t");
+			RUN_THREAD_THROUGH(t, HITS_PC() || CALLS() || ENDS(), "Run t");
 		}
 	}
 

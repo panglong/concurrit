@@ -10,11 +10,13 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 	TESTCASE() {
-		CALL_TEST(SearchInFunc2);
+		CALL_TEST(SearchAll);
 	}
 
 	//============================================================//
 
+	// GLOG_v=0 scripts/run_bench.sh bbuf -s -c
+	// finfile: bounded_buf_get bounded_buf_put
 	TEST(SearchAll) {
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
@@ -22,8 +24,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		WHILE_STAR {
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (), PTRUE, "Select");
-			RUN_THREAD_UNTIL_NEXT(t, "Next");
-			RUN_THREAD_UNTIL(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t");
 		}
 	}
 
@@ -55,7 +56,6 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2, t3, t4), PTRUE, "Select t");
-
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t until...");
 		}
 	}
@@ -82,7 +82,6 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
-
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t until...");
 		}
 	}

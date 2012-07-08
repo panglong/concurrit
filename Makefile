@@ -19,7 +19,7 @@ FLAGS=-g -fPIC -gdwarf-2 -O3 -fexceptions -rdynamic \
 
 all: makedirs lib remote
 
-remote: makedirs server client loader
+remote: makedirs server client loader controller
 
 lib: makedirs dummy $(CONCURRIT_LIBDIR)/$(TARGET).so
 
@@ -69,6 +69,13 @@ $(CONCURRIT_BINDIR)/testloader: $(CONCURRIT_HOME)/remote/loader.cpp
 
 ############################
 
+controller: makedirs $(CONCURRIT_BINDIR)/testcontroller
+
+$(CONCURRIT_BINDIR)/testcontroller: $(CONCURRIT_HOME)/remote/testcontroller.cpp
+	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -o $@ $^
+
+############################
+
 makedirs:
 	mkdir -p $(CONCURRIT_BINDIR)
 	mkdir -p $(CONCURRIT_LIBDIR)
@@ -83,7 +90,7 @@ clean:
 	rm -rf $(CONCURRIT_WORKDIR)
 	
 clean-remote:
-	rm -f $(CONCURRIT_BINDIR)/testloader $(CONCURRIT_LIBDIR)/libserver.so $(CONCURRIT_LIBDIR)/libclient.so
+	rm -f $(CONCURRIT_BINDIR)/testloader $(CONCURRIT_BINDIR)/testcontroller $(CONCURRIT_LIBDIR)/libserver.so $(CONCURRIT_LIBDIR)/libclient.so
 
 clean-lib:
 	rm -rf $(CONCURRIT_OBJDIR)

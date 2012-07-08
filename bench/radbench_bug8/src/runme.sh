@@ -70,12 +70,14 @@ function waitUntilTimeout {
 }
 
 function setup {
+	killall memcached
+	
 	echo "Launching memcached server"
-	LD_PRELOAD="$CONCURRIT_HOME/lib/libclient.so:$LD_PRELOAD" \
+	LD_PRELOAD="$CONCURRIT_HOME/lib/libconcurrit.so:$CONCURRIT_HOME/lib/libclient.so:$LD_PRELOAD" \
 	PATH="$BENCHDIR/bin:$PATH" \
 	LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
 	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
-    	$MEMSERVER -U 0 -p 11211 -r 4 -d -t 5
+    	$MEMSERVER -U 0 -p 11211 -r 4 -d -t 10 -vvv
     sleep .5
     return 0
 }
@@ -129,7 +131,7 @@ rm -rf /tmp/concurrit/*
 mkdir -p /tmp/concurrit/pipe
 
 # run concurrit in server mode
-ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" "-p0" "-m1" "-r")
+ARGS=( "${ARGS[@]}" "-l" "$CONCURRIT_HOME/lib/libserver.so" "-p0" "-m1")
 
 echo "Running concurrit in server mode"
 
@@ -148,12 +150,11 @@ echo "Running memcached server"
 setup
 
 
-
 cd $BENCHDIR
 
 # run in loop for loader
 I=1
-while true; do
+#while true; do
 	echo "ITERATION $I"
 	(( I=$I+1 ))
 	
@@ -166,7 +167,7 @@ while true; do
 	
 	echo "Running request process."
 	
-	# run loader
+	# run harness
 	# add bench's library path to the end of arguments
 	LD_PRELOAD="$CONCURRIT_HOME/lib/libconcurrit.so:$LD_PRELOAD" \
 	PATH="$BENCHDIR/bin:$PATH" \
@@ -182,7 +183,7 @@ while true; do
 	fi
 		
 	echo "SUT ended."
-done
+#done
 
 cleanup
 

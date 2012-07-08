@@ -312,6 +312,9 @@ public:
 				s.erase(0,1);
 				log_file << "Adding function to skip: " << (s) << std::endl;
 				RTNNamesToSkip.insert(s);
+			} else if (s == "All") {
+				InstrumentAllRoutines = true;
+				log_file << "Detected All in finfile.txt. Instrumenting all routines" << std::endl;
 			} else {
 				log_file << "Adding function to instrument: " << (s) << std::endl;
 				RTNNamesToInstrument.insert(s);
@@ -354,6 +357,7 @@ public:
 
 	static inline bool IsRoutineToInstrument(const ADDRINT& rtn_addr) {
 		if (rtn_addr == ADDRINT(0)) return true;
+		if(InstrumentAllRoutines) return true;
 		RTNIdsToInstrumentType::const_accessor c_acc;
 		return (RTNIdsToInstrument.find(c_acc, rtn_addr));
 	}
@@ -443,6 +447,7 @@ public:
 	static RTNIdsToInstrumentType RTNIdsToInstrument;
 	static RTNNamesToSkipType RTNNamesToSkip;
 	static RTNIdsToSkipType RTNIdsToSkip;
+	static bool InstrumentAllRoutines;
 	static volatile bool pin_enabled;
 };
 
@@ -451,6 +456,7 @@ RTNNamesToInstrumentType InstParams::RTNNamesToInstrument;
 RTNIdsToInstrumentType InstParams::RTNIdsToInstrument;
 RTNNamesToSkipType InstParams::RTNNamesToSkip;
 RTNIdsToSkipType InstParams::RTNIdsToSkip;
+bool InstParams::InstrumentAllRoutines = false;
 volatile bool InstParams::pin_enabled = true;
 
 /* ===================================================================== */

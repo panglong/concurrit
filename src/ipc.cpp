@@ -43,10 +43,10 @@ PipeNamePair PipeNamesForSUT(int id /* = 0 */) {
 	PipeNamePair pair;
 	char buff[256];
 
-	snprintf(buff, 256, PIPEDIR "/in_%d", id);
+	snprintf(buff, 256, PIPEDIR "/fifo_in_%d", id);
 	pair.in_name = std::string(buff);
 
-	snprintf(buff, 256, PIPEDIR "/out_%d", id);
+	snprintf(buff, 256, PIPEDIR "/fifo_out_%d", id);
 	pair.out_name = std::string(buff);
 
 	return pair;
@@ -117,7 +117,7 @@ void EventPipe::MkFifo(const char* name) {
 
 	if(stat(name, &stt) != 0) {
 		if(errno == ENOENT) {
-			int ret_val = mkfifo(name, 0666);
+			int ret_val = mkfifo(name, 0777);
 
 			if ((ret_val == -1) && (errno != EEXIST)) {
 				perror("Error in mkfifo\n");
@@ -140,20 +140,24 @@ void EventPipe::Open(bool open_for_read_first) {
 
 		if(in_name_ != NULL) {
 			in_fd_ = open(in_name_, O_RDONLY & ~O_NONBLOCK);
+			safe_assert(in_fd_ >= 0);
 		}
 
 		if(out_name_ != NULL) {
 			out_fd_ = open(out_name_, O_WRONLY & ~O_NONBLOCK);
+			safe_assert(out_fd_ >= 0);
 		}
 
 	} else {
 
 		if(out_name_ != NULL) {
 			out_fd_ = open(out_name_, O_WRONLY & ~O_NONBLOCK);
+			safe_assert(out_fd_ >= 0);
 		}
 
 		if(in_name_ != NULL) {
 			in_fd_ = open(in_name_, O_RDONLY & ~O_NONBLOCK);
+			safe_assert(in_fd_ >= 0);
 		}
 	}
 
@@ -198,6 +202,8 @@ void ShadowThread::SendContinue() {
 void ShadowThread::Send(EventBuffer* e) {
 	e->threadid = tid_;
 	pipe_->Send(this, e);
+
+	MYLOG(2) << "IPC: Sent message to " << pipe_->out_name();
 }
 
 /**********************************************************************************/
@@ -293,42 +299,50 @@ void ConcurrentPipe::Send(ShadowThread* thread, EventBuffer* event) {
 /**********************************************************************************/
 
 void ConcurrentPipe::Recv(ShadowThread* thread, EventBuffer* event) {
-	safe_assert(thread != NULL && event != NULL);
-	thread->WaitRecv(event);
+	safe_assert(event != NULL);
+	if(thread == NULL) {
+		EventPipe::Recv(event);
+	} else {
+		thread->WaitRecv(event);
+	}
 }
 
 /**********************************************************************************/
 
 //override
-void ConcurrentPipe::Open(bool open_for_read_first) {
+void ConcurrentPipe::Open(bool open_for_read_first, bool create_worker /*= true*/) {
 	EventPipe::Open(open_for_read_first);
 
 	// start thread
-	worker_thread_ = new Thread(56789, ConcurrentPipe::thread_func, this);
-	worker_thread_->Start();
+	if(create_worker) {
+		worker_thread_ = new Thread(56789, ConcurrentPipe::thread_func, this);
+		worker_thread_->Start();
+	} else {
+		worker_thread_ = NULL;
+	}
 }
 
-ConcurrentPipe* ConcurrentPipe::OpenForDSL(EventHandler* event_handler /*= NULL*/) {
+ConcurrentPipe* ConcurrentPipe::OpenForDSL(EventHandler* event_handler /*= NULL*/, bool create_worker /*= true*/) {
 	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForDSL(0), event_handler);
-	pipe->Open(true);
+	pipe->Open(true, create_worker);
 	return pipe;
 }
 
-ConcurrentPipe* ConcurrentPipe::OpenForSUT(EventHandler* event_handler /*= NULL*/) {
+ConcurrentPipe* ConcurrentPipe::OpenForSUT(EventHandler* event_handler /*= NULL*/, bool create_worker /*= true*/) {
 	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT(0), event_handler);
-	pipe->Open(false);
+	pipe->Open(false, create_worker);
 	return pipe;
 }
 
-ConcurrentPipe* ConcurrentPipe::OpenControlForDSL(EventHandler* event_handler /*= NULL*/) {
+ConcurrentPipe* ConcurrentPipe::OpenControlForDSL(EventHandler* event_handler /*= NULL*/, bool create_worker /*= true*/) {
 	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForDSL(1), event_handler);
-	pipe->Open(true);
+	pipe->Open(true, create_worker);
 	return pipe;
 }
 
-ConcurrentPipe* ConcurrentPipe::OpenControlForSUT(EventHandler* event_handler /*= NULL*/) {
+ConcurrentPipe* ConcurrentPipe::OpenControlForSUT(EventHandler* event_handler /*= NULL*/, bool create_worker /*= true*/) {
 	ConcurrentPipe* pipe = new ConcurrentPipe(PipeNamesForSUT(1), event_handler);
-	pipe->Open(false);
+	pipe->Open(false, create_worker);
 	return pipe;
 }
 
@@ -344,6 +358,10 @@ void ConcurrentPipe::Close() {
 
 /**********************************************************************************/
 
+void cleanup(void* name) {
+	MYLOG(2) << "IPC: Returning from ConcurrentPipe::thread_func " << (const char*) name;
+}
+
 void* ConcurrentPipe::thread_func(void* arg) {
 	ConcurrentPipe* pipe = static_cast<ConcurrentPipe*>(arg);
 	safe_assert(pipe != NULL);
@@ -352,9 +370,14 @@ void* ConcurrentPipe::thread_func(void* arg) {
 
 	EventBuffer event;
 
+	pthread_cleanup_push(cleanup, (void*)pipe->in_name());
+
 	for(;;) {
+
 		// do receive
 		pipe->EventPipe::Recv(&event);
+
+		MYLOG(2) << "IPC: Received message of type "  << EventKindToString(event.type) << " for thread " << event.threadid << " " << pipe->in_name();
 
 		bool cancel = event_handler == NULL ? false : !event_handler->OnRecv(pipe, &event);
 
@@ -367,9 +390,14 @@ void* ConcurrentPipe::thread_func(void* arg) {
 			if(thread != NULL) { // otherwise ignore the message
 				safe_assert(thread->tid() == tid);
 				thread->SignalRecv(&event);
+			} else {
+				MYLOG(2) << "IPC: Ignoring message " << EventKindToString(event.type) << " to thread " << event.threadid << " " << pipe->in_name();
+				safe_assert(event.type != Continue); // should not ignore continue events!
 			}
 		}
 	}
+
+	pthread_cleanup_pop(1);
 
 	return NULL;
 }

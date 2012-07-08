@@ -209,7 +209,9 @@ public:
 
 	void add_exception(std::exception* e, Coroutine* owner, const std::string& where) {
 		safe_assert(e != NULL);
-		exception_ = new ConcurritException(e, owner, where, exception_);
+		if(exception_ == NULL && !exception_->contains(e)) {
+			exception_ = new ConcurritException(e, owner, where, exception_);
+		}
 	}
 
 	virtual void ToStream(FILE* file) {

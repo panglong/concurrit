@@ -78,6 +78,8 @@ public:
 
 	virtual void Close();
 
+protected:
+
 #define DOSend(x)	my_write(out_fd_, (&x), sizeof(x))
 #define DORecv(x)	my_read(in_fd_, (&x), sizeof(x))
 
@@ -114,11 +116,12 @@ public:
 		case AddressOfSymbol:		\
 			DO##F(event->addr);		\
 			DO##F##ARRAY(event->str, 64); \
+			break;					\
 		default:					\
 			break;					\
 		}							\
 
-	inline void Send(EventBuffer* event) {
+	void Send(EventBuffer* event) {
 		safe_assert(event->type != InvalidEventKind);
 		safe_assert(event->threadid != INVALID_THREADID);
 
@@ -127,7 +130,7 @@ public:
 		event->Clear();
 	}
 
-	inline void Recv(EventBuffer* event) {
+	void Recv(EventBuffer* event) {
 		event->Clear();
 
 		DECL_SEND_RECV(Recv);
@@ -135,6 +138,8 @@ public:
 		safe_assert(event->type != InvalidEventKind);
 		safe_assert(event->threadid != INVALID_THREADID);
 	}
+
+public:
 
 	virtual void Send(ShadowThread*, EventBuffer*) = 0;
 
@@ -205,21 +210,23 @@ public:
 
 	~ConcurrentPipe() {}
 
+	// override
 	void Send(ShadowThread* thread, EventBuffer* event);
+	// override
 	void Recv(ShadowThread* thread, EventBuffer* event);
 
 	/*****************************************************************/
 
 	//override
-	void Open(bool open_for_read_first);
+	void Open(bool open_for_read_first, bool create_worker = true);
 	//override
 	void Close();
 
-	static ConcurrentPipe* OpenForDSL(EventHandler* event_handler = NULL);
-	static ConcurrentPipe* OpenForSUT(EventHandler* event_handler = NULL);
+	static ConcurrentPipe* OpenForDSL(EventHandler* event_handler = NULL, bool create_worker = true);
+	static ConcurrentPipe* OpenForSUT(EventHandler* event_handler = NULL, bool create_worker = true);
 
-	static ConcurrentPipe* OpenControlForDSL(EventHandler* event_handler = NULL);
-	static ConcurrentPipe* OpenControlForSUT(EventHandler* event_handler = NULL);
+	static ConcurrentPipe* OpenControlForDSL(EventHandler* event_handler = NULL, bool create_worker = true);
+	static ConcurrentPipe* OpenControlForSUT(EventHandler* event_handler = NULL, bool create_worker = true);
 
 	/*****************************************************************/
 

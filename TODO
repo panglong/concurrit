@@ -1,3 +1,5 @@
+concurritKill ile tum programi sonlandirma
+
 * need construct to permute threads
 * checkpoint messages for long executions, for example after 1000 events, etc.
 * take which test method to call from the command line arguments

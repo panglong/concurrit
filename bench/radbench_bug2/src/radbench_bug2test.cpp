@@ -10,7 +10,7 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
-		CALL_TEST(SearchTwoContextBoundedInBuggy);
+		CALL_TEST(SearchInFunc);
 	}
 
 	//============================================================//

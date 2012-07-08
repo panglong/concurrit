@@ -38,12 +38,12 @@
 
 namespace concurrit {
 
-#define CHANNEL_BEGIN_ATOMIC()		ScopeMutex m(Channel<MessageType>::mutex()); \
+#define CHANNEL_BEGIN_ATOMIC()		ScopeMutex m(Channel<MessageType>::mutex());
 //									pthread_cleanup_push(Mutex::CleanupHandlerToUnlock, (Channel<MessageType>::mutex())); \
 
-#define CHANNEL_END_ATOMIC()		//pthread_cleanup_pop(0);
+#define CHANNEL_END_ATOMIC()		// Channel<MessageType>::mutex()->Unlock() //pthread_cleanup_pop(0);
 
-#define CHANNEL_T_BEGIN_ATOMIC()	ScopeMutex m(&mutex_); \
+#define CHANNEL_T_BEGIN_ATOMIC()	ScopeMutex m(&mutex_);
 //									pthread_cleanup_push(Mutex::CleanupHandlerToUnlock, (&mutex_)); \
 
 #define CHANNEL_T_END_ATOMIC()		//pthread_cleanup_pop(0);

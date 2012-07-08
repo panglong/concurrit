@@ -82,7 +82,6 @@ ExecutionTree::ExecutionTree(StaticDSLInfo* static_info /*= NULL*/, ExecutionTre
 /*************************************************************************************/
 
 ExecutionTree::~ExecutionTree(){
-	MYLOG(2) << "Deleting execution tree!";
 	for_each_child(child) {
 		if(child != NULL && !INSTANCEOF(child, EndNode*)) {
 			delete child;
@@ -389,7 +388,14 @@ ExecutionTree* ExecutionTreeManager::AcquireRefEx(AcquireRefMode mode, long time
 	if(IS_ENDNODE(node)) {
 		// main has not ended the execution, so this must be due to an exception by another thread
 		safe_assert(GetLastNodeInStack().parent() == node);
-		safe_assert(static_cast<EndNode*>(node)->exception() != NULL);
+		ConcurritException* cexc = static_cast<EndNode*>(node)->exception();
+		safe_assert(cexc != NULL);
+		BacktrackException* be = cexc->get_backtrack();
+		if(be != NULL) {
+			// if the SUT triggered a backtrack exception, then re-trigger the exception from within concurrit
+			throw be;
+		}
+		// otherwise indicate that there is a non-backtrack exception
 		TRIGGER_BACKTRACK(EXCEPTION);
 	}
 	return node;
@@ -791,7 +797,6 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 	ChildLoc last = GetLastNodeInStack();
 	safe_assert(!last.empty());
 	ExecutionTree* last_parent = last.parent();
-	safe_assert(!IS_ENDNODE(last_parent));
 
 //	EndNode* end_node = ASINSTANCEOF(last.get(), EndNode*);
 
@@ -837,7 +842,9 @@ bool ExecutionTreeManager::EndWithSuccess(BacktrackReason* reason) throw() {
 //			safe_assert(end_node == ENDNODE());
 //		}
 		// add to the path and set to ref
-		AddToPath(ENDNODE(), 0);
+		if(!IS_ENDNODE(last_parent)) {
+			AddToPath(ENDNODE(), 0);
+		}
 		safe_assert(IS_ENDNODE(GetLastNodeInStack().get()));
 
 		// compute coverage for the just-visited node
