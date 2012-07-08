@@ -1,0 +1,77 @@
+/*
+ * Custom rules for global.css.
+ * The rules you put here override rules in that stylesheet.
+ */
+
+/* Use smaller font globally */
+    * {
+        font-size: small;
+    }
+
+/* Style of the attachment table */
+#attachment_table {
+    border-collapse: collapse;
+    width: 100%;
+    border: 1px solid #333333;
+}
+
+/* header (begin) */
+/* Display links same way in header as footer */
+    #header ul#useful-links {
+        margin: 0;
+        border-left: 1px solid silver;
+        border-right: 1px solid silver;
+        border-bottom: 1px solid silver;
+        -moz-border-radius-bottomright: 5px;
+        -moz-border-radius-bottomleft: 5px;
+        padding-bottom: 0.5em;
+        width: 100%
+    }
+
+    #header #useful-links {
+        display: table;
+        padding: 0;
+    }
+
+    #header #links-actions,
+    #header #links-edit,
+    #header #links-saved,
+    #header #links-special {
+        display: table-row;
+        list-style-type: none;
+    }
+
+    #header .label {
+        font-size: 85%;
+        display: table-cell;
+        padding-left: 0.5em;
+    }
+
+
+    #header .links {
+        border: none;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+/* header (end) */
+
+/* footer (begin) */
+/* Make font size same as header */
+    #footer .label {
+        font-size: 85%;
+        display: table-cell;
+        white-space: nowrap;
+        vertical-align: top;
+    }
+
+    #footer .links {
+        font-size: 85%;
+        display: table-cell;
+        vertical-align: top;
+    }
+
+    #footer #useful-links {
+        margin: 0;
+    }
+/* footer (end) */

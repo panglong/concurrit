@@ -385,11 +385,14 @@ __attribute__((destructor))
 void destroy_client() {
 	MYLOG(2) << "CLIENT: Destroying client!";
 
-	safe_assert(pipe_ != NULL);
-	pipe_->Close();
+	if(pipe_ != NULL) {
+		pipe_->Close();
+		delete pipe_;
+	}
 
-	safe_delete(pipe_);
-	safe_delete(handler_);
+	if(handler_ != NULL) {
+		delete handler_;
+	}
 
 	delete_tls_key();
 }

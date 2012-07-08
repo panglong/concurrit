@@ -1,0 +1,2557 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+  
+    <title>Bug 44402 – Worker mpm crashes (SEGV) under stress with static workload</title>
+
+
+<link rel="Top" href="https://issues.apache.org/bugzilla/">
+
+  
+    <link rel="Up" href="https://issues.apache.org/bugzilla/buglist.cgi?regetlastlist=1">
+
+    <link rel="First" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=41196">
+    <link rel="Last" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=46188">
+
+
+  
+
+
+  
+    <link rel="Show" title="Dependency Tree" href="https://issues.apache.org/bugzilla/showdependencytree.cgi?id=44402&amp;hide_resolved=1">
+
+      <link rel="Show" title="Votes (0)" href="https://issues.apache.org/bugzilla/votes.cgi?action=show_bug&amp;bug_id=44402">
+
+      <link rel="Show" title="Bug Activity" href="https://issues.apache.org/bugzilla/show_activity.cgi?id=44402">
+      <link rel="Show" title="Printer-Friendly Version" href="https://issues.apache.org/bugzilla/show_bug.cgi?format=multiple&amp;id=44402">
+
+
+    
+
+    
+      <link href="bug-44402_files/global_003.css" rel="stylesheet" type="text/css">
+      <link href="bug-44402_files/calendar.css" rel="stylesheet" type="text/css">
+      <link href="bug-44402_files/show_bug_003.css" rel="stylesheet" type="text/css">
+    <!--[if lte IE 7]>
+      
+      <link href="skins/standard/IE-fixes.css"
+            rel="stylesheet"
+            type="text/css">
+    <![endif]-->
+
+    
+        <link href="bug-44402_files/global_003.css" rel="stylesheet" title="Classic" type="text/css">
+        <link href="bug-44402_files/calendar.css" rel="stylesheet" title="Classic" type="text/css">
+        <link href="bug-44402_files/show_bug_003.css" rel="stylesheet" title="Classic" type="text/css">
+      <!--[if lte IE 7]>
+      
+        <link href="skins/standard/IE-fixes.css"
+              rel="stylesheet"
+              title="Classic"
+              type="text/css">
+      <![endif]-->
+
+    
+        
+            <link href="bug-44402_files/global_002.css" rel="alternate stylesheet" title="Dusk" type="text/css">
+            <link href="bug-44402_files/calendar_003.css" rel="alternate stylesheet" title="Dusk" type="text/css">
+            <link href="bug-44402_files/show_bug_002.css" rel="alternate stylesheet" title="Dusk" type="text/css">
+        <!--[if lte IE 7]>
+          
+          <link href="skins/contrib/Dusk/IE-fixes.css"
+                rel="alternate stylesheet"
+                title="Dusk"
+                type="text/css">
+        <![endif]-->
+
+    
+
+    
+        <link href="bug-44402_files/global.css" rel="stylesheet" type="text/css">
+        <link href="bug-44402_files/calendar_002.css" rel="stylesheet" type="text/css">
+        <link href="bug-44402_files/show_bug.css" rel="stylesheet" type="text/css">
+    <!--[if lte IE 7]>
+      
+      <link href="skins/custom/IE-fixes.css"
+            rel="stylesheet"
+            type="text/css">
+    <![endif]-->
+
+    <script src="bug-44402_files/yahoo-dom-event.js" type="text/javascript"></script>
+    <script src="bug-44402_files/global.js" type="text/javascript"></script>
+    <script type="text/javascript">
+    <!--
+        YAHOO.namespace('bugzilla');
+        if (YAHOO.env.ua.gecko) {
+            YAHOO.util.Event._simpleRemove(window, "unload", 
+                                           YAHOO.util.Event._unload);
+        }
+        
+        var BUGZILLA = {
+            param: {
+                cookiepath: '\/bugzilla\/'
+            }
+        };
+    // -->
+    </script>
+
+        <script src="bug-44402_files/util.js" type="text/javascript"></script>
+        <script src="bug-44402_files/field.js" type="text/javascript"></script>
+        <script src="bug-44402_files/calendar.js" type="text/javascript"></script>
+
+    
+
+    
+    <link rel="search" type="application/opensearchdescription+xml" title="ASF Bugzilla" href="https://issues.apache.org/bugzilla/search_plugin.cgi">
+    <link rel="shortcut icon" href="https://issues.apache.org/bugzilla/images/favicon.ico">
+  </head><body onload="" class="issues-apache-org-bugzilla bz_bug bz_status_RESOLVED bz_product_Apache_httpd-2 bz_component_worker bz_bug_44402">
+
+
+
+<div id="header">
+<div id="banner">
+  </div>
+
+<table id="titles" border="0" cellpadding="0" cellspacing="0">
+<tbody><tr>
+    <td id="title">
+      <p>ASF Bugzilla – Bug&nbsp;44402</p>
+    </td>
+
+    <td id="subtitle">
+      <p class="subheader">Worker mpm crashes (SEGV) under stress with static workload</p>
+    </td>
+
+    <td id="information">
+      <p class="header_addl_info">Last modified: 2008-02-27 15:27:49 EST</p>
+    </td>
+</tr>
+</tbody></table>
+<ul id="useful-links">
+  <li id="links-actions"><ul class="links">
+  <li><a href="https://issues.apache.org/bugzilla/">Home</a></li>
+  <li><span class="separator">| </span><a href="https://issues.apache.org/bugzilla/enter_bug.cgi">New</a></li>
+  <li><span class="separator">| </span><a href="https://issues.apache.org/bugzilla/query.cgi">Search</a></li>
+
+  <li class="form">
+    <span class="separator">| </span>
+    <form action="buglist.cgi" method="get" onsubmit="if (this.quicksearch.value == '')
+                  { alert('Please enter one or more search terms first.');
+                    return false; } return true;">
+    <input class="txt" id="quicksearch_top" name="quicksearch" type="text">
+    <input class="btn" value="Find" id="find_top" type="submit"></form></li>
+
+  <li><span class="separator">| </span><a href="https://issues.apache.org/bugzilla/report.cgi">Reports</a></li>
+
+  <li></li>
+
+
+  <li>
+        <span class="separator">| </span>
+        <a href="https://issues.apache.org/bugzilla/docs/en/html/bug_page.html" target="_blank">Help</a>
+      </li>
+    
+      <li id="new_account_container_top">
+        <span class="separator">| </span>
+        <a href="https://issues.apache.org/bugzilla/createaccount.cgi">New&nbsp;Account</a>
+      </li>
+
+    <li id="mini_login_container_top">
+  <span class="separator">| </span>
+  <a id="login_link_top" href="https://issues.apache.org/bugzilla/show_bug.cgi?GoAheadAndLogIn=1" onclick="return show_mini_login_form('_top')">Log In</a>
+  <form action="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402" method="POST" class="mini_login bz_default_hidden" id="mini_login_top" onsubmit="return check_mini_login_fields( '_top' );">
+    <input value="login" id="Bugzilla_login_top" class="bz_login bz_mini_login_help" name="Bugzilla_login" onfocus="mini_login_on_focus('_top')">
+    <input class="bz_password bz_default_hidden" id="Bugzilla_password_top" name="Bugzilla_password" type="password">
+    <input class="bz_password bz_mini_login_help" id="Bugzilla_password_dummy_top" value="password" onfocus="mini_login_on_focus('_top')" type="text">
+      <input id="Bugzilla_remember_top" name="Bugzilla_remember" value="on" class="bz_remember" checked="checked" type="checkbox">
+      <label for="Bugzilla_remember_top">Remember</label>
+    <input name="GoAheadAndLogIn" value="Log in" id="log_in_top" type="submit">
+    <script type="text/javascript">
+      mini_login_constants = {
+          "login" : "login",
+          "warning" : "You must set the login and password before logging in."
+      };
+      
+      if (YAHOO.env.ua.gecko || YAHOO.env.ua.ie || YAHOO.env.ua.opera) {
+          YAHOO.util.Event.onDOMReady(function() {
+              init_mini_login_form('_top');
+          });
+      }
+      else {
+          YAHOO.util.Event.on(window, 'load', function () {
+              window.setTimeout(function() {
+                  init_mini_login_form('_top');
+              }, 200);
+          });
+    }
+    </script>
+    <a href="#" onclick="return hide_mini_login_form('_top')">[x]</a>
+  </form>
+</li>
+<li id="forgot_container_top">
+  <span class="separator">| </span>
+  <a id="forgot_link_top" href="https://issues.apache.org/bugzilla/show_bug.cgi?GoAheadAndLogIn=1#forgot" onclick="return show_forgot_form('_top')">Forgot Password</a>
+  <form action="token.cgi" method="post" id="forgot_form_top" class="mini_forgot bz_default_hidden">
+    <label>Login: <input name="loginname" size="20" type="text"></label>
+    <input id="forgot_button_top" value="Reset Password" type="submit">
+    <input name="a" value="reqpw" type="hidden">
+    <a href="#" onclick="return hide_forgot_form('_top')">[x]</a>
+  </form>
+</li>
+</ul>
+  </li>
+
+  
+    
+
+  
+
+
+  
+</ul>
+
+</div>
+
+<div id="bugzilla-body">
+<div id="message">As a result of a security breach on 4th April 2010, 
+the Apache Infrastructure Team recommends that all Bugzilla users change
+ their passwords as a precautionary measure. Please see the <a href="http://blogs.apache.org/infra/date/20100413">Infrastructure Blog</a> for further information.</div>
+
+<div class="navigation">
+  <b>Bug List:</b>
+
+
+      (This bug is not in your last search results)
+
+  &nbsp;&nbsp;<a href="https://issues.apache.org/bugzilla/buglist.cgi?regetlastlist=1">Show last search results</a>
+</div>
+<script type="text/javascript">
+  <!--
+  
+  /* Outputs a link to call replyToComment(); used to reduce HTML output */
+  function addReplyLink(id, real_id) {
+      /* XXX this should really be updated to use the DOM Core's
+       * createElement, but finding a container isn't trivial.
+       */
+        document.write('[<a href="#add_comment" onclick="replyToComment(' + 
+                       id + ',' + real_id + '); return false;">reply<' + '/a>]');
+  }
+
+  /* Adds the reply text to the `comment' textarea */
+  function replyToComment(id, real_id) {
+      var prefix = "(In reply to comment #" + id + ")\n";
+      var replytext = "";
+        /* pre id="comment_name_N" */
+        var text_elem = document.getElementById('comment_text_'+id);
+        var text = getText(text_elem);
+
+        /* make sure we split on all newlines -- IE or Moz use \r and \n
+         * respectively.
+         */
+        text = text.split(/\r|\n/);
+
+        for (var i=0; i < text.length; i++) {
+            replytext += "> " + text[i] + "\n"; 
+        }
+
+        replytext = prefix + replytext + "\n";
+
+
+      /* <textarea id="comment"> */
+      var textarea = document.getElementById('comment');
+      textarea.value += replytext;
+
+      textarea.focus();
+  }
+
+  if (typeof Node == 'undefined') {
+      /* MSIE doesn't define Node, so provide a compatibility object */
+      window.Node = {
+          TEXT_NODE: 3,
+          ENTITY_REFERENCE_NODE: 5
+      };
+  }
+
+  /* Concatenates all text from element's childNodes. This is used
+   * instead of innerHTML because we want the actual text (and
+   * innerText is non-standard).
+   */
+  function getText(element) {
+      var child, text = "";
+      for (var i=0; i < element.childNodes.length; i++) {
+          child = element.childNodes[i];
+          var type = child.nodeType;
+          if (type == Node.TEXT_NODE || type == Node.ENTITY_REFERENCE_NODE) {
+              text += child.nodeValue;
+          } else {
+              /* recurse into nodes of other types */
+              text += getText(child);
+          }
+      }
+      return text;
+  }
+
+
+  //-->
+  </script>
+
+<form name="changeform" method="post" action="process_bug.cgi">
+
+  <input name="delta_ts" value="2008-02-27 15:27:49" type="hidden">
+  <input name="longdesclength" value="25" type="hidden">
+  <input name="id" value="44402" type="hidden">
+  <input name="token" value="1285622297-9df0e2176e8374c4f12fe5280ef0b89a" type="hidden">
+<div class="bz_alias_short_desc_container edit_form">
+     <a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402"><b>Bug&nbsp;44402</b></a> -<span id="summary_alias_container"> 
+      <span id="short_desc_nonedit_display">Worker mpm crashes (SEGV) under stress with static workload</span>
+     </span>
+  
+       
+    <div class="bz_default_hidden" id="summary_alias_input">
+      <table id="summary">  
+        
+        <tbody><tr>
+          <td>
+            <label accesskey="s" for="short_desc"><u>S</u>ummary</label>:
+          </td>
+          <td>Worker mpm crashes (SEGV) under stress with static workload
+          </td>
+        </tr>
+      </tbody></table>
+    </div>
+  </div>
+  <script type="text/javascript">
+    hideAliasAndSummary('Worker mpm crashes (SEGV) under stress with static workload', '');
+  </script>
+  <table class="edit_form">
+    <tbody><tr>
+      
+      <td id="bz_show_bug_column_1" class="bz_show_bug_column">     
+        <table>
+          <tbody><tr>
+    <td class="field_label">
+      <b><a href="https://issues.apache.org/bugzilla/page.cgi?id=fields.html#status">Status</a></b>:
+    </td>
+    <td id="bz_field_status">
+      <span id="static_bug_status">RESOLVED
+          FIXED
+      </span>
+    </td>
+  </tr>
+          <tr>
+    <td colspan="2" class="bz_section_spacer"></td>
+  </tr>
+          <tr>
+<th class="field_label " id="field_label_product">
+        <a href="https://issues.apache.org/bugzilla/describecomponents.cgi">Product:</a>
+  </th>
+
+<td class="field_value " id="field_container_product">Apache httpd-2</td>
+    </tr>
+        
+    
+    
+    <tr>
+      <td class="field_label">
+        <label for="component" accesskey="m">
+          <b><a href="https://issues.apache.org/bugzilla/describecomponents.cgi?product=Apache%20httpd-2">
+            Co<u>m</u>ponent</a>:
+          </b>
+        </label>
+      </td><td>worker
+  </td>
+    </tr>
+    <tr>
+      <td class="field_label">
+        <label for="version"><b>Version</b></label>:
+      </td>
+<td>2.2.6
+  </td>
+    </tr>
+        
+    
+        
+    <tr>
+      <td class="field_label">
+        <label for="rep_platform" accesskey="h"><b>Platform</b></label>:
+      </td>
+      <td class="field_value">Sun
+       Solaris
+       <script type="text/javascript">
+         assignToDefaultOnChange(['product', 'component']);
+       </script>
+      </td>
+    </tr>
+          <tr>
+    <td colspan="2" class="bz_section_spacer"></td>
+  </tr>
+          
+          <tr>
+      <td class="field_label">
+        <label for="priority" accesskey="i">
+          <b><a href="https://issues.apache.org/bugzilla/page.cgi?id=fields.html#importance"><u>I</u>mportance</a></b></label>:
+      </td>
+      <td>P2
+       blocker
+          <span id="votes_container">    
+          (<a href="https://issues.apache.org/bugzilla/votes.cgi?action=show_user&amp;bug_id=44402#vote_44402">vote</a>)
+          </span>  
+      </td>
+    </tr>
+
+      <tr>
+        <td class="field_label">
+          <label for="target_milestone"><b>
+            Target&nbsp;Milestone</b></label>:
+        </td><td>---
+  </td>
+      </tr>            
+          
+          <tr>
+      <td class="field_label">
+        <b><a href="https://issues.apache.org/bugzilla/page.cgi?id=fields.html#assigned_to">Assigned To</a></b>:
+      </td>
+      <td><span class="vcard"><span class="fn">Apache HTTPD Bugs Mailing List</span>
+</span>
+      </td>
+    </tr>
+          <tr>
+    <td colspan="2" class="bz_section_spacer"></td>
+  </tr>
+          <tr>
+    <td class="field_label">
+      <label for="bug_file_loc" accesskey="u"><b>
+          <u>U</u>RL</b></label>:
+    </td>
+    <td>
+      <span id="bz_url_input_area">
+          <a href=""></a>
+      </span>
+    </td>
+  </tr>
+  
+  
+    <tr>
+      <td class="field_label">
+        <label for="keywords" accesskey="k">
+          <b><a href="https://issues.apache.org/bugzilla/describekeywords.cgi"><u>K</u>eywords</a></b></label>:
+      </td><td colspan="2">FixedInTrunk, PatchAvailable  
+  </td>
+    </tr>
+          <tr>
+    <td colspan="2" class="bz_section_spacer"></td>
+  </tr>
+          
+          <tr><th class="field_label">
+    <label for="dependson">Depends&nbsp;on</label>:
+  </th>
+  <td>    
+    <span id="dependson_input_area">
+    </span>
+    
+  </td>
+  </tr>
+  
+  <tr><th class="field_label">
+    <label for="blocked" accesskey="b"><u>B</u>locks</label>:
+  </th>
+  <td>    
+    <span id="blocked_input_area">
+    </span>
+    
+  </td>
+  
+  </tr><tr>
+    <th>&nbsp;</th>
+  
+    <td colspan="2" id="show_dependency_tree_or_graph" align="left">
+      Show dependency <a href="https://issues.apache.org/bugzilla/showdependencytree.cgi?id=44402&amp;hide_resolved=1">tree</a>
+  
+    </td>
+  </tr>
+          
+        </tbody></table>
+      </td>
+      <td>
+        <div class="bz_column_spacer">&nbsp;</div>
+      </td>
+      
+      <td id="bz_show_bug_column_2" class="bz_show_bug_column">
+        <table cellpadding="3" cellspacing="1">
+        <tbody><tr>
+    <td class="field_label">
+      <b>Reported</b>:
+    </td>
+    <td>2008-02-12 16:47 EST by <span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+    </td>
+  </tr>
+  
+  <tr>
+    <td class="field_label">
+      <b> Modified</b>:
+    </td>
+    <td>2008-02-27 15:27 EST 
+      (<a href="https://issues.apache.org/bugzilla/show_activity.cgi?id=44402">History</a>)
+    </td>
+  
+  </tr>
+         <tr>
+      <td class="field_label">
+        <label for="newcc" accesskey="a"><b>CC List</b>:</label>
+      </td>
+      <td>1 
+          user
+        <span id="cc_edit_area_showhide_container">
+          (<a href="#" id="cc_edit_area_showhide">show</a>)
+        </span>
+        <div class="bz_default_hidden" id="cc_edit_area">
+          <br>
+            <select id="cc" name="cc" multiple="multiple" size="5">
+                <option value="mrousal">mrousal</option>
+            </select>
+        </div>
+        <script type="text/javascript">
+          hideEditableField( 'cc_edit_area_showhide_container', 
+                             'cc_edit_area', 
+                             'cc_edit_area_showhide', 
+                             '', 
+                             '');  
+        </script>
+      </td>
+    </tr>
+         <tr>
+    <td colspan="2" class="bz_section_spacer"></td>
+  </tr>
+ 
+         
+         <tr>
+    <td colspan="2" class="bz_section_spacer"></td>
+  </tr>
+         
+                
+
+        </tbody></table>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3">
+          <hr id="bz_top_half_spacer">
+      </td>
+    </tr>
+  </tbody></table>
+
+  
+  
+
+
+<script type="text/javascript">
+<!--
+function toggle_display(link) {
+    var table = document.getElementById("attachment_table");
+    // Store current height for scrolling later
+    var originalHeight = table.offsetHeight;
+    var rows = YAHOO.util.Dom.getElementsByClassName(
+        'bz_tr_obsolete', 'tr', table);
+
+    for (var i = 0; i < rows.length; i++) {
+        bz_toggleClass(rows[i], 'bz_default_hidden');
+    }
+
+    if (YAHOO.util.Dom.hasClass(rows[0], 'bz_default_hidden')) {
+        link.innerHTML = "Show Obsolete";
+    }
+    else {
+        link.innerHTML = "Hide Obsolete";
+    }
+
+    var newHeight = table.offsetHeight;
+    // This scrolling makes the window appear to not move at all.
+    window.scrollBy(0, newHeight - originalHeight);
+
+    return false;
+}
+//-->
+</script>
+
+<br>
+<table id="attachment_table" cellpadding="4" cellspacing="0">
+  <tbody><tr>
+    <th colspan="2" align="left">
+      <a name="a0" id="a0">Attachments</a>
+    </th>
+  </tr>
+
+
+      <tr class=" bz_tr_obsolete bz_default_hidden">
+        <td valign="top">
+            <a name="a1" href="https://issues.apache.org/bugzilla/attachment.cgi?id=21581" title="View the content of the attachment">
+          <b><span class="bz_obsolete">Patch for httpd-2.2.8</span></b></a>
+
+          <span class="bz_attach_extra_info">
+              (1000 bytes,
+                patch)
+
+            <br>
+            <a href="#attach_21581" title="Go to the comment associated with the attachment">2008-02-22 12:28 EST</a>,
+<span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+          </span>
+        </td>
+
+
+        <td valign="top">
+          <a href="https://issues.apache.org/bugzilla/attachment.cgi?id=21581&amp;action=edit">Details</a>
+        </td>
+      </tr>
+      <tr class="">
+        <td valign="top">
+            <a name="a2" href="https://issues.apache.org/bugzilla/attachment.cgi?id=21582" title="View the content of the attachment">
+          <b>Revised patch</b></a>
+
+          <span class="bz_attach_extra_info">
+              (996 bytes,
+                patch)
+
+            <br>
+            <a href="#attach_21582" title="Go to the comment associated with the attachment">2008-02-22 12:41 EST</a>,
+<span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+          </span>
+        </td>
+
+
+        <td valign="top">
+          <a href="https://issues.apache.org/bugzilla/attachment.cgi?id=21582&amp;action=edit">Details</a>
+        </td>
+      </tr>
+
+  <tr class="bz_attach_footer">
+    <td colspan="2">
+        <span class="bz_attach_view_hide">
+            <a href="#a0" onclick="return toggle_display(this);">Show
+              Obsolete</a> (1)
+        </span>
+      <a href="https://issues.apache.org/bugzilla/attachment.cgi?bugid=44402&amp;action=enter">Add an attachment</a>
+      (proposed patch, testcase, etc.)
+    </td>
+  </tr>
+</tbody></table>
+<br>
+
+
+
+
+  <br>
+  <table cellpadding="1" cellspacing="1">
+    <tbody><tr>
+      <td id="comment_status_commit">
+        <!-- The table keeps the commit button aligned with the box. -->
+        <a name="add_comment"></a>
+          <fieldset>
+            <legend>Note</legend>
+            <p>
+              You need to
+              <a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402&amp;GoAheadAndLogIn=1">log in</a>
+              before you can comment on or make changes to this bug.
+            </p>
+          </fieldset>
+        
+        <hr>
+        <div id="comments"><script type="text/javascript">
+  <!--
+  function updateCommentPrivacy(checkbox, id) {
+    var comment_elem = document.getElementById('comment_text_'+id).parentNode;
+    if (checkbox.checked) {
+      if (!comment_elem.className.match('bz_private')) {
+        comment_elem.className = comment_elem.className.concat(' bz_private');
+      }
+    }
+    else {
+      comment_elem.className =
+        comment_elem.className.replace(/(\s*|^)bz_private(\s*|$)/, '$2');
+    }
+  }
+
+  /* The functions below expand and collapse comments  */
+
+  function toggle_comment_display(link, comment_id) {
+    var comment = document.getElementById('comment_text_' + comment_id);
+    var re = new RegExp(/\bcollapsed\b/);
+    if (comment.className.match(re))
+        expand_comment(link, comment);
+    else
+        collapse_comment(link, comment);
+  }
+
+  function toggle_all_comments(action) {
+    var num_comments = 25;
+
+    // If for some given ID the comment doesn't exist, this doesn't mean
+    // there are no more comments, but that the comment is private and
+    // the user is not allowed to view it.
+
+    for (var id = 0; id < num_comments; id++) {
+        var comment = document.getElementById('comment_text_' + id);
+        if (!comment)
+            continue;
+
+        var link = document.getElementById('comment_link_' + id);
+        if (action == 'collapse')
+            collapse_comment(link, comment);
+        else
+            expand_comment(link, comment);
+    }
+  }
+
+  function collapse_comment(link, comment) {
+    link.innerHTML = "[+]";
+    link.title = "Expand the comment.";
+    YAHOO.util.Dom.addClass(comment, 'collapsed');
+  }
+
+  function expand_comment(link, comment) {
+    link.innerHTML = "[-]";
+    link.title = "Collapse the comment";
+    YAHOO.util.Dom.removeClass(comment, 'collapsed');
+  }
+
+  /* This way, we are sure that browsers which do not support JS
+   * won't display this link  */
+
+  function addCollapseLink(count) {
+    document.write(' <a href="#" class="bz_collapse_comment"' +
+                   ' id="comment_link_' + count +
+                   '" onclick="toggle_comment_display(this, ' +  count +
+                   '); return false;" title="Collapse the comment.">[-]<\/a> ');
+  }
+  //-->
+  </script>
+
+
+
+
+
+
+
+
+<div class="bz_comment bz_first_comment">
+
+      <div class="bz_first_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c0" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c0">Description</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-12 16:47:39 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">I am running specweb99 static content workload with httpd 2.2.6 on Solaris
+nevada (snv_79).  I am seeing several crashes. Typically crash do reproduce in
+10 minutes. Here are the details :
+Apache version : httpd-2.2.6
+Simultaneous connection : 1000
+Hardware : X4100 Server (4 core 2.8 GHz)
+CPU : Only single core is enabled
+Architecture : x86_64
+
+
+httpd.conf contains :
+&lt;IfModule worker.c&gt;
+ListenBackLog     50000
+StartServers         2
+ThreadLimit        500
+ThreadsPerChild    500
+MinSpareThreads    100
+MaxSpareThreads    100
+ThreadsPerChild    500
+MaxClients        1000
+MaxRequestsPerChild  0
+&lt;/IfModule&gt;
+
+Listen 192.168.21.1:80
+Listen 192.168.22.1:80
+
+Here is the most common stack trace. 
+
+Configure option :
+CFLAGS="-g -mt -m64 -KPIC " ./configure --prefix=&lt;prefix_path&gt; --with-mpm=worker
+--enable-modules=all --with-ssl=/usr/sfw --enable-mods-shared=all --enable-cgi
+--enable-threads &amp;&amp; gmake &amp;&amp; gmake install
+
+Crash 1 :
+(dbx) where
+current thread: t@76
+=&gt;[1] allocator_free(allocator = 0x101f870, node = (nil)), line 331 in "apr_pools.c"
+  [2] apr_pool_clear(pool = 0x102fb88), line 710 in "apr_pools.c"
+  [3] ap_core_output_filter(f = 0x1020550, b = 0x101f9e8), line 899 in
+"core_filters.c"
+  [4] ap_pass_brigade(next = 0x1020550, bb = 0x101f9e8), line 526 in "util_filter.c"
+  [5] logio_out_filter(f = 0x10204e0, bb = 0x101f9e8), line 135 in "mod_logio.c"
+  [6] ap_pass_brigade(next = 0x10204e0, bb = 0x101f9e8), line 526 in "util_filter.c"
+  [7] ap_flush_conn(c = 0x101fd00), line 84 in "connection.c"
+  [8] ap_lingering_close(c = 0x101fd00), line 123 in "connection.c"
+  [9] process_socket(p = 0x101f968, sock = 0x101f9e8, my_child_num = 1,
+my_thread_num = 227, bucket_alloc = 0x1029a88), line 545 in "worker.c"
+  [10] worker_thread(thd = 0x5bed38, dummy = 0x6dbac0), line 894 in "worker.c"
+  [11] dummy_worker(opaque = 0x5bed38), line 142 in "thread.c"
+  [12] _thr_setup(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5d8f7
+  [13] _lwp_start(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5dba0
+
+Crash 2 :
+(dbx) where
+current thread: t@363
+=&gt;[1] apr_palloc(pool = 0x21680007952225ff, size = 18446744073323675656U), line
+601 in "apr_pools.c"
+  [2] apr_sockaddr_ip_get(addr = 0xcda3d0, sockaddr = 0x42d790), line 104 in
+"sockaddr.c"
+  [3] core_create_conn(ptrans = 0xcda2d8, server = 0x4bf600, csd = 0xcda358, id
+= 360, sbh = 0xcda378, alloc = 0xd147e8), line 3895 in "core.c"
+  [4] ap_run_create_connection(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0x45fe03
+  [5] process_socket(p = 0xcda2d8, sock = 0xcda358, my_child_num = 0,
+my_thread_num = 360, bucket_alloc = 0xd147e8), line 542 in "worker.c"
+  [6] worker_thread(thd = 0x7192f8, dummy = 0x7e45a0), line 894 in "worker.c"
+  [7] dummy_worker(opaque = 0x7192f8), line 142 in "thread.c"
+  [8] _thr_setup(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5d8f7
+  [9] _lwp_start(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5dba0
+
+I tried httpd-2.2.8 too but got the similar crash :
+Crash 3 (with httpd-2.2.8):
+=&gt;[1] apr_palloc(pool = 0x226800079e7a25ff, size = 18446744073323675656U), line
+630 in "apr_pools.c"
+  [2] apr_sockaddr_ip_get(addr = 0xc57060, sockaddr = 0x42dab8), line 104 in
+"sockaddr.c"
+  [3] core_create_conn(ptrans = 0xc56f68, server = 0x4c0378, csd = 0xc56fe8, id
+= 951, sbh = 0xc57008, alloc = 0xc58f78), line 3895 in "core.c"
+  [4] ap_run_create_connection(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0x4604e3
+  [5] process_socket(p = 0xc56f68, sock = 0xc56fe8, my_child_num = 1,
+my_thread_num = 451, bucket_alloc = 0xc58f78), line 542 in "worker.c"
+  [6] worker_thread(thd = 0x870c88, dummy = 0x7e7e30), line 894 in "worker.c"
+  [7] dummy_worker(opaque = 0x870c88), line 142 in "thread.c"
+  [8] _thr_setup(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5d8f7
+  [9] _lwp_start(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5dba0
+
+prefork mpm works just fine.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c1" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c1">Comment 1</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-12 17:14:03 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">I tried to debug the crash 
+=&gt;[1] allocator_free(allocator = 0x101f870, node = (nil)), line 331 in "apr_pools.c"
+  [2] apr_pool_clear(pool = 0x102fb88), line 710 in "apr_pools.c"
+  [3] ap_core_output_filter(f = 0x1020550, b = 0x101f9e8), line 899 in
+"core_filters.c"
+
+In ap_core_output_filter, crash is happening when apr_pool_clear is called for
+deferred_write_pool.
+            apr_pool_clear(ctx-&gt;deferred_write_pool);
+On further investigation, I found that for ctx-&gt;deferred_write_pool, pool-&gt;ref
+points to pool-&gt;next i.e
+pool-&gt;ref == &amp;pool-&gt;next
+
+Thus in apr_pool_clear :
+    if (active-&gt;next == active)
+        return;
+
+    *active-&gt;ref = NULL; // ---&gt; this cause active-&gt;next to set to NULL because
+                         // active-&gt;ref points to active-&gt;next
+    allocator_free(pool-&gt;allocator, active-&gt;next);
+
+The situation doesn't arrive on normal single connection situation. This
+happens only under stress. Under normal connection active-&gt;next == active and
+function returns from apr_pool_clear (when called for ctx-&gt;deferred_write_pool)</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c2" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c2">Comment 2</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-12 19:15:42 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Crashes are happening on 32 bit apache too therefore changing the summary.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c3" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c3">Comment 3</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-12 19:17:58 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Here is the crash from 32 bit apache :
+=&gt;[1] allocator_free(allocator = 0x8aae018, node = (nil)), line 331 in "apr_pools.c"
+  [2] apr_pool_clear(pool = 0x8b629b8), line 710 in "apr_pools.c"
+  [3] ap_core_output_filter(f = 0x8aae870, b = 0x8aae0e0), line 899 in
+"core_filters.c"
+  [4] ap_pass_brigade(next = 0x8aae870, bb = 0x8aae0e0), line 526 in "util_filter.c"
+  [5] logio_out_filter(f = 0x8aae830, bb = 0x8aae0e0), line 135 in "mod_logio.c"
+  [6] ap_pass_brigade(next = 0x8aae830, bb = 0x8aae0e0), line 526 in "util_filter.c"
+  [7] ap_flush_conn(c = 0x8aae390), line 84 in "connection.c"
+  [8] ap_lingering_close(c = 0x8aae390), line 123 in "connection.c"
+  [9] process_socket(p = 0x8aae0a0, sock = 0x8aae0e0, my_child_num = 1,
+my_thread_num = 249, bucket_alloc = 0x8b5c9a0), line 545 in "worker.c"
+  [10] worker_thread(thd = 0x81a6788, dummy = 0x831f5a0), line 894 in "worker.c"
+  [11] dummy_worker(opaque = 0x81a6788), line 142 in "thread.c"
+  [12] _thr_setup(0xf004d200), at 0xfec6f282
+  [13] _lwp_start(0xfee7ddb9, 0xfee7f55e, 0xfffffff6, 0x0, 0x1, 0xfeea1984), at
+0xfec6f4e0</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c4" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c4">Comment 4</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-12 19:43:51 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Here is the debug information from a crash of 32 bit apache :
+
+t@414 (l@414) terminated by signal SEGV (Segmentation Fault)
+Current function is apr_sockaddr_ip_get
+  104       *addr = apr_palloc(sockaddr-&gt;pool, sockaddr-&gt;addr_str_len);
+(dbx) where
+current thread: t@414
+=&gt;[1] apr_sockaddr_ip_get(addr = 0x974a3d0, sockaddr = (nil)), line 104 in
+"sockaddr.c"
+  [2] core_create_conn(ptrans = 0x974a348, server = 0x80d9020, csd = 0x974a388,
+id = 411, sbh = 0x974a398, alloc = 0x9788670), line 3895 in "core.c"
+  [3] ap_run_create_connection(0x974a348, 0x80d9020, 0x974a388, 0x19b,
+0x974a398, 0x9788670), at 0x8090ae8
+  [4] process_socket(p = 0x974a348, sock = 0x974a388, my_child_num = 0,
+my_thread_num = 411, bucket_alloc = 0x9788670), line 542 in "worker.c"
+  [5] worker_thread(thd = 0x83a6ff8, dummy = 0x8125e80), line 894 in "worker.c"
+  [6] dummy_worker(opaque = 0x83a6ff8), line 142 in "thread.c"
+  [7] _thr_setup(0xf008e200), at 0xfec6f282
+  [8] _lwp_start(0x0, 0xfee8410c, 0xe451bef8, 0xe451bef8, 0x8081a83, 0x974a3d0),
+at 0xfec6f4e0
+(dbx) p sockaddr
+sockaddr = (nil)
+(dbx) where
+current thread: t@414
+=&gt;[1] apr_sockaddr_ip_get(addr = 0x974a3d0, sockaddr = (nil)), line 104 in
+"sockaddr.c"
+  [2] core_create_conn(ptrans = 0x974a348, server = 0x80d9020, csd = 0x974a388,
+id = 411, sbh = 0x974a398, alloc = 0x9788670), line 3895 in "core.c"
+  [3] ap_run_create_connection(0x974a348, 0x80d9020, 0x974a388, 0x19b,
+0x974a398, 0x9788670), at 0x8090ae8
+  [4] process_socket(p = 0x974a348, sock = 0x974a388, my_child_num = 0,
+my_thread_num = 411, bucket_alloc = 0x9788670), line 542 in "worker.c"
+  [5] worker_thread(thd = 0x83a6ff8, dummy = 0x8125e80), line 894 in "worker.c"
+  [6] dummy_worker(opaque = 0x83a6ff8), line 142 in "thread.c"
+  [7] _thr_setup(0xf008e200), at 0xfec6f282
+  [8] _lwp_start(0x0, 0xfee8410c, 0xe451bef8, 0xe451bef8, 0x8081a83, 0x974a3d0),
+at 0xfec6f4e0
+(dbx) up
+Current function is core_create_conn
+ 3895       apr_sockaddr_ip_get(&amp;c-&gt;local_ip, c-&gt;local_addr);
+(dbx) p *c
+*c = {
+    pool                  = 0x974a348
+    base_server           = (nil)
+    vhost_lookup_data     = (nil)
+    local_addr            = (nil)
+    remote_addr           = (nil)
+    remote_ip             = (nil)
+    remote_host           = (nil)
+    remote_logname        = (nil)
+    aborted               = 0
+    keepalive             = AP_CONN_UNKNOWN
+    double_reverse        = 0
+    keepalives            = 0
+    local_ip              = (nil)
+    local_host            = (nil)
+    id                    = 0
+    conn_config           = 0x974a400
+    notes                 = 0x974a6a0
+    input_filters         = (nil)
+    output_filters        = (nil)
+    sbh                   = 0x974a398
+    bucket_alloc          = (nil)
+    cs                    = (nil)
+    data_in_input_filters = 0
+}
+(dbx) dump
+alloc = 0x9788670
+rv = 0
+ptrans = 0x974a348
+server = 0x80d9020
+sbh = 0x974a398
+c = 0x974a3a0
+id = 411
+csd = 0x974a388
+(dbx) _arch_networkio.h`struct apr_socket_t*)csd                              &lt;
+*((struct apr_socket_t *) csd) = {
+    pool                    = (nil)
+    socketdes               = 158893680
+    type                    = -17726080
+    protocol                = 134660748
+    local_addr              = (nil)
+    remote_addr             = 0x19b
+    timeout                 = 158638920LL
+    local_port_unknown      = 0
+    local_interface_unknown = 0
+    remote_addr_unknown     = 0
+    options                 = 0
+    inherit                 = 0
+    userdata                = (nil)
+}
+
+Please let me know if any other information is need.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c5" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c5">Comment 5</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-13 13:03:06 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">First guess for your last crash in <a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c4">comment #4</a> (all line numbers 2.2.8):
+
+lr-&gt;accept_func(&amp;csd, lr, ptrans); (line 742 in worker.c) fails with
+rv != APR_SUCCESS, but with a non NULL value for csd.
+In contrast to the code in prefork we don't check this situation:
+
+Lines 621 - 631 of prefork.c:
+
+        status = lr-&gt;accept_func(&amp;csd, lr, ptrans);
+
+        SAFE_ACCEPT(accept_mutex_off());      /* unlock after "accept" */
+
+        if (status == APR_EGENERAL) {
+            /* resource shortage or should-not-occur occured */
+            clean_child_exit(1);
+        }
+        else if (status != APR_SUCCESS) {
+            continue;
+        }
+
+Maybe we need to do a continue in the worker case as well or we need to do
+something like the following:
+
+Index: server/mpm/worker/worker.c
+===================================================================
+--- server/mpm/worker/worker.c  (<a href="http://svn.apache.org/viewvc?view=revision&amp;revision=627576">Revision 627576</a>)
++++ server/mpm/worker/worker.c  (Arbeitskopie)
+@@ -743,6 +743,9 @@
+             /* later we trash rv and rely on csd to indicate success/failure */
+             AP_DEBUG_ASSERT(rv == APR_SUCCESS || !csd);
+
++            if (rv != APR_SUCCESS) {
++                csd = NULL;
++            }
+             if (rv == APR_EGENERAL) {
+                 /* E[NM]FILE, ENOMEM, etc */
+                 resource_shortage = 1;</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c6" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c6">Comment 6</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-13 22:56:02 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">I did the stress test with the patch you suggested. After your patch, I
+still got the 1st crash. If it crashed in second stack trace then I will update
+the bug.
+
+Here are some more information about 1st crash.
+* I am able to reproduce the crash on Solaris 10 update 1 (on a different
+  machine) too. It took around 4 hours of stress before I got the crash on
+  Solaris 10 while it takes around &lt; 30 minutes to reproduce on Solaris nevada.
+  It was crash 1 (allocator_free with node = null) (without your patch).
+
+Here is more information of the crash 1 :
+(dbx) where
+current thread: t@21
+=&gt;[1] allocator_free(allocator = 0x8afe2e0, node = (nil)), line 331 in "apr_pools.c"
+  [2] apr_pool_clear(pool = 0xa0d01c0), line 710 in "apr_pools.c"
+  [3] ap_core_output_filter(f = 0xa0b28c8, b = 0xa0b2a08), line 899 in
+"core_filters.c"
+  [4] ap_pass_brigade(next = 0xa0b28c8, bb = 0xa0b2a08), line 526 in "util_filter.c"
+  [5] logio_out_filter(f = 0xa0b2888, bb = 0xa0b2a08), line 135 in "mod_logio.c"
+  [6] ap_pass_brigade(next = 0xa0b2888, bb = 0xa0b2a08), line 526 in "util_filter.c"
+  [7] ap_flush_conn(c = 0xa0b23e8), line 84 in "connection.c"
+  [8] ap_lingering_close(c = 0xa0b23e8), line 123 in "connection.c"
+  [9] process_socket(p = 0x8afe368, sock = 0x8aff660, my_child_num = 1,
+my_thread_num = 18, bucket_alloc = 0xa0be178), line 545 in "worker.c"
+  [10] worker_thread(thd = 0x81487d8, dummy = 0x8117b30), line 894 in "worker.c"
+  [11] dummy_worker(opaque = 0x81487d8), line 142 in "thread.c"
+  [12] _thr_setup(0xfe244800), at 0xfeccf92e
+  [13] _lwp_start(), at 0xfeccfc10
+(dbx) up
+Current function is apr_pool_clear
+  710       allocator_free(pool-&gt;allocator, active-&gt;next);
+(dbx) p *active
+*active = {
+    next        = (nil)
+    ref         = 0xa0d01a8
+    index       = 1U
+    free_index  = 0
+    first_avail = 0xa0d01f8 "\xc0^A^M\n\xfc^A^M\n\xfc^A^M\nx\xe1^K\n"
+    endp        = 0xa0d21a8 "^A "
+}
+(dbx) up
+Current function is ap_core_output_filter
+  899               apr_pool_clear(ctx-&gt;deferred_write_pool);
+(dbx) p *ctx
+*ctx = {
+    b                   = (nil)
+    deferred_write_pool = 0xa0d01c0
+}
+(dbx) p *ctx-&gt;deferred_write_pool
+*ctx-&gt;deferred_write_pool = {
+    parent           = 0x8afe368
+    child            = (nil)
+    sibling          = 0xa0c6198
+    ref              = 0x8afe36c
+    cleanups         = (nil)
+    free_cleanups    = (nil)
+    allocator        = 0x8afe2e0
+    subprocesses     = (nil)
+    abort_fn         = (nil)
+    user_data        = (nil)
+    tag              = 0x80bfd1c "deferred_write"
+    active           = 0xa0d01a8
+    self             = 0xa0d01a8
+    self_first_avail = 0xa0d01f8 "\xc0^A^M\n\xfc^A^M\n\xfc^A^M\nx\xe1^K\n"
+}
+(dbx) p *c
+*c = {
+    pool                  = 0x8afe368
+    base_server           = 0x80e6bf8
+    vhost_lookup_data     = (nil)
+    local_addr            = 0x8aff698
+    remote_addr           = 0x8aff7c0
+    remote_ip             = 0xa0b2850 "192.168.11.1"
+    remote_host           = (nil)
+    remote_logname        = (nil)
+    aborted               = 0
+    keepalive             = AP_CONN_KEEPALIVE
+    double_reverse        = 0
+    keepalives            = 1
+    local_ip              = 0xa0b2840 "192.168.11.2"
+    local_host            = (nil)
+    id                    = 518
+    conn_config           = 0xa0b2448
+    notes                 = 0xa0b26e8
+    input_filters         = 0xa0b2870
+    output_filters        = 0xa0b2888
+    sbh                   = 0xa0b23e0
+    bucket_alloc          = 0xa0be178
+    cs                    = (nil)
+    data_in_input_filters = 0
+}
+
+One putting some printfs I figured out the following :
+
+In apr_pool_clear (when invoked for deferred_write_pool)
+    ...
+    active = pool-&gt;active = pool-&gt;self;
+    active-&gt;first_avail = pool-&gt;self_first_avail;
+
+    if (active-&gt;next == active)
+        return;
+
+active-&gt;next should typically be s circular link list. What is happenning some
+cases is that active-&gt;next points to some thing else and active-&gt;ref still
+points to active-&gt;next.  I put a printf of active-&gt;next before it is set to
+NULL. For a particular crash, here is my debugging session. I found that
+active-&gt;next
+was set to 0x20e8810 before it was set to NULL.
+
+(dbx) up
+Current function is apr_pool_clear
+  774       allocator_free(pool-&gt;allocator, active-&gt;next);
+(dbx) up
+Current function is ap_core_output_filter
+  923               apr_pool_clear(ctx-&gt;deferred_write_pool);
+(dbx) p (struct apr_memnode_t*)0x20e8810 -----&gt; This was active-&gt;next before set
+to NULL.
+(struct apr_memnode_t *) 0x20e8810 = 0x20e8810
+(dbx) p *(struct apr_memnode_t*)0x20e8810
+*((struct apr_memnode_t *) 0x20e8810) = {
+    next        = 0x288c5b0
+    ref         = 0x20e8810
+    index       = 1U
+    free_index  = 0
+    first_avail = 0x20e9eb0 "GET /file_set/dir00104/class1_3 HTTP/1.0"
+    endp        = 0x20ea810 "^A "
+}
+(dbx) down
+Current function is apr_pool_clear
+  774       allocator_free(pool-&gt;allocator, active-&gt;next);
+(dbx) p active
+active = 0x20e27e0
+(dbx) p *((struct apr_memnode_t*)0x20e8810)-&gt;next
+*((struct apr_memnode_t *) 0x20e8810)-&gt;next = {
+    next        = 0x20e07d0
+    ref         = 0x20e07d0
+    index       = 1U
+    free_index  = 0
+    first_avail = 0x288d008 ""
+    endp        = 0x288e5b0 "^A "
+}
+(dbx) p active
+active = 0x20e27e0
+(dbx) p *(((struct apr_memnode_t*)0x20e8810)-&gt;next)-&gt;next
+*((struct apr_memnode_t *) 0x20e8810)-&gt;next-&gt;next = {
+    next        = 0x28905d0
+    ref         = 0x288c5b0
+    index       = 1U
+    free_index  = 0
+    first_avail = 0x20e2738 ""
+    endp        = 0x20e27d0 "^A "
+}
+(dbx) p *((((struct apr_memnode_t*)0x20e8810)-&gt;next)-&gt;next)-&gt;next
+*((struct apr_memnode_t *) 0x20e8810)-&gt;next-&gt;next-&gt;next = {
+    next        = 0x288e5c0
+    ref         = 0x28905d0
+    index       = 1U
+    free_index  = 0
+    first_avail = 0x2890668 "\xf8^E\x89^B"
+    endp        = 0x28925d0 "^Q^P"
+}
+(dbx) p *(((((struct apr_memnode_t*)0x20e8810)-&gt;next)-&gt;next)-&gt;next)-&gt;next
+*((struct apr_memnode_t *) 0x20e8810)-&gt;next-&gt;next-&gt;next-&gt;next = {
+    next        = (nil)
+    ref         = (nil)
+    index       = 1U
+    free_index  = 0
+    first_avail = 0x288e5e8 "`^_"
+    endp        = 0x28905c0 "^A "
+}
+
+On further debugging, I figured out that typically ap_core_output_filter is
+called 4 times for a request. The crash always happen in 4th invocation. It
+seems to me that it gets corrupted somewhere after the 3rd invocation (after it
+returns from ap_core_output_filter) and before it enters into
+ap_core_output_filter 4th time (when ap_lingering_close is in call stack). Also
+conn-&gt;keepalives was always set to 1.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c7" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c7">Comment 7</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-14 00:03:50 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">With Ruediger patch, I still got the crash (#2). Here is the debug information :
+
+t@314 (l@314) terminated by signal SEGV (Segmentation Fault)
+Current function is apr_sockaddr_ip_get
+  104       *addr = apr_palloc(sockaddr-&gt;pool, sockaddr-&gt;addr_str_len);
+(dbx) where
+current thread: t@314
+=&gt;[1] apr_sockaddr_ip_get(addr = 0x1ebb4b0, sockaddr = (nil)), line 104 in
+"sockaddr.c"
+  [2] core_create_conn(ptrans = 0x1ebb3b8, server = 0x4c0200, csd = 0x1ebb728,
+id = 311, sbh = 0x1ebb458, alloc = 0x2128b58), line 3895 in "core.c"
+  [3] ap_run_create_connection(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0x4602c3
+  [4] process_socket(p = 0x1ebb3b8, sock = 0x1ebb728, my_child_num = 0,
+my_thread_num = 311, bucket_alloc = 0x2128b58), line 566 in "worker.c"
+  [5] worker_thread(thd = 0x7195c8, dummy = 0x6e2310), line 923 in "worker.c"
+  [6] dummy_worker(opaque = 0x7195c8), line 142 in "thread.c"
+  [7] _thr_setup(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5d8f7
+  [8] _lwp_start(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5dba0
+(dbx) p *addr
+*addr = (nil)
+(dbx) up
+Current function is core_create_conn
+ 3895       apr_sockaddr_ip_get(&amp;c-&gt;local_ip, c-&gt;local_addr);
+(dbx) p *c
+*c = {
+    pool                  = 0x1ebb3b8
+    base_server           = (nil)
+    vhost_lookup_data     = (nil)
+    local_addr            = (nil)
+    remote_addr           = (nil)
+    remote_ip             = (nil)
+    remote_host           = (nil)
+    remote_logname        = (nil)
+    aborted               = 0
+    keepalive             = AP_CONN_UNKNOWN
+    double_reverse        = 0
+    keepalives            = 0
+    local_ip              = (nil)
+    local_host            = (nil)
+    id                    = 0
+    conn_config           = 0x1ebb508
+    notes                 = 0x1ebba48
+    input_filters         = (nil)
+    output_filters        = (nil)
+    sbh                   = 0x1ebb458
+    bucket_alloc          = (nil)
+    cs                    = (nil)
+    data_in_input_filters = 0
+}
+(dbx) dump
+alloc = 0x2128b58
+rv = 0
+ptrans = 0x1ebb3b8
+server = 0x4c0200
+sbh = 0x1ebb458
+c = 0x1ebb460
+id = 311
+csd = 0x1ebb728
+(dbx) p csd
+csd = 0x1ebb728
+(dbx) p *(struct apr_socket_t*) csd
+*((struct apr_socket_t *) csd) = {
+    pool                    = (nil)
+    socketdes               = 0
+    type                    = 0
+    protocol                = 0
+    local_addr              = (nil)
+    remote_addr             = (nil)
+    timeout                 = 0
+    local_port_unknown      = 0
+    local_interface_unknown = 0
+    remote_addr_unknown     = 0
+    options                 = 0
+    inherit                 = 0
+    userdata                = (nil)
+}</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c8" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c8">Comment 8</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-14 12:25:52 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">I assume that the ptrans pool somehow gets corrupted. I guess it is used by two
+threads in parallel which could lead to a corruption since pools as such are not
+thread safe. So I think a good starting point for further investigations would be 
+
+ap_queue_info_wait_for_idler in mpm/worker/fdqueue.c
+
+or the lines 731 - 740 in worker.c:
+
+            if (ptrans == NULL) {
+                /* we can't use a recycled transaction pool this time.
+                 * create a new transaction pool */
+                apr_allocator_t *allocator;
+
+                apr_allocator_create(&amp;allocator);
+                apr_allocator_max_free_set(allocator, ap_max_mem_free);
+                apr_pool_create_ex(&amp;ptrans, pconf, NULL, allocator);
+                apr_allocator_owner_set(allocator, ptrans);
+            }</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c9" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c9">Comment 9</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-14 14:15:27 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Thanks Ruediger for your suggestion. I will try to explore based on your
+suggestion.
+
+Meanwhile here is the 3rd type of crash (with your patch).
+
+t@13 (l@13) terminated by signal SEGV (Segmentation Fault)
+Current function is apr_pool_cleanup_kill
+ 2045       c = p-&gt;cleanups;
+(dbx) where
+current thread: t@13
+=&gt;[1] apr_pool_cleanup_kill(p = 0xa0, data = 0x195b888, cleanup_fn =
+0xfffffd7fff223540 = &amp;`libapr-1.so.0.2.11`sockets.c`socket_cleanup(void *sock)),
+line 2045 in "apr_pools.c"
+  [2] apr_pool_cleanup_run(p = 0xa0, data = 0x195b888, cleanup_fn =
+0xfffffd7fff223540 = &amp;`libapr-1.so.0.2.11`sockets.c`socket_cleanup(void *sock)),
+line 2088 in "apr_pools.c"
+  [3] apr_socket_close(thesocket = 0x195b888), line 149 in "sockets.c"
+  [4] ap_lingering_close(c = 0x17407f0), line 135 in "connection.c"
+  [5] process_socket(p = 0x1740748, sock = 0x195b888, my_child_num = 1,
+my_thread_num = 10, bucket_alloc = 0x195b728), line 569 in "worker.c"
+  [6] worker_thread(thd = 0x52bb48, dummy = 0x4f3480), line 951 in "worker.c"
+  [7] dummy_worker(opaque = 0x52bb48), line 142 in "thread.c"
+  [8] _thr_setup(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5d8f7
+  [9] _lwp_start(0x0, 0x0, 0x0, 0x0, 0x0, 0x0), at 0xfffffd7ffef5dba0
+(dbx) up
+Current function is apr_pool_cleanup_run
+ 2088       apr_pool_cleanup_kill(p, data, cleanup_fn);
+(dbx) up
+Current function is apr_socket_close
+  149       return apr_pool_cleanup_run(thesocket-&gt;pool, thesocket, socket_cleanup);
+(dbx) p *thesocket
+*thesocket = {
+    pool                    = 0xa0
+    socketdes               = 26588968
+    type                    = 0
+    protocol                = 26588928
+    local_addr              = 0x195b7e8
+    remote_addr             = 0x1741158
+    timeout                 = 24383832
+    local_port_unknown      = 4895848
+    local_interface_unknown = 0
+    remote_addr_unknown     = 0
+    options                 = 0
+    inherit                 = 0
+    userdata                = (nil)
+}
+(dbx) dump
+thesocket = 0x195b888
+(dbx) up
+Current function is ap_lingering_close
+  135           apr_socket_close(csd);
+(dbx) dump
+timeup = 0
+dummybuf = ""
+c = 0x17407f0
+nbytes = 4294967296U
+csd = 0x195b888
+(dbx) p *c
+*c = {
+    pool                  = 0x1740748
+    base_server           = 0x4c0300
+    vhost_lookup_data     = (nil)
+    local_addr            = 0x195b8d8
+    remote_addr           = 0x195ba18
+    remote_ip             = 0x1740f88 "192.168.22.2"
+    remote_host           = (nil)
+    remote_logname        = (nil)
+    aborted               = 0
+    keepalive             = AP_CONN_UNKNOWN
+    double_reverse        = 0
+    keepalives            = 0
+    local_ip              = 0x1740f78 "192.168.22.1"
+    local_host            = (nil)
+    id                    = 510
+    conn_config           = 0x1740898
+    notes                 = 0x1740dd8
+    input_filters         = 0x1740fa8
+    output_filters        = 0x1740fd0
+    sbh                   = 0x17407e8
+    bucket_alloc          = 0x195b728
+    cs                    = (nil)
+    data_in_input_filters = 0
+}
+(dbx) _arch_networkio.h`struct apr_socket_t*)csd                              &lt;
+*((struct apr_socket_t *) csd) = {
+    pool                    = 0xa0
+    socketdes               = 26588968
+    type                    = 0
+    protocol                = 26588928
+    local_addr              = 0x195b7e8
+    remote_addr             = 0x1741158
+    timeout                 = 24383832
+    local_port_unknown      = 4895848
+    local_interface_unknown = 0
+    remote_addr_unknown     = 0
+    options                 = 0
+    inherit                 = 0
+    userdata                = (nil)
+}
+(dbx) etworkio.h`struct apr_socket_t*)csd-&gt;local_addr                         &lt;
+dbx: can't find field "local_addr" in "*(csd)"
+(dbx) p ((`srclib/apr/include/arch/unix/apr_arch_networkio.h`struct apr_socke &gt;
+((struct apr_socket_t *) csd)-&gt;local_addr = 0x195b7e8
+(dbx) p *((`srclib/apr/include/arch/unix/apr_arch_networkio.h`struct apr_sock &gt;
+*((struct apr_socket_t *) csd)-&gt;local_addr = {
+    pool         = 0xa0
+    hostname     = 0x195b728 "H^Gt^A"
+    servname     = 0x195b700 ""
+    port         = 0
+    family       = 0
+    salen        = 24383744U
+    ipaddr_len   = 0
+    addr_str_len = 24383744
+    ipaddr_ptr   = 0xfffffd7fff2e8010
+    next         = (nil)
+    sa           = {
+        sin  = {
+            sin_family = 0
+            sin_port   = 0
+            sin_addr   = {
+                S_un = {
+                    S_un_b = {
+                        s_b1 = '\0'
+                        s_b2 = '\0'
+                        s_b3 = '\0'
+                        s_b4 = '\0'
+                    }
+                    S_un_w = {
+                        s_w1 = 0
+                        s_w2 = 0
+                    }
+                    S_addr = 0
+                }
+            }
+            sin_zero   = ""
+        }
+        sin6 = {
+            sin6_family   = 0
+            sin6_port     = 0
+            sin6_flowinfo = 0
+            sin6_addr     = {
+                _S6_un = {
+                    _S6_u8     = ""
+                    _S6_u32    = (0, 0, 4373928U, 0)
+                    __S6_align = 0
+                }
+            }
+            sin6_scope_id = 26588968U
+            __sin6_src_id = 0
+        }
+        sas  = {
+            ss_family = 0
+            _ss_pad1  = ""
+            _ss_align = 0.0
+            _ss_pad2  = "xxB"
+        }
+    }
+}</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c10" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c10">Comment 10</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-14 14:44:20 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">As you wrote Solaris on Sun I suppose you mean on SPARC. Have you checked if the
+crashes happen with the same Solaris version on x86? Background of the question:
+ap_queue_info_wait_for_idler uses atomics whose implementation depends on the
+hardware architecture. Non functional atomics could be a source for concurrency
+problems under load.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c11" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c11">Comment 11</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-14 14:55:43 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">(In reply to <a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c10">comment #10</a>)
+<span class="quote">&gt; As you wrote Solaris on Sun I suppose you mean on SPARC. Have you checked if the
+&gt; crashes happen with the same Solaris version on x86? Background of the question:</span>
+
+Oops my fault: You already said that you are using x86. Nevertheless does the
+same happen on SPARC with the same Solaris version or if you compile with 
+--enable-nonportable-atomics=no ?</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c12" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c12">Comment 12</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-15 11:48:52 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Thanks Ruediger for your pointer. It was really useful.
+
+Regarding the function : ap_queue_info_wait_for_idler (lines 188-196)
+188:        struct recycled_pool *first_pool = queue_info-&gt;recycled_pools;
+189:        if (first_pool == NULL) {
+190:            break;
+191:        }
+192:        if (apr_atomic_casptr((volatile
+void**)&amp;(queue_info-&gt;recycled_pools), first_pool-&gt;next,
+193:                              first_pool) == first_pool) {
+194:            *recycled_pool = first_pool-&gt;pool;
+195:            break;
+196:        }
+
+I will represent queue_info-&gt;receycled_pools as qu-&gt;rp to make it make it
+short.  Inside apr_atomic_casptr we acquire a mutex. So I will write 3 steps :
+1. Calcualte first_pool.
+2. Calculate first_pool-&gt;next and invoke apr_atomic_caspptr
+3. Acquire lock on qi-&gt;rp (inside apr_atomic_casptr)
+
+There is a very clear race condition between the two statement (line 188 and
+line 193) and between step 2 &amp; 3. Though I agree that
+&amp;queue_info-&gt;recycled_pool is protected and it is atomically correct but the
+next pointer (first_pool and first_pool-&gt;next) are not protected correctly.
+There is a very clear race condition between the two. To prove my point, here
+is an example :
+
+Suppose at a particular moment recycled_pool pool list is 
+1 --&gt; 2 ---&gt; 3 . Where 1,2,3 are the pool nodes. qi-&gt;rp = 1. Now consider the
+following situation :
+Thread 1 :
+    first_pool = 1;
+    first_pool-&gt;next = 2.
+    
+Now before step 3 is executed that is before we acquire a lock on qi-&gt;rp,
+context switch happens.
+
+Thread 2 :
+    Thread 2 pops a node (1) from the list and hence list becomes 2-&gt;3.
+
+Thread 3 :
+    Thread 3 pops another node (2) from the list and hence list becomes 3.
+
+Thread 2 :
+    push the node back and now list becomes 1-&gt;3.
+
+Thread 1:
+    first-&gt;pool-&gt;next = 2.  qi-&gt;rp is still 1.  Thread acquires a lock &amp;1 and
+atomically compare and swap with 2. It succeeded because qi-&gt;rp was 1 but
+qi-&gt;rp-&gt;next was not 3, it becomes 2 and hence queue becomes 2 (or 2--&gt;3).
+        
+I believe, I can prove my point with a sample standalone application. So far I
+used a separate mutex and protected both qi-&gt;rp and qi-&gt;rp-&gt;next both.  I tried
+with the attached patch. With this patch, I am able to run the stress for more
+than 10 hour without any crash. Without this patch, crash used to happen in
+less than 30 minutes. Here is the patch which I tried :
+---------------------------------------------------------------------------
+
+--- orghttpd-2.2.6/server/mpm/worker/fdqueue.c	Wed Jul 25 06:13:49 2007
++++ httpd-2.2.6/server/mpm/worker/fdqueue.c	Fri Feb 15 10:57:42 2008
+@@ -25,6 +25,7 @@
+ struct fd_queue_info_t {
+     apr_uint32_t idlers;
+     apr_thread_mutex_t *idlers_mutex;
++    apr_thread_mutex_t *queue_mutex;
+     apr_thread_cond_t *wait_for_idler;
+     int terminated;
+     int max_idlers;
+@@ -36,6 +37,7 @@
+     fd_queue_info_t *qi = data_;
+     apr_thread_cond_destroy(qi-&gt;wait_for_idler);
+     apr_thread_mutex_destroy(qi-&gt;idlers_mutex);
++    apr_thread_mutex_destroy(qi-&gt;queue_mutex);
+ 
+     /* Clean up any pools in the recycled list */
+     for (;;) {
+@@ -65,6 +67,11 @@
+     if (rv != APR_SUCCESS) {
+         return rv;
+     }
++    rv = apr_thread_mutex_create(&amp;qi-&gt;queue_mutex, APR_THREAD_MUTEX_DEFAULT,
++                                 pool);
++    if (rv != APR_SUCCESS) {
++        return rv;
++    }
+     rv = apr_thread_cond_create(&amp;qi-&gt;wait_for_idler, pool);
+     if (rv != APR_SUCCESS) {
+         return rv;
+@@ -93,14 +100,14 @@
+         new_recycle = (struct recycled_pool *)apr_palloc(pool_to_recycle,
+                                                          sizeof(*new_recycle));
+         new_recycle-&gt;pool = pool_to_recycle;
+-        for (;;) {
+-            new_recycle-&gt;next = queue_info-&gt;recycled_pools;
+-            if (apr_atomic_casptr((volatile void**)&amp;(queue_info-&gt;recycled_pools),
+-                                  new_recycle, new_recycle-&gt;next) ==
+-                new_recycle-&gt;next) {
+-                break;
+-            }
+-        }
++        rv = apr_thread_mutex_lock(queue_info-&gt;queue_mutex);
++        if (rv != APR_SUCCESS)
++            return rv;
++        new_recycle-&gt;next = queue_info-&gt;recycled_pools;
++        queue_info-&gt;recycled_pools = new_recycle;
++        rv = apr_thread_mutex_unlock(queue_info-&gt;queue_mutex);
++        if (rv != APR_SUCCESS)
++            return rv;
+     }
+ 
+     /* Atomically increment the count of idle workers */
+@@ -182,19 +189,18 @@
+ 
+     /* Atomically decrement the idle worker count */
+     apr_atomic_dec32(&amp;(queue_info-&gt;idlers));
+-
+-    /* Atomically pop a pool from the recycled list */
+-    for (;;) {
++    rv = apr_thread_mutex_lock(queue_info-&gt;queue_mutex);
++    if (rv != APR_SUCCESS)
++        return rv;
++    if (queue_info-&gt;recycled_pools) {
+         struct recycled_pool *first_pool = queue_info-&gt;recycled_pools;
+-        if (first_pool == NULL) {
+-            break;
+-        }
+-        if (apr_atomic_casptr((volatile void**)&amp;(queue_info-&gt;recycled_pools),
+first_pool-&gt;next,
+-                              first_pool) == first_pool) {
+-            *recycled_pool = first_pool-&gt;pool;
+-            break;
+-        }
++        queue_info-&gt;recycled_pools = first_pool-&gt;next;
++        *recycled_pool = first_pool-&gt;pool;
++        first_pool-&gt;next = NULL;
+     }
++    rv = apr_thread_mutex_unlock(queue_info-&gt;queue_mutex);
++    if (rv != APR_SUCCESS)
++        return rv;
+ 
+     if (queue_info-&gt;terminated) {
+         return APR_EOF;
+---------------------------------------------------------------------------
+
+If you agree that there is a clear race condition then to correct this, I have
+following suggestion :
+(a) Use a dedicated pool for each worker thread, this will avoid any locking.
+It will perform better but may require little more memory in those situations
+when worker threads are not fully used.
+(b) Use some other technique other than a recycled pool list which avoids race
+conditions.
+
+I am in favour of option (a) until some good idea for (b) comes to my mind.
+If you agree with (a) then I can work and generate a patch.
+
+Note : Also I believe that the crash will happen in linux too. I never ran more
+than 1 hour in linux. I will try that tonight.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c13" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c13">Comment 13</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-16 00:25:03 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">(In reply to <a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c12">comment #12</a>)
+
+<span class="quote">&gt; If you agree that there is a clear race condition then to correct this, I have
+&gt; following suggestion :
+&gt; (a) Use a dedicated pool for each worker thread, this will avoid any locking.
+&gt; It will perform better but may require little more memory in those situations
+&gt; when worker threads are not fully used.
+&gt; (b) Use some other technique other than a recycled pool list which avoids race
+&gt; conditions.
+&gt; 
+&gt; I am in favour of option (a) until some good idea for (b) comes to my mind.
+&gt; If you agree with (a) then I can work and generate a patch.
+&gt; 
+&gt; Note : Also I believe that the crash will happen in linux too. I never ran more
+&gt; than 1 hour in linux. I will try that tonight.
+&gt; </span>
+
+Thank you for your thorough investigation. I agree with you that we have the
+described race conditions here. We have a similar race in the event MPM.
+Next steps:
+
+1. Bring your patch above into trunk. Currently I see no significant performance 
+   loss over the current code as we are using a mutex there as well. We only
+   increase the time during which we lock the resource. I don't know right
+   now when I find the cycles to apply the patch to trunk, but if you could
+   attach a trunk version of your patch to this report it would be a big help.
+
+2. Move the further discussion regarding options a) or b) to 
+   <a href="mailto:dev@httpd.apache.org">dev@httpd.apache.org</a> and lets wait for its results to decide how to move 
+   along and improve the situation here in the long run.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c14" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c14">Comment 14</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-16 14:23:39 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">I think I have to correct myself in two points.
+
+1. On APR trunk there are better implementations for apr_atomic_casptr which no 
+   longer use a mutex, but native platform processor / OS features. So in 
+   contrast to my first assumption there could be a performance degradation by
+   your patch on trunk, which would be bad.
+
+2. The race scenario you described cannot happen in this way, because it assumes
+   that multiple threads pop pools from the list in parallel. This is not the 
+   case as only the listener thread does this. What happens in parallel are:
+
+   - Multiple pushes to the list
+   - (Multiple) pushes to the list and a pop
+
+OTOH I still believe that there is some kind of race scenario as your patch
+showed that the error goes away if the locking / syncing is changed here.
+So maybe its only a different scenario (that I haven't figured out so far) or
+there is a bug in apr_atomic_casptr.
+Do the same crashes happen with trunk?</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c15" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c15">Comment 15</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-18 11:33:55 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Regarding the example given in comments # 12, I need to correct myself. I
+agree with you that the example is not valid for worker implementation because
+there is single thread which pop the nodes and multiple threads which pushes
+the node.  ( ap_queue_info_wait_for_idler is not thread safe but it is not
+called by multiple threads. It is only invoked by single listener_thread. )
+
+I could not yet think of any race condition in which single popping thread
+and several pushing thread cause recycle_pool list corruption.
+
+I am still working on it to find the real cause of the crashes.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c16" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c16">Comment 16</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-21 18:24:53 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Few more updates : 
+* Probably these crashes also exist on Linux (64 bit). But I can't say for
+sure. I saw 3 crashes so far. Out of 3, I get core dump only once and stack
+trace from that core dump didn't seem much sense to me so I can't say for sure
+that the bug reproduces on Linux or not. (Linux is 64 bit Fedora 8 with 64 bit
+apache). 
+
+On Solaris, I tried the following things :
+* Replaced apr_atomic_casptr with solaris's atomic_casptr. But the result
+remained the same. I still saw the crashes. This means that this may not
+be the apr bug.
+* If I replace apr_atomic_casptr code but keep the for loop then  the crashes
+disappear.
+---------------------------------- ap_queue_info_set_idle-------------
+            if (apr_atomic_casptr((volatile void**)&amp;(queue_info-&gt;recycled_pools),
+                                  new_recycle, new_recycle-&gt;next) ==
+                new_recycle-&gt;next) {
+                break;
+            }
+---------------------------------- replace with -----------------------
+            rv = apr_thread_mutex_lock(queue_info-&gt;queue_mutex);
+            if (queue_info-&gt;recycled_pools == new_recycle-&gt;next) {
+                queue_info-&gt;recycled_pools = new_recycle;
+                success = 1;
+            }
+            rv = apr_thread_mutex_unlock(queue_info-&gt;queue_mutex);
+
+
+---------------------------------- ap_queue_info_wait_for_idler --------------
+        if (apr_atomic_casptr((volatile void**)&amp;(queue_info-&gt;recycled_pools),
+first_pool-&gt;next,
+                              first_pool) == first_pool) {
+            *recycled_pool = first_pool-&gt;pool;
+            break;
+        }
+---------------------------------- replace with ---------------------------
+        rv = apr_thread_mutex_lock(queue_info-&gt;queue_mutex);
+        if (queue_info-&gt;recycled_pools == first_pool) {
+            queue_info-&gt;recycled_pools = next;
+            success = 1;
+        }
+        rv = apr_thread_mutex_unlock(queue_info-&gt;queue_mutex);
+----------------------------------</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c17" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c17">Comment 17</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-22 12:28:17 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text"><span class="bz_obsolete"><a href="https://issues.apache.org/bugzilla/attachment.cgi?id=21581" name="attach_21581" title="Patch for httpd-2.2.8">Created an attachment (id=21581)</a> <a href="https://issues.apache.org/bugzilla/attachment.cgi?id=21581&amp;action=edit" title="Patch for httpd-2.2.8">[details]</a></span>
+Patch for httpd-2.2.8
+
+Eventually I figured out where is the real race condition.
+
+Lines fdqueue.c:96-102 (in httpd-2.2.8)
+	for (;;) {
+	    new_recycle-&gt;next = queue_info-&gt;recycled_pools;
+	    if (apr_atomic_casptr((volatile
+void**)&amp;(queue_info-&gt;recycled_pools),
+				  new_recycle, new_recycle-&gt;next) ==
+		new_recycle-&gt;next) {
+		break;
+	    }
+	}
+
+The race condition is between return of apr_atomic_casptr and calculating
+new_recycle-&gt;next.
+
+Let us write the look into three steps (qi-&gt;rp is queue_info-&gt;recycled_pools):
+1. Set new_recycle-&gt;next to qi-&gt;rp
+2. atomically compare and swap qi-&gt;rp with new_recycle if matches with
+    new_recycle-&gt;next.
+3. Calculate new_recycle-&gt;next again.
+4. Determine the call apr_atomic_casptr is successful based on the return value
+and
+   result of step 3.
+
+The race condition is in between step2 and step3. If apr_atomic_casptr was
+successful (it means it successfully swapped the value) and If there is a
+context switch between 2 and 3 then new_recycle-&gt;next can point to something
+else and can also be corrupted. The result of which is that if condition will
+fail.
+
+I saved the new_recycle-&gt;next in a local variable and then used the local
+variable as shown in the patch and the issue got resolved.
+
+Here is the example how new_recycle-&gt;next can be changed by a race condition :
+Suppose our list is 1--&gt;2--&gt;3, where 1,2,3 are list nodes. Now suppose worker
+thread 1 wants to add a node 4 to it's head. Here is how it goes :
+
+-----------------------------------------------------------
+Worker thread 1 :
+   new_recycle = 4;
+   qi-&gt;rp = 1;
+   new_recycle-&gt;next = 1;
+   apr_atomic_casptr successfully compare and swap it with qi-&gt;rp that means
+   qi-&gt;rp = 4; 
+   (list now becomes 4--&gt;1--&gt;2--&gt;3)
+
+   Now context switch happens :
+
+Listener_thread : 
+   qi-&gt;rp is 4 and hence it pops the node 4 and gives it to worker thread 2.
+   The list becomes 1--&gt;2--&gt;3.
+
+   Listener thread pops another node and give it worker thread 3 and now list
+   becomes 2--&gt;3.
+
+Worker thread 2 :
+   Returns the node 4 into the list and list becomes 4--&gt;2--&gt;3.
+
+Worker thread 1 :
+   new_recycle-&gt;next now becomes 2 and it compares with 1 and hence
+comparision fails.
+-----------------------------------------------------------
+
+   Real situations can be little different than what I described because before
+
+worker thread returns node 4 to the list, pool is cleared (line 897 of
+worker.c,
+in worker_thread function )
+	apr_pool_clear(ptrans);
+	last_ptrans = ptrans;
+
+which means new_recycle-&gt;next will be corrupted and point to a deleted value.
+
+How I figured out this is that if you put a assert statement like :
+	    struct recycled_pool *next = queue_info-&gt;recycled_pools;
+	    new_recycle-&gt;next = next;
+	    if (apr_atomic_casptr((volatile
+void**)&amp;(queue_info-&gt;recycled_pools),
+				  new_recycle, new_recycle-&gt;next) == next) {
+		ap_assert(next == new_recycle-&gt;next);
+		break;
+	    }
+then assertion fails under stress situations.
+
+The bug also exist in event mpm too (server/mpm/experimental/event/fdqueue.c).
+
+Ruediger, can you review the patch? The patch is against 2.2.8. Should I submit
+
+patch against trunk?</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c18" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c18">Comment 18</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-22 12:34:29 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Since the crash happens on linux too so I am changing the summary.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c19" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c19">Comment 19</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Basant Kumar Kukreja</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-22 12:41:11 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text"><span class=""><a href="https://issues.apache.org/bugzilla/attachment.cgi?id=21582" name="attach_21582" title="Revised patch">Created an attachment (id=21582)</a> <a href="https://issues.apache.org/bugzilla/attachment.cgi?id=21582&amp;action=edit" title="Revised patch">[details]</a></span>
+Revised patch
+
+Made small correction in comments of patch.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c20" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c20">Comment 20</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Nick Kew</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-22 14:17:59 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Fixed in trunk in <a href="http://svn.apache.org/viewvc?view=revision&amp;revision=630335">r630335</a>.</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c21" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c21">Comment 21</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-22 15:00:31 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Great work Basant. Nick beat me to committing your patch, but in the meantime I
+applied your patch to the event MPM on trunk as well (r630348).</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c22" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c22">Comment 22</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Nick Kew</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-22 17:35:12 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">*** <span class="bz_closed"><a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44474" title="RESOLVED DUPLICATE - Event mpm keeps crashing under stress (static workload)">Bug 44474</a></span> has been marked as a duplicate of this bug. ***</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c23" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c23">Comment 23</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Ruediger Pluem</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-26 12:37:54 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">Backported to 2.2.x as <a href="http://svn.apache.org/viewvc?view=revision&amp;revision=631362">r631362</a>
+(<a href="http://svn.apache.org/viewvc?rev=631362&amp;view=rev">http://svn.apache.org/viewvc?rev=631362&amp;view=rev</a>).</pre>
+    </div>
+  <div class="bz_comment">
+
+      <div class="bz_comment_head">
+
+
+
+        <span class="bz_comment_number">
+          <a name="c24" href="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402#c24">Comment 24</a>
+        </span>
+
+        <span class="bz_comment_user"><span class="vcard"><span class="fn">Nick Kew</span>
+</span>
+        </span>
+
+        <span class="bz_comment_user_images">
+        </span>
+
+        <span class="bz_comment_time">
+          2008-02-27 15:27:49 EST
+        </span>
+      </div>
+
+
+
+<pre class="bz_comment_text">*** <span class="bz_closed"><a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=42086" title="RESOLVED DUPLICATE - Possible bug in mpm/worker/fdqueue.c:ap_queue_push()">Bug 42086</a></span> has been marked as a duplicate of this bug. ***</pre>
+    </div>
+        </div>
+        
+      </td>
+    </tr>
+  </tbody></table>
+</form>
+
+<hr>
+<ul class="related_actions">
+    <li><a href="https://issues.apache.org/bugzilla/show_bug.cgi?format=multiple&amp;id=44402">Format For Printing</a></li>
+    <li>&nbsp;-&nbsp;<a href="https://issues.apache.org/bugzilla/show_bug.cgi?ctype=xml&amp;id=44402">XML</a></li>
+    <li>&nbsp;-&nbsp;<a href="https://issues.apache.org/bugzilla/enter_bug.cgi?cloned_bug_id=44402">Clone This Bug</a></li>
+    
+    <li>&nbsp;-&nbsp;<a href="#">Top of page </a></li>
+    </ul>        
+
+
+<div class="navigation">
+  <b>Bug List:</b>
+
+
+      (This bug is not in your last search results)
+
+  &nbsp;&nbsp;<a href="https://issues.apache.org/bugzilla/buglist.cgi?regetlastlist=1">Show last search results</a>
+</div>
+
+<br>
+</div>
+
+
+
+<div id="footer">
+  <div class="intro"></div>
+
+
+
+  This is <b>ASF Bugzilla</b>: the Apache Software Foundation bug system. In case
+  of problems with the functioning of ASF Bugzilla, please contact
+  <a href="mailto:bugzilla-admin@apache.org">bugzilla-admin@apache.org</a>.
+  <b>Please Note:</b> this e-mail address is <b>only</b> for reporting problems
+  with ASF Bugzilla. Mail about any other subject will be silently
+  ignored.
+
+
+<ul id="useful-links">
+  <li id="links-actions"><ul class="links">
+  <li><a href="https://issues.apache.org/bugzilla/">Home</a></li>
+  <li><span class="separator">| </span><a href="https://issues.apache.org/bugzilla/enter_bug.cgi">New</a></li>
+  <li><span class="separator">| </span><a href="https://issues.apache.org/bugzilla/query.cgi">Search</a></li>
+
+  <li class="form">
+    <span class="separator">| </span>
+    <form action="buglist.cgi" method="get" onsubmit="if (this.quicksearch.value == '')
+                  { alert('Please enter one or more search terms first.');
+                    return false; } return true;">
+    <input class="txt" id="quicksearch_bottom" name="quicksearch" type="text">
+    <input class="btn" value="Find" id="find_bottom" type="submit"></form></li>
+
+  <li><span class="separator">| </span><a href="https://issues.apache.org/bugzilla/report.cgi">Reports</a></li>
+
+  <li></li>
+
+
+  <li>
+        <span class="separator">| </span>
+        <a href="https://issues.apache.org/bugzilla/docs/en/html/bug_page.html" target="_blank">Help</a>
+      </li>
+    
+      <li id="new_account_container_bottom">
+        <span class="separator">| </span>
+        <a href="https://issues.apache.org/bugzilla/createaccount.cgi">New&nbsp;Account</a>
+      </li>
+
+    <li id="mini_login_container_bottom">
+  <span class="separator">| </span>
+  <a id="login_link_bottom" href="https://issues.apache.org/bugzilla/show_bug.cgi?GoAheadAndLogIn=1" onclick="return show_mini_login_form('_bottom')">Log In</a>
+  <form action="https://issues.apache.org/bugzilla/show_bug.cgi?id=44402" method="POST" class="mini_login bz_default_hidden" id="mini_login_bottom" onsubmit="return check_mini_login_fields( '_bottom' );">
+    <input value="login" id="Bugzilla_login_bottom" class="bz_login bz_mini_login_help" name="Bugzilla_login" onfocus="mini_login_on_focus('_bottom')">
+    <input class="bz_password bz_default_hidden" id="Bugzilla_password_bottom" name="Bugzilla_password" type="password">
+    <input class="bz_password bz_mini_login_help" id="Bugzilla_password_dummy_bottom" value="password" onfocus="mini_login_on_focus('_bottom')" type="text">
+      <input id="Bugzilla_remember_bottom" name="Bugzilla_remember" value="on" class="bz_remember" checked="checked" type="checkbox">
+      <label for="Bugzilla_remember_bottom">Remember</label>
+    <input name="GoAheadAndLogIn" value="Log in" id="log_in_bottom" type="submit">
+    <script type="text/javascript">
+      mini_login_constants = {
+          "login" : "login",
+          "warning" : "You must set the login and password before logging in."
+      };
+      
+      if (YAHOO.env.ua.gecko || YAHOO.env.ua.ie || YAHOO.env.ua.opera) {
+          YAHOO.util.Event.onDOMReady(function() {
+              init_mini_login_form('_bottom');
+          });
+      }
+      else {
+          YAHOO.util.Event.on(window, 'load', function () {
+              window.setTimeout(function() {
+                  init_mini_login_form('_bottom');
+              }, 200);
+          });
+    }
+    </script>
+    <a href="#" onclick="return hide_mini_login_form('_bottom')">[x]</a>
+  </form>
+</li>
+<li id="forgot_container_bottom">
+  <span class="separator">| </span>
+  <a id="forgot_link_bottom" href="https://issues.apache.org/bugzilla/show_bug.cgi?GoAheadAndLogIn=1#forgot" onclick="return show_forgot_form('_bottom')">Forgot Password</a>
+  <form action="token.cgi" method="post" id="forgot_form_bottom" class="mini_forgot bz_default_hidden">
+    <label>Login: <input name="loginname" size="20" type="text"></label>
+    <input id="forgot_button_bottom" value="Reset Password" type="submit">
+    <input name="a" value="reqpw" type="hidden">
+    <a href="#" onclick="return hide_forgot_form('_bottom')">[x]</a>
+  </form>
+</li>
+</ul>
+  </li>
+
+  
+    
+
+  
+
+
+  
+</ul>
+
+  <div class="outro"></div>
+</div>
+
+</body></html>

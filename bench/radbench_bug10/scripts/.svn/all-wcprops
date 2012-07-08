@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/ssg/spi/st/mt-testing/!svn/ver/697/Benchmarks/bug10/scripts
+END
+runme.sh
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/ssg/spi/st/mt-testing/!svn/ver/697/Benchmarks/bug10/scripts/runme.sh
+END
+apache_request.sh
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/ssg/spi/st/mt-testing/!svn/ver/490/Benchmarks/bug10/scripts/apache_request.sh
+END

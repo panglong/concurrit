@@ -1,0 +1,130 @@
+
+ "INTEL CONFIDENTIAL
+ Copyright (February 2011) Intel Corporation All Rights Reserved.
+ 
+ The source code contained or described herein and all documents
+ related to the source code ("Material") are owned by Intel Corporation
+ or its suppliers or licensors. Title to the Material remains with
+ Intel Corporation or its suppliers and licensors. The Material may
+ contain trade secrets and proprietary and confidential information of
+ Intel Corporation and its suppliers and licensors, and is protected by
+ worldwide copyright and trade secret laws and treaty provisions. No
+ part of the Material may be used, copied, reproduced, modified,
+ published, uploaded, posted, transmitted, distributed, or disclosed in
+ any way without Intel~Rs prior express written permission.  No
+ license under any patent, copyright, trade secret or other
+ intellectual property right is granted to or conferred upon you by
+ disclosure or delivery of the Materials, either expressly, by
+ implication, inducement, estoppel or otherwise. Any license under such
+ intellectual property rights must be express and approved by Intel in
+ writing.
+ 
+ Include any supplier copyright notices as supplier requires Intel to use.
+ 
+ Include supplier trademarks or logos as supplier requires Intel to
+ use, preceded by an asterisk. An asterisked footnote can be added as
+ follows: *Third Party trademarks are the property of their respective
+ owners.
+ 
+ Unless otherwise agreed by Intel in writing, you may not remove or
+ alter this notice or any other notice embedded in Materials by Intel
+ or Intel~Rs suppliers or licensors in any way."
+
+
+------------------------------
+Bug 10 (Bug #44402)
+a.k.a. Apache-1
+------------------------------
+
+------------------------------
+Description
+------------------------------
+
+Apache httpd Server
+
+https://issues.apache.org/bugzilla/show_bug.cgi?id=44402
+
+------------------------------
+Relevant Functions
+------------------------------
+
+ap_queue_info_set_idle() (in server/mpm/worker/fdqueue.c)
+
+------------------------------
+Makefile Targets
+------------------------------
+
+build - initial build of the Apache
+
+sleep - puts sleeps and wrapper functions to make bug more likely to appear
+
+normal - standard build
+
+clean - removes build
+
+------------------------------
+Running Apache
+------------------------------
+
+To Launch the browser as a foreground process, I do the following:
+
+$ MALLOC_CHECK_=3 /home/najalber/mt-testing/Benchmarks/bug10/bin/install/bin/httpd -DNO_DETACH -DFOREGROUND 
+
+My build scripts automatically configure apache to listen on port 8090, so you
+can check to make sure it's working by navigating to http://localhost:8090
+
+-------------------------------
+Bug Testharness
+------------------------------
+
+Once Apache is running, execute the shell script to simulate parallel loads.
+
+$ /home/najalber/mt-testing/Benchmarks/bug10/scripts/apache_request.sh
+
+-------------------------------
+Bug 
+-------------------------------
+
+See comment 17 from the bug report for a more detailed explanation.  At a high
+level, a lock free list structure is being modified with atomic operations,
+but the synchronization is not quite correct which can lead to list corruption
+in highly concurrent scenarios.
+
+
+-------------------------------
+Bug Manifestation
+-------------------------------
+
+When the bug manifests, one of the child threads dies.  Check the error logs
+after running the test harness (bin/install/logs/error_log).  If you see the
+following, the bug occurred:
+
+[Mon Sep 27 16:57:21 2010] [notice] Apache/2.2.8 (Unix) configured -- resuming normal operations
+[Mon Sep 27 16:57:26 2010] [notice] child pid 7438 exit signal Segmentation fault (11)
+[Mon Sep 27 16:57:26 2010] [notice] child pid 7439 exit signal Segmentation fault (11)
+[Mon Sep 27 16:57:26 2010] [notice] child pid 7440 exit signal Segmentation fault (11)
+[Mon Sep 27 16:57:26 2010] [notice] child pid 7772 exit signal Segmentation fault (11)
+[Mon Sep 27 16:57:27 2010] [notice] child pid 7897 exit signal Segmentation fault (11)
+[Mon Sep 27 16:57:28 2010] [notice] child pid 8120 exit signal Segmentation fault (11)
+[Mon Sep 27 16:57:28 2010] [notice] child pid 8121 exit signal Segmentation fault (11)
+
+------------------------------
+Where is the source from?
+------------------------------
+
+Apache tarball was downloaded from:
+
+$ wget http://archive.apache.org/dist/httpd/httpd-2.2.8.tar.bz2
+
+APR tarball was downloaded from:
+
+$ wget http://mirror.nyi.net/apache//apr/apr-1.4.2.tar.gz
+
+------------------------------
+Server kills children before they dump useful analysis info
+------------------------------
+
+Adjust time before server kills children processes in this file:
+httpd-2.2.8/server/mpm_common.c
+
+specifically in the function apr_reclaim_child_processes
