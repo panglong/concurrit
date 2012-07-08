@@ -160,6 +160,7 @@ private:
 class ServerEventHandler : public EventHandler {
 public:
 	ServerEventHandler() : EventHandler() {
+		start_sem_.Init(0);
 		end_sem_.Init(0);
 	}
 
@@ -277,6 +278,8 @@ public:
 			return;
 		}
 
+		start_sem_.Wait();
+
 		MYLOG(1) << "SERVER: Test starting.";
 
 		test_started = true;
@@ -355,6 +358,7 @@ public:
 
 private:
 	DECL_FIELD(Mutex, mutex)
+	DECL_FIELD_REF(Semaphore, start_sem)
 	DECL_FIELD_REF(Semaphore, end_sem)
 };
 
@@ -373,6 +377,9 @@ int main0(int argc, char* argv[]) {
 	controlpipe_ = controlpipe__;
 
 	safe_assert(handler_.end_sem()->Get() == 0);
+	safe_assert(handler_.start_sem()->Get() == 0);
+
+	handler_.start_sem()->Signal();
 
 	MYLOG(1) << "SERVER: __main__ starting.";
 
