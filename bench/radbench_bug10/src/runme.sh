@@ -65,7 +65,7 @@ function setup {
 	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
     	MALLOC_CHECK_=3 /home/elmas/radbench/Benchmarks/bug10/bin/install/bin/httpd -DNO_DETACH -DFOREGROUND &
     #eval $TEST_CALL
-    serverWaitUntilAvailable "8090"
+    #serverWaitUntilAvailable "8090"
     return 0
 }
 

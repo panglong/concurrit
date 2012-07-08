@@ -9,7 +9,9 @@ unsigned int g_threads = 10;
 
 void* worker(void*) {
 
-	system("wget http://localhost:8090/ -o /dev/null -O /dev/null");
+	for(int i = 0; i < 10; ++i) {
+		system("wget http://localhost:8090/ -o /dev/null -O /dev/null");
+	}
 
 	return NULL;
 }

@@ -110,7 +110,7 @@ apr_status_t ap_queue_info_set_idle(fd_queue_info_t *queue_info,
             if (swap == new_recycle->next) {
                 /* ASSERT: Patch used to discover bug from bug report comment #17 */
                 /* https://issues.apache.org/bugzilla/show_bug.cgi?id=44402 */
-                /*ap_assert(next == new_recycle->next);*/
+                ap_assert(next == new_recycle->next);
                 break;
             }
             ap_assert(swap != next);

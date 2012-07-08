@@ -26,7 +26,7 @@ copyfiles:
 
 all: makedirs copyfiles apache harness
 
-harness:
+harness: makedirs copyfiles
 	gcc -lpthread -o $(RADBENCHDIR)/bin/test-apache $(RADBENCHDIR)/src/test-harness.cpp \
 		-g -gdwarf-2 -O1 -w -fPIC -lconcurrit -I$(CONCURRIT_HOME)/include -L$(CONCURRIT_HOME)/lib \
 		-ltbb -L$(CONCURRIT_HOME)/third_party/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21 -I$(CONCURRIT_HOME)/third_party/tbb/include

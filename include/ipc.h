@@ -122,8 +122,11 @@ protected:
 		}							\
 
 	void Send(EventBuffer* event) {
+		safe_assert(event != NULL);
 		safe_assert(event->type != InvalidEventKind);
 		safe_assert(event->threadid != INVALID_THREADID);
+
+		MYLOG(2) << "IPC: EventPipe::Send " << EventKindToString(event->type) << " to thread " << event->threadid;
 
 		DECL_SEND_RECV(Send);
 
@@ -131,9 +134,12 @@ protected:
 	}
 
 	void Recv(EventBuffer* event) {
+		safe_assert(event != NULL);
 		event->Clear();
 
 		DECL_SEND_RECV(Recv);
+
+		MYLOG(2) << "IPC: EventPipe::Recv " << EventKindToString(event->type) << " to thread " << event->threadid;
 
 		safe_assert(event->type != InvalidEventKind);
 		safe_assert(event->threadid != INVALID_THREADID);
@@ -187,6 +193,7 @@ private:
 	DECL_FIELD(EventPipe*, pipe)
 	DECL_FIELD(EventBuffer, event)
 	DECL_FIELD_REF(Semaphore, sem)
+	DECL_FIELD_REF(Semaphore, sem2)
 };
 
 /********************************************************************************/

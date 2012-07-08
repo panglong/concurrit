@@ -105,6 +105,7 @@ inline const char* EventKindToString(EventKind& kind) {
 /***********************************************************************/
 
 struct EventBuffer {
+public:
 	EventKind type;
 	THREADID threadid;
 	ADDRINT addr;

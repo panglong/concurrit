@@ -184,6 +184,7 @@ void EventPipe::Close() {
 
 ShadowThread::ShadowThread(THREADID tid, EventPipe* pipe) : tid_(tid), pipe_(pipe) {
 	sem_.Init(0);
+	sem2_.Init(0);
 	event_.Clear();
 }
 
@@ -233,6 +234,8 @@ void ShadowThread::SendRecvContinue(EventBuffer* e) {
 void ShadowThread::WaitRecv(EventBuffer* event) {
 	safe_assert(event != NULL);
 
+	sem2_.Signal();
+
 	safe_assert(sem_.Get() <= 1);
 	sem_.Wait();
 
@@ -250,13 +253,16 @@ void ShadowThread::SignalRecv(EventBuffer* event) {
 	safe_assert(event != NULL);
 
 	MYLOG(1) << "SignalRecv to thread " << event->threadid << " for event " << EventKindToString(event->type);
+	safe_assert(event->threadid == tid_);
+
+	sem2_.Wait();
 
 	// copy to the buffer
 	event_ = *event;
 //	memcpy(&event_, event_, sizeof(EventBuffer));
 
 	// signal
-	safe_assert(sem_.Get() <= 0);
+	if(sem_.Get() > 0) { fprintf(stderr, "Problem is with thread %d and sem %d\n", tid_, sem_.Get()); safe_fail("Assertion!\n"); }
 	sem_.Signal();
 }
 
