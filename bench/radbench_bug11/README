@@ -1,0 +1,167 @@
+
+ "INTEL CONFIDENTIAL
+ Copyright (February 2011) Intel Corporation All Rights Reserved.
+ 
+ The source code contained or described herein and all documents
+ related to the source code ("Material") are owned by Intel Corporation
+ or its suppliers or licensors. Title to the Material remains with
+ Intel Corporation or its suppliers and licensors. The Material may
+ contain trade secrets and proprietary and confidential information of
+ Intel Corporation and its suppliers and licensors, and is protected by
+ worldwide copyright and trade secret laws and treaty provisions. No
+ part of the Material may be used, copied, reproduced, modified,
+ published, uploaded, posted, transmitted, distributed, or disclosed in
+ any way without Intel~Rs prior express written permission.  No
+ license under any patent, copyright, trade secret or other
+ intellectual property right is granted to or conferred upon you by
+ disclosure or delivery of the Materials, either expressly, by
+ implication, inducement, estoppel or otherwise. Any license under such
+ intellectual property rights must be express and approved by Intel in
+ writing.
+ 
+ Include any supplier copyright notices as supplier requires Intel to use.
+ 
+ Include supplier trademarks or logos as supplier requires Intel to
+ use, preceded by an asterisk. An asterisked footnote can be added as
+ follows: *Third Party trademarks are the property of their respective
+ owners.
+ 
+ Unless otherwise agreed by Intel in writing, you may not remove or
+ alter this notice or any other notice embedded in Materials by Intel
+ or Intel~Rs suppliers or licensors in any way."
+
+
+------------------------------
+Bug 11 (Bug #45605)
+------------------------------
+
+------------------------------
+Description
+------------------------------
+
+Apache httpd Server
+
+https://issues.apache.org/bugzilla/show_bug.cgi?id=45605
+
+------------------------------
+Relevant Functions
+------------------------------
+
+
+ap_queue_info_set_idle (in server/mpm/worker/fdqueue.c)
+ap_queue_info_wait_for_idler (in server/mpm/worker/fdqueue.c)
+
+------------------------------
+Makefile Targets
+------------------------------
+
+build - initial build of the Apache
+
+sleep - puts sleeps and logic make bug more likely to appear (bug is still
+fairly rare).
+
+fuzz - puts only randomized sleeps to make bug more likely to appear
+
+normal - standard build
+
+clean - removes build
+
+------------------------------
+Running Apache
+------------------------------
+
+To Launch the browser as a foreground process, I do the following:
+
+$ /home/najalber/mt-testing/Benchmarks/bug11/bin/install/bin/httpd -DNO_DETACH -DFOREGROUND
+
+My build scripts automatically configure apache to listen on port 8091, so you
+can check to make sure it's working by navigating to http://localhost:8091
+
+UPDATE:
+
+I was getting this error when I ran Apache:
+
+httpd: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1 for ServerName
+[Mon Oct 11 16:44:43 2010] [emerg] (28)No space left on device: Couldn't create accept lock
+
+Probably due to memory leaks/unclean shutdowns, apache leaves a mess of semaphore arrays.  I cleaned them up by executing the following:
+
+$ ipcs -s | xargs ipcrm sem
+
+-------------------------------
+Bug Testharness
+------------------------------
+
+Once Apache is running, execute the included load simulator to stress the
+server:
+
+$ bin/install/bin/ab -c 100 -t 30 http://localhost:8091/
+
+-------------------------------
+Bug 
+-------------------------------
+
+Read comment 4 for a detailed description.  At a high level, a condition
+variable is used incorrectly (inside an if statment instead of a while loop),
+which can lead to the request-listener thread getting out of synch with the
+worker threads.  Eventually the listener will overwrite memory it's not
+supposed to.
+
+Alternately--The lack of atomicity between increasing the idler's count and
+signal the listener thread could also considered at fault.
+
+-------------------------------
+Bug Manifestation
+-------------------------------
+
+When the bug manifests, the benchmarking program may fail like this:
+
+-----
+$ bin/install/bin/ab -c 100 -t 30 http://localhost:8091/
+This is ApacheBench, Version 2.3 <$Revision: 655654 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient)
+apr_socket_recv: Connection reset by peer (104)
+Total of 61 requests completed
+-----
+
+And the bin/install/logs/error_log will have an entry similar to this:
+
+-----
+httpd: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1 for ServerName
+[Tue Sep 28 13:41:12 2010] [notice] Apache/2.2.9 (Unix) configured -- resuming normal operations
+[Tue Sep 28 13:41:22 2010] [notice] child pid 7556 exit signal Segmentation fault (11)
+-----
+
+Sometimes you will see the following errors in the log, and I suspect these are
+also manifestations of the bug:
+-----
+[Wed Oct 06 11:02:16 2010] [emerg] (22)Invalid argument: ap_queue_info_set_idle failed. Attempting to shutdown process gracefully.
+[Wed Oct 06 11:02:17 2010] [emerg] (22)Invalid argument: ap_queue_info_set_idle failed. Attempting to shutdown process gracefully.
+[Wed Oct 06 11:02:22 2010] [warn] child process 14152 still did not exit, sending a SIGTERM
+[Wed Oct 06 11:02:22 2010] [warn] child process 13249 still did not exit, sending a SIGTERM
+[Wed Oct 06 11:02:24 2010] [warn] child process 14152 still did not exit, sending a SIGTERM
+[Wed Oct 06 11:02:24 2010] [warn] child process 13249 still did not exit, sending a SIGTERM
+[Wed Oct 06 11:02:26 2010] [warn] child process 14152 still did not exit, sending a SIGTERM
+[Wed Oct 06 11:02:26 2010] [warn] child process 13249 still did not exit, sending a SIGTERM
+[Wed Oct 06 11:02:28 2010] [error] child process 14152 still did not exit, sending a SIGKILL
+-----
+
+Note, the bug results in a write off the array into arbitrary memory, so the
+manifestation vary from run to run and platform to platform.  Also, bug
+manifests quite rarely even with sleeps.  
+
+------------------------------
+Where is the source from?
+------------------------------
+
+Apache tarball was downloaded from:
+
+$ wget http://archive.apache.org/dist/httpd/httpd-2.2.9.tar.bz2
+
+APR tarball was downloaded from:
+
+$ wget http://mirror.nyi.net/apache//apr/apr-1.4.2.tar.gz
+

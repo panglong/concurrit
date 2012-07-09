@@ -17,8 +17,6 @@
 #include "fdqueue.h"
 #include "apr_atomic.h"
 
-#include "instrument.h"
-
 typedef struct recycled_pool {
     apr_pool_t *pool;
     struct recycled_pool *next;
@@ -87,8 +85,6 @@ apr_status_t ap_queue_info_set_idle(fd_queue_info_t *queue_info,
     apr_status_t rv;
     int prev_idlers;
 
-    concurritFuncEnter((void*)12345U, 0, 0);
-
     /* If we have been given a pool to recycle, atomically link
      * it into the queue_info's list of recycled pools
      */
@@ -98,25 +94,16 @@ apr_status_t ap_queue_info_set_idle(fd_queue_info_t *queue_info,
                                                          sizeof(*new_recycle));
         new_recycle->pool = pool_to_recycle;
         for (;;) {
-            /* ASSERT: Patch used to discover bug from bug report comment #17 */
-            /* https://issues.apache.org/bugzilla/show_bug.cgi?id=44402 */
-        	concurritControl();
+            /* Save queue_info->recycled_pool in local variable next because
+             * new_recycle->next can be changed after apr_atomic_casptr
+             * function call. For gory details see PR 44402.
+             */
             struct recycled_pool *next = queue_info->recycled_pools;
-            concurritControl();
-            new_recycle->next = queue_info->recycled_pools;
-            concurritControl();
-            struct recycled_pool *read_next = new_recycle->next;
-            concurritControl();
-            struct recycled_pool* swap = apr_atomic_casptr((volatile void**)&(queue_info->recycled_pools), new_recycle, read_next);
-            concurritControl();
-            if (swap == new_recycle->next) {
-                /* ASSERT: Patch used to discover bug from bug report comment #17 */
-                /* https://issues.apache.org/bugzilla/show_bug.cgi?id=44402 */
-            	concurritControl();
-//            	ap_assert(next == new_recycle->next);
+            new_recycle->next = next;
+            if (apr_atomic_casptr((volatile void**)&(queue_info->recycled_pools),
+                                  new_recycle, next) == next) {
                 break;
             }
-            ap_assert(swap != next);
         }
     }
 
@@ -134,23 +121,18 @@ apr_status_t ap_queue_info_set_idle(fd_queue_info_t *queue_info,
     if (prev_idlers == 0) {
         rv = apr_thread_mutex_lock(queue_info->idlers_mutex);
         if (rv != APR_SUCCESS) {
-        	concurritFuncReturn((void*)12345U, 0);
             return rv;
         }
         rv = apr_thread_cond_signal(queue_info->wait_for_idler);
         if (rv != APR_SUCCESS) {
             apr_thread_mutex_unlock(queue_info->idlers_mutex);
-            concurritFuncReturn((void*)12345U, 0);
             return rv;
         }
         rv = apr_thread_mutex_unlock(queue_info->idlers_mutex);
         if (rv != APR_SUCCESS) {
-        	concurritFuncReturn((void*)12345U, 0);
             return rv;
         }
     }
-
-    concurritFuncReturn((void*)12345U, 0);
 
     return APR_SUCCESS;
 }
@@ -202,12 +184,18 @@ apr_status_t ap_queue_info_wait_for_idler(fd_queue_info_t *queue_info,
         }
     }
 
-    concurritFuncEnter((void*)12345U, 0, 0);
-
     /* Atomically decrement the idle worker count */
     apr_atomic_dec32(&(queue_info->idlers));
 
     /* Atomically pop a pool from the recycled list */
+
+    /* This function is safe only as long as it is single threaded because
+     * it reaches into the queue and accesses "next" which can change.
+     * We are OK today because it is only called from the listener thread.
+     * cas-based pushes do not have the same limitation - any number can
+     * happen concurrently with a single cas-based pop.
+     */
+
     for (;;) {
         struct recycled_pool *first_pool = queue_info->recycled_pools;
         if (first_pool == NULL) {
@@ -221,11 +209,9 @@ apr_status_t ap_queue_info_wait_for_idler(fd_queue_info_t *queue_info,
     }
 
     if (queue_info->terminated) {
-    	concurritFuncReturn((void*)12345U, 0);
         return APR_EOF;
     }
     else {
-    	concurritFuncReturn((void*)12345U, 0);
         return APR_SUCCESS;
     }
 }

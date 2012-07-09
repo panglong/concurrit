@@ -1,9 +1,9 @@
 
-BENCH=radbench_bug10
+BENCH=radbench_bug11
 
 include $(CONCURRIT_HOME)/test-common.mk
 
-RADBENCHDIR=$(RADBENCH_HOME)/bug10
+RADBENCHDIR=$(RADBENCH_HOME)/bug11
 
 TEST_FLAGS+=
 LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH)
@@ -34,7 +34,7 @@ harness: makedirs copyfiles
 
 apache:
 	make -C $(RADBENCHDIR) build
-	cp -f $(BENCHDIR)/src/main.c $(RADBENCHDIR)/src/httpd-2.2.8/server/
+	cp -f $(BENCHDIR)/src/main.c $(RADBENCHDIR)/src/httpd-2.2.9/server/
 	make -C $(RADBENCHDIR) assert
 	cp -f $(BENCHDIR)/scripts/conf/extra/httpd-mpm.conf $(RADBENCHDIR)/bin/install/conf/extra/
 	

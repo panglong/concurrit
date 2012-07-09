@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/ssg/spi/st/mt-testing/!svn/ver/56/Benchmarks/bug11/src/my-mods
+END
+fdqueue-original.c
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/ssg/spi/st/mt-testing/!svn/ver/45/Benchmarks/bug11/src/my-mods/fdqueue-original.c
+END
+fdqueue-sleep.c
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/ssg/spi/st/mt-testing/!svn/ver/56/Benchmarks/bug11/src/my-mods/fdqueue-sleep.c
+END
+fdqueue-noise.c
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/ssg/spi/st/mt-testing/!svn/ver/56/Benchmarks/bug11/src/my-mods/fdqueue-noise.c
+END
