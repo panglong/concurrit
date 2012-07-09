@@ -54,8 +54,8 @@ cd $RUN_DIR
 TEST_CALL="{ $1 $HTTPD_SERVER -DNO_DETACH -DFOREGROUND; } & "
 
 function setup {
-    killAllCmdContainingName httpd
-    #ipcs -s | xargs ipcrm sem
+    killAllCmdContainingName httpd 50
+    ipcs -s | xargs ipcrm sem
     rm -f $ERROR_LOG
     echo "Launching server as follows: $TEST_CALL"
     LD_PRELOAD=
@@ -63,7 +63,7 @@ function setup {
 	PATH="$BENCHDIR/bin:$PATH" \
 	LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
 	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
-    	MALLOC_CHECK_=3 /home/elmas/radbench/Benchmarks/bug10/bin/install/bin/httpd -DNO_DETACH -DFOREGROUND &
+    	MALLOC_CHECK_=3 /home/elmas/radbench/Benchmarks/bug10/bin/install/bin/httpd -X -DNO_DETACH -DFOREGROUND &
     #eval $TEST_CALL
     #serverWaitUntilAvailable "8090"
     return 0
@@ -76,7 +76,7 @@ function runtest {
 }
 
 function cleanup {
-    killAllWithProcName httpd
+    killAllWithProcName httpd 50
     wait
     echo
     echo "ERROR LOG:"

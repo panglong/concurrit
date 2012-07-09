@@ -322,6 +322,8 @@ public:
 		e.threadid = 0;
 		clientpipe_->Send(NULL, &e);
 
+		MYLOG(1) << "SERVER: Broadcasting ThreadEndIntern";
+
 		// broadcast thread-end signal to all threads
 		e.type = ThreadEndIntern;
 		clientpipe_->Broadcast(&e);

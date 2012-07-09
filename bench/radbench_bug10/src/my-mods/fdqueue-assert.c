@@ -105,12 +105,15 @@ apr_status_t ap_queue_info_set_idle(fd_queue_info_t *queue_info,
             concurritControl();
             new_recycle->next = queue_info->recycled_pools;
             concurritControl();
-            struct recycled_pool* swap = apr_atomic_casptr((volatile void**)&(queue_info->recycled_pools), new_recycle, new_recycle->next);
+            struct recycled_pool *read_next = new_recycle->next;
+            concurritControl();
+            struct recycled_pool* swap = apr_atomic_casptr((volatile void**)&(queue_info->recycled_pools), new_recycle, read_next);
             concurritControl();
             if (swap == new_recycle->next) {
                 /* ASSERT: Patch used to discover bug from bug report comment #17 */
                 /* https://issues.apache.org/bugzilla/show_bug.cgi?id=44402 */
-                ap_assert(next == new_recycle->next);
+            	concurritControl();
+            	ap_assert(next == new_recycle->next);
                 break;
             }
             ap_assert(swap != next);
@@ -199,6 +202,8 @@ apr_status_t ap_queue_info_wait_for_idler(fd_queue_info_t *queue_info,
         }
     }
 
+    concurritFuncEnter((void*)12345U, 0, 0);
+
     /* Atomically decrement the idle worker count */
     apr_atomic_dec32(&(queue_info->idlers));
 
@@ -208,17 +213,30 @@ apr_status_t ap_queue_info_wait_for_idler(fd_queue_info_t *queue_info,
         if (first_pool == NULL) {
             break;
         }
-        if (apr_atomic_casptr((volatile void**)&(queue_info->recycled_pools), first_pool->next,
-                              first_pool) == first_pool) {
-            *recycled_pool = first_pool->pool;
-            break;
-        }
+        concurritControl();
+        struct recycled_pool* read_next = first_pool->next;
+        concurritControl();
+		struct recycled_pool* swap = apr_atomic_casptr((volatile void**)&(queue_info->recycled_pools), read_next, first_pool);
+		concurritControl();
+		if (swap == first_pool) {
+			concurritControl();
+			*recycled_pool = first_pool->pool;
+			break;
+		}
+
+//        if (apr_atomic_casptr((volatile void**)&(queue_info->recycled_pools), first_pool->next,
+//                              first_pool) == first_pool) {
+//            *recycled_pool = first_pool->pool;
+//            break;
+//        }
     }
 
     if (queue_info->terminated) {
+    	concurritFuncReturn((void*)12345U, 0);
         return APR_EOF;
     }
     else {
+    	concurritFuncReturn((void*)12345U, 0);
         return APR_SUCCESS;
     }
 }

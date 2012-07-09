@@ -39,6 +39,7 @@
 #include "interface.h"
 #include "thread.h"
 #include "tbb/concurrent_hash_map.h"
+#include <glog/logging.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>

@@ -1026,7 +1026,7 @@ static void complete_incr_bin(conn *c) {
 
     it = item_get(key, nkey);
 
-    concurritControl();
+    concurritAtPc(42);
 
     if (it && (c->binary_header.request.cas == 0 ||
                c->binary_header.request.cas == ITEM_get_cas(it))) {
@@ -2799,7 +2799,7 @@ static void process_arithmetic_command(conn *c, token_t *tokens, const size_t nt
 
     it = item_get(key, nkey);
 
-    concurritControl();
+    concurritAtPc(42);
 
     if (!it) {
         pthread_mutex_lock(&c->thread->stats.mutex);
