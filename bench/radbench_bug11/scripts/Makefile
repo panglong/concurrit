@@ -33,6 +33,14 @@ build:
 	    mv bin/install/conf/tmp.conf bin/install/conf/httpd.conf
 
 
+assert:
+	stat bin/install && \
+	    cd src && \
+	    cd httpd-2.2.9 && \
+	    cp ../my-mods/fdqueue-assert.c server/mpm/worker/fdqueue.c && \
+	    make && \
+	    make install
+	    
 apache-sleep:
 	stat bin/install && \
 	    cd src && \

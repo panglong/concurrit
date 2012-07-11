@@ -155,7 +155,7 @@ apr_status_t ap_queue_info_wait_for_idler(fd_queue_info_t *queue_info,
 {
     apr_status_t rv;
 
-    concurritFuncEnter((void*)12345U, 0, 0);
+    concurritFuncEnter((void*)12346U, 0, 0);
 
     *recycled_pool = NULL;
 
@@ -189,16 +189,16 @@ apr_status_t ap_queue_info_wait_for_idler(fd_queue_info_t *queue_info,
                 apr_status_t rv2;
                 rv2 = apr_thread_mutex_unlock(queue_info->idlers_mutex);
                 if (rv2 != APR_SUCCESS) {
-                	concurritFuncReturn((void*)12345U, 0);
+                	concurritFuncReturn((void*)12346U, 0);
                     return rv2;
                 }
-                concurritFuncReturn((void*)12345U, 0);
+                concurritFuncReturn((void*)12346U, 0);
                 return rv;
             }
         }
         rv = apr_thread_mutex_unlock(queue_info->idlers_mutex);
         if (rv != APR_SUCCESS) {
-        	concurritFuncReturn((void*)12345U, 0);
+        	concurritFuncReturn((void*)12346U, 0);
             return rv;
         }
     }
@@ -232,11 +232,11 @@ apr_status_t ap_queue_info_wait_for_idler(fd_queue_info_t *queue_info,
     }
 
     if (queue_info->terminated) {
-    	concurritFuncReturn((void*)12345U, 0);
+    	concurritFuncReturn((void*)12346U, 0);
         return APR_EOF;
     }
     else {
-    	concurritFuncReturn((void*)12345U, 0);
+    	concurritFuncReturn((void*)12346U, 0);
         return APR_SUCCESS;
     }
 }

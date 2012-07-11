@@ -77,7 +77,7 @@ function setup {
 	PATH="$BENCHDIR/bin:$PATH" \
 	LD_LIBRARY_PATH="$BENCHDIR/lib:$LD_LIBRARY_PATH" \
 	DYLD_LIBRARY_PATH="$BENCHDIR/lib:$DYLD_LIBRARY_PATH" \
-    	$MEMSERVER -U 0 -p 11211 -r 4 -d -t 10 -vvv
+    	$MEMSERVER -U 0 -p 11211 -r 4 -d -t 10
     sleep .5
     return 0
 }

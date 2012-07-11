@@ -50,7 +50,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		RUN_THREAD_UNTIL(t1, ENTERS_BARRIER(TID), "until t1 enters");
 		RUN_THREAD_UNTIL(t2, ENTERS_BARRIER(TID), "until t2 enters");
 
-		WHILE(!ENDS(t1)->EvalState(t1)) // (IN_FUNC(median, t1)->EvalState() || IN_FUNC(median, t2)->EvalState() || IN_FUNC(median, t3)->EvalState())
+		WHILE(!ENDS(t1)->EvalState(t1))
 		{
 			RUN_THREAD_UNTIL(t3, ENTERS_BARRIER(TID), "until t3 enters");
 
@@ -124,7 +124,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		RUN_UNTIL(NOT(tm) && NOT(t1), ENTERS_BARRIER(TID), t2, "until t2 enters");
 		RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), ENTERS_BARRIER(TID), t3, "until t3 enters");
 
-		WHILE_STAR // (IN_FUNC(median, t1)->EvalState() || IN_FUNC(median, t2)->EvalState() || IN_FUNC(median, t3)->EvalState())
+		WHILE(IN_FUNC(median, t1)->EvalState() || IN_FUNC(median, t2)->EvalState() || IN_FUNC(median, t3)->EvalState())
 		{
 			TVAR(tt1);
 			TVAR(tt2);
@@ -156,7 +156,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		RUN_THREAD_THROUGH(t1, ENDS(), "ttt1 ends");
 		RUN_THREAD_THROUGH(t2, ENDS(), "ttt2 ends");
 
-		RUN_THREAD_UNTIL(tm, RETURNS(ls), "main returns");
+		RUN_THREAD_UNTIL(tm, ENDS(), "main returns");
 
 		RUN_THREAD_UNTIL(t3, ENDS(), "ttt3 ends");
 	}

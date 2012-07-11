@@ -1,0 +1,246 @@
+
+ "INTEL CONFIDENTIAL
+ Copyright (February 2011) Intel Corporation All Rights Reserved.
+ 
+ The source code contained or described herein and all documents
+ related to the source code ("Material") are owned by Intel Corporation
+ or its suppliers or licensors. Title to the Material remains with
+ Intel Corporation or its suppliers and licensors. The Material may
+ contain trade secrets and proprietary and confidential information of
+ Intel Corporation and its suppliers and licensors, and is protected by
+ worldwide copyright and trade secret laws and treaty provisions. No
+ part of the Material may be used, copied, reproduced, modified,
+ published, uploaded, posted, transmitted, distributed, or disclosed in
+ any way without Intel~Rs prior express written permission.  No
+ license under any patent, copyright, trade secret or other
+ intellectual property right is granted to or conferred upon you by
+ disclosure or delivery of the Materials, either expressly, by
+ implication, inducement, estoppel or otherwise. Any license under such
+ intellectual property rights must be express and approved by Intel in
+ writing.
+ 
+ Include any supplier copyright notices as supplier requires Intel to use.
+ 
+ Include supplier trademarks or logos as supplier requires Intel to
+ use, preceded by an asterisk. An asterisked footnote can be added as
+ follows: *Third Party trademarks are the property of their respective
+ owners.
+ 
+ Unless otherwise agreed by Intel in writing, you may not remove or
+ alter this notice or any other notice embedded in Materials by Intel
+ or Intel~Rs suppliers or licensors in any way."
+
+
+***************NOTE WARNING README IMPORTANT**************
+
+This bug is from Shan Lu and/or Min Xu's BugBench suite.  While I created the
+various compile scripts, credit for the hard work on this bug goes to them
+(including, but not limited to, finding the source, pointing out the problem in
+the source, and suggesting what a suitable testharness could look like).  This
+is included in the suite because I plan to use it in my paper, if you plan to
+use this bug you should cite their Bugbench paper.
+
+***************NOTE WARNING README IMPORTANT**************
+
+
+Min Xu's bug from the UIUC benchmarks.  Details of how I built the bug..
+
+
+On Ubuntu 10.05 64-bit, configure failed until I installed:
+
+$ sudo apt-get install lib32ncurses5-dev
+
+*************************************************************
+Unzip mysql
+*************************************************************
+
+$ tar xzf mysql-4.0.12.tar.gz
+
+*************************************************************
+Make Installation Directory
+*************************************************************
+
+$ mkdir bug_install
+
+*************************************************************
+Configure
+*************************************************************
+
+$ cd mysql-4.0.12
+$ FLAGS="-O0 -g" CXXFLAGS="-O0 -g -felide-constructors -fno-exceptions -fno-rtti" ./configure --with-named-thread-libs="-lpthread" --prefix=/home/najalber/mysql_1_clean/bug_install/ --with-debug=full
+
+*************************************************************
+Fixing broken code
+*************************************************************
+
+modify mysys/my_thr_init.c (lines 40 - 42) from:
+
+#ifdef PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP
+pthread_mutexattr_t my_fast_mutexattr;
+#endif
+
+to:
+
+//#ifdef PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP
+pthread_mutexattr_t my_fast_mutexattr;
+//#endif
+
+
+*************************************************************
+Make
+*************************************************************
+
+$ make
+$ make install
+
+*************************************************************
+User setup 
+*************************************************************
+
+
+$ su
+$ /usr/sbin/groupadd mysqlbug1
+$ /usr/sbin/useradd -g mysqlbug1 mysqlbug1
+$ exit
+
+*************************************************************
+Modify mysql_install_db
+*************************************************************
+
+
+$ cd ../bug_install/bin
+
+Comment out lines 119-126 in mysql_install_db because it was
+resolving the ip of localhost with no problem but still
+was failing for some mysterious reason.
+
+start:
+    resolved=`$bindir/resolveip localhost 2>&1`
+    if [ $? -eq 0 ]
+    then
+      echo "Neither host '$hostname' and 'localhost' could not be looked up with"
+      echo "$bindir/resolveip"
+      echo "Please configure the 'hostname' command to return a correct hostname."
+      echo "If you want to solve this at a later stage, restart this script with"
+      echo "the --force option"
+      exit 1
+    fi
+
+
+end:
+    resolved=`$bindir/resolveip localhost 2>&1`
+    #if [ $? -eq 0 ]
+    #then
+    #  echo "Neither host '$hostname' and 'localhost' could not be looked up with"
+    #  echo "$bindir/resolveip"
+    #  echo "Please configure the 'hostname' command to return a correct hostname."
+    #  echo "If you want to solve this at a later stage, restart this script with"
+    #  echo "the --force option"
+    #  exit 1
+    #fi
+
+*************************************************************
+Run mysql_install_db
+*************************************************************
+
+$ sudo ./mysql_install_db 
+
+*************************************************************
+Modify permission of install directory
+*************************************************************
+
+$ cd ..
+$ sudo chown -R mysqlbug1 .
+$ sudo chgrp -R mysqlbug1 .
+$ sudo chmod -R 777 .
+
+*************************************************************
+Run Server Daemon (success!)
+*************************************************************
+
+$ bin/mysqld_safe --user=mysqlbug1 &
+
+You should now be able to execute bin/mysql and have it work!
+Now it's time for bug reproduction.
+
+*************************************************************
+Run the Server Directly
+*************************************************************
+
+To execute server binary directly, this works for me--
+
+$ /home/najalber/mysql_1_clean/bug_install/libexec/mysqld --basedir=/home/najalber/mysql_1_clean/bug_install/ --datadir=/home/najalber/mysql_1_clean/bug_install/var --pid-file=/home/najalber/mysql_1_clean/bug_install/var/najalber-c5.pid --skip-locking --log-bin=/home/najalber/pintester/mysql_bin_log
+
+
+or
+
+
+$ bin/libexec/mysqld --skip-grant --basedir=`pwd`/bin/ --datadir=`pwd`/bin/var --pid-file=`pwd`/bin/var/najalber-c5.pid --skip-locking --log-bin=`pwd`/bin/binlogdir/mysql_bin_log
+
+
+*************************************************************
+Execute Test Harness
+*************************************************************
+
+$ sudo ./test_harness
+
+*************************************************************
+Force The Bug Using Sleeps
+*************************************************************
+
+In the mysql-4.0.12/sql/log.cc function MYSQL_LOG::new_file(bool) lines 859-865
+appear as follows:
+
+859:  old_name=name;
+860:  save_log_type=log_type;
+861:  name=0;				// Don't free name
+862:  close();
+863:  open(old_name, save_log_type, new_name_ptr, index_file_name, io_cache_type,
+864:       no_auto_events);
+865:  my_free(old_name,MYF(0));
+
+
+Changes this to the following (insert a sleep between open and close);
+
+859:  old_name=name;
+860:  save_log_type=log_type;
+861:  name=0;				// Don't free name
+862:  close();
+863:  if (save_log_type == LOG_BIN) {
+864:      printf("after close, before open; I wait for 5 seconds\n");
+865:      sleep(5);
+866:      printf("sleep finished, opening\n");
+867:  }
+868:  open(old_name, save_log_type, new_name_ptr, index_file_name, io_cache_type,
+869:       no_auto_events);
+870:  my_free(old_name,MYF(0));
+
+recompile, install, run server, and run test harness and this should cause the
+failure to occur.
+
+*************************************************************
+Run the Server with Race Detection
+*************************************************************
+
+To execute server binary directly, this works for me--
+
+$ pin -t /home/najalber/pintester/bin/racer.so -o /home/najalber/pintester/benchmark/mysql_1/testing_targets -heuristic_filter -lite_race -- /home/najalber/mysql_1_clean/bug_install/libexec/mysqld --basedir=/home/najalber/mysql_1_clean/bug_install/ --datadir=/home/najalber/mysql_1_clean/bug_install/var --pid-file=/home/najalber/mysql_1_clean/bug_install/var/najalber-c5.pid --skip-locking --log-bin=/home/najalber/pintester/mysql_bin_log
+
+*************************************************************
+Run the Server with Tester
+*************************************************************
+
+$ pin -t /home/najalber/pintester/bin/tester.so -o /home/najalber/pintester/benchmark/mysql_1/sketch -target /home/najalber/pintester/benchmark/mysql_1/testing-targets -sketch /home/najalber/pintester/benchmark/mysql_1/testing-targets -disable_atomic -- /home/najalber/mysql_1_clean/bug_install/libexec/mysqld --basedir=/home/najalber/mysql_1_clean/bug_install/ --datadir=/home/najalber/mysql_1_clean/bug_install/var --pid-file=/home/najalber/mysql_1_clean/bug_install/var/najalber-c5.pid --skip-locking --log-bin=/home/najalber/pintester/mysql_bin_log
+
+
+
+---------------------
+
+#undef min
+#define min(a,b) ((a < b) ? a : b)
+#undef max
+#define max(a,b) ((a > b) ? a : b)
+
+
+bin/bin/mysql -u root -D test -e 'create table b (id int auto_increment not null primary key, tal int not null default 1);'
+

@@ -1,0 +1,179 @@
+
+ "INTEL CONFIDENTIAL
+ Copyright (February 2011) Intel Corporation All Rights Reserved.
+ 
+ The source code contained or described herein and all documents
+ related to the source code ("Material") are owned by Intel Corporation
+ or its suppliers or licensors. Title to the Material remains with
+ Intel Corporation or its suppliers and licensors. The Material may
+ contain trade secrets and proprietary and confidential information of
+ Intel Corporation and its suppliers and licensors, and is protected by
+ worldwide copyright and trade secret laws and treaty provisions. No
+ part of the Material may be used, copied, reproduced, modified,
+ published, uploaded, posted, transmitted, distributed, or disclosed in
+ any way without Intel~Rs prior express written permission.  No
+ license under any patent, copyright, trade secret or other
+ intellectual property right is granted to or conferred upon you by
+ disclosure or delivery of the Materials, either expressly, by
+ implication, inducement, estoppel or otherwise. Any license under such
+ intellectual property rights must be express and approved by Intel in
+ writing.
+ 
+ Include any supplier copyright notices as supplier requires Intel to use.
+ 
+ Include supplier trademarks or logos as supplier requires Intel to
+ use, preceded by an asterisk. An asterisked footnote can be added as
+ follows: *Third Party trademarks are the property of their respective
+ owners.
+ 
+ Unless otherwise agreed by Intel in writing, you may not remove or
+ alter this notice or any other notice embedded in Materials by Intel
+ or Intel~Rs suppliers or licensors in any way."
+
+
+******************************************
+The following is the original README 
+included with the bug in Lu's BugBench
+******************************************
+
+
+This readme contains following information
+1. program description
+2. bug explanation
+3. source code info
+4. How to trigger the bug
+5. bug detection preliminary result
+Adx. info about mysql
+
+*MySQL version 4.0 (bug fixed in v4.0.14)
+program description:
+-----------------------
+MySQL is an open source Database Server
+
+bug explanation:
+----------------------
+datarace (atomicity violation) bug 
+
+This bug is recorded in MySQL bugzilla as bug#791
+The related bugzilla description can be found at 
+		http://bugs.mysql.com/bug.php?id=791
+
+This bug is caused by one thread's write-write access pair interleaved by 
+another thread's read access. As a result, the read access mistakenly gets 
+an intermediate value and leads to program misbehavior. 
+
+The bug is in sql/log.cc. Figure mysql_ww.eps gives a more detailed illustration
+of this bug: thread  one is in the process of close the old database bin-log and
+open the new one, during this period bin-log status is temporarily set to CLOSE;
+thread two needs to log the latest database action into the binlog, however, it 
+reads the intermediate state value CLOSE and therefore skip the logging.
+The related database action is missed on the log, which will casue security problem.
+
+Please refer to mysql_ww.eps or avio paper Figure 5 for more detail.
+ 
+Source code:
+---------------
+MySQL version 4.0.0--4.0.13
+You can download it from mysql website
+or you can get it from this folder: mysql-4.0.12.tar.gz
+
+How to trigger the bug:
+---------------------
+1. install the mysql
+*follow the INSTALL file (the source code installation section) in mysql tar ball
+*You may want to add CPPFLAGS="-g"  CXXFLAGS="-g" CFLAGS="-g" when you do the
+ ./configure --prefix=... <flag option>
+ so that you would have debugging information later
+*please make sure that your mysql can work
+ (you can refer to the end of this readme file for some mysql test info.)
+
+2.
+start the mysql server by
+> ./mysqld_safe
+
+at the client site, type following two requests (concurrently)
+(1) > ./mysql -u root -e 'flush logs';
+(2) > ./mysql -u root -D test -e 'insert into atab values(11)';
+(suppose you have already build a table named atab in the database 'test',
+ atab contains integer elements)
+
+You can write a script to keep issuing these two requests.
+If the bug is triggered, you will see that the insert is NOT recorded in
+ mysql bin log. (refer to latter part for how to check mysql's binlog)
+
+NOTE: the probability of exposing this bug during random testing is very small.
+	you may want to try following enforced-schedule trick first.
+
+3.
+You can insert a 'sleep' in sql/log.cc to force the bug happen
+(1)Insert a sleep(5) in log.cc function newfile, between log_type=	log_closed
+	and log_type=blahblahblah
+(2) issue the flush logs command first
+(3) then imediately issue the insert request
+(4) after both finished, check the bin log, you should be able to find that the
+	insert command is not logged down.
+
+
+bug detection preliminary results:
+---------------------
+lockset, happen-before and avio can all detect this bug.
+This does not belong to the serializability pattern SVD considered.
+
+
+
+
+----------------------------------------
+---------infor about mysql--------------
+----------------------------------------
+In the following, I will briefly talk about how to strt 
+mysql server, client, the frequently used sql command, and
+how to check the mysql bin log.
+
+1. Start server
+Mysql server can be started by 
+> ./mysqld_safe
+in the bin directory
+
+mysqld_safe is a script. If you want to apply pin to it, you have to
+rewrite it to a single line of command. You can refer to xxx
+
+The real server binary is libexec/mysqld. You can use it during debugging.
+
+2. Start client
+mysql client can be started/used in an interactive way.
+Just go to bin directory and type:
+> ./mysql 
+
+Some useful mysql commands are:
+mysql> show databases;
+	/* list all databasesin the current db sys*/
+mysql> use test;
+	/* use database named `test' */
+mysql> show tables;
+	/* list all tables in the current database */
+mysql> create table atab (id int);
+mysql> insert into atab values (100);
+mysql> select * from atab;
+mysql> flush logs;
+	/* close the original bin log and open a new one
+	NOTE: you need root priviledge to do this action*/
+mysql> quit
+	/* exit current mysql client session */
+
+All operations can similarly be conducted in command line format:
+go to bin and type
+> ./mysql -u <user-name> -D <database name> -e '<mysql command>;'
+
+e.g.
+> ./mysql -u root -D test -e 'insert into atab values (10);'
+e.g.
+> ./mysql -u root -e 'flush logs;'
+
+Usually we use this commend line format during experiments.
+
+3. check bin log
+bin log is stored at <mysql install direcotry>/var
+usually the file name is like : <machine name>-bin.<index number>
+You can read the bin log by 
+> ./mysqlbinlog <binlog file name>
+(mysqlbinlog is a binary in directory bin)

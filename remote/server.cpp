@@ -69,7 +69,7 @@ public:
 		start_sem_.Signal();
 
 		for(;;) {
-			if(!test_started) goto L_THREADEND;
+//			if(!test_started) goto L_THREADEND;
 
 			Recv(&event);
 

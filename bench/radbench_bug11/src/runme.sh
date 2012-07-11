@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to automate bug10
+# Script to automate bug11
 
 function usage {
     echo "Usage: $0 [command modifier]"
@@ -27,11 +27,11 @@ RUN_DIR=/home/elmas/radbench/Benchmarks/bug11
 
 BIN_DIR=$RUN_DIR/bin
 
-EXECUTABLE=$BIN_DIR/../scripts/apache_request.sh
-if [ ! -e "$EXECUTABLE" ]; then
-    echo "ERROR: Executable not found at $EXECUTABLE"
-    exit 1
-fi
+#EXECUTABLE=$BIN_DIR/../scripts/apache_request.sh
+#if [ ! -e "$EXECUTABLE" ]; then
+#    echo "ERROR: Executable not found at $EXECUTABLE"
+#    exit 1
+#fi
 
 HTTPD_SERVER=$BIN_DIR/install/bin/httpd
 if [ ! -e "$HTTPD_SERVER" ]; then

@@ -127,7 +127,7 @@ protected:
 		safe_assert(event->type != InvalidEventKind);
 		safe_assert(event->threadid != INVALID_THREADID);
 
-		MYLOG(2) << "IPC: EventPipe::Send " << EventKindToString(event->type) << " to thread " << event->threadid;
+		MYLOG(2) << "IPC: EventPipe::Sending " << EventKindToString(event->type) << " to thread " << event->threadid;
 
 		DECL_SEND_RECV(Send);
 
@@ -140,7 +140,7 @@ protected:
 
 		DECL_SEND_RECV(Recv);
 
-		MYLOG(2) << "IPC: EventPipe::Recv " << EventKindToString(event->type) << " to thread " << event->threadid;
+		MYLOG(2) << "IPC: EventPipe::Recved " << EventKindToString(event->type) << " to thread " << event->threadid;
 
 		safe_assert(event->type != InvalidEventKind);
 		safe_assert(event->threadid != INVALID_THREADID);

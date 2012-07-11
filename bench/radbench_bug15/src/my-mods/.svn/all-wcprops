@@ -1,0 +1,11 @@
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/ssg/spi/st/mt-testing/!svn/ver/131/Benchmarks/bug15/src/my-mods
+END
+mysql_install_db.sh
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/ssg/spi/st/mt-testing/!svn/ver/131/Benchmarks/bug15/src/my-mods/mysql_install_db.sh
+END
