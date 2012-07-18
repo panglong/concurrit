@@ -41,8 +41,8 @@ Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* ent
 {
 	status_ = PASSIVE;
 	group_ = NULL;
-	yield_point_ = NULL;
-	vc_clear(vc_);
+//	yield_point_ = NULL;
+//	vc_clear(vc_);
 	exception_ = NULL;
 //	current_node_ = NULL;
 //	is_driver_thread_ = false;
@@ -165,12 +165,12 @@ bool Coroutine::WaitForEnd(long timeout /*= -1*/) {
 /********************************************************************************/
 
 void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= NULL*/) {
-	safe_assert(yield_point_ == NULL);
+//	safe_assert(yield_point_ == NULL);
 	safe_assert(BETWEEN(PASSIVE, status_, TERMINATED));
 
 	// reset yield point to null
-	yield_point_ = NULL;
-	vc_clear(vc_);
+//	yield_point_ = NULL;
+//	vc_clear(vc_);
 	exception_ = NULL;
 //	current_node_ = NULL;
 //	trinfolist_.clear();
@@ -209,10 +209,8 @@ void Coroutine::Start(pthread_t* pid /*= NULL*/, const pthread_attr_t* attr /*= 
 	//---------------
 
 	// if conc == true, then send a non-waiting transfer message to run the new coroutine concurrently
-	if(ConcurritExecutionMode == PREEMPTIVE) {
-		safe_assert(status_ == WAITING);
-		channel_.SendNoWait(MSG_TRANSFER);
-	}
+	safe_assert(status_ == WAITING);
+	channel_.SendNoWait(MSG_TRANSFER);
 
 	__pthread_errno__ = PTH_SUCCESS;
 }
@@ -246,12 +244,8 @@ void Coroutine::SetEnded() {
 	sem_end_.Signal();
 
 	// last yield
-	if(ConcurritExecutionMode == COOPERATIVE) {
-		yield(ENDING_LABEL);
-	} else {
-		MessageType msg = channel_.WaitReceive();
-		HandleMessage(msg);
-	}
+	MessageType msg = channel_.WaitReceive();
+	HandleMessage(msg);
 
 	CHANNEL_END_ATOMIC();
 }
@@ -291,14 +285,10 @@ void* Coroutine::Run() {
 					// record the exception in scenario
 					safe_assert(!INSTANCEOF(e, ConcurritException*));
 					exception_ = e;
-					if(ConcurritExecutionMode == COOPERATIVE) {
-						// send main exception message
-						this->Transfer(CoroutineGroup::main(), MSG_EXCEPTION);
-					} else {
-						// (immediatelly) notify all others that there is an exception
-						MYLOG(1) << "Coroutine threw exception, calling EndWithException...";
-						scenario->exec_tree()->EndWithException(this, exception_);
-					}
+
+					// (immediatelly) notify all others that there is an exception
+					MYLOG(1) << "Coroutine threw exception, calling EndWithException...";
+					scenario->exec_tree()->EndWithException(this, exception_);
 				}
 			}
 
@@ -408,62 +398,62 @@ void Coroutine::HandleMessage(MessageType msg) {
 
 /********************************************************************************/
 
-SchedulePoint* Coroutine::OnYield(Coroutine* target, std::string& label, SourceLocation* loc /*=NULL*/, SharedAccess* access /*=NULL*/) {
-	safe_assert(IsMain() || label != MAIN_LABEL);
-	// record the yield point as our last yield point
-	// if the label is the same, update the same yield point
-	SchedulePoint* point = this->yield_point_;
-	if(point != NULL) {
-		// point is not null
-		safe_assert(point->IsResolved());
-		safe_assert(point->AsYield()->source() == this);
-		size_t count = point->AsYield()->count();
-		safe_assert(count > 0);
-		if(!point->IsTransfer() && point->AsYield()->label() == label) {
-			point->AsYield()->set_count(count + 1);
-			// update access and location
-			point->AsYield()->update_access_loc(access, loc);
-			return point;
-		}
-	}
-	// create a new point
-	if(target == NULL) {
-		safe_assert(this->IsMain());
-		// we need a new yield point
-		MYLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
-		point = new YieldPoint(this, label, 1, loc, access, true /*free_target*/, true /*free_count*/);
-	} else if(target->IsMain()) {
-		safe_assert(!this->IsMain());
-		// we need a new yield point
-		MYLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
-		point = new YieldPoint(this, label, 1, loc, access, false /*free_target*/, true /*free_count*/);
-	} else {
-		MYLOG(2) << CO_TITLE << "OnYield generating a new transfer point with label " << label;
-		point = new TransferPoint(new YieldPoint(this, label, 1, loc, access, false /*free_target*/, true /*free_count*/), target);
-	}
-
-	safe_assert(point != NULL);
-	this->yield_point_ = point;
-	safe_assert(point->IsResolved());
-
-	return point;
-}
-
-/********************************************************************************/
-
-AccessLocPair Coroutine::GetNextAccess() {
-	SchedulePoint* point = yield_point_;
-	if(point == NULL) {
-		return AccessLocPair(); // no access
-	}
-	return AccessLocPair(point->AsYield()->access(), point->AsYield()->loc());
-}
+//SchedulePoint* Coroutine::OnYield(Coroutine* target, std::string& label, SourceLocation* loc /*=NULL*/, SharedAccess* access /*=NULL*/) {
+//	safe_assert(IsMain() || label != MAIN_LABEL);
+//	// record the yield point as our last yield point
+//	// if the label is the same, update the same yield point
+//	SchedulePoint* point = this->yield_point_;
+//	if(point != NULL) {
+//		// point is not null
+//		safe_assert(point->IsResolved());
+//		safe_assert(point->AsYield()->source() == this);
+//		size_t count = point->AsYield()->count();
+//		safe_assert(count > 0);
+//		if(!point->IsTransfer() && point->AsYield()->label() == label) {
+//			point->AsYield()->set_count(count + 1);
+//			// update access and location
+//			point->AsYield()->update_access_loc(access, loc);
+//			return point;
+//		}
+//	}
+//	// create a new point
+//	if(target == NULL) {
+//		safe_assert(this->IsMain());
+//		// we need a new yield point
+//		MYLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
+//		point = new YieldPoint(this, label, 1, loc, access, true /*free_target*/, true /*free_count*/);
+//	} else if(target->IsMain()) {
+//		safe_assert(!this->IsMain());
+//		// we need a new yield point
+//		MYLOG(2) << CO_TITLE << "Main::OnYield generating a new yield point with label " << label;
+//		point = new YieldPoint(this, label, 1, loc, access, false /*free_target*/, true /*free_count*/);
+//	} else {
+//		MYLOG(2) << CO_TITLE << "OnYield generating a new transfer point with label " << label;
+//		point = new TransferPoint(new YieldPoint(this, label, 1, loc, access, false /*free_target*/, true /*free_count*/), target);
+//	}
+//
+//	safe_assert(point != NULL);
+//	this->yield_point_ = point;
+//	safe_assert(point->IsResolved());
+//
+//	return point;
+//}
 
 /********************************************************************************/
 
-void Coroutine::OnAccess(SharedAccess* access) {
-	group_->scenario()->OnAccess(this, access);
-}
+//AccessLocPair Coroutine::GetNextAccess() {
+//	SchedulePoint* point = yield_point_;
+//	if(point == NULL) {
+//		return AccessLocPair(); // no access
+//	}
+//	return AccessLocPair(point->AsYield()->access(), point->AsYield()->loc());
+//}
+
+/********************************************************************************/
+
+//void Coroutine::OnAccess(SharedAccess* access) {
+//	group_->scenario()->OnAccess(this, access);
+//}
 
 /********************************************************************************/
 

@@ -31,51 +31,22 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SUITE_H_
-#define SUITE_H_
-
-#include "common.h"
-#include "result.h"
-#include "scenario.h"
+#ifndef SCHEDULE_H_
+#define SCHEDULE_H_
 
 namespace concurrit {
 
-class Suite {
+class Schedule {
+
 public:
-	Suite() {}
-	virtual ~Suite(){}
-
-	void AddScenario(Scenario* scenario);
-	void RemoveScenario(Scenario* scenario);
-	void RemoveScenario(const std::string& name);
-
-	std::map<std::string, Result*> RunScenarios();
-	void RunAll();
-
-private:
-	DECL_FIELD_REF(std::vector<Scenario*>, scenarios)
-//	DECL_FIELD_REF(Coverage, coverage)
+	void LoadFromFile(const char* filename) {}
+	Schedule* Clone() {return this;}
+	void Restart() {}
 };
 
-/********************************************************************************/
 
-class Suite;
-template<class T>
-class StaticSuiteAdder {
-public:
-	StaticSuiteAdder(Suite* suite) : suite_(suite) {
-		scenario_ = new T();
-		suite_->AddScenario(scenario_);
-	}
-	~StaticSuiteAdder() {
-		safe_assert(scenario_ != NULL);
-		suite_->RemoveScenario(scenario_);
-	}
-private:
-	DECL_FIELD(Suite*, suite)
-	DECL_FIELD(Scenario*, scenario)
-};
+}
 
-} // end namespace
 
-#endif /* SUITE_H_ */
+
+#endif /* SCHEDULE_H_ */

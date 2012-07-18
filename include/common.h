@@ -260,12 +260,6 @@ typedef unsigned int vctime_t;
 
 /********************************************************************************/
 
-enum ExecutionMode { COOPERATIVE, PREEMPTIVE };
-
-const ExecutionMode ConcurritExecutionMode = PREEMPTIVE;
-
-/********************************************************************************/
-
 typedef int (*MainFuncType) (int, char**);
 typedef void* (*ThreadFuncType) (void*);
 

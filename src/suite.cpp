@@ -61,7 +61,7 @@ void Suite::RemoveScenario(const std::string& name) {
 std::map<std::string, Result*> Suite::RunScenarios() {
 	std::map<std::string, Result*> results;
 
-	coverage_.Clear(); //  will accumulate this
+//	coverage_.Clear(); //  will accumulate this
 	for(std::vector<Scenario*>::iterator itr = scenarios_.begin(); itr < scenarios_.end(); ++itr) {
 		Scenario* scenario = (*itr);
 		printf("Running scenario %s\n", scenario->name());
@@ -69,9 +69,9 @@ std::map<std::string, Result*> Suite::RunScenarios() {
 		safe_assert(Config::ExitOnFirstExecution >= 0 || result != NULL);
 		if(result != NULL) {
 			// accumulate coverage
-			if(result->IsSuccess()) {
-				coverage_.AddAll(static_cast<SuccessResult*>(result)->coverage());
-			}
+//			if(result->IsSuccess()) {
+//				coverage_.AddAll(static_cast<SuccessResult*>(result)->coverage());
+//			}
 			results[scenario->name()] = result;
 			printf("\nDone with scenario %s. Result: %s\n", scenario->name(), (result->IsSuccess() ? "SUCCESS" : "FAILURE"));
 		}

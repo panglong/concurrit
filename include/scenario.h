@@ -40,17 +40,12 @@
 #include "common.h"
 #include "coroutine.h"
 #include "statistics.h"
-#include "yield.h"
 #include "group.h"
-#include "until.h"
-#include "vc.h"
-#include "schedule.h"
 #include "transpred.h"
 #include "dsl.h"
 
 namespace concurrit {
 
-class YieldImpl;
 class Result;
 
 /*
@@ -64,7 +59,7 @@ class Result;
 enum ExploreType {FORALL, EXISTS};
 enum TestStatus { TEST_BEGIN = 0, TEST_SETUP = 1, TEST_CONTROLLED = 2, TEST_UNCONTROLLED = 3, TEST_TEARDOWN = 4, TEST_ENDED = 5, TEST_TERMINATED = 6 };
 
-class Scenario : public YieldImpl {
+class Scenario {
 public:
 	explicit Scenario(const char* name);
 	virtual ~Scenario();
@@ -105,9 +100,9 @@ public:
 		explore_type_ = FORALL;
 	}
 
-	TransferPoint* OnYield(SchedulePoint* spoint, Coroutine* target);
+//	TransferPoint* OnYield(SchedulePoint* spoint, Coroutine* target);
 
-	virtual void OnAccess(Coroutine* current, SharedAccess* access);
+//	virtual void OnAccess(Coroutine* current, SharedAccess* access);
 
 	void OnException(std::exception* e);
 
@@ -128,35 +123,30 @@ public:
 	void JoinAllThreads(long timeout = -1);
 
 	/* returns the same scenario for concatenating calls */
-	Scenario* Until(UntilCondition* until);
-	Scenario* Until(const std::string& label);
-	Scenario* Until(const char* label);
-	Scenario* UntilStar();
-	Scenario* UntilEnd();
-	Scenario* UntilFirst();
+//	Scenario* Until(UntilCondition* until);
+//	Scenario* Until(const std::string& label);
+//	Scenario* Until(const char* label);
+//	Scenario* UntilStar();
+//	Scenario* UntilEnd();
+//	Scenario* UntilFirst();
 
-	Scenario* Except(Coroutine* t);
-	Scenario* Except(THREADID tid);
+//	Scenario* Except(Coroutine* t);
+//	Scenario* Except(THREADID tid);
 
 	bool AllEnded();
 
 	/* start running the given target */
-	SchedulePoint* Transfer(Coroutine* target, SourceLocation* loc = NULL);
-	SchedulePoint* TransferStar(SourceLocation* loc = NULL);
+//	SchedulePoint* Transfer(Coroutine* target, SourceLocation* loc = NULL);
+//	SchedulePoint* TransferStar(SourceLocation* loc = NULL);
 
-	// predefined execution templates
-	void ExhaustiveSearch();
-	void ContextBoundedExhaustiveSearch(int C);
-	void NDSeqSearch();
-
-	void RunSavedSchedule(const char* filename);
+//	void RunSavedSchedule(const char* filename);
 
 	// default yield implementation is provided by Scenario
-	virtual YIELD_SIGNATURE;
+//	virtual YIELD_SIGNATURE;
 
-	inline SchedulePoint* do_yield(CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
-		return safe_notnull(yield_impl_)->Yield(this, group, current, target, label, loc, access);
-	}
+//	inline SchedulePoint* do_yield(CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
+//		return safe_notnull(yield_impl_)->Yield(this, group, current, target, label, loc, access);
+//	}
 
 	/******************************************************************/
 
@@ -215,19 +205,19 @@ protected:
 	void RunTearDown() throw();
 	ConcurritException* CollectExceptions();
 
-	virtual bool CheckUntil(SchedulePoint* point);
+//	virtual bool CheckUntil(SchedulePoint* point);
 
-	void ResolvePoint(SchedulePoint* point);
+//	void ResolvePoint(SchedulePoint* point);
 
-	Coroutine* GetNextEnabled(TransferPoint* transfer = NULL);
+//	Coroutine* GetNextEnabled(TransferPoint* transfer = NULL);
 
 	// update backtrack sets of transfer points for DPOR
-	void UpdateBacktrackSets();
+//	void UpdateBacktrackSets();
 
 
 	bool Backtrack(BacktrackReason reason);
-	bool DoBacktrackCooperative(BacktrackReason reason);
-	bool DoBacktrackPreemptive(BacktrackReason reason);
+//	bool DoBacktrackCooperative(BacktrackReason reason);
+//	bool DoBacktrackPreemptive(BacktrackReason reason);
 
 	virtual void Start();
 	virtual void Finish(Result* result);
@@ -237,13 +227,13 @@ protected:
 private:
 
 	DECL_FIELD(const char*, name)
-	DECL_FIELD(TransferCriteria, transfer_criteria)
+//	DECL_FIELD(TransferCriteria, transfer_criteria)
 	DECL_FIELD_REF(CoroutineGroup, group)
 	DECL_FIELD(Schedule*, schedule)
 	DECL_FIELD(ExploreType, explore_type)
 
-	DECL_FIELD(VCTracker, vcTracker)
-	DECL_FIELD(YieldImpl*, yield_impl)
+//	DECL_FIELD(VCTracker, vcTracker)
+//	DECL_FIELD(YieldImpl*, yield_impl)
 
 	DECL_FIELD(bool, dpor_enabled)
 	DECL_VOL_FIELD(TestStatus, test_status)

@@ -36,7 +36,6 @@
 
 #include "common.h"
 #include "sharedaccess.h"
-#include "yieldapi.h"
 #include "exception.h"
 #include "coroutine.h"
 #include "transpred.h"

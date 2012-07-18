@@ -37,13 +37,11 @@
 #include "common.h"
 #include "thread.h"
 #include "channel.h"
-#include "vc.h"
 #include "threadvar.h"
 
 namespace concurrit {
 
 class CoroutineGroup;
-class SchedulePoint;
 class ExecutionTree;
 
 #define MAIN_TID 	0
@@ -85,11 +83,11 @@ public:
 
 	virtual void HandleMessage(MessageType msg);
 
-	SchedulePoint* OnYield(Coroutine* target, std::string& label, SourceLocation* loc = NULL, SharedAccess* access = NULL);
-	void OnAccess(SharedAccess* access);
+//	SchedulePoint* OnYield(Coroutine* target, std::string& label, SourceLocation* loc = NULL, SharedAccess* access = NULL);
+//	void OnAccess(SharedAccess* access);
 
 	// return the next access this coroutine will do when scheduled
-	AccessLocPair GetNextAccess();
+//	AccessLocPair GetNextAccess();
 
 	inline bool is_ended() {
 		return (status_ >= ENDED);
@@ -108,9 +106,9 @@ private:
 	DECL_FIELD(CoroutineGroup*, group)
 	DECL_FIELD_REF(Channel<MessageType>, channel)
 
-	DECL_FIELD(SchedulePoint*, yield_point)
+//	DECL_FIELD(SchedulePoint*, yield_point)
 
-	DECL_FIELD(VC, vc)
+//	DECL_FIELD(VC, vc)
 
 //	DECL_FIELD_REF(TransitionInfoList, trinfolist)
 //	DECL_FIELD(ExecutionTree*, current_node)

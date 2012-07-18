@@ -42,9 +42,9 @@ namespace concurrit {
 
 FILE* Scenario::trace_file_ = NULL;
 
-UntilStarCondition TransferCriteria::until_star_;
-UntilFirstCondition TransferCriteria::until_first_;
-UntilEndCondition TransferCriteria::until_end_;
+//UntilStarCondition TransferCriteria::until_star_;
+//UntilFirstCondition TransferCriteria::until_first_;
+//UntilEndCondition TransferCriteria::until_end_;
 
 Scenario::Scenario(const char* name) {
 	schedule_ = NULL;
@@ -55,10 +55,10 @@ Scenario::Scenario(const char* name) {
 	group_.set_scenario(this);
 	explore_type_ = FORALL;
 
-	transfer_criteria_.Reset();
+//	transfer_criteria_.Reset();
 
 	// Scenario provides the default yield implementation
-	yield_impl_ = static_cast<YieldImpl*>(this);
+//	yield_impl_ = static_cast<YieldImpl*>(this);
 
 	dpor_enabled_ = true;
 
@@ -578,113 +578,102 @@ void Scenario::RunTestCase() throw() {
 
 /********************************************************************************/
 
-void Scenario::ResolvePoint(SchedulePoint* point) {
-		YieldPoint* ypoint = point->AsYield();
-		if(!ypoint->IsResolved()) {
-			std::string* strsource = reinterpret_cast<std::string*>(ypoint->source());
-			safe_assert(strsource != NULL);
-			Coroutine* source = group_.GetMember(atoi(strsource->c_str()));
-			safe_assert(source != NULL);
-			ypoint->set_source(source);
-			ypoint->set_is_resolved(true);
-			delete strsource;
-		}
-		if(point->IsTransfer()) {
-			TransferPoint* transfer = point->AsTransfer();
-			if(!transfer->IsResolved()) {
-				std::string* strtarget = reinterpret_cast<std::string*>(transfer->target());
-				safe_assert(strtarget != NULL);
-				Coroutine* target = group_.GetMember(atoi(strtarget->c_str()));
-				safe_assert(target != NULL);
-				transfer->set_target(target);
-				transfer->set_is_resolved(true);
-				delete strtarget;
-			}
-		}
-	}
+//void Scenario::ResolvePoint(SchedulePoint* point) {
+//		YieldPoint* ypoint = point->AsYield();
+//		if(!ypoint->IsResolved()) {
+//			std::string* strsource = reinterpret_cast<std::string*>(ypoint->source());
+//			safe_assert(strsource != NULL);
+//			Coroutine* source = group_.GetMember(atoi(strsource->c_str()));
+//			safe_assert(source != NULL);
+//			ypoint->set_source(source);
+//			ypoint->set_is_resolved(true);
+//			delete strsource;
+//		}
+//		if(point->IsTransfer()) {
+//			TransferPoint* transfer = point->AsTransfer();
+//			if(!transfer->IsResolved()) {
+//				std::string* strtarget = reinterpret_cast<std::string*>(transfer->target());
+//				safe_assert(strtarget != NULL);
+//				Coroutine* target = group_.GetMember(atoi(strtarget->c_str()));
+//				safe_assert(target != NULL);
+//				transfer->set_target(target);
+//				transfer->set_is_resolved(true);
+//				delete strtarget;
+//			}
+//		}
+//	}
 
 /********************************************************************************/
 
-bool Scenario::Backtrack(BacktrackReason reason) {
-	MYLOG(2) << "Trying to backtrack...";
-	if(ConcurritExecutionMode == COOPERATIVE) {
-		return DoBacktrackCooperative(reason);
-	} else {
-		return DoBacktrackPreemptive(reason);
-	}
-}
-
-/********************************************************************************/
-
-bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
-	MYLOG(2) << "Start schedule: " << schedule_->ToString();
-
-	// remove all points after current (inclusively).
-	schedule_->RemoveCurrentAndBeyond();
-	for(SchedulePoint* point = schedule_->RemoveLast(); point != NULL; point = schedule_->RemoveLast()) {
-
-		if(point->IsChoice()) {
-			// check if there is any more choice
-			if(point->AsChoice()->ChooseNext()) {
-				schedule_->AddLast(point);
-
-				MYLOG(2) << "End schedule: " << schedule_->ToString();
-				return true;
-			}
-		}
-		else if(point->IsTransfer()) {
-			TransferPoint* transfer = point->AsTransfer();
-			safe_assert(transfer->IsResolved());
-
-			// if already backtrack point, decrease the count
-			if(transfer->target() == NULL) {
-				safe_assert(transfer->AsYield()->free_target());
-				if(transfer->yield()->free_count()) {
-					unsigned int count = transfer->yield()->count();
-					if(--count > 0) {
-						transfer->yield()->set_count(count);
-						schedule_->AddLast(transfer);
-
-						MYLOG(2) << "End schedule: " << schedule_->ToString();
-						return true;
-					}
-				}
-			} else if(transfer->AsYield()->free_target()) {
-				safe_assert(!transfer->enabled()->empty());
-				// if it has still more choices, make it backtrack point
-				if(transfer->has_more_targets(dpor_enabled_)) {
-					// makes this a backtrack point (adds target to done and makes target NULL)
-					transfer->make_backtrack_point();
-					schedule_->AddLast(transfer);
-
-					MYLOG(2) << "End schedule: " << schedule_->ToString();
-					return true;
-				}
-			}
-		//************************
-		// this is not a transfer point, but a plain yield point
-		} else {
-			safe_assert(point->AsYield()->count() > 0);
-
-			Coroutine* target = NULL;
-			if(!point->AsYield()->free_target()) {
-				safe_assert(point->AsYield()->label() != "MAIN" && !point->AsYield()->source()->IsMain());
-				target = group_.main();
-			}
-
-			// create a transferpoint
-			TransferPoint* transfer = new TransferPoint(point->AsYield(), target);
-
-			ResolvePoint(transfer);
-			schedule_->AddLast(transfer);
-			return true;
-		}
-		// delete the thrown-away yield point
-		MYLOG(2) << "Throwing away yield point: " << point->ToString();
-		delete point;
-	} // end loop
-	return false; // no feasible execution
-}
+//bool Scenario::DoBacktrackCooperative(BacktrackReason reason) {
+//	MYLOG(2) << "Start schedule: " << schedule_->ToString();
+//
+//	// remove all points after current (inclusively).
+//	schedule_->RemoveCurrentAndBeyond();
+//	for(SchedulePoint* point = schedule_->RemoveLast(); point != NULL; point = schedule_->RemoveLast()) {
+//
+//		if(point->IsChoice()) {
+//			// check if there is any more choice
+//			if(point->AsChoice()->ChooseNext()) {
+//				schedule_->AddLast(point);
+//
+//				MYLOG(2) << "End schedule: " << schedule_->ToString();
+//				return true;
+//			}
+//		}
+//		else if(point->IsTransfer()) {
+//			TransferPoint* transfer = point->AsTransfer();
+//			safe_assert(transfer->IsResolved());
+//
+//			// if already backtrack point, decrease the count
+//			if(transfer->target() == NULL) {
+//				safe_assert(transfer->AsYield()->free_target());
+//				if(transfer->yield()->free_count()) {
+//					unsigned int count = transfer->yield()->count();
+//					if(--count > 0) {
+//						transfer->yield()->set_count(count);
+//						schedule_->AddLast(transfer);
+//
+//						MYLOG(2) << "End schedule: " << schedule_->ToString();
+//						return true;
+//					}
+//				}
+//			} else if(transfer->AsYield()->free_target()) {
+//				safe_assert(!transfer->enabled()->empty());
+//				// if it has still more choices, make it backtrack point
+//				if(transfer->has_more_targets(dpor_enabled_)) {
+//					// makes this a backtrack point (adds target to done and makes target NULL)
+//					transfer->make_backtrack_point();
+//					schedule_->AddLast(transfer);
+//
+//					MYLOG(2) << "End schedule: " << schedule_->ToString();
+//					return true;
+//				}
+//			}
+//		//************************
+//		// this is not a transfer point, but a plain yield point
+//		} else {
+//			safe_assert(point->AsYield()->count() > 0);
+//
+//			Coroutine* target = NULL;
+//			if(!point->AsYield()->free_target()) {
+//				safe_assert(point->AsYield()->label() != "MAIN" && !point->AsYield()->source()->IsMain());
+//				target = group_.main();
+//			}
+//
+//			// create a transferpoint
+//			TransferPoint* transfer = new TransferPoint(point->AsYield(), target);
+//
+//			ResolvePoint(transfer);
+//			schedule_->AddLast(transfer);
+//			return true;
+//		}
+//		// delete the thrown-away yield point
+//		MYLOG(2) << "Throwing away yield point: " << point->ToString();
+//		delete point;
+//	} // end loop
+//	return false; // no feasible execution
+//}
 
 /********************************************************************************/
 
@@ -735,9 +724,9 @@ void Scenario::Start() {
 	group_.Restart(); // restarts only already started coroutines
 
 	// reset vc tracker
-	vcTracker_.Restart();
+//	vcTracker_.Restart();
 
-	transfer_criteria_.Reset();
+//	transfer_criteria_.Reset();
 
 	trans_constraints_->clear();
 	trans_assertions_->clear();
@@ -833,296 +822,296 @@ void Scenario::SaveSearchInfo() {
 
 /********************************************************************************/
 
-TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
-
-	MYLOG(2) << SC_TITLE << "OnYield starting";
-
-	YieldPoint* point = spoint->AsYield();
-	Coroutine* source = point->source();
-	std::string label = point->label();
-
-	safe_assert(point->IsResolved());
-	safe_assert(point == source->yield_point()->AsYield());
-	safe_assert(source != NULL && source != target);
-
-	CoroutineGroup group = group_;
-	Coroutine* main = group.main();
-
-	bool from_main = point->source() == main;
-
-	bool is_ending = (label == ENDING_LABEL);
-
-	TransferPoint* transfer = NULL;
-
-	// check if we have a matching one
-	if(schedule_->HasCurrent()) {
-		SchedulePoint* current = schedule_->GetCurrent();
-		transfer = current->AsTransfer();
-		if(transfer == NULL) {
-			// this is a choice point
-			safe_assert(current->IsChoice());
-			// sanity check:
-			safe_assert(current->AsChoice()->source() == source);
-			// skip this yield point, since we are expecting a choice point before
-			goto DONE;
-		}
-
-		MYLOG(2) << SC_TITLE << "Processing transfer from the log: " << transfer->ToString();
-
-		ResolvePoint(transfer);
-		safe_assert(transfer->IsResolved());
-
-		// if source of transfer is not the current source of yield then there is a problem, so backtrack
-		if(transfer->yield()->source() != point->source()) {
-			printf("Execution diverged from the recorded schedule. Backtracking...");
-			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
-		}
-
-		target = transfer->target();
-		safe_assert(target != source);
-
-		if(from_main) {
-			MYLOG(2) << SC_TITLE << "From main";
-			safe_assert(target != main);
-			safe_assert(point->label() == MAIN_LABEL);
-
-			if(transfer->yield()->label() != point->label()) {
-				transfer = NULL;
-				goto DONE;
-			}
-
-			// if backtrack point, choose a new target
-			if(target == NULL) {
-				safe_assert(!transfer->done()->empty());
-				// choose the next target
-				target = GetNextEnabled(transfer);
-				if(target == NULL) {
-					// no enable thread found, so backtrack
-					TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
-				}
-			}
-			safe_assert(target != NULL);
-			transfer->set_target(target);
-		} else {
-			MYLOG(2) << SC_TITLE << "From non-main";
-			safe_assert(target != NULL);
-			CHECK(target == main); // this holds for now but, may be relaxed later
-			safe_assert(point->label() != MAIN_LABEL);
-
-			if(transfer->yield()->label() != point->label()) {
-				transfer = NULL;
-				goto DONE;
-			}
-
-			if(!CheckUntil(transfer)) {
-				TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
-			}
-		}
-
-		safe_assert(target != NULL);
-		safe_assert(transfer != NULL);
-
-		// check if the target is enabled
-		StatusType status = target->status();
-		if(status < ENABLED && BLOCKED <= status) {
-			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
-		}
-
-		MYLOG(2) << SC_TITLE << "Consuming transfer.";
-		if(!transfer->ConsumeOnce()) {
-			// do not yield yet if not consumed all
-			transfer = NULL;
-			goto DONE;
-		}
-
-		// here we delete and reset the yield point of transfer
-		// this helps to get a yield point with non-null loc and access
-		delete transfer->yield();
-		transfer->set_yield(point);
-
-	//********************************************
-
-	} else {
-		// no more points in the schedule, so create the next new one
-
-		MYLOG(2) << SC_TITLE << "Generating a new transfer";
-
-		if(from_main) {
-			if(target == NULL) {
-				target = GetNextEnabled();
-				if(target == NULL) {
-					// no enabled thread found, so backtrack
-					TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
-				}
-			}
-			safe_assert(target != main);
-		} else {
-			safe_assert(target == main);
-
-			if(!CheckUntil(point)) {
-				// else, choose not to continue, so do not yield
-				transfer = NULL;
-				goto DONE;
-			}
-		}
-		if(point->IsTransfer()) {
-			transfer = point->AsTransfer();
-		} else {
-			transfer = new TransferPoint(point, target);
-			// consume all (because this transfer is made from a yield point which is already consumed)
-			transfer->ConsumeAll();
-			// resolve it
-			ResolvePoint(transfer);
-		}
-		safe_assert(transfer->IsResolved());
-		schedule_->AddCurrent(transfer, false); // do not move current yet
-
-	}
-	//********************************************
-
-DONE:
-	// after this point, transfer does not change from non-null to null
-
-	MYLOG(2) << "DONE. Scenario::OnYield chose " << ((transfer != NULL) ? transfer->ToString() : "NULL");
-	if(transfer == NULL) { // no transfer, this may be because the current point is a choice point
-		// if yield of source is a transfer point, then we should not be here
-		safe_assert(!source->yield_point()->IsTransfer());
-
-		// if the ending yield and transfer is still NULL, then there is a problem, so we should backtrack
-		if(is_ending) {
-			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
-		}
-
-		// update schedule to add this yield point
-		if(schedule_->GetCurrent() != point) {
-			MYLOG(2) << SC_TITLE << "Adding yield point " << point->ToString() << " to schedule";
-			schedule_->AddCurrent(point, true);
-		}
-
-	} else { // will take the transfer
-		// transfer is to be taken, so consume the current one
-		safe_assert(schedule_->GetCurrent() == transfer);
-		schedule_->ConsumeCurrent(); // shift the current pointer
-		source->set_yield_point(transfer); // will override point
-
-		safe_assert(transfer->target() != NULL);
-
-		if(!from_main) {
-			// clear the until condition and except set if we are transferring
-			transfer_criteria_.Reset();
-		}
-
-		// target should have already been set.
-		target = transfer->target();
-		safe_assert(target != NULL);
-
-		// set next and previous pointers here
-		SchedulePoint* target_point = target->yield_point();
-		if(target_point != NULL) {
-			YieldPoint* target_yield = target_point->AsYield();
-			safe_assert(target_point->IsTransfer());
-			transfer->set_next(target_yield);
-			target_yield->set_prev(transfer);
-		}
-
-		//-----------------------------------------
-		// updating transfer for DPOR search
-		// we do this only when transfer is the last one in the schedule, means that we have just chosen a new target
-		if(schedule_->GetLast() == transfer) {
-			// TODO(elmas): optimize: do not set all the fields for all kinds of transfers
-
-			// update enabled coroutines
-			CoroutinePtrSet enabled = group_.GetEnabledSet();
-			transfer->set_enabled(enabled);
-
-			// if this is the first time of transfer, add target to backtrack
-			if(transfer->is_first_transition()) {
-				safe_assert(transfer->done()->empty());
-				safe_assert(transfer->backtrack()->empty());
-				transfer->backtrack()->insert(target);
-			}
-
-			// update done set (do this at the end)
-			transfer->done()->insert(target);
-		}
-		// sanity checks
-		safe_assert(!transfer->is_first_transition());
-		// make sure that target is already in done
-		safe_assert(transfer->done()->find(target) != transfer->done()->end());
-	}
-
-	// ensure that if the yield label is "ending", we are transferring (transfer must not be NULL)
-	safe_assert(point->label() != ENDING_LABEL || transfer != NULL);
-
-	return transfer;
-}
-
-/********************************************************************************/
-
-// Note: this should not update transfer, as we may not have decided on choosing transfer yet
-Coroutine* Scenario::GetNextEnabled(TransferPoint* transfer /*= NULL*/) {
-	CoroutinePtrSet except_targets;
-	CoroutinePtrSet* backtrack = NULL;
-	if(transfer != NULL) {
-		// if first transition, then we choose a random next target
-		// otherwise, we choose a target from backtrack
-		if(!transfer->is_first_transition()) {
-			CoroutinePtrSet* done = transfer->done();
-			safe_assert(!done->empty());
-			except_targets.insert(done->begin(), done->end());
-
-			if(dpor_enabled_) {
-				// if not the first transition, we use backtrack set,
-				// otherwise we chose a random next target
-				backtrack = transfer->backtrack();
-			}
-		}
-	}
-	if(!transfer_criteria_.except()->empty()) {
-		except_targets.insert(transfer_criteria_.except()->begin(), transfer_criteria_.except()->end());
-	}
-	return group_.GetNextEnabled((except_targets.empty() ? NULL : &except_targets), backtrack);
-}
+//TransferPoint* Scenario::OnYield(SchedulePoint* spoint, Coroutine* target) {
+//
+//	MYLOG(2) << SC_TITLE << "OnYield starting";
+//
+//	YieldPoint* point = spoint->AsYield();
+//	Coroutine* source = point->source();
+//	std::string label = point->label();
+//
+//	safe_assert(point->IsResolved());
+//	safe_assert(point == source->yield_point()->AsYield());
+//	safe_assert(source != NULL && source != target);
+//
+//	CoroutineGroup group = group_;
+//	Coroutine* main = group.main();
+//
+//	bool from_main = point->source() == main;
+//
+//	bool is_ending = (label == ENDING_LABEL);
+//
+//	TransferPoint* transfer = NULL;
+//
+//	// check if we have a matching one
+//	if(schedule_->HasCurrent()) {
+//		SchedulePoint* current = schedule_->GetCurrent();
+//		transfer = current->AsTransfer();
+//		if(transfer == NULL) {
+//			// this is a choice point
+//			safe_assert(current->IsChoice());
+//			// sanity check:
+//			safe_assert(current->AsChoice()->source() == source);
+//			// skip this yield point, since we are expecting a choice point before
+//			goto DONE;
+//		}
+//
+//		MYLOG(2) << SC_TITLE << "Processing transfer from the log: " << transfer->ToString();
+//
+//		ResolvePoint(transfer);
+//		safe_assert(transfer->IsResolved());
+//
+//		// if source of transfer is not the current source of yield then there is a problem, so backtrack
+//		if(transfer->yield()->source() != point->source()) {
+//			printf("Execution diverged from the recorded schedule. Backtracking...");
+//			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
+//		}
+//
+//		target = transfer->target();
+//		safe_assert(target != source);
+//
+//		if(from_main) {
+//			MYLOG(2) << SC_TITLE << "From main";
+//			safe_assert(target != main);
+//			safe_assert(point->label() == MAIN_LABEL);
+//
+//			if(transfer->yield()->label() != point->label()) {
+//				transfer = NULL;
+//				goto DONE;
+//			}
+//
+//			// if backtrack point, choose a new target
+//			if(target == NULL) {
+//				safe_assert(!transfer->done()->empty());
+//				// choose the next target
+//				target = GetNextEnabled(transfer);
+//				if(target == NULL) {
+//					// no enable thread found, so backtrack
+//					TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
+//				}
+//			}
+//			safe_assert(target != NULL);
+//			transfer->set_target(target);
+//		} else {
+//			MYLOG(2) << SC_TITLE << "From non-main";
+//			safe_assert(target != NULL);
+//			CHECK(target == main); // this holds for now but, may be relaxed later
+//			safe_assert(point->label() != MAIN_LABEL);
+//
+//			if(transfer->yield()->label() != point->label()) {
+//				transfer = NULL;
+//				goto DONE;
+//			}
+//
+//			if(!CheckUntil(transfer)) {
+//				TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
+//			}
+//		}
+//
+//		safe_assert(target != NULL);
+//		safe_assert(transfer != NULL);
+//
+//		// check if the target is enabled
+//		StatusType status = target->status();
+//		if(status < ENABLED && BLOCKED <= status) {
+//			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
+//		}
+//
+//		MYLOG(2) << SC_TITLE << "Consuming transfer.";
+//		if(!transfer->ConsumeOnce()) {
+//			// do not yield yet if not consumed all
+//			transfer = NULL;
+//			goto DONE;
+//		}
+//
+//		// here we delete and reset the yield point of transfer
+//		// this helps to get a yield point with non-null loc and access
+//		delete transfer->yield();
+//		transfer->set_yield(point);
+//
+//	//********************************************
+//
+//	} else {
+//		// no more points in the schedule, so create the next new one
+//
+//		MYLOG(2) << SC_TITLE << "Generating a new transfer";
+//
+//		if(from_main) {
+//			if(target == NULL) {
+//				target = GetNextEnabled();
+//				if(target == NULL) {
+//					// no enabled thread found, so backtrack
+//					TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
+//				}
+//			}
+//			safe_assert(target != main);
+//		} else {
+//			safe_assert(target == main);
+//
+//			if(!CheckUntil(point)) {
+//				// else, choose not to continue, so do not yield
+//				transfer = NULL;
+//				goto DONE;
+//			}
+//		}
+//		if(point->IsTransfer()) {
+//			transfer = point->AsTransfer();
+//		} else {
+//			transfer = new TransferPoint(point, target);
+//			// consume all (because this transfer is made from a yield point which is already consumed)
+//			transfer->ConsumeAll();
+//			// resolve it
+//			ResolvePoint(transfer);
+//		}
+//		safe_assert(transfer->IsResolved());
+//		schedule_->AddCurrent(transfer, false); // do not move current yet
+//
+//	}
+//	//********************************************
+//
+//DONE:
+//	// after this point, transfer does not change from non-null to null
+//
+//	MYLOG(2) << "DONE. Scenario::OnYield chose " << ((transfer != NULL) ? transfer->ToString() : "NULL");
+//	if(transfer == NULL) { // no transfer, this may be because the current point is a choice point
+//		// if yield of source is a transfer point, then we should not be here
+//		safe_assert(!source->yield_point()->IsTransfer());
+//
+//		// if the ending yield and transfer is still NULL, then there is a problem, so we should backtrack
+//		if(is_ending) {
+//			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
+//		}
+//
+//		// update schedule to add this yield point
+//		if(schedule_->GetCurrent() != point) {
+//			MYLOG(2) << SC_TITLE << "Adding yield point " << point->ToString() << " to schedule";
+//			schedule_->AddCurrent(point, true);
+//		}
+//
+//	} else { // will take the transfer
+//		// transfer is to be taken, so consume the current one
+//		safe_assert(schedule_->GetCurrent() == transfer);
+//		schedule_->ConsumeCurrent(); // shift the current pointer
+//		source->set_yield_point(transfer); // will override point
+//
+//		safe_assert(transfer->target() != NULL);
+//
+//		if(!from_main) {
+//			// clear the until condition and except set if we are transferring
+//			transfer_criteria_.Reset();
+//		}
+//
+//		// target should have already been set.
+//		target = transfer->target();
+//		safe_assert(target != NULL);
+//
+//		// set next and previous pointers here
+//		SchedulePoint* target_point = target->yield_point();
+//		if(target_point != NULL) {
+//			YieldPoint* target_yield = target_point->AsYield();
+//			safe_assert(target_point->IsTransfer());
+//			transfer->set_next(target_yield);
+//			target_yield->set_prev(transfer);
+//		}
+//
+//		//-----------------------------------------
+//		// updating transfer for DPOR search
+//		// we do this only when transfer is the last one in the schedule, means that we have just chosen a new target
+//		if(schedule_->GetLast() == transfer) {
+//			// TODO(elmas): optimize: do not set all the fields for all kinds of transfers
+//
+//			// update enabled coroutines
+//			CoroutinePtrSet enabled = group_.GetEnabledSet();
+//			transfer->set_enabled(enabled);
+//
+//			// if this is the first time of transfer, add target to backtrack
+//			if(transfer->is_first_transition()) {
+//				safe_assert(transfer->done()->empty());
+//				safe_assert(transfer->backtrack()->empty());
+//				transfer->backtrack()->insert(target);
+//			}
+//
+//			// update done set (do this at the end)
+//			transfer->done()->insert(target);
+//		}
+//		// sanity checks
+//		safe_assert(!transfer->is_first_transition());
+//		// make sure that target is already in done
+//		safe_assert(transfer->done()->find(target) != transfer->done()->end());
+//	}
+//
+//	// ensure that if the yield label is "ending", we are transferring (transfer must not be NULL)
+//	safe_assert(point->label() != ENDING_LABEL || transfer != NULL);
+//
+//	return transfer;
+//}
 
 /********************************************************************************/
 
-SchedulePoint* Scenario::TransferStar(SourceLocation* loc) {
-	return this->Transfer(NULL, loc);
-}
+//// Note: this should not update transfer, as we may not have decided on choosing transfer yet
+//Coroutine* Scenario::GetNextEnabled(TransferPoint* transfer /*= NULL*/) {
+//	CoroutinePtrSet except_targets;
+//	CoroutinePtrSet* backtrack = NULL;
+//	if(transfer != NULL) {
+//		// if first transition, then we choose a random next target
+//		// otherwise, we choose a target from backtrack
+//		if(!transfer->is_first_transition()) {
+//			CoroutinePtrSet* done = transfer->done();
+//			safe_assert(!done->empty());
+//			except_targets.insert(done->begin(), done->end());
+//
+//			if(dpor_enabled_) {
+//				// if not the first transition, we use backtrack set,
+//				// otherwise we chose a random next target
+//				backtrack = transfer->backtrack();
+//			}
+//		}
+//	}
+//	if(!transfer_criteria_.except()->empty()) {
+//		except_targets.insert(transfer_criteria_.except()->begin(), transfer_criteria_.except()->end());
+//	}
+//	return group_.GetNextEnabled((except_targets.empty() ? NULL : &except_targets), backtrack);
+//}
 
 /********************************************************************************/
 
-// when this begins, we have a particular target to transfer
-// all nondeterminism about transfer is resolved in transfer star
-SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
-	MYLOG(2) << SC_TITLE << "Transfer request to " << ((target != NULL) ? to_string(target->tid()) : "star");
+//SchedulePoint* Scenario::TransferStar(SourceLocation* loc) {
+//	return this->Transfer(NULL, loc);
+//}
 
-	CoroutineGroup group = group_;
+/********************************************************************************/
 
-	// get current coroutine
-	Coroutine* current = Coroutine::Current();
-	// sanity checks
-	safe_assert(current != NULL);
-
-	if(target != NULL) {
-		safe_assert(group.GetMember(target->tid()) == target);
-
-		// backtrack if target is not enabled
-		if(target->status() != ENABLED) {
-			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
-		}
-	}
-
-	// this coroutine is main, get the main coroutine from our group
-	Coroutine* main = group.main();
-
-	// check if this is not the main thread (main is not allowed to yield)
-	CHECK(current == main) << "Transfer must be called from the main thread!";
-	CHECK(target != main) << "Transfer must not be targeted to main!";
-
-	std::string main_label(MAIN_LABEL);
-	return do_yield(&group_, main, target, main_label, loc, NULL);
-}
+//// when this begins, we have a particular target to transfer
+//// all nondeterminism about transfer is resolved in transfer star
+//SchedulePoint* Scenario::Transfer(Coroutine* target, SourceLocation* loc) {
+//	MYLOG(2) << SC_TITLE << "Transfer request to " << ((target != NULL) ? to_string(target->tid()) : "star");
+//
+//	CoroutineGroup group = group_;
+//
+//	// get current coroutine
+//	Coroutine* current = Coroutine::Current();
+//	// sanity checks
+//	safe_assert(current != NULL);
+//
+//	if(target != NULL) {
+//		safe_assert(group.GetMember(target->tid()) == target);
+//
+//		// backtrack if target is not enabled
+//		if(target->status() != ENABLED) {
+//			TRIGGER_BACKTRACK(SPEC_UNSATISFIED);
+//		}
+//	}
+//
+//	// this coroutine is main, get the main coroutine from our group
+//	Coroutine* main = group.main();
+//
+//	// check if this is not the main thread (main is not allowed to yield)
+//	CHECK(current == main) << "Transfer must be called from the main thread!";
+//	CHECK(target != main) << "Transfer must not be targeted to main!";
+//
+//	std::string main_label(MAIN_LABEL);
+//	return do_yield(&group_, main, target, main_label, loc, NULL);
+//}
 
 /********************************************************************************/
 
@@ -1132,186 +1121,186 @@ bool Scenario::AllEnded() {
 
 /********************************************************************************/
 
-Scenario* Scenario::UntilEnd() {
-	transfer_criteria_.UntilEnd();
-	return this;
-}
+//Scenario* Scenario::UntilEnd() {
+//	transfer_criteria_.UntilEnd();
+//	return this;
+//}
 
 /********************************************************************************/
 
-Scenario* Scenario::UntilFirst() {
-	transfer_criteria_.UntilFirst();
-	return this;
-}
+//Scenario* Scenario::UntilFirst() {
+//	transfer_criteria_.UntilFirst();
+//	return this;
+//}
 
 /********************************************************************************/
 
-Scenario* Scenario::UntilStar() {
-	transfer_criteria_.UntilStar();
-	return this;
-}
+//Scenario* Scenario::UntilStar() {
+//	transfer_criteria_.UntilStar();
+//	return this;
+//}
 
 /********************************************************************************/
 
-Scenario* Scenario::Until(const char* label) {
-	transfer_criteria_.Until(label);
-	return this;
-}
+//Scenario* Scenario::Until(const char* label) {
+//	transfer_criteria_.Until(label);
+//	return this;
+//}
 
 /********************************************************************************/
 
-Scenario* Scenario::Until(UntilCondition* cond) {
-	transfer_criteria_.Until(cond);
-	return this;
-}
+//Scenario* Scenario::Until(UntilCondition* cond) {
+//	transfer_criteria_.Until(cond);
+//	return this;
+//}
 
 /********************************************************************************/
 
-Scenario* Scenario::Until(const std::string& label) {
-	transfer_criteria_.Until(label);
-	return this;
-}
+//Scenario* Scenario::Until(const std::string& label) {
+//	transfer_criteria_.Until(label);
+//	return this;
+//}
 
 /********************************************************************************/
 
-bool Scenario::CheckUntil(SchedulePoint* point) {
-	safe_assert(transfer_criteria_.until() != NULL);
-	return transfer_criteria_.until()->Check(point);
-}
+//bool Scenario::CheckUntil(SchedulePoint* point) {
+//	safe_assert(transfer_criteria_.until() != NULL);
+//	return transfer_criteria_.until()->Check(point);
+//}
 
 /********************************************************************************/
 
-Scenario* Scenario::Except(Coroutine* t) {
-
-	transfer_criteria_.Except(t);
-
-	return this;
-}
-
-/********************************************************************************/
-
-Scenario* Scenario::Except(THREADID tid) {
-	Coroutine* t = group_.GetMember(tid);
-	safe_assert(t != NULL);
-	return Except(t);
-}
+//Scenario* Scenario::Except(Coroutine* t) {
+//
+//	transfer_criteria_.Except(t);
+//
+//	return this;
+//}
 
 /********************************************************************************/
 
-void Scenario::OnAccess(Coroutine* current, SharedAccess* access) {
-	safe_assert(access != NULL);
-	safe_assert(access == current->yield_point()->AsYield()->access()); // access must be the last access of current
-
-	MYLOG(2) << SC_TITLE << "Access by " << current->tid() << ": " << access->ToString();
-
-	// notify vc tracker
-	vcTracker_.OnAccess(current->yield_point(), schedule_->coverage());
-}
+//Scenario* Scenario::Except(THREADID tid) {
+//	Coroutine* t = group_.GetMember(tid);
+//	safe_assert(t != NULL);
+//	return Except(t);
+//}
 
 /********************************************************************************/
 
-void Scenario::UpdateBacktrackSets() {
-	// iterate over all coroutines in the group
-	for(MembersMap::iterator itr = group_.members()->begin(); itr != group_.members()->end(); ++itr) {
-		Coroutine* co = itr->second;
-		if(co->status() < ENDED) {
-			// handle its next access
-			SchedulePoint* point = co->yield_point();
-			if(point != NULL) {
-				vcTracker_.UpdateBacktrackSets(point);
-			}
-		}
-	}
-}
+//void Scenario::OnAccess(Coroutine* current, SharedAccess* access) {
+//	safe_assert(access != NULL);
+//	safe_assert(access == current->yield_point()->AsYield()->access()); // access must be the last access of current
+//
+//	MYLOG(2) << SC_TITLE << "Access by " << current->tid() << ": " << access->ToString();
+//
+//	// notify vc tracker
+//	vcTracker_.OnAccess(current->yield_point(), schedule_->coverage());
+//}
 
 /********************************************************************************/
 
-SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAccess* access /*=NULL*/, bool force /*=false*/) {
-
-	// give warning if access is null
-	if(access == NULL && strcmp(safe_notnull(label), ENDING_LABEL) != 0) {
-		MYLOG(2) << "YIELD without a shared variable access.";
-		if(loc != NULL) {
-			MYLOG(2) << "Related location: " << loc->ToString();
-		}
-	}
-
-	// get current coroutine
-	Coroutine* current = Coroutine::Current();
-	safe_assert(current != NULL);
-
-	CoroutineGroup* group = current->group();
-	safe_assert(group != NULL);
-
-	Coroutine* main = group->main();
-	safe_assert(main != current);
-
-	std::string strlabel = std::string(label);
-
-	Scenario* scenario = group->scenario();
-	safe_assert(scenario != NULL);
-
-	// if forced yield, put an until condition for this
-	if(force) {
-		// not the ending label
-		safe_assert(strcmp(label, ENDING_LABEL) != 0);
-		// TODO(elmas): check if the current until condition is consistent with forced yield
-		safe_assert(!current->IsMain());
-		scenario->UntilFirst(); // choose the first yield
-	}
-
-	return scenario->do_yield(group, current, main, strlabel, loc, access);
-
-}
+//void Scenario::UpdateBacktrackSets() {
+//	// iterate over all coroutines in the group
+//	for(MembersMap::iterator itr = group_.members()->begin(); itr != group_.members()->end(); ++itr) {
+//		Coroutine* co = itr->second;
+//		if(co->status() < ENDED) {
+//			// handle its next access
+//			SchedulePoint* point = co->yield_point();
+//			if(point != NULL) {
+//				vcTracker_.UpdateBacktrackSets(point);
+//			}
+//		}
+//	}
+//}
 
 /********************************************************************************/
 
-void Scenario::ExhaustiveSearch() {
-//	safe_assert(group_.current() == group_.main());
-
-	TEST_FORALL();
-
-	UNTIL_ALL_END {
-		UNTIL_STAR()->TRANSFER_STAR();
-	}
-}
-
-void Scenario::ContextBoundedExhaustiveSearch(int C) {
-//	safe_assert(group_.current() == group_.main());
-	CHECK(C > 0) << "Context bound must be > 0";
-
-	TEST_FORALL();
-
-	Coroutine* prev = NULL;
-	UNTIL_ALL_END {
-		SchedulePoint* point = UNTIL_STAR()->EXCEPT(prev)->TRANSFER_STAR();
-
-		safe_assert(point->IsTransfer());
-		safe_assert(point->AsTransfer()->target() == group_.main());
-
-		prev = point->AsYield()->source();
-		if(C > 0 && --C == 0) break;
-	}
-
-	FINISH_ALL();
-}
-
-void Scenario::NDSeqSearch() {
-//	safe_assert(group_.current() == group_.main());
-
-	TEST_FORALL();
-
-	UNTIL_ALL_END {
-		FINISH_STAR();
-	}
-}
+//SchedulePoint* yield(const char* label, SourceLocation* loc /*=NULL*/, SharedAccess* access /*=NULL*/, bool force /*=false*/) {
+//
+//	// give warning if access is null
+//	if(access == NULL && strcmp(safe_notnull(label), ENDING_LABEL) != 0) {
+//		MYLOG(2) << "YIELD without a shared variable access.";
+//		if(loc != NULL) {
+//			MYLOG(2) << "Related location: " << loc->ToString();
+//		}
+//	}
+//
+//	// get current coroutine
+//	Coroutine* current = Coroutine::Current();
+//	safe_assert(current != NULL);
+//
+//	CoroutineGroup* group = current->group();
+//	safe_assert(group != NULL);
+//
+//	Coroutine* main = group->main();
+//	safe_assert(main != current);
+//
+//	std::string strlabel = std::string(label);
+//
+//	Scenario* scenario = group->scenario();
+//	safe_assert(scenario != NULL);
+//
+//	// if forced yield, put an until condition for this
+//	if(force) {
+//		// not the ending label
+//		safe_assert(strcmp(label, ENDING_LABEL) != 0);
+//		// TODO(elmas): check if the current until condition is consistent with forced yield
+//		safe_assert(!current->IsMain());
+//		scenario->UntilFirst(); // choose the first yield
+//	}
+//
+//	return scenario->do_yield(group, current, main, strlabel, loc, access);
+//
+//}
 
 /********************************************************************************/
 
-void Scenario::RunSavedSchedule(const char* filename) {
-	Schedule schedule(filename, true); // load it
-	schedule_->extend_points(&schedule);
-}
+//void Scenario::ExhaustiveSearch() {
+////	safe_assert(group_.current() == group_.main());
+//
+//	TEST_FORALL();
+//
+//	UNTIL_ALL_END {
+//		UNTIL_STAR()->TRANSFER_STAR();
+//	}
+//}
+//
+//void Scenario::ContextBoundedExhaustiveSearch(int C) {
+////	safe_assert(group_.current() == group_.main());
+//	CHECK(C > 0) << "Context bound must be > 0";
+//
+//	TEST_FORALL();
+//
+//	Coroutine* prev = NULL;
+//	UNTIL_ALL_END {
+//		SchedulePoint* point = UNTIL_STAR()->EXCEPT(prev)->TRANSFER_STAR();
+//
+//		safe_assert(point->IsTransfer());
+//		safe_assert(point->AsTransfer()->target() == group_.main());
+//
+//		prev = point->AsYield()->source();
+//		if(C > 0 && --C == 0) break;
+//	}
+//
+//	FINISH_ALL();
+//}
+//
+//void Scenario::NDSeqSearch() {
+////	safe_assert(group_.current() == group_.main());
+//
+//	TEST_FORALL();
+//
+//	UNTIL_ALL_END {
+//		FINISH_STAR();
+//	}
+//}
+
+/********************************************************************************/
+
+//void Scenario::RunSavedSchedule(const char* filename) {
+//	Schedule schedule(filename, true); // load it
+//	schedule_->extend_points(&schedule);
+//}
 
 /********************************************************************************/
 
@@ -1322,53 +1311,53 @@ void Scenario::RunSavedSchedule(const char* filename) {
 
 /********************************************************************************/
 
-SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
-	MYLOG(2) << "Scenario::Yield (default implementation)";
-
-	CHECK(scenario == this);
-
-	// sanity checks
-	safe_assert(current != NULL);
-	safe_assert(group != NULL);
-	safe_assert(scenario == group->scenario());
-	safe_assert(group == scenario->group());
-
-	MYLOG(2) << "Yield request from " << current->tid();
-
-	// update backtrack set before taking the transition
-	this->UpdateBacktrackSets();
-
-	// generate or update the current yield point of current
-	SchedulePoint* point = current->OnYield(target, label, loc, access);
-
-	// make the next decision
-	TransferPoint* transfer = this->OnYield(point, target);
-
-	SchedulePoint* target_point = NULL;
-
-	// point != NULL means go to the target
-	// point == NULL means do not yield
-	if(transfer != NULL) {
-		safe_assert(transfer->IsResolved());
-		safe_assert(transfer->AsYield()->source() == current);
-		safe_assert(transfer->AsYield()->label() == label);
-		safe_assert(transfer->rem_count() == 0);
-
-		Coroutine* target = transfer->target();
-		safe_assert(transfer->target() != NULL);
-
-		// do the transfer
-		current->Transfer(target, MSG_TRANSFER);
-
-		// return yield point of the target
-		target_point = target->yield_point();
-	}
-
-	//----------------------------------------
-	// after transfer returns back to current
-
-	return target_point; // means did not transfer to another thread
-}
+//SchedulePoint* Scenario::Yield(Scenario* scenario, CoroutineGroup* group, Coroutine* current, Coroutine* target, std::string& label, SourceLocation* loc, SharedAccess* access) {
+//	MYLOG(2) << "Scenario::Yield (default implementation)";
+//
+//	CHECK(scenario == this);
+//
+//	// sanity checks
+//	safe_assert(current != NULL);
+//	safe_assert(group != NULL);
+//	safe_assert(scenario == group->scenario());
+//	safe_assert(group == scenario->group());
+//
+//	MYLOG(2) << "Yield request from " << current->tid();
+//
+//	// update backtrack set before taking the transition
+//	this->UpdateBacktrackSets();
+//
+//	// generate or update the current yield point of current
+//	SchedulePoint* point = current->OnYield(target, label, loc, access);
+//
+//	// make the next decision
+//	TransferPoint* transfer = this->OnYield(point, target);
+//
+//	SchedulePoint* target_point = NULL;
+//
+//	// point != NULL means go to the target
+//	// point == NULL means do not yield
+//	if(transfer != NULL) {
+//		safe_assert(transfer->IsResolved());
+//		safe_assert(transfer->AsYield()->source() == current);
+//		safe_assert(transfer->AsYield()->label() == label);
+//		safe_assert(transfer->rem_count() == 0);
+//
+//		Coroutine* target = transfer->target();
+//		safe_assert(transfer->target() != NULL);
+//
+//		// do the transfer
+//		current->Transfer(target, MSG_TRANSFER);
+//
+//		// return yield point of the target
+//		target_point = target->yield_point();
+//	}
+//
+//	//----------------------------------------
+//	// after transfer returns back to current
+//
+//	return target_point; // means did not transfer to another thread
+//}
 
 /********************************************************************************/
 
@@ -2047,8 +2036,8 @@ void Scenario::OnControlledTransition(Coroutine* current) {
 
 /********************************************************************************/
 
-bool Scenario::DoBacktrackPreemptive(BacktrackReason reason) {
-	MYLOG(2) << "DoBacktrackPreemptive for reason: " << reason;
+bool Scenario::Backtrack(BacktrackReason reason) {
+	MYLOG(2) << "Backtrack for reason: " << reason;
 
 	return !exec_tree_.ROOTNODE()->covered();
 }

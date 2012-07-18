@@ -37,7 +37,7 @@ namespace concurrit {
 
 ExistsResult::ExistsResult(Schedule* schedule) {
 	schedule_ = schedule;
-	coverage_ = *(schedule_->coverage());
+//	coverage_ = *(schedule_->coverage());
 }
 
 ExistsResult::~ExistsResult() {
@@ -72,11 +72,11 @@ ForallResult::~ForallResult() {
 
 void ForallResult::AddSchedule(Schedule* RESTRICT schedule) {
 	num_all_schedules_++;
-	if(coverage_.AddAll(schedule->coverage())) {
-		schedules_.push_back(static_cast<Schedule*>(schedule));
-	} else {
-		delete schedule;
-	}
+//	if(coverage_.AddAll(schedule->coverage())) {
+//		schedules_.push_back(static_cast<Schedule*>(schedule));
+//	} else {
+//		delete schedule;
+//	}
 }
 
 std::string ForallResult::ToString() {
@@ -113,7 +113,7 @@ std::string SignalResult::ToString() {
 AssertionViolationResult::AssertionViolationResult(AssertionViolationException* cause, Schedule* schedule) {
 	cause_ = cause;
 	schedule_ = safe_notnull(schedule);
-	coverage_ = *(schedule_->coverage());
+//	coverage_ = *(schedule_->coverage());
 }
 
 AssertionViolationResult::~AssertionViolationResult() {
@@ -148,7 +148,7 @@ std::string AssertionViolationResult::ToString() {
 RuntimeExceptionResult::RuntimeExceptionResult(std::exception* cause, Schedule* schedule) {
 	cause_ = cause;
 	schedule_ = safe_notnull(schedule);
-	coverage_ = *(schedule_->coverage());
+//	coverage_ = *(schedule_->coverage());
 }
 
 RuntimeExceptionResult::~RuntimeExceptionResult() {
@@ -181,7 +181,7 @@ std::string RuntimeExceptionResult::ToString() {
 
 NoFeasibleExecutionResult::NoFeasibleExecutionResult(Schedule* schedule) {
 	schedule_ = safe_notnull(schedule);
-	coverage_ = *(schedule_->coverage());
+//	coverage_ = *(schedule_->coverage());
 }
 
 NoFeasibleExecutionResult::~NoFeasibleExecutionResult() {

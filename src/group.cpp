@@ -237,7 +237,7 @@ void CoroutineGroup::Restart() {
 	// initialize main coroutine, (main is not added to the list of members)
 	safe_assert(main_ != NULL);
 	// restart main
-	main_->set_yield_point(NULL);
+//	main_->set_yield_point(NULL);
 	main_->set_group(this);
 
 	next_idx_ = 0;

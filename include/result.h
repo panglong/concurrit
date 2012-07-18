@@ -35,7 +35,6 @@
 #define RESULT_H_
 
 #include "common.h"
-#include "lp.h"
 
 namespace concurrit {
 
@@ -48,7 +47,7 @@ public:
 	virtual std::string ToString() = 0;
 
 private:
-	DECL_FIELD_REF(Coverage, coverage)
+//	DECL_FIELD_REF(Coverage, coverage)
 	DECL_FIELD(Statistics, statistics)
 };
 
