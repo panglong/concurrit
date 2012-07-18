@@ -7,15 +7,6 @@ cd $CONCURRIT_HOME
 # install google logging
 $CONCURRIT_HOME/scripts/install_glog.sh
 
-# install google flags
-$CONCURRIT_HOME/scripts/install_gflags.sh
-
-# install google test
-#$CONCURRIT_HOME/scripts/install_gtest.sh
-
-# install pth
-$CONCURRIT_HOME/scripts/install_pth.sh
-
 # install tbb
 $CONCURRIT_HOME/scripts/install_tbb.sh
 
