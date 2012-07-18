@@ -37,7 +37,6 @@
 #include "common.h"
 #include "threadvar.h"
 #include "thread.h"
-#include "tbb/concurrent_hash_map.h"
 #include <boost/shared_ptr.hpp>
 
 namespace concurrit {
@@ -271,7 +270,7 @@ private:
 
 template<typename T, T undef_value_>
 class AuxVar0 : public AuxVar {
-	typedef tbb::concurrent_hash_map<THREADID, T> M;
+	typedef std::map<THREADID, T> M;
 	typedef boost::shared_ptr<AuxVar0<T,undef_value_>> AuxVar0Ptr;
 public:
 	explicit AuxVar0(const char* name = "") : AuxVar(name) {}
@@ -299,11 +298,11 @@ public:
 	virtual T get(THREADID t = -1) {
 		RLOCK();
 
-		typename M::const_accessor acc;
-		if(!map_.find(acc, t)) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
 			return undef_value_;
 		}
-		T value = acc->second;
+		T value = itr->second;
 		safe_assert(value != undef_value_);
 		return value;
 	}
@@ -311,12 +310,10 @@ public:
 	virtual void set(const T& value, THREADID t = -1) {
 		WLOCK();
 
-		typename M::accessor acc;
 		if(value == undef_value_) {
 			map_.erase(t);
 		} else {
-			map_.insert(acc, t);
-			acc->second = value;
+			map_[t] = value;
 		}
 	}
 
@@ -443,8 +440,8 @@ TransitionPredicatePtr AuxVar0<T,undef_value_>::TP2(const AuxVar0Ptr& var1, cons
 template<typename K, typename T, K undef_key_, T undef_value_>
 class AuxVar1 : public AuxVar {
 protected:
-	typedef tbb::concurrent_hash_map<K, T> MM;
-	typedef tbb::concurrent_hash_map<THREADID, MM> M;
+	typedef std::map<K, T> MM;
+	typedef std::map<THREADID, MM> M;
 	typedef AuxVar1<K,T,undef_key_,undef_value_> AuxVarType;
 	typedef boost::shared_ptr<AuxVarType> AuxVarPtr;
 	typedef AuxVar0<K,undef_key_> AuxKeyType;
@@ -473,12 +470,12 @@ public:
 	K get_first_key(THREADID t = -1) {
 		RLOCK();
 
-		typename M::const_accessor acc;
-		if(map_.find(acc, t)) {
-			if(acc->second.empty()) {
+		typename M::iterator itr = map_.find(t);
+		if(itr != map_.end()) {
+			if(itr->second.empty()) {
 				return undef_key_;
 			}
-			K key = acc->second.begin()->first;
+			K key = itr->second.begin()->first;
 			safe_assert(key != undef_key_);
 			return key;
 		}
@@ -490,12 +487,12 @@ public:
 	T get_first_value(THREADID t = -1) {
 		RLOCK();
 
-		typename M::const_accessor acc;
-		if(map_.find(acc, t)) {
-			if(acc->second.empty()) {
+		typename M::iterator itr = map_.find(t);
+		if(itr != map_.end()) {
+			if(itr->second.empty()) {
 				return undef_key_;
 			}
-			T value = acc->second.begin()->second;
+			T value = itr->second.begin()->second;
 			safe_assert(value != undef_value_);
 			return value;
 		}
@@ -507,15 +504,15 @@ public:
 		RLOCK();
 
 		safe_assert(key != undef_key_);
-		typename M::const_accessor acc;
-		if(!map_.find(acc, t)) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
 			return undef_value_;
 		}
-		typename MM::const_accessor acc2;
-		if(!acc->second.find(acc2, key)) {
+		typename MM::iterator itr2 = itr->second.find(key);
+		if(itr2 == itr->second.end()) {
 			return undef_value_;
 		}
-		T value = acc2->second;
+		T value = itr2->second;
 		safe_assert(value != undef_value_);
 		return value;
 	}
@@ -524,17 +521,14 @@ public:
 		WLOCK();
 
 		safe_assert(key != undef_key_);
-		typename M::accessor acc;
-		if(!map_.find(acc, t)) {
-			map_.insert(acc, t);
-			acc->second = MM();
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
+			map_[t] = MM();
 		}
 		if(value == undef_value_) {
-			acc->second.erase(key);
+			itr->second.erase(key);
 		} else {
-			typename MM::accessor acc2;
-			acc->second.insert(acc2, key);
-			acc2->second = value;
+			itr->second[key] = value;
 		}
 	}
 
@@ -542,32 +536,33 @@ public:
 		RLOCK();
 
 		safe_assert(key != undef_key_);
-		typename M::const_accessor acc;
-		if(!map_.find(acc, t)) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
 			return false;
 		}
-		typename MM::const_accessor acc2;
-		bool ret = acc->second.find(acc2, key);
-		safe_assert(!ret || (acc2->second != undef_value_));
+		typename MM::iterator itr2 = itr->second.find(key);
+
+		bool ret = itr2 != itr->second.end();
+		safe_assert(!ret || (itr2->second != undef_value_));
 		return ret;
 	}
 
 	bool isset(THREADID t = -1) {
 		RLOCK();
 
-		typename M::const_accessor acc;
-		if(!map_.find(acc, t)) {
+		typename M::iterator itr = map_.find(t);
+		if(itr == map_.end()) {
 			return false;
 		}
-		return !acc->second.empty();
+		return !itr->second.empty();
 	}
 
 	void reset(THREADID t = -1) {
 		WLOCK();
 
-		typename M::accessor acc;
-		if(map_.find(acc, t)) {
-			acc->second.clear();
+		typename M::iterator itr = map_.find(t);
+		if(itr != map_.end()) {
+			itr->second.clear();
 		}
 	}
 

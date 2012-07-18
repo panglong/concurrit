@@ -38,7 +38,6 @@
 #include "common.h"
 #include "interface.h"
 #include "thread.h"
-#include "tbb/concurrent_hash_map.h"
 #include <glog/logging.h>
 
 #include <sys/stat.h>
@@ -211,7 +210,7 @@ public:
 /********************************************************************************/
 
 class ConcurrentPipe : public EventPipe {
-	typedef tbb::concurrent_hash_map<THREADID, ShadowThread*> TidToShadowThreadMap;
+	typedef std::map<THREADID, ShadowThread*> TidToShadowThreadMap;
 public:
 
 	ConcurrentPipe(const PipeNamePair& names, EventHandler* event_handler = NULL);

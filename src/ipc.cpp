@@ -437,9 +437,9 @@ ShadowThread* ConcurrentPipe::GetShadowThread(THREADID tid) {
 	ScopeMutex m(&map_mutex_);
 
 	ShadowThread* thread = NULL;
-	TidToShadowThreadMap::accessor acc;
-	if(tid_to_shadowthread_.find(acc, tid)) {
-		thread = acc->second;
+	TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.find(tid);
+	if(itr != tid_to_shadowthread_.end()) {
+		thread = itr->second;
 		safe_assert(thread != NULL);
 	}
 	return thread;
@@ -451,12 +451,10 @@ void ConcurrentPipe::RegisterShadowThread(ShadowThread* shadowthread) {
 	ScopeMutex m(&map_mutex_);
 
 	const THREADID tid = shadowthread->tid();
-	TidToShadowThreadMap::accessor acc;
-	if(!tid_to_shadowthread_.find(acc, tid)) {
-		tid_to_shadowthread_.insert(acc, tid);
-		acc->second = shadowthread;
+	TidToShadowThreadMap::iterator itr = tid_to_shadowthread_.find(tid);
+	if(itr == tid_to_shadowthread_.end()) {
+		tid_to_shadowthread_[tid] = shadowthread;
 	}
-	safe_assert(acc->second = shadowthread);
 }
 
 /**********************************************************************************/
