@@ -44,9 +44,6 @@
 
 namespace concurrit {
 
-#define ENDING_LABEL "ending"
-#define MAIN_LABEL "main"
-
 /********************************************************************************/
 
 #define CREATE_THREAD \
@@ -68,40 +65,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-#define TRANSFER(t) \
-	Transfer(t, RECORD_SRCLOC())
-
-#define TRANSFER_STAR() \
-	TransferStar(RECORD_SRCLOC())
-
-/********************************************************************************/
-
-#define UNTIL(x) \
-	Until(x)
-
-#define UNTIL_TRUE(pred, trans) \
-	{ trans ; Assume(pred); }
-
-#define UNTIL_FALSE(pred, trans) \
-	{ trans ; Assume(!(pred)); }
-
-#define UNTIL_FIRST() \
-	UntilFirst()
-
-#define UNTIL_END() \
-	UntilEnd()
-
-#define UNTIL_STAR() \
-	UntilStar()
-
-/********************************************************************************/
-
-// exclude a target from transfer
-#define EXCEPT(t) \
-	Except(t)
-
-/********************************************************************************/
-
 #define TEST_FORALL()	CheckForall()
 #define TEST_EXISTS()	CheckExists()
 
@@ -111,31 +74,6 @@ namespace concurrit {
 
 #define TERMINATE_SEARCH() \
 	TRIGGER_TERMINATE_SEARCH()
-
-/********************************************************************************/
-
-#define EXHAUSTIVE_SEARCH() \
-	ExhaustiveSearch()
-
-#define CONTEXT_BOUNDED_EXHAUSTIVE_SEARCH(c) \
-	ContextBoundedExhaustiveSearch(c)
-
-#define NDSEQ_SEARCH() \
-	NDSeqSearch()
-
-#define FINISH(t) \
-	UNTIL_END()->TRANSFER(t)
-
-#define FINISH_STAR() \
-	UNTIL_END()->TRANSFER_STAR()
-
-#define FINISH_ALL() \
-	UNTIL_ALL_END { \
-		FINISH_STAR(); \
-	}
-
-#define RUN_SAVED_SCHEDULE(f) \
-	RunSavedSchedule(f)
 
 /********************************************************************************/
 
