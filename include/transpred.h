@@ -311,7 +311,8 @@ public:
 		WLOCK();
 
 		if(value == undef_value_) {
-			map_.erase(t);
+			typename M::iterator itr = map_.find(t);
+			if(itr != map_.end()) map_.erase(itr);
 		} else {
 			map_[t] = value;
 		}
@@ -525,10 +526,13 @@ public:
 		if(itr == map_.end()) {
 			map_[t] = MM();
 		}
+
+		MM& mm = map_[t];
 		if(value == undef_value_) {
-			itr->second.erase(key);
+			typename MM::iterator itr2 = mm.find(key);
+			if(itr2 != mm.end()) mm.erase(itr2);
 		} else {
-			itr->second[key] = value;
+			mm[key] = value;
 		}
 	}
 
