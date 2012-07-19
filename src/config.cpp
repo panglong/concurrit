@@ -37,14 +37,14 @@ namespace concurrit {
 
 // set to default values
 bool Config::OnlyShowHelp = false;
-bool Config::DeleteCoveredSubtrees = false;
+bool Config::DeleteCoveredSubtrees = true;
 int Config::ExitOnFirstExecution = -1; // -1 means undefined, 0 means exit on first execution, > 0 means continue but decrease the flag (until 0)
 char* Config::SaveDotGraphToFile = NULL;
 long Config::MaxWaitTimeUSecs = USECSPERSEC;
 bool Config::IsStarNondeterministic = false;
 bool Config::RunUncontrolled = false;
 char* Config::TestLibraryFile = NULL;
-bool Config::KeepExecutionTree = true;
+bool Config::KeepExecutionTree = false;
 //bool Config::TrackAlternatePaths = false;
 int Config::MaxTimeOutsBeforeDeadlock = 10;
 bool Config::ManualInstrEnabled = true;
@@ -63,22 +63,31 @@ static void usage() {
 			"-h: Show this help. (OnlyShowHelp)\n\n"
 
 //			"-a: Track altenate paths (TrackAlternatePaths)\n"
-			"-c: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
+			"-c[0|1]: Cut covered subtrees. (DeleteCoveredSubtrees)\n"
 			"-dPATH: Save dot file of the execution tree in file PATH. (SaveDotGraphToFile)\n"
 //			"-eMODE: Execution mode. MODE in [server, client]"
 			"-fN: Exit after first N explorations. (ExitOnFirstExecution)\n"
 			"-k: Cancel threads to restart SUT.\n"
 			"-l: Test program as shared (.so) library.\n"
-			"-m: Enable manual instrumentation (ManuelInstrEnabled)\n"
-			"-p: Enable pin-tool instrumentation (PinInstrEnabled)\n"
+			"-m[0|1]: Enable/disable manual instrumentation (ManuelInstrEnabled)\n"
+			"-p[0|1]: Enable pin-tool instrumentation (PinInstrEnabled)\n"
 			"-r: Reload test library after each restart (ReloadTestLibraryOnRestart)\n"
-			"-s: Use stack-based DFS (!KeepExecutionTree)\n"
+			"-s[0|1]: Use stack-based DFS (!KeepExecutionTree)\n"
 			"-t: Save execution trace to file (SaveExecutionTraceToFile)\n"
 			"-u: Run test program uncontrolled (RunUncontrolled)\n"
 			"-vN: Verbosity level (N >= 0)\n"
 			"-wN: Maximum wait time (MaxWaitTimeUSecs).\n"
 
 			"=============================================\n");
+}
+
+static bool get_bool_opt(const char* opt) {
+	if(opt == NULL || strncmp(opt, "1", 1) == 0) {
+		return true;
+	} else if(strncmp(opt, "0", 1) == 0) {
+		return false;
+	}
+	safe_fail("Incorrect argument, expected 0 or 1.");
 }
 
 bool Config::ParseCommandLine(const main_args& args) {
@@ -91,7 +100,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 	int c;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "cd::f::hkl:m::p::rstuv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "c::d::f::hkl:m::p::rstuv:w:")) != -1) {
 		switch(c) {
 //		case 'a':
 ////			Config::KeepExecutionTree = true;
@@ -100,8 +109,12 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 //			printf("Will track alternate paths!\n");
 //			break;
 		case 'c':
-			Config::DeleteCoveredSubtrees = true;
-			printf("Will cut covered subtrees!\n");
+			Config::DeleteCoveredSubtrees = get_bool_opt(optarg);
+			if(Config::DeleteCoveredSubtrees) {
+				printf("Will cut covered subtrees!\n");
+			} else {
+				printf("Will not cut covered subtrees!\n");
+			}
 			break;
 //		case 'e':
 //			if(optarg == NULL) {
@@ -145,20 +158,18 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			printf("Will kill threads to restart.\n");
 			break;
 		case 'm':
-			if(optarg == NULL || strncmp(optarg, "1", 1) == 0) {
-				Config::ManualInstrEnabled = true;
+			Config::ManualInstrEnabled = get_bool_opt(optarg);
+			if(Config::ManualInstrEnabled) {
 				printf("Will enable manuel instrumentation!\n");
 			} else {
-				Config::ManualInstrEnabled = false;
 				printf("Will disable manuel instrumentation!\n");
 			}
 			break;
 		case 'p':
-			if(optarg == NULL || strncmp(optarg, "1", 1) == 0) {
-				Config::PinInstrEnabled = true;
+			Config::PinInstrEnabled = get_bool_opt(optarg);
+			if(Config::PinInstrEnabled) {
 				printf("Will enable pin instrumentation!\n");
 			} else {
-				Config::PinInstrEnabled = false;
 				printf("Will disable pin instrumentation!\n");
 			}
 			break;
@@ -167,7 +178,7 @@ bool Config::ParseCommandLine(int argc /*= -1*/, char **argv /*= NULL*/) {
 			printf("Will reload test library after each restart.\n");
 			break;
 		case 's':
-			Config::KeepExecutionTree = false;
+			Config::KeepExecutionTree = !get_bool_opt(optarg);
 //			Config::TrackAlternatePaths = false;
 			printf("Will use stack rather than execution tree.\n");
 			break;
