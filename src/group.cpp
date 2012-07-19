@@ -37,27 +37,6 @@ namespace concurrit {
 
 /********************************************************************************/
 
-Coroutine* CoroutineGroup::main_ = NULL;
-
-/********************************************************************************/
-
-void CoroutineGroup::init_main() {
-	safe_assert(main_ == NULL);
-	main_ = new Coroutine(MAIN_TID, NULL, NULL, 0);
-	main_->StartMain();
-}
-
-/********************************************************************************/
-
-void CoroutineGroup::delete_main() {
-	safe_assert(main_ != NULL);
-	main_->FinishMain();
-	delete main_;
-	main_ = NULL;
-}
-
-/********************************************************************************/
-
 /*
  * CoroutineGroup
  */
@@ -235,10 +214,10 @@ void CoroutineGroup::Restart() {
 //	}
 
 	// initialize main coroutine, (main is not added to the list of members)
-	safe_assert(main_ != NULL);
+	safe_assert(Coroutine::main() != NULL);
 	// restart main
 //	main_->set_yield_point(NULL);
-	main_->set_group(this);
+	Coroutine::main()->set_group(this);
 
 	next_idx_ = 0;
 }
@@ -330,8 +309,8 @@ bool CoroutineGroup::HasMember(Coroutine* member) {
 
 Coroutine* CoroutineGroup::GetMember(THREADID tid) {
 	if(tid == MAIN_TID) {
-		safe_assert(main_ != NULL);
-		return main_;
+		safe_assert(Coroutine::main() != NULL);
+		return Coroutine::main();
 	}
 	MembersMap::iterator itr = members_.find(tid);
 	if(itr == members_.end()) {

@@ -151,7 +151,7 @@ void Concurrit::Init(int argc /*= -1*/, char **argv /*= NULL*/) {
 
 	Thread::init_tls_key();
 
-	CoroutineGroup::init_main();
+	Coroutine::StartMain();
 
 	PinMonitor::Init();
 
@@ -179,7 +179,7 @@ void Concurrit::Destroy() {
 	safe_assert(INSTANCEOF(InstrHandler::Current, ConcurritInstrHandler*));
 	safe_delete(InstrHandler::Current);
 
-	CoroutineGroup::delete_main();
+	Coroutine::FinishMain();
 
 	Thread::delete_tls_key();
 

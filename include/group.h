@@ -96,14 +96,10 @@ public:
 
 	void KillAll(int signal_number, THREADID sender = 0);
 
-protected:
-	static void init_main();
-	static void delete_main();
-
 private:
 	DECL_FIELD(Scenario*, scenario)
 	//DECL_FIELD(Coroutine*, current)
-	DECL_STATIC_FIELD(Coroutine*, main)
+//	DECL_STATIC_FIELD(Coroutine*, main)
 //	DECL_FIELD(std::exception*, exception)
 	DECL_FIELD(THREADID, next_tid)
 

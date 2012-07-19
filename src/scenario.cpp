@@ -527,7 +527,7 @@ void Scenario::RunTestCase() throw() {
 				MYLOG(1) << "Test execution ended with non-backtrack exception: " << safe_notnull(e->what());
 
 				// mark the end of the path with end node and the corresponding exception
-				exec_tree_.EndWithException(group_.main(), e);
+				exec_tree_.EndWithException(Coroutine::main(), e);
 				return;
 			}
 			reason = be->reason();
@@ -572,7 +572,7 @@ void Scenario::RunTestCase() throw() {
 		MYLOG(1) << "Test execution ended with backtrack exception: " << BacktrackException::ReasonToString(reason);
 
 		// mark the end of the path with end node and the corresponding exception
-		exec_tree_.EndWithException(group_.main(), be);
+		exec_tree_.EndWithException(Coroutine::main(), be);
 	}
 }
 
@@ -686,7 +686,7 @@ void Scenario::Start() {
 	safe_assert(Scenario::Current() == this);
 
 	// sanity checks for initialization
-	safe_assert(CoroutineGroup::main() != NULL);
+	safe_assert(Coroutine::main() != NULL);
 	safe_assert(test_status_ == TEST_BEGIN || test_status_ == TEST_ENDED);
 
 	srand(time(NULL));

@@ -69,8 +69,8 @@ public:
 	void Finish();
 	bool WaitForEnd(long timeout = -1);
 
-	void StartMain();
-	void FinishMain();
+	static void StartMain();
+	static void FinishMain();
 	bool IsMain();
 
 	void SetStarted();
@@ -122,6 +122,8 @@ private:
 
 	DECL_FIELD(SourceLocation*, srcloc)
 	char instr_callback_info_[256];
+
+	DECL_STATIC_FIELD(Coroutine*, main)
 
 	DISALLOW_COPY_AND_ASSIGN(Coroutine)
 };

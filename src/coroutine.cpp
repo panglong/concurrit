@@ -35,6 +35,7 @@
 
 namespace concurrit {
 
+Coroutine* Coroutine::main_ = NULL;
 
 Coroutine::Coroutine(THREADID tid, ThreadEntryFunction entry_function, void* entry_arg, int stack_size)
 : Thread(tid, entry_function, entry_arg, stack_size)
@@ -63,29 +64,39 @@ Coroutine::~Coroutine() {
 /********************************************************************************/
 
 void Coroutine::StartMain() {
-	safe_assert(tid_ == MAIN_TID);
-	status_ = ENABLED;
-	set_tid(MAIN_TID);
+	safe_assert(main_ == NULL);
+	Coroutine* co = new Coroutine(MAIN_TID, NULL, NULL, 0);
+
+	co->status_ = ENABLED;
+
 	pthread_t pth_self = pthread_self();
 	safe_assert(pth_self != PTH_INVALID_THREAD);
 	// for non-main coroutines, this is called in ThreadEntry
-	attach_pthread(pth_self);
-	exception_ = NULL;
+	co->attach_pthread(pth_self);
+
+	main_ = co;
 }
 
 void Coroutine::FinishMain() {
-	safe_assert(tid_ == MAIN_TID);
-	status_ = TERMINATED;
-	set_tid(-1);
+	Coroutine* co = main_;
+	safe_assert(co != NULL);
+
+	safe_assert(co->tid_ == MAIN_TID);
+	co->status_ = TERMINATED;
+	co->tid_ = -1;
+
 	pthread_t pth_self = pthread_self();
 	safe_assert(pth_self != PTH_INVALID_THREAD);
 	// for non-main coroutines, this is called in ThreadEntry
-	detach_pthread(pth_self);
+	co->detach_pthread(pth_self);
+
+	delete co;
+	main_ = NULL;
 }
 
 bool Coroutine::IsMain() {
 	if(tid_ == MAIN_TID) {
-		safe_assert(group_ == NULL || group_->main() == this);
+		safe_assert(group_ == NULL || main_ == this);
 		return true;
 	}
 	return false;
