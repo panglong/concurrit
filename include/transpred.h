@@ -767,8 +767,135 @@ private:
 
 TransitionPredicatePtr operator == (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
 TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
-TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& t2);
-TransitionPredicatePtr operator ! (const ThreadVarPtr& t1);
+
+/********************************************************************************/
+
+// Thread expressions
+
+class ThreadExpr : public TransitionPredicate {
+public:
+	ThreadExpr() {}
+	virtual ~ThreadExpr() {}
+
+	virtual bool EvalState(Coroutine* t = NULL) = 0;
+
+};
+
+typedef boost::shared_ptr<ThreadExpr> ThreadExprPtr;
+
+/********************************************************************************/
+
+class AnyThreadExpr : public ThreadExpr {
+public:
+	AnyThreadExpr() {}
+	~AnyThreadExpr() {}
+
+	bool EvalState(Coroutine* t = NULL) { return true; }
+
+	static ThreadExprPtr create() {
+		ThreadExprPtr p(new AnyThreadExpr());
+		return p;
+	}
+};
+
+/********************************************************************************/
+
+class ThreadVarExpr : public ThreadExpr {
+public:
+	ThreadVarExpr(const ThreadVarPtr& t) : var_(t) {}
+	~ThreadVarExpr() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		TransitionPredicatePtr p = (AuxState::Tid == var_);
+		return p->EvalState(t);
+	}
+
+	static ThreadExprPtr create(const ThreadVarPtr& t) {
+		ThreadExprPtr p(new ThreadVarExpr(t));
+		return p;
+	}
+private:
+	DECL_FIELD(ThreadVarPtr, var)
+};
+
+/********************************************************************************/
+
+class NegThreadVarExpr : public ThreadExpr {
+public:
+	NegThreadVarExpr(const ThreadVarPtr& t) : var_(t) {}
+	~NegThreadVarExpr() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		TransitionPredicatePtr p = (AuxState::Tid != var_);
+		return p->EvalState(t);
+	}
+
+	static ThreadExprPtr create(const ThreadVarPtr& t) {
+		ThreadExprPtr p(new NegThreadVarExpr(t));
+		return p;
+	}
+private:
+	DECL_FIELD(ThreadVarPtr, var)
+};
+
+/********************************************************************************/
+
+class PlusThreadExpr : public ThreadExpr {
+public:
+	PlusThreadExpr(const ThreadExprPtr& e, const ThreadVarPtr& t) : expr_(e), var_(t) {}
+	~PlusThreadExpr() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		if(expr_->EvalState(t)) {
+			return true;
+		}
+
+		TransitionPredicatePtr p = ThreadVarExpr::create(var_);
+		return p->EvalState(t);
+	}
+
+	static ThreadExprPtr create(const ThreadExprPtr& e, const ThreadVarPtr& t) {
+		ThreadExprPtr p(new PlusThreadExpr(e, t));
+		return p;
+	}
+private:
+	DECL_FIELD(ThreadExprPtr, expr)
+	DECL_FIELD(ThreadVarPtr, var)
+};
+
+/********************************************************************************/
+
+class MinusThreadExpr : public ThreadExpr {
+public:
+	MinusThreadExpr(const ThreadExprPtr& e, const ThreadVarPtr& t) : expr_(e), var_(t) {}
+	~MinusThreadExpr() {}
+
+	bool EvalState(Coroutine* t = NULL) {
+		if(!expr_->EvalState(t)) {
+			return false;
+		}
+
+		TransitionPredicatePtr p = NegThreadVarExpr::create(var_);
+		return p->EvalState(t);
+	}
+
+	static ThreadExprPtr create(const ThreadExprPtr& e, const ThreadVarPtr& t) {
+		ThreadExprPtr p(new MinusThreadExpr(e, t));
+		return p;
+	}
+private:
+	DECL_FIELD(ThreadExprPtr, expr)
+	DECL_FIELD(ThreadVarPtr, var)
+};
+
+/********************************************************************************/
+
+ThreadExprPtr operator + (const ThreadExprPtr& e, const ThreadVarPtr& t);
+ThreadExprPtr operator - (const ThreadExprPtr& e, const ThreadVarPtr& t);
+
+ThreadExprPtr operator ! (const ThreadVarPtr& t);
+
+/********************************************************************************/
 
 } // end namespace
 

@@ -665,6 +665,17 @@ inline void _WAIT_FOR_END(ThreadVarPtr t, long timeout = -1) {
 #define WAIT_FOR_END(...)	_WAIT_FOR_END(__VA_ARGS__)
 
 /********************************************************************************/
+/********************************************************************************/
+
+// POPL SYNTAX:
+
+// AnyThread:
+#define ANY_THREAD	AnyThreadExpr::create()
+
+
+
+
+/********************************************************************************/
 
 } // end namespace
 

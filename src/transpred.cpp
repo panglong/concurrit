@@ -292,17 +292,6 @@ TransitionPredicatePtr operator != (const ThreadVarPtr& t1, const ThreadVarPtr& 
 	return TPThreadVarsNotEqual::create(t1, t2);
 }
 
-TransitionPredicatePtr operator || (const ThreadVarPtr& t1, const ThreadVarPtr& t2) {
-	TransitionPredicatePtr p = (TID == t1);
-	TransitionPredicatePtr q = (TID == t2);
-	return (p || q);
-}
-
-TransitionPredicatePtr operator ! (const ThreadVarPtr& t1) {
-	TransitionPredicatePtr p = (TID != t1);
-	return p;
-}
-
 /********************************************************************************/
 
 // ThreadVar
@@ -438,6 +427,24 @@ TransitionPredicatePtr TPInFunc::create(const ADDRINT& addr, const ThreadVarPtr&
 }
 
 /********************************************************************************/
+
+// Thread expressions
+
+ThreadExprPtr operator + (const ThreadExprPtr& e, const ThreadVarPtr& t) {
+	ThreadExprPtr p(new PlusThreadExpr(e, t));
+	return p;
+}
+
+ThreadExprPtr operator - (const ThreadExprPtr& e, const ThreadVarPtr& t) {
+	ThreadExprPtr p(new MinusThreadExpr(e, t));
+	return p;
+}
+
+ThreadExprPtr operator ! (const ThreadVarPtr& t) {
+	ThreadExprPtr p(new NegThreadVarExpr(t));
+	return p;
+}
+
 
 } // end namespace
 

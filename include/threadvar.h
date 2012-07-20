@@ -197,22 +197,22 @@ public:
 
 /********************************************************************************/
 
-class ThreadVarDef {
-public:
-	ThreadVarDef(ThreadVarScope* scope, ThreadVarPtr& t): scope_(scope), var_(t) {
-		safe_assert(scope != NULL);
-		safe_assert(t != NULL);
-		// remove existing thread info, if any
-		t->clear_thread();
-		scope_->Add(var_);
-	}
-	~ThreadVarDef(){
-		scope_->Remove(var_);
-	}
-private:
-	DECL_FIELD(ThreadVarScope*, scope)
-	DECL_FIELD(ThreadVarPtr, var)
-};
+//class ThreadVarDef {
+//public:
+//	ThreadVarDef(ThreadVarScope* scope, ThreadVarPtr& t): scope_(scope), var_(t) {
+//		safe_assert(scope != NULL);
+//		safe_assert(t != NULL);
+//		// remove existing thread info, if any
+//		t->clear_thread();
+//		scope_->Add(var_);
+//	}
+//	~ThreadVarDef(){
+//		scope_->Remove(var_);
+//	}
+//private:
+//	DECL_FIELD(ThreadVarScope*, scope)
+//	DECL_FIELD(ThreadVarPtr, var)
+//};
 
 /********************************************************************************/
 
