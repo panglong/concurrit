@@ -223,57 +223,37 @@ inline void* _FUNC(const char* func_name) {
 #define TID				(AuxState::Tid)
 #define __				(ThreadVarPtr())
 
-/********************************************************************************/
-
-inline TransitionPredicatePtr _BY(ThreadVarPtr t, ...) {
-	va_list args;
-	va_start(args, t);
-	safe_assert(t != NULL);
-	TransitionPredicatePtr p;
-	do {
-		TransitionPredicatePtr q = (TID == t);
-		p = ((p == NULL) ? q : (p || q));
-		t = va_arg(args, ThreadVarPtr);
-	} while (t != NULL);
-	va_end(args);
-	return p;
-}
-
-#define BY(t)			(TID == t)
-//#define BY(...)			_BY(__VA_ARGS__, ThreadVarPtr())
+#define ANY_THREAD		AnyThreadExpr::create()
 
 /********************************************************************************/
 
-inline TransitionPredicatePtr _NOT_BY(ThreadVarPtr t, ...) {
-	va_list args;
-	va_start(args, t);
-	safe_assert(t != NULL);
-	TransitionPredicatePtr p;
-	do {
-		TransitionPredicatePtr q = (TID != t);
-		p = ((p == NULL) ? q : (p && q));
-		t = va_arg(args, ThreadVarPtr);
-	} while (t != NULL);
-	va_end(args);
-	return p;
+inline ThreadExprPtr _BY(const ThreadVarPtr& t) {
+	return ThreadVarExpr::create(t);
 }
 
-#define NOT_BY(t)			(TID != t)
-//#define NOT_BY(...)			_NOT_BY(__VA_ARGS__, ThreadVarPtr())
-#define NOT(...)			NOT_BY(__VA_ARGS__)
+#define BY(t)			_BY(t)
+
+/********************************************************************************/
+
+inline ThreadExprPtr _NOT_BY(const ThreadVarPtr& t) {
+	return NegThreadVarExpr::create(t);
+}
+
+#define NOT_BY(t)		_NOT_BY(t)
+#define NOT(t)			NOT_BY(t)
 
 /********************************************************************************/
 
 inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = ThreadVarPtr()) {
-	if(scope.empty()) return PTRUE;
+	if(scope.empty()) return ANY_THREAD;
 
 	if(t == NULL) t = TID;
 
-	TransitionPredicatePtr p = TransitionPredicate::True();
+	ThreadExprPtr e = ANY_THREAD;
 	for(ThreadVarScope::iterator itr = scope.begin(), end = scope.end(); itr != end; ++itr) {
-		p = p && (t != (*itr));
+		e = e - (*itr);
 	}
-	return p;
+	return e;
 }
 
 #define DISTINCT(s, ...)		_DISTINCT(MakeThreadVarPtrSet s, ##__VA_ARGS__)
@@ -311,6 +291,9 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 #define SELECT_THREAD(t, s, ...)				_EXISTS("SELECT_THREAD", t, s, ## __VA_ARGS__)
 
 #define SELECT_THREAD_BACKTRACK(t, s, ...)		_FORALL("FORALL_THREAD", t, s, ## __VA_ARGS__)
+
+#define CHOOSE_THREAD				SELECT_THREAD
+#define CHOOSE_THREAD_BACKTRACK		SELECT_THREAD_BACKTRACK
 
 /********************************************************************************/
 
@@ -663,17 +646,6 @@ inline void _WAIT_FOR_END(ThreadVarPtr t, long timeout = -1) {
 }
 
 #define WAIT_FOR_END(...)	_WAIT_FOR_END(__VA_ARGS__)
-
-/********************************************************************************/
-/********************************************************************************/
-
-// POPL SYNTAX:
-
-// AnyThread:
-#define ANY_THREAD	AnyThreadExpr::create()
-
-
-
 
 /********************************************************************************/
 
