@@ -52,7 +52,7 @@ using namespace INSTLIB;
 #include "statistics.h"
 #include "sharedaccess.h"
 #include "interface.h"
-#include "tbb/concurrent_hash_map.h"
+#include "cmap.h"
 
 /* ===================================================================== */
 /* Commandline Switches */
@@ -133,20 +133,17 @@ PinEnableDisable(UINT32 command);
 
 /* ===================================================================== */
 
-typedef tbb::concurrent_hash_map<ADDRINT,BOOL> PLTMapType;
-static PLTMapType rtn_plt_addr = 0;
+typedef concurrit::ConcurrentMap<ADDRINT,BOOL> PLTMapType;
+static PLTMapType rtn_plt_addr;
 
 LOCALFUN INLINE
 bool IsPLT(ADDRINT addr) {
-	PLTMapType::const_accessor acc;
-	return rtn_plt_addr.find(acc, addr);
+	return rtn_plt_addr.contains(addr);
 }
 
 LOCALFUN INLINE
 void AddToPLT(ADDRINT addr) {
-	PLTMapType::accessor acc;
-	rtn_plt_addr.insert(acc, addr);
-	acc->second = true;
+	rtn_plt_addr.insert(addr, TRUE);
 }
 
 /* ===================================================================== */
@@ -182,7 +179,7 @@ LOCALVAR CallStackType* ThreadLocalState_call_stack[PIN_MAX_THREADS];
 
 class PinSourceLocation;
 
-typedef tbb::concurrent_hash_map<ADDRINT,PinSourceLocation*> AddrToLocMap;
+typedef concurrit::ConcurrentMap<ADDRINT,PinSourceLocation*> AddrToLocMap;
 
 class PinSourceLocation : public concurrit::SourceLocation {
 public:
@@ -205,14 +202,11 @@ public:
 
 	static inline PinSourceLocation* get(RTN rtn, ADDRINT address) {
 		PinSourceLocation* loc = NULL;
-		AddrToLocMap::accessor acc;
-		if(addrToLoc_.find(acc, address)) {
-			loc = acc->second;
+		if(addrToLoc_.find(address, &loc)) {
 			safe_assert(loc != NULL);
 		} else {
 			loc = new PinSourceLocation(rtn, address);
-			addrToLoc_.insert(acc, address);
-			acc->second = loc;
+			addrToLoc_.insert(address, loc);
 		}
 		safe_assert(loc != NULL);
 		return loc;
@@ -284,10 +278,10 @@ VOID CallNativePinMonitor(const CONTEXT * ctxt, THREADID tid, concurrit::EventBu
 //LOCALFUN ThreadLocalState* GetThreadLocalState(THREADID tid);
 
 typedef std::set< std::string > RTNNamesToInstrumentType;
-typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToInstrumentType;
+typedef concurrit::ConcurrentMap< ADDRINT, BOOL > RTNIdsToInstrumentType;
 
 typedef std::set< std::string > RTNNamesToSkipType;
-typedef tbb::concurrent_hash_map< ADDRINT, BOOL > RTNIdsToSkipType;
+typedef concurrit::ConcurrentMap< ADDRINT, BOOL > RTNIdsToSkipType;
 
 class InstParams {
 private:
@@ -297,10 +291,7 @@ public:
 	static void ParseFile(const char* filename) {
 		safe_assert(filename != NULL);
 
-		RTNIdsToInstrumentType::accessor acc;
-		RTNIdsToInstrument.insert(acc, ADDRINT(0)); // dummy id
-		acc->second = TRUE;
-		acc.release();
+		RTNIdsToInstrument.insert(ADDRINT(0), TRUE); // dummy id
 
 		RTNNamesToInstrument.insert("StartEndInstrument"); // dummy name
 
@@ -327,9 +318,7 @@ public:
 		if(RTNNamesToInstrument.find(name) != RTNNamesToInstrument.end()) {
 			// found
 			log_file << "Detected routine to instrument: " << name << " at address " << addr << std::endl;
-			RTNIdsToInstrumentType::accessor acc;
-			RTNIdsToInstrument.insert(acc, addr);
-			acc->second = TRUE;
+			RTNIdsToInstrument.insert(addr, TRUE);
 
 			// communicate the access to the pin monitor in concurrit
 			safe_check(name.size() < 64);
@@ -347,9 +336,7 @@ public:
 		if(RTNNamesToSkip.find(name) != RTNNamesToSkip.end()) {
 			// found
 			log_file << "Detected routine to skip: " << name << " at address " << addr << std::endl;
-			RTNIdsToSkipType::accessor acc;
-			RTNIdsToSkip.insert(acc, addr);
-			acc->second = TRUE;
+			RTNIdsToSkip.insert(addr, TRUE);
 			return true;
 		}
 		return false;
@@ -358,14 +345,12 @@ public:
 	static inline bool IsRoutineToInstrument(const ADDRINT& rtn_addr) {
 		if (rtn_addr == ADDRINT(0)) return true;
 		if(InstrumentAllRoutines) return true;
-		RTNIdsToInstrumentType::const_accessor c_acc;
-		return (RTNIdsToInstrument.find(c_acc, rtn_addr));
+		return (RTNIdsToInstrument.contains(rtn_addr));
 	}
 
 	static inline bool IsRoutineToSkip(const ADDRINT& rtn_addr) {
 		if (rtn_addr == ADDRINT(0)) return true;
-		RTNIdsToSkipType::const_accessor c_acc;
-		return (RTNIdsToSkip.find(c_acc, rtn_addr));
+		return (RTNIdsToSkip.contains(rtn_addr));
 	}
 
 	static inline bool OnFuncEnter(const THREADID& threadid, const ADDRINT& rtn_addr) {
@@ -716,7 +701,7 @@ MemRead(const CONTEXT * ctxt, THREADID threadid, VOID * addr, UINT32 size, PinSo
 /* ===================================================================== */
 
 LOCALVAR std::vector<string> FilteredImages;
-typedef tbb::concurrent_hash_map<UINT32,BOOL> FilteredImageIdsType;
+typedef concurrit::ConcurrentMap<UINT32,BOOL> FilteredImageIdsType;
 LOCALVAR FilteredImageIdsType FilteredImageIds;
 
 LOCALFUN INLINE
@@ -838,23 +823,18 @@ BOOL IsImageFiltered(IMG img) {
 
 	UINT32 img_id = IMG_Id(img);
 
-	FilteredImageIdsType::const_accessor c_acc;
-	if(FilteredImageIds.find(c_acc, img_id)) {
-		BOOL value = c_acc->second;
+	BOOL value = TRUE;
+	if(FilteredImageIds.find(img_id, &value)) {
 		safe_assert(value == TRUE || value == FALSE);
 		return value;
 	}
-	c_acc.release();
 
 	string img_name = IMG_Name(img);
 	for(std::vector<string>::iterator itr = FilteredImages.begin(); itr < FilteredImages.end(); ++itr) {
 		if(img_name.find(*itr) != string::npos) {
 
 			log_file << "--- IMG --- " << IMG_Name(img) << std::endl;
-			FilteredImageIdsType::accessor acc;
-			FilteredImageIds.insert(acc, img_id);
-			acc->second = TRUE;
-			acc.release();
+			FilteredImageIds.insert(img_id, TRUE);
 
 			/* ================================= */
 			if (!is_concurrit_loaded && *itr == "libconcurrit.so") {
@@ -867,9 +847,7 @@ BOOL IsImageFiltered(IMG img) {
 	}
 
 	log_file << "+++ IMG +++ " << IMG_Name(img) << std::endl;
-	FilteredImageIdsType::accessor acc;
-	FilteredImageIds.insert(acc, img_id);
-	acc->second = FALSE;
+	FilteredImageIds.insert(img_id, FALSE);
 	return FALSE;
 }
 

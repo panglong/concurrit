@@ -7,9 +7,6 @@ cd $CONCURRIT_HOME
 # install google logging
 $CONCURRIT_HOME/scripts/install_glog.sh
 
-# install tbb
-$CONCURRIT_HOME/scripts/install_tbb.sh
-
 # install boost
 $CONCURRIT_HOME/scripts/install_boost.sh
 
