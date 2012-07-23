@@ -87,7 +87,7 @@ namespace concurrit {
 // represents a set of coroutines to restrict the group to the rest of those
 class WithoutThreads {
 public:
-	WithoutThreads(ThreadVarScope* scope, ThreadVarPtrSet set) : scope_(scope), set_(set) {
+	WithoutThreads(ThreadVarPtrSet* scope, ThreadVarPtrSet set) : scope_(scope), set_(set) {
 		safe_check(!set.empty());
 		for(ThreadVarPtrSet::iterator itr = set_.begin(), end = set_.end(); itr != end; ++itr) {
 			scope_->Remove(*itr);
@@ -100,7 +100,7 @@ public:
 		}
 	}
 private:
-	DECL_FIELD(ThreadVarScope*, scope)
+	DECL_FIELD(ThreadVarPtrSet*, scope)
 	DECL_FIELD_REF(ThreadVarPtrSet, set)
 };
 
@@ -109,7 +109,7 @@ private:
 // represents a set of coroutines to restrict the group to only those
 class WithThreads {
 public:
-	WithThreads(ThreadVarScope* scope, ThreadVarPtrSet set) {
+	WithThreads(ThreadVarPtrSet* scope, ThreadVarPtrSet set) {
 		safe_check(!set.empty());
 		ThreadVarPtrSet others = *scope;
 		for(ThreadVarPtrSet::iterator itr = set.begin(), end = set.end(); itr != end; ++itr) {
@@ -225,6 +225,8 @@ inline void* _FUNC(const char* func_name) {
 
 #define ANY_THREAD		AnyThreadExpr::create()
 
+#define MAKE_THREADVARPTRSET(...)		MakeThreadVarPtrSet(__VA_ARGS__)
+
 /********************************************************************************/
 
 inline ThreadExprPtr _BY(const ThreadVarPtr& t) {
@@ -250,13 +252,13 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 	if(t == NULL) t = TID;
 
 	ThreadExprPtr e = ANY_THREAD;
-	for(ThreadVarScope::iterator itr = scope.begin(), end = scope.end(); itr != end; ++itr) {
+	for(ThreadVarPtrSet::iterator itr = scope.begin(), end = scope.end(); itr != end; ++itr) {
 		e = e - (*itr);
 	}
 	return e;
 }
 
-#define DISTINCT(s, ...)		_DISTINCT(MakeThreadVarPtrSet s, ##__VA_ARGS__)
+#define DISTINCT(s, ...)		_DISTINCT(MAKE_THREADVARPTRSET s, ##__VA_ARGS__)
 
 /********************************************************************************/
 
@@ -362,6 +364,10 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 #define SELECT(t, p, ...)	WAIT_FOR_THREAD(t, p, ## __VA_ARGS__)
 
 #define RELEASE(t, ...)		RUN_THREAD_THROUGH(t, PTRUE, ## __VA_ARGS__)
+
+/********************************************************************************/
+
+#define WAIT_FOR_DISTINCT_THREADS(ts, p)	_WAIT_FOR_DISTINCT_THREADS(MAKE_THREADVARPTRSET ts, p)
 
 /********************************************************************************/
 

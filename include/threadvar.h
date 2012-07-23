@@ -130,6 +130,18 @@ public:
 		}
 		return ThreadVarPtr();
 	}
+
+	void Add(const ThreadVarPtr& t) {
+		safe_assert(t != NULL);
+		safe_assert(this->find(t) == this->end());
+		this->insert(t);
+	}
+
+	void Remove(const ThreadVarPtr& t) {
+		safe_assert(t != NULL);
+		safe_assert(this->find(t) != this->end());
+		this->erase(t);
+	}
 };
 
 /********************************************************************************/
@@ -146,9 +158,9 @@ ThreadVarPtrSet MakeThreadVarPtrSet(ThreadVarPtr t1 = ThreadVarPtr(),
 									ThreadVarPtr t8 = ThreadVarPtr()
 									);
 
-// use the following instead of MakeCoroutinePtrSet alone
-#define MAKE_THREADVARPTRSET(...)		MakeThreadVarPtrSet(__VA_ARGS__)
-//#define MAKE_THREADVARPTRSET(...)		MakeThreadVarPtrSet(__VA_ARGS__, ThreadVarPtr())
+inline ThreadVarPtrSet MakeThreadVarPtrSet(const ThreadVarPtrSet& s) {
+	return s;
+}
 
 /********************************************************************************/
 
@@ -174,26 +186,26 @@ public:
 
 /********************************************************************************/
 
-// thread variable scope and definitions
-
-class ThreadVarScope : public ThreadVarPtrSet {
-public:
-	ThreadVarScope() {}
-	~ThreadVarScope() {}
-
-	void Add(const ThreadVarPtr& t) {
-		safe_assert(t != NULL);
-		safe_assert(this->find(t) == this->end());
-		this->insert(t);
-	}
-
-	void Remove(const ThreadVarPtr& t) {
-		safe_assert(t != NULL);
-		safe_assert(this->find(t) != this->end());
-		this->erase(t);
-	}
-
-};
+//// thread variable scope and definitions
+//
+//class ThreadVarScope : public ThreadVarPtrSet {
+//public:
+//	ThreadVarScope() {}
+//	~ThreadVarScope() {}
+//
+//	void Add(const ThreadVarPtr& t) {
+//		safe_assert(t != NULL);
+//		safe_assert(this->find(t) == this->end());
+//		this->insert(t);
+//	}
+//
+//	void Remove(const ThreadVarPtr& t) {
+//		safe_assert(t != NULL);
+//		safe_assert(this->find(t) != this->end());
+//		this->erase(t);
+//	}
+//
+//};
 
 /********************************************************************************/
 

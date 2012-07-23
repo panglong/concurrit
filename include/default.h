@@ -48,6 +48,17 @@ public:
 
 	/* ============================================================================= */
 
+	void _WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p) {
+		ThreadVarPtrSet done;
+		for(ThreadVarPtrSet::iterator itr = s.begin(), end = s.end(); itr != end; ++itr) {
+			ThreadVarPtr t = (*itr);
+			WAIT_FOR_DISTINCT_THREAD(t, (done), p);
+			done.Add(t);
+		}
+	}
+
+	/* ============================================================================= */
+
 //	void NDSequentialSearch(TransitionPredicatePtr select_criteria = PTRUE) {
 //
 //		WHILE_DTSTAR {
