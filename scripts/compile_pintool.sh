@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PWD=`pwd`
+MYPWD=`pwd`
 
 PIN_ARCH="obj-intel64"
 PINTOOL_DIR=$CONCURRIT_TPDIR/pin/source/tools/concurrit
@@ -23,4 +23,4 @@ else
 	echo "Pintool does not exist!"
 fi
 
-cd $PWD
+cd $MYPWD

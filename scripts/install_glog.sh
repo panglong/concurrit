@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PWD=`pwd`
+MYPWD=`pwd`
 
 CHECKOUT_DIR=$CONCURRIT_TPDIR/google-glog-read-only
 INSTALL_DIR=$CONCURRIT_TPDIR/glog
@@ -21,5 +21,5 @@ make install
 
 rm -rf $CHECKOUT_DIR
 
-cd $PWD
+cd $MYPWD
 

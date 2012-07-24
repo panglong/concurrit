@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PWD=`pwd`
+MYPWD=`pwd`
 
 PINNAME=pin-2.11-49306-gcc.3.4.6-ia32_intel64-linux
 
@@ -17,4 +17,4 @@ mv $CHECKOUT_DIR $INSTALL_DIR
 
 $CONCURRIT_HOME/scripts/compile_pintool.sh
 
-cd $PWD
+cd $MYPWD
