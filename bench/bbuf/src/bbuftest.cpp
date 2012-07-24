@@ -75,7 +75,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
-		WHILE(!HAS_ENDED(t1) && !HAS_ENDED(t2)) {
+		WHILE(!HAVE_ENDED(t1, t2)) {
 
 			TVAR(t);
 			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
