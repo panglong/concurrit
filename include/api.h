@@ -368,9 +368,18 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define WAIT_FOR_THREAD(t, p, ...)				    _EXISTS("WaitForThread", t, (), p, ## __VA_ARGS__)
+#define WAIT_FOR_THREAD(t, ...)				    _EXISTS("WaitForThread", t, (), ## __VA_ARGS__)
 
-#define WAIT_FOR_DISTINCT_THREADS(ts, p, ...)		_WAIT_FOR_DISTINCT_THREADS(MAKE_THREADVARPTRSET ts, p, ## __VA_ARGS__)
+#define _WAIT_FOR_DISTINCT_THREADS(ts, p, ...) \
+		ThreadVarPtrSet ADD_LINE(s) = (ts); \
+		ThreadExprPtr ADD_LINE(q) = ANY_THREAD; \
+		for(ThreadVarPtrSet::iterator ADD_LINE(itr) = ADD_LINE(s).begin(), ADD_LINE(end) = ADD_LINE(s).end(); ADD_LINE(itr) != ADD_LINE(end); ++ADD_LINE(itr)) { \
+			ThreadVarPtr ADD_LINE(t) = (*ADD_LINE(itr)); \
+			_EXISTS("WaitForDistinctThread", ADD_LINE(t), (), ((p) && ADD_LINE(q)), ## __VA_ARGS__); \
+			ADD_LINE(q) = ADD_LINE(q) - ADD_LINE(t); \
+		} \
+
+#define WAIT_FOR_DISTINCT_THREADS(ts, ...)	_WAIT_FOR_DISTINCT_THREADS(MAKE_THREADVARPTRSET ts, ## __VA_ARGS__)
 
 /********************************************************************************/
 

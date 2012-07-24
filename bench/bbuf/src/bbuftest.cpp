@@ -24,7 +24,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		WHILE_STAR {
 			TVAR(t);
 			// waits for any thread in the SUT
-			SELECT_THREAD_BACKTRACK(t, (), PTRUE, "Select");
+			CHOOSE_THREAD_BACKTRACK(t, (), PTRUE, "Select");
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t");
 		}
 	}
@@ -54,7 +54,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		WHILE(!HAVE_ENDED(t1, t2, t3, t4)) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2, t3, t4), PTRUE, "Select t");
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2, t3, t4), PTRUE, "Select t");
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t until...");
 		}
 	}
@@ -79,7 +79,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		WHILE(!HAVE_ENDED(t1, t2)) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t until...");
 		}
 	}

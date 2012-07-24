@@ -48,10 +48,6 @@ public:
 
 	/* ============================================================================= */
 
-	void _WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p, ThreadExprPtr q = ThreadExprPtr(), const char* message = NULL);
-
-	/* ============================================================================= */
-
 //	void NDSequentialSearch(TransitionPredicatePtr select_criteria = PTRUE) {
 //
 //		WHILE_DTSTAR {

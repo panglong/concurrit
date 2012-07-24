@@ -173,12 +173,12 @@ public:
 	void DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message = NULL);
 
 	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const char* message = NULL);
-	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
-	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const ThreadExprPtr& texpr = ThreadExprPtr(), const char* message = NULL);
+	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred, const char* message = NULL);
+	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred, const ThreadExprPtr& texpr, const char* message = NULL);
 
 	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const char* message = NULL);
-	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const char* message = NULL);
-	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred = TransitionPredicatePtr(), const ThreadExprPtr& texpr = ThreadExprPtr(), const char* message = NULL);
+	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred, const char* message = NULL);
+	ThreadVarPtr DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred, const ThreadExprPtr& texpr, const char* message = NULL);
 
 	void EvalSelectThread(Coroutine* current, SelectThreadNode* node, int& child_index, bool& take);
 	void EvalTransition(Coroutine* current, TransitionNode* node, int& child_index, bool& take);

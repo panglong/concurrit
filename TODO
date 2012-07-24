@@ -1,5 +1,4 @@
-concurritKill ile tum programi sonlandirma
-
+remove SELECT_THREAD, use CHOOSE_THREAD
 * need construct to permute threads
 * checkpoint messages for long executions, for example after 1000 events, etc.
 * take which test method to call from the command line arguments
