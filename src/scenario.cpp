@@ -2428,7 +2428,15 @@ void Scenario::DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicate
 
 /********************************************************************************/
 
+ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const char* message /*= NULL*/) {
+	return DSLForallThread(static_info, scope, PTRUE, ANY_THREAD, message);
+}
+
 ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+	return DSLForallThread(static_info, scope, pred, ANY_THREAD, message);
+}
+
+ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const ThreadExprPtr& texpr /*= ThreadExprPtr()*/, const char* message /*= NULL*/) {
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
@@ -2470,6 +2478,11 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrS
 		TRIGGER_BACKTRACK(THREADS_ALLENDED);
 	}
 
+	TransitionPredicatePtr _pred = pred;
+	if(texpr != NULL) {
+		_pred = (_pred && texpr);
+	}
+
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
@@ -2485,9 +2498,9 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrS
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Init(scope, pred);
+		select->Init(scope, _pred);
 	} else {
-		select = new ForallThreadNode(static_info, scope, pred);
+		select = new ForallThreadNode(static_info, scope, _pred);
 	}
 
 	safe_assert(select != NULL && !select->covered());
@@ -2531,7 +2544,15 @@ ThreadVarPtr Scenario::DSLForallThread(StaticDSLInfo* static_info, ThreadVarPtrS
 
 /********************************************************************************/
 
+ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const char* message /*= NULL*/) {
+	return DSLExistsThread(static_info, scope, PTRUE, ANY_THREAD, message);
+}
+
 ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const char* message /*= NULL*/) {
+	return DSLExistsThread(static_info, scope, pred, ANY_THREAD, message);
+}
+
+ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const TransitionPredicatePtr& pred /*= TransitionPredicatePtr()*/, const ThreadExprPtr& texpr /*= ThreadExprPtr()*/, const char* message /*= NULL*/) {
 	safe_assert(static_info != NULL);
 	if(message != NULL) static_info->set_message(message);
 
@@ -2571,6 +2592,11 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrS
 		TRIGGER_BACKTRACK(THREADS_ALLENDED);
 	}
 
+	TransitionPredicatePtr _pred = pred;
+	if(texpr != NULL) {
+		_pred = (_pred && texpr);
+	}
+
 	ExecutionTree* node = exec_tree_.AcquireRefEx(EXIT_ON_EMPTY);
 	safe_assert(node == NULL);
 
@@ -2586,9 +2612,9 @@ ThreadVarPtr Scenario::DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrS
 //			// backtrack
 //			TRIGGER_BACKTRACK(TREENODE_COVERED);
 //		}
-		select->Init(scope, pred);
+		select->Init(scope, _pred);
 	} else {
-		select = new ExistsThreadNode(static_info, scope, pred);
+		select = new ExistsThreadNode(static_info, scope, _pred);
 	}
 
 	safe_assert(select != NULL && !select->covered());

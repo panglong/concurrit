@@ -48,7 +48,7 @@ public:
 
 	/* ============================================================================= */
 
-	void _WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p, ThreadExprPtr q = ThreadExprPtr());
+	void _WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p, ThreadExprPtr q = ThreadExprPtr(), const char* message = NULL);
 
 	/* ============================================================================= */
 

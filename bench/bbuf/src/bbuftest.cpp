@@ -23,6 +23,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		WHILE_STAR {
 			TVAR(t);
+			// waits for any thread in the SUT
 			SELECT_THREAD_BACKTRACK(t, (), PTRUE, "Select");
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t");
 		}

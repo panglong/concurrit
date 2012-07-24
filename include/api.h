@@ -221,7 +221,6 @@ inline void* _FUNC(const char* func_name) {
 /********************************************************************************/
 
 #define TID				(AuxState::Tid)
-#define __				(ThreadVarPtr())
 
 #define ANY_THREAD		AnyThreadExpr::create()
 
@@ -234,6 +233,25 @@ inline ThreadExprPtr _BY(const ThreadVarPtr& t) {
 }
 
 #define BY(t)			_BY(t)
+
+/********************************************************************************/
+
+inline ThreadExprPtr _TEXPR(const ThreadVarPtr& t1 = ThreadVarPtr(),
+							const ThreadVarPtr& t2 = ThreadVarPtr(),
+							const ThreadVarPtr& t3 = ThreadVarPtr(),
+							const ThreadVarPtr& t4 = ThreadVarPtr(),
+							const ThreadVarPtr& t5 = ThreadVarPtr()) {
+
+	ThreadExprPtr p = ANY_THREAD;
+	if(t1 != NULL) p = p + t1; else return p;
+	if(t2 != NULL) p = p + t2; else return p;
+	if(t3 != NULL) p = p + t3; else return p;
+	if(t4 != NULL) p = p + t4; else return p;
+	if(t5 != NULL) p = p + t5; else return p;
+	return p;
+}
+
+#define TEXPR(...)		_TEXPR(__VA_ARGS__)
 
 /********************************************************************************/
 
@@ -294,8 +312,11 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 #define SELECT_THREAD_BACKTRACK(t, s, ...)		_FORALL("FORALL_THREAD", t, s, ## __VA_ARGS__)
 
-#define CHOOSE_THREAD				SELECT_THREAD
-#define CHOOSE_THREAD_BACKTRACK		SELECT_THREAD_BACKTRACK
+/********************************************************************************/
+
+#define CHOOSE_THREAD							SELECT_THREAD
+
+#define CHOOSE_THREAD_BACKTRACK					SELECT_THREAD_BACKTRACK
 
 /********************************************************************************/
 
@@ -309,53 +330,47 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define RUN_THROUGH1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_THROUGH " #r); DSLRunThrough(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
+#define _RUN_THROUGH1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_THROUGH " #r); DSLRunThrough(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
 
-#define RUN_THROUGH2a(p, r, ...) 	{ CONSTRAIN_FST(p); RUN_THROUGH1((r), ## __VA_ARGS__); }
+#define _RUN_THROUGH2a(p, r, ...) 	{ CONSTRAIN_FST(p); _RUN_THROUGH1((r), ## __VA_ARGS__); }
 
-#define RUN_THROUGH2b(q, r, ...) 	{ CONSTRAIN_ALL(q); RUN_THROUGH1((r), ## __VA_ARGS__); }
+#define _RUN_THROUGH2b(q, r, ...) 	{ CONSTRAIN_ALL(q); _RUN_THROUGH1((r), ## __VA_ARGS__); }
 
-#define RUN_THROUGH3(p, q, r, ...) 	{ CONSTRAIN_FST(p); CONSTRAIN_ALL(q); RUN_THROUGH1((r), ## __VA_ARGS__); }
-
-/********************************************************************************/
-
-#define RUN_THROUGH(q, r, ...) 		RUN_THROUGH2b((q), (r), ## __VA_ARGS__);
+#define _RUN_THROUGH3(p, q, r, ...) { CONSTRAIN_FST(p); CONSTRAIN_ALL(q); _RUN_THROUGH1((r), ## __VA_ARGS__); }
 
 /********************************************************************************/
 
-#define RUN_UNTIL1(r, ...) 			DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLRunUntil(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
-
-#define RUN_UNTIL2a(p, r, ...) 		{ CONSTRAIN_FST(p); RUN_UNTIL1((r), ## __VA_ARGS__); }
-
-#define RUN_UNTIL2b(q, r, ...) 		{ CONSTRAIN_ALL(q); RUN_UNTIL1((r), ## __VA_ARGS__); }
-
-#define RUN_UNTIL3(p, q, r, ...) 	{ CONSTRAIN_FST(p); CONSTRAIN_ALL(q); RUN_UNTIL1((r), ## __VA_ARGS__); }
+#define _RUN_THROUGH(q, r, ...) 	_RUN_THROUGH2b((q), (r), ## __VA_ARGS__);
 
 /********************************************************************************/
 
-#define RUN_UNTIL(q, r, ...) 		RUN_UNTIL2b((q), (r), ## __VA_ARGS__);
+#define _RUN_UNTIL1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLRunUntil(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
+
+#define _RUN_UNTIL2a(p, r, ...) 	{ CONSTRAIN_FST(p); _RUN_UNTIL1((r), ## __VA_ARGS__); }
+
+#define _RUN_UNTIL2b(q, r, ...) 	{ CONSTRAIN_ALL(q); _RUN_UNTIL1((r), ## __VA_ARGS__); }
+
+#define _RUN_UNTIL3(p, q, r, ...) 	{ CONSTRAIN_FST(p); CONSTRAIN_ALL(q); _RUN_UNTIL1((r), ## __VA_ARGS__); }
 
 /********************************************************************************/
 
-#define RUN_ANY_THREAD_THROUGH(q, ...)	RUN_THROUGH(PTRUE, (q), ## __VA_ARGS__)
-#define RUN_ANY_THREAD_UNTIL(q, ...)	RUN_UNTIL(PTRUE, (q), ## __VA_ARGS__)
+#define _RUN_UNTIL(q, r, ...) 		_RUN_UNTIL2b((q), (r), ## __VA_ARGS__);
 
 /********************************************************************************/
 
-#define RUN_ANY_THREAD_BUT_THROUGH(t, q, ...)	RUN_THROUGH(NOT_BY(t), (q), ## __VA_ARGS__)
-#define RUN_ANY_THREAD_BUT_UNTIL(t, q, ...)		RUN_UNTIL(NOT_BY(t), (q), ## __VA_ARGS__)
+#define RUN_THREADS_THROUGH(ts, q, ...)		_RUN_THROUGH(ts, (q), ## __VA_ARGS__)
+#define RUN_THREADS_UNTIL(ts, q, ...)		_RUN_UNTIL(ts, (q), ## __VA_ARGS__)
 
 /********************************************************************************/
 
-#define RUN_THREAD_THROUGH(t, q, ...)	RUN_THROUGH(BY(t), (q), ## __VA_ARGS__)
-#define RUN_THREAD_UNTIL(t, q, ...)		RUN_UNTIL(BY(t), (q), ## __VA_ARGS__)
+#define RUN_THREAD_THROUGH(t, q, ...)		_RUN_THROUGH(BY(t), (q), ## __VA_ARGS__)
+#define RUN_THREAD_UNTIL(t, q, ...)			_RUN_UNTIL(BY(t), (q), ## __VA_ARGS__)
 
 /********************************************************************************/
 
-#define WAIT_FOR_THREAD(t, ...)					_EXISTS("WAIT_FOR_THREAD", t, (), ## __VA_ARGS__)
+#define WAIT_FOR_THREAD(t, p, ...)				    _EXISTS("WaitForThread", t, (), p, ## __VA_ARGS__)
 
-#define WAIT_FOR_DISTINCT_THREAD(t, s, p, ...)	_EXISTS("WAIT_FOR_DISTINCT_THREAD", t, (), ((p) && DISTINCT(s, TID)), ## __VA_ARGS__)
-
+#define WAIT_FOR_DISTINCT_THREADS(ts, p, ...)		_WAIT_FOR_DISTINCT_THREADS(MAKE_THREADVARPTRSET ts, p, ## __VA_ARGS__)
 
 /********************************************************************************/
 
@@ -364,10 +379,6 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 #define SELECT(t, p, ...)	WAIT_FOR_THREAD(t, p, ## __VA_ARGS__)
 
 #define RELEASE(t, ...)		RUN_THREAD_THROUGH(t, PTRUE, ## __VA_ARGS__)
-
-/********************************************************************************/
-
-#define WAIT_FOR_DISTINCT_THREADS(ts, p, ...)		_WAIT_FOR_DISTINCT_THREADS(MAKE_THREADVARPTRSET ts, p, ## __VA_ARGS__)
 
 /********************************************************************************/
 

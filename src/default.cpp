@@ -35,19 +35,21 @@
 
 namespace concurrit {
 
-void DefaultScenario::_WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p, ThreadExprPtr q /*= ThreadExprPtr()*/) {
-	char buff[64];
-	ThreadVarPtrSet done;
-	if(q != NULL) {
-		p = (p && q);
+/********************************************************************************/
+
+void DefaultScenario::_WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p, ThreadExprPtr q /*= ThreadExprPtr()*/, const char* message /*= NULL*/) {
+	if(q == NULL) {
+		q = ANY_THREAD;
 	}
 	for(ThreadVarPtrSet::iterator itr = s.begin(), end = s.end(); itr != end; ++itr) {
 		ThreadVarPtr t = (*itr);
-		snprintf(buff, 64, "Wait %s", t->name().c_str());
-		WAIT_FOR_DISTINCT_THREAD(t, (done), p, buff);
-		done.Add(t);
+		_EXISTS("WaitForDistinctThread", t, (), p, q, message);
+		// update q
+		q = q - t;
 	}
 }
+
+/********************************************************************************/
 
 } // end namespace
 

@@ -42,9 +42,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t2);
 		TVAR(t3);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(f), "t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f), "t2");
-		WAIT_FOR_DISTINCT_THREAD(t3, (t1, t2), IN_FUNC(g), "t3");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), IN_FUNC(f));
+		WAIT_FOR_THREAD(t3, IN_FUNC(g), ANY_THREAD - t1 - t2);
 
 		WHILE(!HAVE_ENDED(t1, t2, t3)) {
 			TVAR(t);
@@ -95,9 +94,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t2);
 		TVAR(t3);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(f), "t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f), "t2");
-		WAIT_FOR_DISTINCT_THREAD(t3, (t1, t2), IN_FUNC(g), "t3");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), IN_FUNC(f));
+		WAIT_FOR_THREAD(t3, IN_FUNC(g), ANY_THREAD - t1 - t2);
 
 		RUN_UNTIL(NOT_BY(t2), HITS_PC(43, t1), "run t1 until after wait");
 
