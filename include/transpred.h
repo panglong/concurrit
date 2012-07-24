@@ -70,10 +70,10 @@ public:
 		return ""; // TODO(elmas): implement
 	}
 
-	// evaluate immediatelly
-	operator bool () {
-		return EvalState(NULL);
-	}
+//	// evaluate immediatelly
+//	operator bool () {
+//		return EvalState(NULL);
+//	}
 
 	bool operator () (const ThreadVarPtr& t) {
 		return EvalState(t == NULL ? NULL : t->thread());
@@ -84,8 +84,8 @@ TransitionPredicatePtr operator ! (const TransitionPredicatePtr& pred);
 TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2);
 TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred1, const TransitionPredicatePtr& pred2);
 
-TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b);
-TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b);
+//TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b);
+//TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b);
 
 /********************************************************************************/
 

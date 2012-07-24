@@ -10,7 +10,7 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 	TESTCASE() {
-		CALL_TEST(SearchAll);
+		CALL_TEST(SearchInFunc2);
 	}
 
 	//============================================================//
@@ -44,11 +44,9 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		MAX_WAIT_TIME(0);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(f_get), "Select t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f_get), "Select t2");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), IN_FUNC(f_get));
 
-		WAIT_FOR_DISTINCT_THREAD(t3, (t1, t2), IN_FUNC(f_put), "Select t3");
-		WAIT_FOR_DISTINCT_THREAD(t4, (t1, t2, t3), IN_FUNC(f_put), "Select t4");
+		WAIT_FOR_DISTINCT_THREADS((t3, t4), IN_FUNC(f_put), ANY_THREAD - t1 - t2);
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
@@ -73,8 +71,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		MAX_WAIT_TIME(0);
 
-		WAIT_FOR_THREAD(t1, ENTERS(f_get), "Select t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_get), "Select t2");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), ENTERS(f_get));
 
 		MAX_WAIT_TIME(USECSPERSEC);
 

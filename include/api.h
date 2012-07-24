@@ -367,7 +367,7 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define WAIT_FOR_DISTINCT_THREADS(ts, p)	_WAIT_FOR_DISTINCT_THREADS(MAKE_THREADVARPTRSET ts, p)
+#define WAIT_FOR_DISTINCT_THREADS(ts, p, ...)		_WAIT_FOR_DISTINCT_THREADS(MAKE_THREADVARPTRSET ts, p, ## __VA_ARGS__)
 
 /********************************************************************************/
 

@@ -182,15 +182,15 @@ TransitionPredicatePtr operator ||(const TransitionPredicatePtr& pred1, const Tr
 
 /********************************************************************************/
 
-TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b) {
-	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryAND>(pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
-	return p;
-}
-
-TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b) {
-	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryOR>(pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
-	return p;
-}
+//TransitionPredicatePtr operator && (const TransitionPredicatePtr& pred, const bool& b) {
+//	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryAND>(pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
+//	return p;
+//}
+//
+//TransitionPredicatePtr operator || (const TransitionPredicatePtr& pred, const bool& b) {
+//	TransitionPredicatePtr p(new NAryTransitionPredicate<NAryOR>(pred, (b ? TransitionPredicate::True() : TransitionPredicate::False())));
+//	return p;
+//}
 
 /********************************************************************************/
 
