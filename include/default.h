@@ -48,19 +48,7 @@ public:
 
 	/* ============================================================================= */
 
-	void _WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p, ThreadExprPtr q = ThreadExprPtr()) {
-		char buff[64];
-		ThreadVarPtrSet done;
-		if(q != NULL) {
-			p = (p && q);
-		}
-		for(ThreadVarPtrSet::iterator itr = s.begin(), end = s.end(); itr != end; ++itr) {
-			ThreadVarPtr t = (*itr);
-			snprintf(buff, 64, "Wait %s", t->name().c_str());
-			WAIT_FOR_DISTINCT_THREAD(t, (done), p, buff);
-			done.Add(t);
-		}
-	}
+	void _WAIT_FOR_DISTINCT_THREADS(ThreadVarPtrSet s, TransitionPredicatePtr p, ThreadExprPtr q = ThreadExprPtr());
 
 	/* ============================================================================= */
 
