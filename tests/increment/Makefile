@@ -1,4 +1,0 @@
-TARGET=increment
-SRCS=increment.cpp
-
-include $(CONCURRIT_HOME)/test-common.mk
