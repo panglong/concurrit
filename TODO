@@ -1,3 +1,5 @@
+WAIT_FOR_THREAD should use RUN_UNTIL
+RUN_THREADS_UNTIL and RUN_EACH_THREAD_UNTIL
 remove SELECT_THREAD, use CHOOSE_THREAD
 * need construct to permute threads
 * checkpoint messages for long executions, for example after 1000 events, etc.

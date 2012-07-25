@@ -32,7 +32,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(15*USECSPERSEC);
 
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f) && WITH_ARG0(f, qptr), "Select t2");
+		WAIT_FOR_THREAD(t2, ENTERS(f) && WITH_ARG0(f, qptr), ANY_THREAD - t1, "Select t2");
 //		RUN_UNTIL(NOT_BY(t1), ENTERS(f) && WITH_ARG0(f, qptr), t2, "Select t2");
 
 		MAX_WAIT_TIME(USECSPERSEC);
@@ -40,7 +40,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		WHILE(IN_FUNC(f, t1)->EvalState() || IN_FUNC(f, t2)->EvalState()) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), "Select t");
 
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || RETURNS() || ENDS(), "Step t");
 		}
@@ -63,15 +63,15 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(15*USECSPERSEC);
 
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f) && WITH_ARG0(f, qptr), "Select t2");
-//		RUN_UNTIL(NOT_BY(t1), ENTERS(f) && WITH_ARG0(f, qptr), t2, "Select t2");
+		WAIT_FOR_THREAD(t2, ENTERS(f) && WITH_ARG0(f, qptr), ANY_THREAD - t1, "Select t2");
+		RUN_UNTIL(NOT_BY(t1), ENTERS(f) && WITH_ARG0(f, qptr), t2, "Select t2");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
 		WHILE(IN_FUNC(f, t1)->EvalState() || IN_FUNC(f, t2)->EvalState()) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), "Select t");
 
 			RUN_THREAD_THROUGH(t, HITS_PC() || ENTERS() || RETURNS() || ENDS(), "Step t");
 		}

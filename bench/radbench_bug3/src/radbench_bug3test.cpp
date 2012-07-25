@@ -31,7 +31,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 //
 //		WHILE_STAR {
 //			FORALL(t, (TID == t1) || (TID == t2) || (TID == t3));
-//			RUN_UNTIL(TID == t, ENDS(), __);
+//			RUN_UNTIL(TID == t, ENDS());
 //		}
 //	}
 
@@ -98,8 +98,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 //
 //		//======================================================
 //
-//		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext), __);
-//		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext), __);
+//		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext));
+//		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext));
 //
 //		MAX_WAIT_TIME(3*USECSPERSEC);
 //
@@ -152,8 +152,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 //		//======================================================
 //
 ////		Threads A and B calls js_DestroyContext and thread C calls js_NewContext.
-//		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext), __);
-//		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext), __);
+//		RUN_UNTIL(BY(t1), ENTERS(f_destroycontext));
+//		RUN_UNTIL(BY(t2), ENTERS(f_destroycontext));
 //
 //		//======================================================
 //
@@ -217,12 +217,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(TC);
 
 //		Now suppose there are 3 threads, A, B, C.
-		WAIT_FOR_THREAD(TA, IN_FUNC(f_newcontext), "Select TA");
-
-		WAIT_FOR_DISTINCT_THREAD(TB, (TA), IN_FUNC(f_newcontext), "Select TB");
-
-		WAIT_FOR_DISTINCT_THREAD(TC, (TA, TB), IN_FUNC(f_newcontext), "Select TC");
-
+		WAIT_FOR_DISTINCT_THREADS((TA, TB, TC), IN_FUNC(f_newcontext), "Select TA, TB, and TC");
 		//======================================================
 
 		JSRuntime* rt = static_cast<JSRuntime*>(ADDRINT2PTR(ARG0(TA, f_newcontext)));
@@ -239,9 +234,9 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		//======================================================
 
 //		Threads A and B calls js_DestroyContext and thread C calls js_NewContext.
-		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext), __);
+		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext));
 
-		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext), __);
+		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext));
 
 		//======================================================
 
@@ -257,7 +252,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 				TVAR(t);
 
-				SELECT_THREAD_BACKTRACK(t, (TA, TB, TC));
+				CHOOSE_THREAD_BACKTRACK(t, (TA, TB, TC));
 
 				RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run until accesses memory...");
 		}
@@ -281,11 +276,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(TC);
 
 //		Now suppose there are 3 threads, A, B, C.
-		WAIT_FOR_THREAD(TA, IN_FUNC(f_newcontext), "Select TA");
-
-		WAIT_FOR_DISTINCT_THREAD(TB, (TA), IN_FUNC(f_newcontext), "Select TB");
-
-		WAIT_FOR_DISTINCT_THREAD(TC, (TA, TB), IN_FUNC(f_newcontext), "Select TC");
+		WAIT_FOR_DISTINCT_THREADS((TA, TB, TC), IN_FUNC(f_newcontext), "Select TA, TB, and TC");
 
 		//======================================================
 
@@ -303,9 +294,9 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		//======================================================
 
 //		Threads A and B calls js_DestroyContext and thread C calls js_NewContext.
-		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext), __);
+		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext));
 
-		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext), __);
+		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext));
 
 		//======================================================
 
@@ -341,7 +332,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 				TVAR(t);
 
-				SELECT_THREAD_BACKTRACK(t, (TA, TC));
+				CHOOSE_THREAD_BACKTRACK(t, (TA, TC));
 
 				RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run until accesses memory...");
 		}
@@ -370,11 +361,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(TC);
 
 //		Now suppose there are 3 threads, A, B, C.
-		WAIT_FOR_THREAD(TA, IN_FUNC(f_newcontext), "Select TA");
-
-		WAIT_FOR_DISTINCT_THREAD(TB, (TA), IN_FUNC(f_newcontext), "Select TB");
-
-		WAIT_FOR_DISTINCT_THREAD(TC, (TA, TB), IN_FUNC(f_newcontext), "Select TC");
+		WAIT_FOR_DISTINCT_THREADS((TA, TB, TC), IN_FUNC(f_newcontext), "Select TA, TB, and TC");
 
 		//======================================================
 
@@ -395,9 +382,9 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		//======================================================
 
 //		Threads A and B calls js_DestroyContext and thread C calls js_NewContext.
-		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext), __);
+		RUN_THREAD_UNTIL(TA, ENTERS(f_destroycontext));
 
-		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext), __);
+		RUN_THREAD_UNTIL(TB, ENTERS(f_destroycontext));
 
 		//======================================================
 

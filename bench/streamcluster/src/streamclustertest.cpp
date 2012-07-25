@@ -35,9 +35,9 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t2);
 		TVAR(t3);
 
-		RUN_UNTIL(NOT(tm), HITS_PC(42), t1, "t1");
-		RUN_UNTIL(NOT(tm) && NOT(t1), HITS_PC(42), t2, "t2");
-		RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), HITS_PC(42), t3, "t3");
+		RUN_UNTIL(ANY_THREAD - tm, HITS_PC(42), t1, "t1");
+		RUN_UNTIL(ANY_THREAD - tm - t1, HITS_PC(42), t2, "t2");
+		RUN_UNTIL(ANY_THREAD - tm - t1 - t2, HITS_PC(42), t3, "t3");
 
 //		RUN_THREAD_UNTIL_NEXT(tm, "tm until next");
 
@@ -58,14 +58,14 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 			TVAR(tt2);
 			TVAR(tt3);
 
-			RUN_THREAD_UNTIL_NEXT(t1, "t1 until next");
-			RUN_THREAD_UNTIL_NEXT(t2, "t2 until next");
-			RUN_THREAD_UNTIL_NEXT(t3, "t3 until next");
+			RELEASE(t1, "t1 until next");
+			RELEASE(t2, "t2 until next");
+			RELEASE(t3, "t3 until next");
 
 			// the exit barrier
-			RUN_UNTIL(NOT(tm), EXITS_BARRIER(TID), tt1, "until t1 exit");
-			RUN_UNTIL(NOT(tm) && NOT(tt1), EXITS_BARRIER(TID), tt2, "until t2 exit");
-			RUN_UNTIL(NOT(tm) && NOT(tt1) && NOT(tt2), EXITS_BARRIER(TID), tt3, "until t3 exit");
+			RUN_UNTIL(ANY_THREAD - tm, EXITS_BARRIER(TID), tt1, "until t1 exit");
+			RUN_UNTIL(ANY_THREAD - tm - tt1, EXITS_BARRIER(TID), tt2, "until t2 exit");
+			RUN_UNTIL(ANY_THREAD - tm - tt1 - tt2, EXITS_BARRIER(TID), tt3, "until t3 exit");
 
 			if(ENDS(t1)->EvalState(t1)) break;
 
@@ -108,9 +108,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t2);
 		TVAR(t3);
 
-		WAIT_FOR_THREAD(t1, ENTERS(median), "t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(median), "t2");
-		WAIT_FOR_DISTINCT_THREAD(t3, (t1, t2), ENTERS(median), "t3");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2, t3), ENTERS(median), "t1, t2, and t3");
 
 		//---------------------------------
 
@@ -120,9 +118,9 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
 		// bind t1 to the first thread that enters the barrier, then 2, and then t3
-		RUN_UNTIL(NOT(tm), ENTERS_BARRIER(TID), t1, "until t1 enters");
-		RUN_UNTIL(NOT(tm) && NOT(t1), ENTERS_BARRIER(TID), t2, "until t2 enters");
-		RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), ENTERS_BARRIER(TID), t3, "until t3 enters");
+		RUN_UNTIL(ANY_THREAD - tm, ENTERS_BARRIER(TID), t1, "until t1 enters");
+		RUN_UNTIL(ANY_THREAD - tm - t1, ENTERS_BARRIER(TID), t2, "until t2 enters");
+		RUN_UNTIL(ANY_THREAD - tm - t1 - t2, ENTERS_BARRIER(TID), t3, "until t3 enters");
 
 		WHILE(IN_FUNC(median, t1)->EvalState() || IN_FUNC(median, t2)->EvalState() || IN_FUNC(median, t3)->EvalState())
 		{
@@ -130,22 +128,22 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 			TVAR(tt2);
 			TVAR(tt3);
 
-			RUN_THREAD_UNTIL_NEXT(t1, "t1 until next");
-			RUN_THREAD_UNTIL_NEXT(t2, "t1 until next");
-			RUN_THREAD_UNTIL_NEXT(t3, "t1 until next");
+			RELEASE(t1, "t1 until next");
+			RELEASE(t2, "t1 until next");
+			RELEASE(t3, "t1 until next");
 
 			// bind t1 to the first thread that exits the barrier, then 2, and then t3
-			RUN_UNTIL(NOT(tm), EXITS_BARRIER(TID), t1, "until t1 enters");
-			RUN_UNTIL(NOT(tm) && NOT(t1), EXITS_BARRIER(TID), t2, "until t2 enters");
-			RUN_UNTIL(NOT(tm) && NOT(t1) && NOT(t2), EXITS_BARRIER(TID), t3, "until t3 enters");
+			RUN_UNTIL(ANY_THREAD - tm, EXITS_BARRIER(TID), t1, "until t1 enters");
+			RUN_UNTIL(ANY_THREAD - tm - t1, EXITS_BARRIER(TID), t2, "until t2 enters");
+			RUN_UNTIL(ANY_THREAD - tm - t1 - t2, EXITS_BARRIER(TID), t3, "until t3 enters");
 
-			SELECT_THREAD_BACKTRACK(tt1, (t1, t2, t3), PTRUE, "Select tt1");
+			CHOOSE_THREAD_BACKTRACK(tt1, (t1, t2, t3), PTRUE, "Select tt1");
 			FORALL(tt2, (TID == t1 || TID == t2 || TID == t3) && NOT(tt1), "Select tt2");
 			FORALL(tt3, (TID == t1 || TID == t2 || TID == t3) && NOT(tt1) && NOT(tt2), "Select tt3");
 
-			RUN_THREAD_UNTIL_NEXT(t1, "t1 until next");
-			RUN_THREAD_UNTIL_NEXT(t2, "t1 until next");
-			RUN_THREAD_UNTIL_NEXT(t3, "t1 until next");
+			RELEASE(t1, "t1 until next");
+			RELEASE(t2, "t1 until next");
+			RELEASE(t3, "t1 until next");
 
 			RUN_UNTIL(BY(tt1), ENTERS_BARRIER(tt1), "Run tt1 until ...");
 			RUN_UNTIL(BY(tt2), ENTERS_BARRIER(tt2), "Run tt2 until ...");

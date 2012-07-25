@@ -36,7 +36,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 		WHILE_STAR {
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 			RUN_THREAD_THROUGH(t, RETURNS(f_rlock) || RETURNS(f_wlock) || RETURNS(f_unlock) || ENDS(), "Run t until returns");
 		}
 	}

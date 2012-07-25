@@ -26,12 +26,11 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t1);
 		TVAR(t2);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(fg), "T1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(fg), "T2");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), IN_FUNC(fg), "T1 and T2");
 
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE);
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE);
 
 			RUN_THREAD_THROUGH(t, HITS_PC() || ENTERS() || RETURNS() || ENDS(), "Run t until large step");
 		}
@@ -50,14 +49,13 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t1);
 		TVAR(t2);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(fg), "T1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(fg), "T2");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), IN_FUNC(fg), "T1 and T2");
 
-		RUN_THREAD_UNTIL(t1, HITS_PC(42), __, "pqueue_get starts by T1");
+		RUN_THREAD_UNTIL(t1, HITS_PC(42), "pqueue_get starts by T1");
 
-		RUN_THREAD_THROUGH(t2, RETURNS(fg), __, "pqueue_get by T2");
+		RUN_THREAD_THROUGH(t2, RETURNS(fg), "pqueue_get by T2");
 
-		RUN_THREAD_THROUGH(t1, RETURNS(fg), __, "pqueue_get ends by T1");
+		RUN_THREAD_THROUGH(t1, RETURNS(fg), "pqueue_get ends by T1");
 	}
 
 	//================================//
@@ -73,13 +71,12 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t1);
 		TVAR(t2);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(fg), "T1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(fg), "T2");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), IN_FUNC(fg), "T1 and T2");
 
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE);
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE);
 
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t until reads or writes memory");
 		}

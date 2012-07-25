@@ -25,13 +25,13 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 		TVAR(t2);
 
 		WAIT_FOR_THREAD(t1, ENTERS(f_log), "Wait t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_insert), "Wait t2");
+		WAIT_FOR_THREAD(t2, ENTERS(f_insert), ANY_THREAD - t1, "Wait t2");
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
 		WHILE(IN_FUNC(f_log, t1)->EvalState() || IN_FUNC(f_insert, t2)->EvalState()) {
 				TVAR(t);
-				SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+				CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 				RUN_THREAD_THROUGH(t, HITS_PC() || RETURNS(f_log) || RETURNS(f_insert) || ENDS(), "Run t");
 		}
 	}
@@ -47,15 +47,14 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 		TVAR(t2);
 		TVAR(t3);
 
-		WAIT_FOR_THREAD(t1, ENTERS(f_log), "Wait t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_log), "Wait t2");
-		WAIT_FOR_DISTINCT_THREAD(t3, (t1, t2), ENTERS(f_insert), "Wait t3");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), ENTERS(f_log), "Wait t1, t2");
+		WAIT_FOR_THREAD(t3, ENTERS(f_insert), ANY_THREAD - t1 - t2, "Wait t3");
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
 		WHILE(IN_FUNC(f_log, t1)->EvalState() || IN_FUNC(f_log, t2)->EvalState() || IN_FUNC(f_insert, t3)->EvalState()) {
 				TVAR(t);
-				SELECT_THREAD_BACKTRACK(t, (t1, t2, t3), PTRUE, "Select t");
+				CHOOSE_THREAD_BACKTRACK(t, (t1, t2, t3), PTRUE, "Select t");
 				RUN_THREAD_THROUGH(t, HITS_PC() || RETURNS(f_log) || RETURNS(f_insert) || ENDS(), "Run t");
 		}
 	}

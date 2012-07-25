@@ -308,15 +308,9 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 /********************************************************************************/
 
-#define SELECT_THREAD(t, s, ...)				_EXISTS("SELECT_THREAD", t, s, ## __VA_ARGS__)
+#define CHOOSE_THREAD(t, s, ...)				_EXISTS("CHOOSE_THREAD", t, s, ## __VA_ARGS__)
 
-#define SELECT_THREAD_BACKTRACK(t, s, ...)		_FORALL("FORALL_THREAD", t, s, ## __VA_ARGS__)
-
-/********************************************************************************/
-
-#define CHOOSE_THREAD							SELECT_THREAD
-
-#define CHOOSE_THREAD_BACKTRACK					SELECT_THREAD_BACKTRACK
+#define CHOOSE_THREAD_BACKTRACK(t, s, ...)		_FORALL("CHOOSE_THREAD_BACKTRACK", t, s, ## __VA_ARGS__)
 
 /********************************************************************************/
 
@@ -342,6 +336,9 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 
 #define _RUN_THROUGH(q, r, ...) 	_RUN_THROUGH2b((q), (r), ## __VA_ARGS__);
 
+// TODO(elmas): remove later:
+#define RUN_THROUGH(...)			_RUN_THROUGH(__VA_ARGS__)
+
 /********************************************************************************/
 
 #define _RUN_UNTIL1(r, ...) 		DECL_STATIC_DSL_INFO("RUN_UNTIL " #r); DSLRunUntil(&STATIC_DSL_INFO_NAME, (r), ## __VA_ARGS__);
@@ -355,6 +352,9 @@ inline TransitionPredicatePtr _DISTINCT(ThreadVarPtrSet scope, ThreadVarPtr t = 
 /********************************************************************************/
 
 #define _RUN_UNTIL(q, r, ...) 		_RUN_UNTIL2b((q), (r), ## __VA_ARGS__);
+
+// TODO(elmas): remove later:
+#define RUN_UNTIL(...)				_RUN_UNTIL(__VA_ARGS__)
 
 /********************************************************************************/
 

@@ -52,7 +52,7 @@ public:
 //
 //		WHILE_DTSTAR {
 //			TVAR(t);
-//			SELECT_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
+//			CHOOSE_THREAD_BACKTRACK(t, select_criteria, "Forall thread");
 //			RUN_THREAD_UNTIL(t, ENDS(), __);
 //		}
 //	}
@@ -77,7 +77,7 @@ public:
 //		TVAR(t_old);
 //		for(unsigned i = 0; i < bound && !ALL_ENDED; ) {
 //
-//			SELECT_THREAD_BACKTRACK(t, select_criteria && (TID != t_old), "Forall thread");
+//			CHOOSE_THREAD_BACKTRACK(t, select_criteria && (TID != t_old), "Forall thread");
 //			WHILE_DTSTAR {
 //				RUN_THREAD_UNTIL(t, trans_criteria, __);
 //			}

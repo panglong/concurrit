@@ -26,12 +26,12 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 		FVAR(bar, bar);
 
 		WAIT_FOR_THREAD(t1, IN_FUNC(foo));
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(bar));
+		WAIT_FOR_THREAD(t2, IN_FUNC(bar), ANY_THREAD - t1);
 
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2));
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2));
 
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run unless");
 		}
@@ -51,12 +51,12 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 		FVAR(bar, bar);
 
 		WAIT_FOR_THREAD(t1, IN_FUNC(foo));
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(bar));
+		WAIT_FOR_THREAD(t2, IN_FUNC(bar), ANY_THREAD - t1);
 
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2));
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2));
 
 			RUN_THREAD_THROUGH(t, HITS_PC() || ENTERS() || RETURNS() || ENDS(), "Run unless");
 		}
@@ -116,8 +116,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 		TVAR(t1);
 		TVAR(t2);
 
-		WAIT_FOR_THREAD(t1, IN_FUNC(f_enter));
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f_enter));
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), IN_FUNC(f_enter));
 
 		RUN_THREAD_UNTIL(t1, HITS_PC(43) && IN_FUNC(f_exit), "Run t1 unless 43 in f_exit");
 

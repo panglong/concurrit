@@ -68,12 +68,12 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		MAX_WAIT_TIME(0);
 
 		TVAR(t1);
-		WAIT_FOR_THREAD(t1, PTRUE, "Select t1 main");
+		WAIT_FOR_THREAD(t1, "Select t1 main");
 
 		RUN_THREAD_UNTIL(t1, ENTERS(f_gc), "Run t1 until gc");
 
 		TVAR(t2);
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Select t2");
+		WAIT_FOR_THREAD(t2, ANY_THREAD - t1, "Select t2");
 
 		RUN_THREAD_UNTIL(t2, ENTERS(f_clearcontextthread), "Run until clear context");
 
@@ -82,7 +82,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)) {
 
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE);
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE);
 
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");
 		}
@@ -105,19 +105,19 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		MAX_WAIT_TIME(0);
 
 		TVAR(t1);
-		WAIT_FOR_THREAD(t1, PTRUE, "Select t1 main");
+		WAIT_FOR_THREAD(t1, "Select t1 main");
 
 		RUN_THREAD_UNTIL(t1, ENTERS(f_gc), "Run t1 until gc");
 
 		TVAR(t2);
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Select t2");
+		WAIT_FOR_THREAD(t2, ANY_THREAD - t1, "Select t2");
 
 		RUN_THREAD_UNTIL(t2, ENTERS(f_clearcontextthread), "Run until clear context");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
 		TVAR(t);
-		SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+		CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 
 		WHILE_STAR {
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");
@@ -145,19 +145,19 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		MAX_WAIT_TIME(0);
 
 		TVAR(t1);
-		WAIT_FOR_THREAD(t1, PTRUE, "Select t1 main");
+		WAIT_FOR_THREAD(t1, "Select t1 main");
 
 		RUN_THREAD_UNTIL(t1, ENTERS(f_gc), "Run t1 until gc");
 
 		TVAR(t2);
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), PTRUE, "Select t2");
+		WAIT_FOR_THREAD(t2, ANY_THREAD - t1, "Select t2");
 
 		RUN_THREAD_UNTIL(t2, ENTERS(f_clearcontextthread), "Run until clear context");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
 		TVAR(t);
-		SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+		CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 
 		WHILE_STAR {
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENDS(), "Run t until");

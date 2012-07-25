@@ -1,14 +1,5 @@
 
 
-Add the following to your bash profile file.
+Visit the following web site for details about installing and using CONCURRIT.
+http://http://code.google.com/p/concurrit/
 
-source $HOME/concurrit/scripts/export_vars.sh
-
-# echo "" >> ~./profile
-# echo "source $HOME/concurrit/scripts/export_vars.sh" >> ~/.profile
-
---------------------------------------------------------------------
-
-To install CONCURRIT (including glog, pintool, etc.)
-
-$CONCURRIT_HOME/scripts/install_concurrit.sh

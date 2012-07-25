@@ -27,11 +27,11 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 		TVAR(t2);
 
 		WAIT_FOR_THREAD(t1, IN_FUNC(f_wait), "Waiting thread");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f_interrupt), "Interrupting thread");
+		WAIT_FOR_THREAD(t2, IN_FUNC(f_interrupt), ANY_THREAD - t1, "Interrupting thread");
 
 		WHILE(!HAS_ENDED(t1) || !HAS_ENDED(t2)){
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || RETURNS(), "Run t1");
 		}
 	}
@@ -55,7 +55,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 			RUN_THREAD_THROUGH(t1, READS() || WRITES() || CALLS() || RETURNS(), "Run t1");
 		}
 
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), IN_FUNC(f_interrupt), "Interrupting thread");
+		WAIT_FOR_THREAD(t2, IN_FUNC(f_interrupt), ANY_THREAD - t1, "Interrupting thread");
 
 		RUN_THREAD_THROUGH(t2, RETURNS(f_interrupt), "Run t2");
 
@@ -80,7 +80,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "MyScenario")
 
 		RUN_THREAD_UNTIL(t1, HITS_PC(42), "Run t1 until 42");
 
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_interrupt), "Interrupting thread");
+		WAIT_FOR_THREAD(t2, IN_FUNC(f_interrupt), ANY_THREAD - t1, "Interrupting thread");
 
 		RUN_THREAD_THROUGH(t2, RETURNS(f_interrupt), "Run t2 until returns");
 

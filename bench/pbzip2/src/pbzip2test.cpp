@@ -10,7 +10,7 @@ CONCURRIT_BEGIN_MAIN()
 CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 	TESTCASE() {
-		CALL_TEST(SearchAll);
+		CALL_TEST(ExactSchedule);
 	}
 
 	//============================================================//
@@ -23,8 +23,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		WHILE_STAR {
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (), PTRUE, "Select");
-			RUN_THREAD_UNTIL_NEXT(t, "Next");
+			CHOOSE_THREAD_BACKTRACK(t, (), PTRUE, "Select");
+			RELEASE(t, "Next");
 			RUN_THREAD_UNTIL(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t");
 		}
 	}
@@ -39,8 +39,8 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		WHILE_STAR {
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (), PTRUE, "Select");
-			RUN_THREAD_UNTIL_NEXT(t, "Next");
+			CHOOSE_THREAD_BACKTRACK(t, (), PTRUE, "Select");
+			RELEASE(t, "Next");
 			RUN_THREAD_UNTIL(t, HITS_PC() || ENTERS() || RETURNS() || ENDS(), "Run t");
 		}
 	}
@@ -65,7 +65,7 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 
 		MAX_WAIT_TIME(5*USECSPERSEC);
 
-		RUN_UNTIL(NOT_BY(t_witness), RETURNS(fd), "Ending deleter");
+		RUN_THREADS_UNTIL(ANY_THREAD - t_witness, RETURNS(fd), "Ending deleter");
 
 		RUN_THREAD_UNTIL(t_witness, RETURNS(fc), "Ending first consumer");
 	}

@@ -28,15 +28,14 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t1);
 		TVAR(t2);
 
-		WAIT_FOR_THREAD(t1, ENTERS(f_mt), "Select t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_mt), "Select t2");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), ENTERS(f_mt), "Select t1, t2");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
 		WHILE_STAR {
 //		WHILE(!HAS_ENDED(t1) && !HAS_ENDED(t2)) {
 			TVAR(t);
-			SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+			CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run t once");
 		}
 	}
@@ -53,13 +52,12 @@ CONCURRIT_BEGIN_TEST(MyScenario, "My scenario")
 		TVAR(t1);
 		TVAR(t2);
 
-		WAIT_FOR_THREAD(t1, ENTERS(f_mt), "Select t1");
-		WAIT_FOR_DISTINCT_THREAD(t2, (t1), ENTERS(f_mt), "Select t2");
+		WAIT_FOR_DISTINCT_THREADS((t1, t2), ENTERS(f_mt), "Select t1, t2");
 
 		MAX_WAIT_TIME(USECSPERSEC);
 
 		TVAR(t);
-		SELECT_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
+		CHOOSE_THREAD_BACKTRACK(t, (t1, t2), PTRUE, "Select t");
 
 		WHILE_STAR {
 			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || ENDS(), "Run t until");

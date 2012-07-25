@@ -166,10 +166,10 @@ public:
 
 //	void DSLTransition(const TransitionPredicatePtr& assertion, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
 
-	void DSLRunThrough(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
+	void DSLRunThrough(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var, const char* message = NULL);
 	void DSLRunThrough(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message = NULL);
 
-	void DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var = ThreadVarPtr(), const char* message = NULL);
+	void DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const ThreadVarPtr& var, const char* message = NULL);
 	void DSLRunUntil(StaticDSLInfo* static_info, const TransitionPredicatePtr& pred, const char* message = NULL);
 
 	ThreadVarPtr DSLExistsThread(StaticDSLInfo* static_info, ThreadVarPtrSet* scope, const char* message = NULL);
