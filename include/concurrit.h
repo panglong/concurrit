@@ -95,7 +95,6 @@ namespace concurrit {
 
 #include "util.h"
 #include "config.h"
-#include "str.h"
 #include "iterator.h"
 #include "statistics.h"
 #include "serialize.h"
@@ -113,7 +112,6 @@ namespace concurrit {
 #include "dot.h"
 #include "interface.h"
 #include "pinmonitor.h"
-#include "predicate.h"
 #include "dsl.h"
 #include "transpred.h"
 #include "instrument.h"
