@@ -123,6 +123,9 @@ private:
 	DECL_FIELD_REF(ExecutionTreeList, children)
 	DECL_FIELD(bool, covered)
 
+	DECL_STATIC_FIELD_REF(Mutex, mutex)
+	DECL_STATIC_FIELD_REF(ConditionVar, condvar)
+
 	friend class ExecutionTreeManager;
 };
 

@@ -210,13 +210,15 @@ void print_stack_trace();
 #define MYLOG_IF(c, p)		VLOG_IF(c, p)
 #define safe_notnull(o) 	(CHECK_NOTNULL(o))
 #define safe_assert(cond) 	if (!(cond))  { safe_fail("\nCounit: safe assert fail: safe_assert(%s):", #cond); }
+#define if_safe_assert(code)	code
 #else
 #undef NDEBUG
 #define GOOGLE_STRIP_LOG	1
 #define MYLOG(c)			DLOG(INFO)
 #define MYLOG_IF(c, p)		DLOG_IF(c, p)
 #define safe_notnull(o) 	(o)
-#define safe_assert(cond) /* noop */
+#define safe_assert(cond) 	/* noop */
+#define if_safe_assert(code)/* noop */
 #endif
 
 #define safe_delete(o) 		delete (safe_notnull(o))

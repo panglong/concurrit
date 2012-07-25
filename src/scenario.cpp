@@ -1844,7 +1844,7 @@ void Scenario::OnControlledTransition(Coroutine* current) {
 
 	//=================================================================
 
-	ExecutionTree* prev_unsat_node = NULL; // previous node which was not satisfied
+	if_safe_assert(ExecutionTree* prev_unsat_node = NULL); // previous node which was not satisfied
 
 	for(;;) { // we loop until either we get hold of and process the current node in the execution tree
 
@@ -1871,49 +1871,58 @@ void Scenario::OnControlledTransition(Coroutine* current) {
 		safe_assert(node != NULL);
 		safe_assert(!exec_tree_.IS_EMPTY(node) && !exec_tree_.IS_LOCKNODE(node));
 
-		// if previously unsatisfied node, then retry
-		if(node != prev_unsat_node) {
+		safe_assert(node != prev_unsat_node);
 
-			MYLOG(2) << "Checking execution tree node type";
+//		if(node != prev_unsat_node) {
+
+		MYLOG(2) << "Checking execution tree node type";
+
+		//=======================================================
+
+		TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
+		if(trans != NULL) {
+			MYLOG(2) << "Evaluating transition node";
+
+			EvalTransition(current, trans, child_index, take);
+
+		} else {
 
 			//=======================================================
 
-			TransitionNode* trans = ASINSTANCEOF(node, TransitionNode*);
-			if(trans != NULL) {
-				MYLOG(2) << "Evaluating transition node";
+			SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
+			if(select != NULL) {
+				MYLOG(2) << "Evaluating select-thread node";
 
-				EvalTransition(current, trans, child_index, take);
+				EvalSelectThread(current, select, child_index, take);
 
-			} else {
+				// we are not done yet, so leave done as false
+				safe_assert(!take);
 
-				//=======================================================
-
-				SelectThreadNode* select = ASINSTANCEOF(node, SelectThreadNode*);
-				if(select != NULL) {
-					MYLOG(2) << "Evaluating select-thread node";
-
-					EvalSelectThread(current, select, child_index, take);
-
-					// we are not done yet, so leave done as false
-					safe_assert(!take);
-
-				} else { //=======================================================
-					// TODO(elmas): others are not supported yet
-					safe_assert(false);
-				}
+			} else { //=======================================================
+				// TODO(elmas): others are not supported yet
+				safe_assert(false);
 			}
 		}
+//		}
 
 		//=================================================================
 
-		if(child_index >= 0) {
+		safe_assert(node != NULL);
+
+		bool consume = (child_index >= 0);
+
+		if(consume) {
 			MYLOG(2) << "Consuming transition";
-			safe_assert(node != NULL);
 			// in this case, we insert a new node to the path represented by newnode
 			node->OnConsumed(current, child_index);
+			node->condvar()->Broadcast();
 			exec_tree_.ReleaseRef(node, child_index);
 
 		} else {
+			if(!take) {
+				node->mutex()->Lock();
+			}
+
 			MYLOG(3) << "Releasing transition back";
 			exec_tree_.ReleaseRef(node);
 		}
@@ -1924,8 +1933,16 @@ void Scenario::OnControlledTransition(Coroutine* current) {
 			UpdateAlternateLocations(current);
 			break;
 		} else {
-			prev_unsat_node = node; // update previously unsatisfied node
-			Thread::Yield(true);
+			if_safe_assert(prev_unsat_node = node); // update previously unsatisfied node
+
+			if(!consume) {
+				// wait for node to be consumed
+				safe_assert(node->mutex()->IsLockedBySelf());
+				if(ETIMEDOUT == node->condvar()->WaitTimed(node->mutex(), Config::MaxWaitTimeUSecs)) {
+					if_safe_assert(prev_unsat_node = NULL);
+				}
+				node->mutex()->Unlock();
+			}
 		}
 	} // end loop
 

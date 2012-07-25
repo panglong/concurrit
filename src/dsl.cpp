@@ -70,6 +70,11 @@ namespace concurrit {
 
 /*************************************************************************************/
 
+Mutex ExecutionTree::mutex_;
+ConditionVar ExecutionTree::condvar_;
+
+/*************************************************************************************/
+
 ExecutionTree::ExecutionTree(StaticDSLInfo* static_info /*= NULL*/, ExecutionTree* parent /*= NULL*/, int num_children /*= 0*/)
 : static_info_(static_info), parent_(parent), covered_(false) {
 	safe_assert(static_info_ != NULL);
@@ -983,6 +988,9 @@ void ExecutionTreeManager::EndWithException(Coroutine* current, std::exception* 
 		// add to the path and set to ref
 		ReleaseRef(ENDNODE(), 0);
 	}
+
+	// notify waiters
+	ENDNODE()->condvar()->Broadcast();
 
 	MYLOG(2) << "Inserted end node to indicate exception.";
 }

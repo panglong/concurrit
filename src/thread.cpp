@@ -399,6 +399,15 @@ bool Mutex::IsLocked() {
 
 /********************************************************************************/
 
+bool Mutex::IsLockedBySelf() {
+	pthread_t self = pthread_self();
+	safe_assert(self != PTH_INVALID_THREAD);
+
+	return owner_ == self;
+}
+
+/********************************************************************************/
+
 ConditionVar::ConditionVar() {
 	__pthread_errno__ = pthread_cond_init (&cv_, NULL);
 	safe_assert(__pthread_errno__ == PTH_SUCCESS);
@@ -442,6 +451,69 @@ int ConditionVar::Wait(Mutex* mutex) {
 
 	return __pthread_errno__;
 }
+
+/********************************************************************************/
+
+#ifdef LINUX
+#ifndef TIMEVAL_TO_TIMESPEC
+#define TIMEVAL_TO_TIMESPEC(tv, ts) do {		\
+		(ts)->tv_sec = (tv)->tv_sec;                \
+		(ts)->tv_nsec = (tv)->tv_usec * 1000;       \
+} while (false)
+//#else
+//#error "TIMEVAL_TO_TIMESPEC already defined!"
+#endif
+
+
+int ConditionVar::WaitTimed(Mutex* mutex, long timeout) {
+	if(timeout <= 0) { Wait(mutex); return PTH_SUCCESS; }
+
+	const long kOneSecondMicros = 1000000L;  // NOLINT
+
+	// Split timeout into second and nanosecond parts.
+	struct timeval delta;
+	delta.tv_usec = timeout % kOneSecondMicros;
+	delta.tv_sec = timeout / kOneSecondMicros;
+
+	struct timeval current_time;
+	// Get the current time.
+	if (gettimeofday(&current_time, NULL) == -1) {
+		return errno;
+	}
+
+	// Calculate time for end of timeout.
+	struct timeval end_time;
+	timeradd(&current_time, &delta, &end_time);
+
+	struct timespec ts;
+	TIMEVAL_TO_TIMESPEC(&end_time, &ts);
+	// Wait for semaphore signalled or timeout.
+	while (true) {
+		safe_assert(mutex->IsLocked());
+
+		pthread_t self;
+		int count;
+
+		mutex->FullUnlockAux(&self, &count);
+
+		__pthread_errno__ = pthread_cond_timedwait(&cv_, &mutex->mutex_, &ts);
+		if (__pthread_errno__ == PTH_SUCCESS) {
+			mutex->FullLockAux(&self, &count);
+			return PTH_SUCCESS;  // Successfully got semaphore.
+		}
+		if (__pthread_errno__ > 0) {
+			// For glibc prior to 2.3.4 sem_timedwait returns the error instead of -1.
+			errno = __pthread_errno__;
+			__pthread_errno__ = -1;
+		}
+		if (__pthread_errno__ == -1 && errno == ETIMEDOUT)  {
+			mutex->FullLockAux(&self, &count);
+			return errno;  // Timeout.
+		}
+		safe_assert(__pthread_errno__ == -1 && errno == EINTR);  // Signal caused spurious wakeup.
+	}
+}
+#endif // LINUX
 
 /********************************************************************************/
 

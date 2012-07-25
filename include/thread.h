@@ -128,6 +128,7 @@ public:
 	virtual int Unlock();
 	virtual bool TryLock();
 	virtual bool IsLocked();
+	virtual bool IsLockedBySelf();
 
 	virtual void FullLockAux(pthread_t* self, int* times);
 	virtual void FullUnlockAux(pthread_t* self, int* times);
@@ -216,6 +217,7 @@ public:
 
 	virtual int Signal();
 	virtual int Wait(Mutex* mutex);
+	virtual int WaitTimed(Mutex* mutex, long timeout);
 	virtual int Broadcast();
 
 private:
