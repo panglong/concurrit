@@ -496,7 +496,7 @@ ExecutionTree* ExecutionTreeManager::AcquireRef(AcquireRefMode mode, long timeou
 /*************************************************************************************/
 
 void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_index /*= -1*/) {
-	safe_assert(IS_LOCKNODE(GetRef(memory_order_relaxed)));
+	safe_assert(IS_LOCKNODE(GetRef(std::memory_order_relaxed)));
 	LOCKNODE()->OnUnlock();
 
 	// TODO(elmas): optimize (do not check for every releaseref

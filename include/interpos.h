@@ -33,7 +33,7 @@
 
 #include "common.h"
 
-#include <cstdatomic>
+#include <atomic>
 
 namespace concurrit {
 

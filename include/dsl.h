@@ -39,7 +39,7 @@
 #include "transpred.h"
 #include "dot.h"
 
-#include <cstdatomic>
+#include <atomic>
 
 namespace concurrit {
 
@@ -49,7 +49,7 @@ class Coroutine;
 /********************************************************************************/
 class ChildLoc;
 class ExecutionTree;
-typedef std::atomic_address ExecutionTreeRef;
+typedef std::atomic<void*> ExecutionTreeRef;
 typedef std::vector<ExecutionTree*> ExecutionTreeList;
 
 /********************************************************************************/
@@ -931,16 +931,16 @@ public:
 	void SaveDotGraph(const char* filename);
 
 private:
-	inline ExecutionTree* GetRef(std::memory_order mo = memory_order_seq_cst) {
+	inline ExecutionTree* GetRef(std::memory_order mo = std::memory_order_seq_cst) {
 		return static_cast<ExecutionTree*>(atomic_ref_.load(mo));
 	}
 
-	inline ExecutionTree* ExchangeRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
+	inline ExecutionTree* ExchangeRef(ExecutionTree* node, std::memory_order mo = std::memory_order_seq_cst) {
 		return static_cast<ExecutionTree*>(atomic_ref_.exchange(node, mo));
 	}
 
 	// normally end node cannot be overwritten, unless overwrite_end flag is set
-	inline void SetRef(ExecutionTree* node, std::memory_order mo = memory_order_seq_cst) {
+	inline void SetRef(ExecutionTree* node, std::memory_order mo = std::memory_order_seq_cst) {
 		atomic_ref_.store(node, mo);
 	}
 
