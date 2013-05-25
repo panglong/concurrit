@@ -65,7 +65,7 @@ $(CONCURRIT_LIBDIR)/libclient.so: $(CONCURRIT_HOME)/remote/client.cpp
 loader: makedirs $(CONCURRIT_BINDIR)/testloader
 
 $(CONCURRIT_BINDIR)/testloader: $(CONCURRIT_HOME)/remote/loader.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -o $@ $^
+	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -ldl -o $@ $^
 
 ############################
 
