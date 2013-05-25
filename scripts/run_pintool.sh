@@ -8,6 +8,7 @@ PINTOOL_ARGS="$PINTOOL_ARGS -log_file $CONCURRIT_HOME/work/pinlogfile.txt"
 PINTOOL_ARGS="$PINTOOL_ARGS -filtered_images_file $CONCURRIT_HOME/work/filtered_images.txt"
 PINTOOL_ARGS="$PINTOOL_ARGS -track_func_calls 0"
 PINTOOL_ARGS="$PINTOOL_ARGS -inst_top_level 0"
+PINTOOL_ARGS="$PINTOOL_ARGS -injection child"
 
 PROGRAM_ARGS="$@"
 
