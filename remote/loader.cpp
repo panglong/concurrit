@@ -38,8 +38,6 @@
 
 #include "concurrit.h"
 
-#include <glog/logging.h>
-
 typedef int (*MainFuncType) (int, char**);
 
 /********************************************************************************/

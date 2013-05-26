@@ -26,7 +26,7 @@ lib: makedirs dummy $(CONCURRIT_LIBDIR)/$(TARGET).so
 ############################
 
 $(CONCURRIT_LIBDIR)/$(TARGET).so: $(CONCURRIT_OBJS)
-	$(CC) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
+	$(CC) $(FLAGS) -shared -o $@ $^ $(CONCURRIT_LIB_FLAGS)
 #	ar rcs $(CONCURRIT_LIBDIR)/$(TARGET).a $^
 	$(CONCURRIT_HOME)/scripts/compile_pintool.sh CONCURRIT_DEBUG_FLAGS='$(CONCURRIT_DEBUG_FLAGS)'
 
@@ -44,35 +44,35 @@ $(CONCURRIT_OBJDIR)/%.o: $(CONCURRIT_SRCDIR)/%.cpp $(CONCURRIT_HEADERS)
 dummy: makedirs $(CONCURRIT_LIBDIR)/libdummy.so
 
 $(CONCURRIT_LIBDIR)/libdummy.so: $(CONCURRIT_HOME)/dummy/dummy.cpp
-	$(CC) -I$(CONCURRIT_INCDIR) $(CONCURRIT_LIB_FLAGS) $(FLAGS) -shared -o $@ $^
+	$(CC) -I$(CONCURRIT_INCDIR) $(FLAGS) -shared -o $@ $^ $(CONCURRIT_LIB_FLAGS)
 
 ############################
 
 server: makedirs $(CONCURRIT_LIBDIR)/libserver.so
 
 $(CONCURRIT_LIBDIR)/libserver.so: $(CONCURRIT_HOME)/remote/server.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -shared -o $@ $^
+	$(CC) $(CONCURRIT_TOOL_INC_FLAGS) $(FLAGS) -shared -o $@ $^ $(CONCURRIT_TOOL_LIB_FLAGS)
 
 ############################
 
 client: makedirs $(CONCURRIT_LIBDIR)/libclient.so
 
 $(CONCURRIT_LIBDIR)/libclient.so: $(CONCURRIT_HOME)/remote/client.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -shared -o $@ $^
+	$(CC) $(CONCURRIT_TOOL_INC_FLAGS) $(FLAGS) -shared -o $@ $^ $(CONCURRIT_TOOL_LIB_FLAGS)
 
 ############################
 
 loader: makedirs $(CONCURRIT_BINDIR)/testloader
 
 $(CONCURRIT_BINDIR)/testloader: $(CONCURRIT_HOME)/remote/loader.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -ldl -o $@ $^
+	$(CC) $(CONCURRIT_TOOL_INC_FLAGS) $(FLAGS) -o $@ $^ $(CONCURRIT_TOOL_LIB_FLAGS)
 
 ############################
 
 controller: makedirs $(CONCURRIT_BINDIR)/testcontroller
 
 $(CONCURRIT_BINDIR)/testcontroller: $(CONCURRIT_HOME)/remote/testcontroller.cpp
-	$(CC) $(CONCURRIT_INC_FLAGS) $(FLAGS) $(CONCURRIT_LIB_FLAG) -L$(CONCURRIT_LIBDIR) -o $@ $^
+	$(CC) $(CONCURRIT_TOOL_INC_FLAGS) $(FLAGS) -o $@ $^ $(CONCURRIT_TOOL_LIB_FLAGS)
 
 ############################
 
