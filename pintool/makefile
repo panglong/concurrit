@@ -91,7 +91,6 @@ instrumenter.test : $(OBJDIR)instrumenter$(PINTOOL_SUFFIX)
 ##############################################################
 
 CXXFLAGS += $(CONCURRIT_PINTOOL_INC_FLAGS)
-PIN_LDFLAGS += $(CONCURRIT_PINTOOL_LIB_FLAGS)
 
 $(APPS): $(OBJDIR)make-directory
 
@@ -107,7 +106,7 @@ $(OBJDIR)%.o : %.cpp $(OBJDIR)make-directory
 $(TOOLS): $(PIN_LIBNAMES)
 
 $(TOOLS): %$(PINTOOL_SUFFIX) : %.o
-	${PIN_LD} $(PIN_LDFLAGS) $(LINK_DEBUG) ${LINK_OUT}$@ $< ${PIN_LPATHS} $(PIN_LIBS) $(DBG)
+	${PIN_LD} $(PIN_LDFLAGS) $(LINK_DEBUG) ${LINK_OUT}$@ $< ${PIN_LPATHS} $(PIN_LIBS) $(CONCURRIT_PINTOOL_LIB_FLAGS) $(DBG)
 
 $(STATIC_TOOLS): $(PIN_LIBNAMES)
 
