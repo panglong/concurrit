@@ -1,6 +1,7 @@
 #!/bin/bash
 
-PIN_ARGS="-mt 1 -inline -follow_execv -separate_memory -slow_asserts -injection child"
+PIN_ARGS="-mt 1 -inline -follow_execv -separate_memory -slow_asserts"
+#PIN_ARGS="$PIN_ARGS -injection child"
 
 PINTOOL_ARGS="-skip_int3"
 PINTOOL_ARGS="$PINTOOL_ARGS -finfile $CONCURRIT_HOME/work/finfile.txt"
