@@ -8,6 +8,10 @@
 
 #include "instrument.h"
 
+#define PRODUCER_SUM  2
+#define CONSUMER_SUM  2
+#define BUFFER_MAXSIZE 10
+
 typedef struct bounded_buf_tag
 {
   int valid;
@@ -186,8 +190,9 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
     bbuf->c_wait--;
   }
 
-#ifdef ERR1
+#if 0
   status = pthread_mutex_unlock(&bbuf->mutex);
+  usleep(1000);
   status = pthread_mutex_lock(&bbuf->mutex);
 #endif
 
@@ -244,11 +249,6 @@ int bounded_buf_is_full(bounded_buf_t* bbuf)
   status = pthread_mutex_unlock(&bbuf->mutex);  
   return (status == 0)? retval : -1;
 }
-
-
-#define PRODUCER_SUM  2
-#define CONSUMER_SUM  2
-
 
 typedef struct thread_tag
 {
@@ -324,7 +324,7 @@ int main0(int argc, char ** argv)
   int i; 
 
   bounded_buf_t buffer;
-  bounded_buf_init(&buffer, 3);
+  bounded_buf_init(&buffer, BUFFER_MAXSIZE);
 
   for (i = 0; i < PRODUCER_SUM; i++)
   {
