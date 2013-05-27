@@ -8,10 +8,6 @@
 
 #include "instrument.h"
 
-#define PRODUCER_SUM  2
-#define CONSUMER_SUM  2
-#define BUFFER_MAXSIZE 10
-
 typedef struct bounded_buf_tag
 {
   int valid;
@@ -22,7 +18,7 @@ typedef struct bounded_buf_tag
   
   size_t   item_num;
   size_t   max_size;
-  size_t   head, rear;
+  size_t   head, tail;
 
   size_t   p_wait;  // waiting producers
   size_t   c_wait;  // waiting consumers
@@ -67,7 +63,7 @@ int bounded_buf_init(bounded_buf_t * bbuf, size_t sz)
   bbuf->item_num = 0;
   bbuf->max_size = sz;
   bbuf->head = 0;
-  bbuf->rear = 0;
+  bbuf->tail = 0;
   bbuf->buf = malloc( sz * sizeof(void*) );
   if (bbuf->buf == NULL)
   {
@@ -78,7 +74,7 @@ int bounded_buf_init(bounded_buf_t * bbuf, size_t sz)
   }
 
   memset(bbuf->buf, 0, sizeof(void*) * sz );  
-  bbuf->head = bbuf->rear = 0;
+  bbuf->head = bbuf->tail = 0;
   return 0;
 }
 
@@ -102,18 +98,54 @@ int bounded_buf_destroy(bounded_buf_t * bbuf)
   status2= pthread_cond_destroy(&bbuf->not_empty);
   
   int i; 
-  if (bbuf->rear >= bbuf->head ) {
-    for (i = bbuf->head; i < bbuf->rear; i++) free(bbuf->buf[i]);
+  if (bbuf->tail >= bbuf->head ) {
+    for (i = bbuf->head; i < bbuf->tail; i++) free(bbuf->buf[i]);
   }
   else{
     for (i = bbuf->head; i < bbuf->max_size; i++) free(bbuf->buf[i]);
-    for (i = 0; i < bbuf->rear; i++) free(bbuf->buf[i]);
+    for (i = 0; i < bbuf->tail; i++) free(bbuf->buf[i]);
   }
 
   free(bbuf->buf);
   return (status != 0)? status:((status1 != 0)? status1 : status2);
 }
 
+/*
+ * true : return 1
+ * false: return 0
+ * something goes wrong: return -1
+ */
+int bounded_buf_is_empty(bounded_buf_t* bbuf)
+{
+  int status = 0, retval;
+
+  if (bbuf == NULL || bbuf->valid != BOUNDED_BUF_VALID)
+    return -1;
+
+  status = pthread_mutex_lock(&bbuf->mutex);
+  if (status != 0) return status;
+
+  retval = (bbuf->tail == bbuf->head )? 1 : 0;
+
+  status = pthread_mutex_unlock(&bbuf->mutex);
+
+  return (status == 0)? retval : -1;
+}
+
+
+int bounded_buf_is_full(bounded_buf_t* bbuf)
+{
+  int status = 0, retval;
+
+  if (bbuf == NULL || bbuf->valid != BOUNDED_BUF_VALID)  return -1;
+
+  status = pthread_mutex_lock(&bbuf->mutex);
+  if (status != 0) return status;
+
+  retval = ( (bbuf->tail + 1) % bbuf->max_size == bbuf->head )? 1 : 0;
+  status = pthread_mutex_unlock(&bbuf->mutex);
+  return (status == 0)? retval : -1;
+}
 
 void bounded_buf_putcleanup(void * arg)
 {
@@ -130,6 +162,17 @@ void bounded_buf_getcleanup(void *arg)
   pthread_mutex_unlock(&bbuf->mutex);
 }
 
+
+/******************************************************************************/
+/******************************************************************************/
+
+#define PRODUCER_SUM  2
+#define CONSUMER_SUM  2
+#define BUFFER_MAXSIZE 10
+
+/******************************************************************************/
+/******************************************************************************/
+
 int bounded_buf_put(bounded_buf_t * bbuf, void *item)
 {
   int status = 0, status1 = 0, status2 = 0;
@@ -141,11 +184,11 @@ int bounded_buf_put(bounded_buf_t * bbuf, void *item)
   if (status != 0) return status;
 
 
-  if ( (bbuf->rear + 1)% bbuf->max_size == bbuf->head )
+  if ( (bbuf->tail + 1)% bbuf->max_size == bbuf->head )
   {
     bbuf->p_wait++;
 
-    while ( (bbuf->rear + 1)% bbuf->max_size == bbuf->head ){
+    while ( (bbuf->tail + 1)% bbuf->max_size == bbuf->head ){
       status = pthread_cond_wait(&bbuf->not_full, &bbuf->mutex);
       if (status != 0) break;
     }
@@ -154,8 +197,8 @@ int bounded_buf_put(bounded_buf_t * bbuf, void *item)
   }
 
   if (status == 0){
-    bbuf->buf[bbuf->rear]= item;
-    bbuf->rear = (bbuf->rear+1)% (bbuf->max_size);
+    bbuf->buf[bbuf->tail]= item;
+    bbuf->tail = (bbuf->tail+1)% (bbuf->max_size);
     if (bbuf->c_wait > 0){
       status1 = pthread_cond_signal(&bbuf->not_empty);    
     }
@@ -164,6 +207,9 @@ int bounded_buf_put(bounded_buf_t * bbuf, void *item)
   status2 = pthread_mutex_unlock(&bbuf->mutex);
   return (status == 0)? status2 : status;
 }
+
+/******************************************************************************/
+/******************************************************************************/
 
 int bounded_buf_get(bounded_buf_t *bbuf, void **item)
 {
@@ -175,12 +221,12 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
   status = pthread_mutex_lock(&bbuf->mutex);
   if (status != 0) return status;
 
-  if (bbuf->head == bbuf->rear)
+  if (bbuf->head == bbuf->tail)
   {
     bbuf->c_wait++;
     pthread_cleanup_push(bounded_buf_getcleanup, bbuf);
 
-    while (bbuf->head == bbuf->rear)
+    while (bbuf->head == bbuf->tail)
     {
       status = pthread_cond_wait(&bbuf->not_empty, &bbuf->mutex);
       if (status != 0) break;
@@ -191,7 +237,6 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
   }
 
   status = pthread_mutex_unlock(&bbuf->mutex);
-  usleep(1000);
   status = pthread_mutex_lock(&bbuf->mutex);
 
   if (status == 0)
@@ -211,42 +256,8 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
   return status;
 }
 
-/*
- * true : return 1 
- * false: return 0
- * something goes wrong: return -1
- */
-int bounded_buf_is_empty(bounded_buf_t* bbuf)
-{
-  int status = 0, retval;
-
-  if (bbuf == NULL || bbuf->valid != BOUNDED_BUF_VALID)
-    return -1;
-  
-  status = pthread_mutex_lock(&bbuf->mutex);
-  if (status != 0) return status;
-
-  retval = (bbuf->rear == bbuf->head )? 1 : 0;
-    
-  status = pthread_mutex_unlock(&bbuf->mutex);
-  
-  return (status == 0)? retval : -1;
-}
-
-
-int bounded_buf_is_full(bounded_buf_t* bbuf)
-{
-  int status = 0, retval;
-
-  if (bbuf == NULL || bbuf->valid != BOUNDED_BUF_VALID)  return -1;
-
-  status = pthread_mutex_lock(&bbuf->mutex);
-  if (status != 0) return status;
-
-  retval = ( (bbuf->rear + 1) % bbuf->max_size == bbuf->head )? 1 : 0;
-  status = pthread_mutex_unlock(&bbuf->mutex);  
-  return (status == 0)? retval : -1;
-}
+/******************************************************************************/
+/******************************************************************************/
 
 typedef struct thread_tag
 {
@@ -278,11 +289,15 @@ void * producer_routine(void *arg)
     }
 
     fflush(stdout);
+
+    //usleep(1000);
   }    
 
   return NULL;
 }
 
+/******************************************************************************/
+/******************************************************************************/
 
 void * consumer_routine(void * arg)
 {
@@ -308,11 +323,15 @@ void * consumer_routine(void * arg)
       concurritAssert('a' <= ch && ch <= 'z');
     }   
     fflush(stdout);
+
+    //usleep(1000);
   }    
 
   return NULL;
 }
 
+/******************************************************************************/
+/******************************************************************************/
 
 static
 int main0(int argc, char ** argv)
@@ -349,4 +368,8 @@ int main0(int argc, char ** argv)
   return 0;
 }
 
+/******************************************************************************/
+/******************************************************************************/
+
 CONCURRIT_TEST_MAIN(main0)
+

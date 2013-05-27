@@ -435,7 +435,7 @@ public:
 #define TEARDOWN() 			void TearDown()
 #define TESTCASE() 			void TestCase()
 #define TEST(name) 			void TestCase_##name()
-#define CALL_TEST(name)		MYLOG(1) << "Calling testcase " #name; TestCase_##name()
+#define CALL_TEST(name)		MYLOG(1) << "Running testcase " #name; TestCase_##name()
 
 /********************************************************************************/
 
