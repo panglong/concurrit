@@ -503,7 +503,7 @@ void ExecutionTreeManager::ReleaseRef(ExecutionTree* node /*= NULL*/, int child_
 	const bool is_endnode = IS_ENDNODE(node);
 	if(is_endnode) {
 		// record stack size
-		Scenario::NotNullCurrent()->avg_counter("Stack size").increment(node_stack_.size());
+		Scenario::NotNullCurrent()->avg_counter("Search stack size").increment(node_stack_.size());
 	}
 
 	if(child_index >= 0) {

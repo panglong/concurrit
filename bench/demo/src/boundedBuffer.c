@@ -190,11 +190,9 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
     bbuf->c_wait--;
   }
 
-#if 0
   status = pthread_mutex_unlock(&bbuf->mutex);
   usleep(1000);
   status = pthread_mutex_lock(&bbuf->mutex);
-#endif
 
   if (status == 0)
   {
@@ -272,12 +270,12 @@ void * producer_routine(void *arg)
     temp = ch;
     status = bounded_buf_put(thread->bbuf, (void*)((int)temp));
     
-    if (status != 0)
+    if (status != 0) {
       fprintf(stderr, "producer %d: error_code = %d, %s\n", 
 	      thread->id, status, strerror(status));
-    else
-      fprintf(stdout, "producer %d -> %d\n", thread->id, ch); 
-      { }
+    } else {
+      fprintf(stdout, "producer %d -> %c\n", thread->id, ch);
+    }
 
     fflush(stdout);
   }    
@@ -301,13 +299,13 @@ void * consumer_routine(void * arg)
   {
     status = bounded_buf_get(thread->bbuf, &temp);
     
-    if (status != 0)
+    if (status != 0) {
       fprintf(stderr, "consumer %d: error code = %d %s\n", thread->id, 
 	      status, strerror(status));
-    else
-    {
+    } else {
       ch = (char)( (int)temp );
-      fprintf(stdout, "\t\t\tconsumer %d <- %d\n", thread->id, ch);   
+      fprintf(stdout, "\t\t\tconsumer %d <- %c\n", thread->id, ch);
+      concurritAssert('a' <= ch && ch <= 'z');
     }   
     fflush(stdout);
   }    

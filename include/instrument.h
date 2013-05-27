@@ -108,7 +108,7 @@ extern void concurritTriggerAssert(const char* expr, const char* filename, const
 
 /********************************************************************************/
 
-#define concurritAssert(b)			if(!(b)) { fprintf(stderr, "ASSERTION VIOLATION!\n"); concurritTriggerAssert(#b, __FILE__, __PRETTY_FUNCTION__, __LINE__); }
+#define concurritAssert(b)			if(!(b)) { fprintf(stderr, "\n<<<<<  ASSERTION VIOLATION  >>>>> Violated: %s\n\n", #b); fflush(stderr); concurritTriggerAssert(#b, __FILE__, __PRETTY_FUNCTION__, __LINE__); }
 
 /********************************************************************************/
 

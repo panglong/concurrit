@@ -554,6 +554,9 @@ void Scenario::RunTestCase() throw() {
 		}
 
 		MYLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
+		if(reason == TIMEOUT) {
+			fprintf(stderr, "\n\n<<<<<  TIMEOUT  >>>>>  Switching to uncontrolled mode.\n\n");
+		}
 
 	} while(exec_tree_.EndWithSuccess(&reason));
 
@@ -712,8 +715,9 @@ void Scenario::Start() {
 	counter("Num Threads").reset();
 	counter("Num Events").reset();
 
-	counter("Num Execs").increment();
-	fprintf(stderr, "\n\n\n\n\nEXPLORING EXECUTION -- %d -- \n\n\n\n\n", counter("Num Execs").value());
+	counter("Num Executions").increment();
+	fprintf(stderr, "\n\n---------------------------\n");
+	fprintf(stderr, "EXPLORING EXECUTION -- %d --\n\n", counter("Num Executions").value());
 
 	if(schedule_ == NULL) {
 		schedule_ = new Schedule();

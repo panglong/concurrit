@@ -82,7 +82,7 @@ void ForallResult::AddSchedule(Schedule* RESTRICT schedule) {
 std::string ForallResult::ToString() {
 	std::stringstream s;
 	s << SuccessResult::ToString() << "\n";
-	s << "Found " << num_all_schedules_ << " successful executions.\n";
+	// s << "Found " << num_all_schedules_ << " successful executions.\n";
 	s << statistics_.ToString() << "\n";
 
 //		s << "Found " << schedules_.size() << " coverage-increasing executions.\n";
