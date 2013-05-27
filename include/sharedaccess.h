@@ -183,14 +183,29 @@ public:
 		return (loc != NULL ? loc->ToString() : "<unknown>");
 	}
 
+	static std::string ToShortString(SourceLocation* loc) {
+		return (loc != NULL ? loc->ToShortString() : "<unknown>");
+	}
+
 	std::string ToString() {
 		if(IsUnknown()) {
 			return std::string("<unknown>");
 		} else {
-			return format_string("%s(%d:%d): %s",
+			return format_string("%s(%d:%d): %s()",
 								 filename_.c_str(),
 								 line_, column_,
 								 funcname_.c_str());
+		}
+	}
+
+	std::string ToShortString() {
+		if(IsUnknown()) {
+			return std::string("<unknown>");
+		} else {
+			return format_string("%s:%s():%d",
+								 basename(const_cast<char*>(filename_.c_str())),
+								 funcname_.c_str(),
+								 line_);
 		}
 	}
 

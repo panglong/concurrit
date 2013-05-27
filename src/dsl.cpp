@@ -259,16 +259,19 @@ void ExecutionTree::OnConsumed(Coroutine* current, int child_index /*= 0*/) {
 		MYLOG(1) << "Consumed: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 	}
 
+// Enable this code after the demo.
+#if 0
 	if(Config::SaveExecutionTraceToFile) {
 		SourceLocation* srcloc = current->srcloc();
 		FILE* trace_file = safe_notnull(Scenario::trace_file());
 		safe_assert(strlen(current->instr_callback_info()) < 256);
 		fprintf(trace_file, "C TID:%2d: [%s] -- [%s] -- [%s]\n",
 				current->tid(), static_info_->message().c_str(),
-				(srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()),
+				SourceLocation::ToString(srcloc).c_str(),
 				current->instr_callback_info());
 		fflush(trace_file);
 	}
+#endif
 }
 
 /*************************************************************************************/
@@ -300,16 +303,31 @@ void TransitionNode::OnTaken(Coroutine* current, int child_index /*= 0*/) {
 		MYLOG(2) << "Taken: [TID: " << safe_notnull(current)->tid() << "]" << " [ACTION: " << static_info_->message() << "]";
 	}
 
+// Enable this code after the demo.
+#if 0
 	if(Config::SaveExecutionTraceToFile) {
 		SourceLocation* srcloc = current->srcloc();
 		FILE* trace_file = safe_notnull(Scenario::trace_file());
 		safe_assert(strlen(current->instr_callback_info()) < 256);
 		fprintf(trace_file, "T TID:%2d: [%s] -- [%s] -- [%s]\n",
 				current->tid(), static_info_->message().c_str(),
-				(srcloc == NULL ? "<unknown>" : srcloc->ToString().c_str()),
+				SourceLocation::ToString(srcloc).c_str(),
 				current->instr_callback_info());
 		fflush(trace_file);
 	}
+#else
+	if(Config::SaveExecutionTraceToFile) {
+		SourceLocation* srcloc = current->srcloc();
+		FILE* trace_file = safe_notnull(Scenario::trace_file());
+		safe_assert(strlen(current->instr_callback_info()) < 256);
+		fprintf(trace_file, "TID:%2d: [%s] -- [%s] -- [%s]\n",
+				current->tid(),
+				SourceLocation::ToShortString(srcloc).c_str(),
+				current->instr_callback_info(),
+				static_info_->message().c_str());
+		fflush(trace_file);
+	}
+#endif
 }
 
 /*************************************************************************************/

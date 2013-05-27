@@ -54,6 +54,7 @@
 #include <sstream>
 #include <limits.h>
 #include <climits>
+#include <libgen.h>
 
 // std libraries
 #include <vector>
