@@ -237,6 +237,9 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
   }
 
   status = pthread_mutex_unlock(&bbuf->mutex);
+
+  concurritAtPc(42);
+
   status = pthread_mutex_lock(&bbuf->mutex);
 
   if (status == 0)
