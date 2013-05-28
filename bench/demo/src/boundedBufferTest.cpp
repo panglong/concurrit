@@ -24,9 +24,9 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		WAIT_FOR_DISTINCT_THREADS((C1, C2), ENTERS(consumer_routine), "Wait for 2 consumers.");
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
+		MAX_WAIT_TIME(5*USECSPERSEC);
 
-		WHILE_STAR {
+		WHILE (!ALL_ENDED(P1, P2, C1, C2)) {
 
 			TVAR(t);
 

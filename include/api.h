@@ -665,6 +665,8 @@ inline bool HAVE_ENDED(ThreadVarPtr t1,
 	return true;
 }
 
+#define ALL_ENDED		HAVE_ENDED
+
 /********************************************************************************/
 
 // wait for all threads to end

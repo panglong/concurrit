@@ -168,7 +168,7 @@ void bounded_buf_getcleanup(void *arg)
 
 #define PRODUCER_SUM  2
 #define CONSUMER_SUM  2
-#define BUFFER_MAXSIZE 10
+#define BUFFER_MAXSIZE 12
 
 /******************************************************************************/
 /******************************************************************************/

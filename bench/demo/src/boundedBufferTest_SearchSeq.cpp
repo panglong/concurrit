@@ -26,7 +26,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		MAX_WAIT_TIME(3*USECSPERSEC);
 
-		WHILE_STAR {
+		WHILE (!ALL_ENDED(P1, P2, C1, C2)) {
 
 			TVAR(t);
 
