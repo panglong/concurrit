@@ -562,7 +562,9 @@ inline TransitionPredicatePtr _HITS_PC(int pc = -1, ThreadVarPtr t = ThreadVarPt
 			&& safe_notnull(AuxState::Pc.get())->TP1(AuxState::Pc, pc, t);
 }
 
-#define HITS_PC(...)	_HITS_PC(__VA_ARGS__)
+#define HITS_PC(...)		_HITS_PC(__VA_ARGS__)
+
+#define HITS_MANUAL_PC(...)	_HITS_PC(__VA_ARGS__)
 
 /********************************************************************************/
 
@@ -665,7 +667,7 @@ inline bool HAVE_ENDED(ThreadVarPtr t1,
 	return true;
 }
 
-#define ALL_ENDED		HAVE_ENDED
+#define ALL_ENDED(...)	HAVE_ENDED(__VA_ARGS__)
 
 /********************************************************************************/
 

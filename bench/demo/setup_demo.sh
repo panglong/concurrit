@@ -19,7 +19,6 @@ alias SearchSeq='copy_finfile1 && export TEST="SearchSeq" && copy_testfile && ru
 alias SearchAll='copy_finfile1 && export TEST="SearchAll" && copy_testfile && run_test'
 alias SearchInFunc='copy_finfile2 && export TEST="SearchInFunc" && copy_testfile && run_test'
 alias SearchInFuncRefined='copy_finfile2 && export TEST="SearchInFuncRefined" && copy_testfile && run_test'
-alias SearchInLargeSteps='copy_finfile2 && export TEST="SearchInLargeSteps" && copy_testfile && run_test'
 alias BuggySchedule='copy_finfile2 && export TEST="BuggySchedule" && copy_testfile && run_test'
 
 # alias run_test_log='GLOG_v=1 run_test'

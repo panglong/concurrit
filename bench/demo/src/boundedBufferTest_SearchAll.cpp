@@ -24,7 +24,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		WAIT_FOR_DISTINCT_THREADS((C1, C2), ENTERS(consumer_routine), "Wait for 2 consumers.");
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
+		MAX_WAIT_TIME(USECSPERSEC);
 
 		WHILE (!ALL_ENDED(P1, P2, C1, C2)) {
 
@@ -32,7 +32,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 			CHOOSE_THREAD_BACKTRACK(t, (P1, P2, C1, C2), PTRUE, "Select a thread to execute.");
 
-			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || HITS_PC() || ENDS(), "Run t until any event.");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || RETURNS(), "Run t until any event.");
 		}
 	}
 

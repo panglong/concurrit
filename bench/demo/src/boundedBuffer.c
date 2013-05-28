@@ -293,7 +293,7 @@ void * producer_routine(void *arg)
 
     fflush(stdout);
 
-    //usleep(1000);
+    usleep(1000);
   }    
 
   return NULL;
@@ -327,7 +327,7 @@ void * consumer_routine(void * arg)
     }   
     fflush(stdout);
 
-    //usleep(1000);
+    usleep(1000);
   }    
 
   return NULL;
