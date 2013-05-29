@@ -177,11 +177,14 @@ int bounded_buf_put(bounded_buf_t * bbuf, void *item)
 {
   int status = 0, status1 = 0, status2 = 0;
   
+  concurritFuncEnter(bounded_buf_put, bbuf, item); // <<<<<<<<<<<<<<
+
   if (bbuf == NULL || bbuf->valid != BOUNDED_BUF_VALID)
     return EINVAL;
 
   status = pthread_mutex_lock(&bbuf->mutex);
   if (status != 0) return status;
+
 
   if ( (bbuf->tail + 1)% bbuf->max_size == bbuf->head )
   {
@@ -207,6 +210,8 @@ int bounded_buf_put(bounded_buf_t * bbuf, void *item)
 
   status = (status == 0)? status2 : status;
 
+  concurritFuncReturn(bounded_buf_put, status); // <<<<<<<<<<<<<<
+
   return status;
 }
 
@@ -217,6 +222,8 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
 {
   int status = 0,status1 = 0, status2 = 0;
   
+  concurritFuncEnter(bounded_buf_get, bbuf, item); // <<<<<<<<<<<<<<
+
   if (bbuf == NULL || item == NULL || bbuf->valid != BOUNDED_BUF_VALID)
     return EINVAL;
 
@@ -257,6 +264,8 @@ int bounded_buf_get(bounded_buf_t *bbuf, void **item)
   status2 = pthread_mutex_unlock(&bbuf->mutex);
 
   status = (status != 0)? status : (status1 != 0)? status1 : status2;
+
+  concurritFuncReturn(bounded_buf_get, status); // <<<<<<<<<<<<<<
 
   return status;
 }
