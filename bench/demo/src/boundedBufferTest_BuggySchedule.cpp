@@ -25,7 +25,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 		RUN_THREAD_THROUGH(P1, RETURNS(bounded_buf_put), "Producer inserts an item.");
 
-		RUN_THREAD_THROUGH(C1, HITS_PC(42), "First consumer runs first phase.");
+		RUN_THREAD_THROUGH(C1, HITS_MANUAL_PC(42), "First consumer runs first phase.");
 
 		RUN_THREAD_THROUGH(C2, RETURNS(bounded_buf_get), "Second consumer removes the item.");
 

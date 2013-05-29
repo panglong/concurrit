@@ -34,7 +34,3 @@ alias SearchAll='copy_finfile1 && export TEST="SearchAll" && copy_testfile && ru
 alias SearchInFunc='copy_finfile2 && export TEST="SearchInFunc" && copy_testfile && run_test -p0'
 alias SearchInFuncRefined='copy_finfile2 && export TEST="SearchInFuncRefined" && copy_testfile && run_test -p0'
 alias BuggySchedule='copy_finfile2 && export TEST="BuggySchedule" && copy_testfile && run_test -p0'
-
-# alias run_test_log='GLOG_v=1 run_test'
-
-# alias run_test_no_pin='run_test -p0 -m1'

@@ -1,2 +1,2 @@
-#bounded_buf_get
-#bounded_buf_put
+bounded_buf_get
+bounded_buf_put
