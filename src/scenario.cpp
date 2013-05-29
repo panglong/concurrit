@@ -555,7 +555,7 @@ void Scenario::RunTestCase() throw() {
 
 		MYLOG(1) << "Test script ended with backtrack: " << BacktrackException::ReasonToString(reason);
 		if(reason == TIMEOUT) {
-			fprintf(stderr, "\n\n<<<<<  Infeasible path -- Running SUT in uncontrolled mode.  >>>>>\n\n");
+			MYLOG(1) << "\n\n<<<<<  Infeasible path -- Running SUT in uncontrolled mode.  >>>>>\n\n";
 		}
 
 	} while(exec_tree_.EndWithSuccess(&reason));

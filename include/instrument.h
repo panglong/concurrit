@@ -87,6 +87,7 @@ extern void concurritTriggerAssert(const char* expr, const char* filename, const
 #define concurritEndInstrument()		concurritEndInstrumentEx(__FILE__, __PRETTY_FUNCTION__, __LINE__)
 
 #define concurritAtPc(c)				concurritAtPcEx((c), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define concurritAtVirtualPc(c)			concurritAtPcEx((c), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
 #define concurritFuncEnter(a, b, c)		concurritFuncEnterEx((void*)(a), (uintptr_t)(b), (uintptr_t)(c), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define concurritFuncReturn(a, b)		concurritFuncReturnEx((void*)(a), (uintptr_t)(b), __FILE__, __PRETTY_FUNCTION__, __LINE__)
