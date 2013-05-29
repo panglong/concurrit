@@ -32,7 +32,7 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 
 			CHOOSE_THREAD_BACKTRACK(t, (P1, P2, C1, C2), PTRUE, "Select a thread to execute.");
 
-			RUN_THREAD_THROUGH(t, READS() || WRITES() || CALLS() || RETURNS() || ENDS(), "Run t until any event.");
+			RUN_THREAD_THROUGH(t, READS() || WRITES() || ENTERS() || RETURNS() || ENDS(), "Run t until any event.");
 		}
 	}
 

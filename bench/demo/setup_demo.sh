@@ -8,7 +8,7 @@ alias compile_demo='$CONCURRIT_HOME/scripts/compile_bench.sh demo'
 alias run_demo='$CONCURRIT_HOME/scripts/run_bench.sh demo -u'
 
 # Run SUT controlled by the test.
-alias run_test='$CONCURRIT_HOME/scripts/run_bench.sh demo -c -s -t'
+alias run_test='$CONCURRIT_HOME/scripts/run_bench.sh demo -c -s -t -m'
 
 alias show_trace='emacs $CONCURRIT_HOME/work/trace.txt'
 alias show_demo='emacs $CONCURRIT_HOME/bench/demo/src/boundedBuffer.c'
@@ -32,8 +32,8 @@ alias copy_testfile='cp -f $CONCURRIT_HOME/bench/demo/src/boundedBufferTest_${TE
 alias SearchSeq='copy_finfile1 && export TEST="SearchSeq" && copy_testfile && run_test'
 alias SearchAll='copy_finfile1 && export TEST="SearchAll" && copy_testfile && run_test'
 alias SearchInFunc='copy_finfile2 && export TEST="SearchInFunc" && copy_testfile && run_test -p0'
-alias SearchInFuncRefined='copy_finfile2 && export TEST="SearchInFuncRefined" && copy_testfile && run_test'
-alias BuggySchedule='copy_finfile2 && export TEST="BuggySchedule" && copy_testfile && run_test'
+alias SearchInFuncRefined='copy_finfile2 && export TEST="SearchInFuncRefined" && copy_testfile && run_test -p0'
+alias BuggySchedule='copy_finfile2 && export TEST="BuggySchedule" && copy_testfile && run_test -p0'
 
 # alias run_test_log='GLOG_v=1 run_test'
 
