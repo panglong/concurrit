@@ -16,24 +16,22 @@ CONCURRIT_BEGIN_TEST(BBScenario, "Bounded buffer scenario")
 		FUNCT(bounded_buf_put);
 
 		TVAR(P1);
-		TVAR(P2);
 		TVAR(C1);
 		TVAR(C2);
 
-		WAIT_FOR_DISTINCT_THREADS((P1, P2), ENTERS(bounded_buf_put), "Wait for 2 producers.");
+		WAIT_FOR_THREAD(P1, ENTERS(bounded_buf_put), "Wait for a producer.");
 
 		WAIT_FOR_DISTINCT_THREADS((C1, C2), ENTERS(bounded_buf_get), "Wait for 2 consumers.");
 
-		MAX_WAIT_TIME(3*USECSPERSEC);
+		RUN_THREAD_THROUGH(P1, RETURNS(bounded_buf_put), "Producer inserts an item.");
 
-		WHILE (!ALL_ENDED(P1, P2, C1, C2)) {
+		RUN_THREAD_THROUGH(C1, HITS_MANUAL_PC(42), "First consumer runs first phase.");
 
-			TVAR(t);
+		RUN_THREAD_THROUGH(C2, RETURNS(bounded_buf_get), "Second consumer removes the item.");
 
-			CHOOSE_THREAD_BACKTRACK(t, (P1, P2, C1, C2), PTRUE, "Select a thread to execute.");
+		// ERROR!
+		RUN_THREAD_THROUGH(C1, ENDS(), "First consumer runs the second phase.");
 
-			RUN_THREAD_THROUGH(t, ENTERS() || RETURNS() || HITS_MANUAL_PC() || ENDS(), "Run t until any event.");
-		}
 	}
 
 CONCURRIT_END_TEST(BBScenario)
